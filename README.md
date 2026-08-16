@@ -100,10 +100,11 @@ privacy guardrails.
 
 ## Licensing
 
-Model provenance and licence terms are carried per pack and rendered in-app; CI fails the build on
-incomplete attribution. Third-party models arrive under their own licences (the Alberta 3D Heart
-Library is CC BY-NC 4.0), and the non-commercial red lines in `docs/build_plan.md` bind the product.
+**Code:** [GNU AGPL-3.0-only](LICENSE). Copyright (C) 2026 the Cardiology app project contributors.
+Anyone who distributes or hosts a modified version must publish their source under the same terms.
 
-> **Open item for the repository owner:** this repository has no code `LICENSE` file yet. Wave 0
-> deliberately did not choose one — it is a decision for the owner, not the build worker. Until one
-> is added, the code is under default copyright.
+**Content is licensed separately and the code licence does not touch it.** Model provenance and
+licence terms are carried per pack and rendered in-app; CI fails the build on incomplete attribution.
+Third-party models arrive under their own licences (the Alberta 3D Heart Library is CC BY-NC 4.0),
+and the non-commercial red lines in `docs/build_plan.md` bind the product. A permissive code licence
+would not have loosened those, and the AGPL does not tighten them — the two layers are independent.
