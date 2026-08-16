@@ -39,6 +39,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Every other check builds at `/`; Pages builds at `/<repository-name>/`.
+      # Without this step a hardcoded root-absolute URL would only surface on
+      # the deployed site, after a merge to `main`.
+      - name: Production base path
+        run: npm run check:base-path
+
   packs:
     name: Pack schema and provenance
     runs-on: ubuntu-latest
@@ -100,9 +106,11 @@ jobs:
       # screenshot comparison skips itself (see playwright.config.ts). This
       # publishes Linux references generated on demand, so wave 1 can commit a
       # set that was produced by the same runner image that will check it.
+      # No `|| true`: a partial or failed seed must not be uploaded as if it
+      # were a usable baseline set.
       - name: Seed Linux screenshot baselines (manual runs only)
         if: github.event_name == 'workflow_dispatch'
-        run: npm run test:visual:update || true
+        run: npm run test:visual:update
 
       - name: Upload generated baselines
         if: github.event_name == 'workflow_dispatch'
@@ -128,9 +136,18 @@ jobs:
 
           # docs/ arrives once, from the planning session, and is never touched
           # again by a worker. Until it exists on the base commit, this is that
-          # initial sync and the guard stands down.
+          # initial sync and the guard stands down — but only for ADDITIONS.
+          # A stand-down that lasted the whole life of the sync pull request
+          # would let a later commit on the same branch edit the freshly synced
+          # copies with the guard still green.
           if ! git cat-file -e "$base:docs" 2>/dev/null; then
-            echo "docs/ does not exist on the base commit — treating this as the initial sync."
+            if git log --diff-filter=MDR --format=%H "$base"..HEAD -- docs/ | grep -q .; then
+              echo "::error::This pull request modifies or deletes docs/ content it also introduces."
+              echo "The initial sync may only ADD the privacy-scrubbed copies."
+              git --no-pager log --diff-filter=MDR --oneline "$base"..HEAD -- docs/
+              exit 1
+            fi
+            echo "docs/ does not exist on the base commit — initial sync, additions only."
             exit 0
           fi
 

@@ -11,9 +11,19 @@ export interface DiscoveredPack {
   id: string;
   dir: string;
   jsonPath: string;
+  /** `null` when the pack could not be read; `problem` then says why. */
   raw: unknown;
+  /** A readable reason this pack could not be loaded, or `null`. */
+  problem: string | null;
 }
 
+/**
+ * Collect every pack directory, including broken ones.
+ *
+ * A missing or malformed `pack.json` is reported as a `problem` on the entry
+ * rather than thrown, so the caller prints one clean failure line per pack
+ * instead of aborting the whole run with a stack trace on the first bad pack.
+ */
 export function discoverPacks(): DiscoveredPack[] {
   if (!existsSync(packsRoot)) return [];
 
@@ -23,10 +33,27 @@ export function discoverPacks(): DiscoveredPack[] {
     .map((id) => {
       const dir = join(packsRoot, id);
       const jsonPath = join(dir, 'pack.json');
+
       if (!existsSync(jsonPath)) {
-        throw new Error(`pack directory "${id}" has no pack.json`);
+        return { id, dir, jsonPath, raw: null, problem: 'pack directory has no pack.json' };
       }
-      return { id, dir, jsonPath, raw: JSON.parse(readFileSync(jsonPath, 'utf8')) as unknown };
+      try {
+        return {
+          id,
+          dir,
+          jsonPath,
+          raw: JSON.parse(readFileSync(jsonPath, 'utf8')) as unknown,
+          problem: null,
+        };
+      } catch (cause) {
+        return {
+          id,
+          dir,
+          jsonPath,
+          raw: null,
+          problem: `pack.json is not valid JSON: ${(cause as Error).message}`,
+        };
+      }
     });
 }
 

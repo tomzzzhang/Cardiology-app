@@ -27,10 +27,28 @@ export const UnitVec3 = Vec3.refine((v) => Math.abs(length3(v) - 1) <= UNIT_TOLE
   message: `vector must be unit length (tolerance ${UNIT_TOLERANCE})`,
 });
 
-/** `YYYY-MM-DD`. Dates are authored, not generated, so the calendar day is enough. */
+/**
+ * `YYYY-MM-DD`. Dates are authored, not generated, so the calendar day is enough.
+ *
+ * The shape check alone would admit `2026-13-45`, so the day is also required to
+ * survive a round trip through the calendar — a provenance date that does not
+ * exist is a data error, not a formatting one.
+ */
 export const IsoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO calendar date, YYYY-MM-DD');
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected an ISO calendar date, YYYY-MM-DD')
+  .refine(
+    (value) => {
+      const [year, month, day] = value.split('-').map(Number);
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+      return (
+        parsed.getUTCFullYear() === year &&
+        parsed.getUTCMonth() === month - 1 &&
+        parsed.getUTCDate() === day
+      );
+    },
+    { message: 'expected a real calendar date' },
+  );
 
 /**
  * Absolute `http(s)` URL. Validated with the platform URL parser rather than a
@@ -48,16 +66,61 @@ export const HttpUrl = z.string().refine(
   { message: 'expected an absolute http(s) URL' },
 );
 
-/** Pack-relative asset path. Absolute URLs and parent traversal are rejected. */
-export const AssetPath = z
-  .string()
-  .min(1)
-  .refine((value) => !value.startsWith('/') && !value.includes('://'), {
-    message: 'asset paths are resolved relative to the pack directory',
-  })
-  .refine((value) => !value.split('/').includes('..'), {
-    message: 'asset paths must not traverse outside the pack directory',
-  });
+/**
+ * Reasons a candidate asset path is not pack-relative, or `null` if it is.
+ *
+ * Exported so the adversarial tests can assert on the specific reason rather
+ * than merely that something was refused.
+ *
+ * Assets resolve through the WHATWG URL parser (`resolveAsset`), which treats
+ * backslashes as separators and decodes percent-encoding — so a literal `..`
+ * check alone does not deliver the invariant this schema and
+ * `contracts/pack-loader.md` both state. Every form that the parser could turn
+ * into a separator or a dot segment is refused here, and the check runs on the
+ * percent-decoded string so an encoded traversal cannot slip past.
+ */
+export function assetPathProblem(value: string): string | null {
+  if (value.length === 0) return 'asset path must not be empty';
+  if (value.includes('\\')) {
+    return 'asset paths must use "/" separators; "\\" is a separator to the URL parser';
+  }
+  if (value.includes('?') || value.includes('#')) {
+    return 'asset paths must not carry a query or fragment';
+  }
+
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return 'asset path is not valid percent-encoding';
+  }
+  if (decoded.includes('\\')) {
+    return 'asset paths must not encode "\\" separators';
+  }
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(decoded)) {
+    return 'asset paths must not carry a scheme or drive prefix';
+  }
+  if (decoded.startsWith('/')) {
+    return 'asset paths are resolved relative to the pack directory';
+  }
+
+  const segments = decoded.split('/');
+  if (segments.some((segment) => segment.length === 0)) {
+    return 'asset paths must not contain empty segments';
+  }
+  if (segments.some((segment) => segment === '.' || segment === '..')) {
+    return 'asset paths must not traverse outside the pack directory';
+  }
+  return null;
+}
+
+/** Pack-relative asset path. Absolute URLs, schemes, and any traversal form are rejected. */
+export const AssetPath = z.string().superRefine((value, ctx) => {
+  const problem = assetPathProblem(value);
+  if (problem !== null) {
+    ctx.addIssue({ code: 'custom', message: problem });
+  }
+});
 
 /** Stable identifier used for structures, views, and labels. */
 export const Slug = z

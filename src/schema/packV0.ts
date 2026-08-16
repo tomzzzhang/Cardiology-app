@@ -24,9 +24,11 @@ import {
   IsoDate,
   ORTHOGONAL_TOLERANCE,
   Slug,
+  UNIT_TOLERANCE,
   UnitVec3,
   Vec3,
   dot3,
+  length3,
 } from './primitives.ts';
 
 /** Packs declaring any other value are rejected outright rather than coerced. */
@@ -113,6 +115,64 @@ export type Provenance = z.infer<typeof Provenance>;
 /* -------------------------------------------------------------------------- */
 
 export const Axis = z.enum(['+x', '-x', '+y', '-y', '+z', '-z']);
+export type Axis = z.infer<typeof Axis>;
+
+const AXIS_VECTORS: Record<Axis, Vec3> = {
+  '+x': [1, 0, 0],
+  '-x': [-1, 0, 0],
+  '+y': [0, 1, 0],
+  '-y': [0, -1, 0],
+  '+z': [0, 0, 1],
+  '-z': [0, 0, -1],
+};
+
+function cross3(a: Vec3, b: Vec3): Vec3 {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+export interface OrientationConvention {
+  up: Axis;
+  anterior: Axis;
+  patient_left: Axis;
+  handedness: 'right' | 'left';
+}
+
+/**
+ * Reasons an orientation block is not a coherent frame, or `null` if it is.
+ *
+ * `docs/build_plan.md` requires meshes to declare an "orientation convention".
+ * Naming the same axis for two anatomical directions, or declaring a handedness
+ * the axes contradict, is not a convention — it is data that cannot be acted on,
+ * and the viewer would silently build a degenerate basis from it.
+ *
+ * Handedness is evaluated in the ordering `(patient_left, up, anterior)` mapped
+ * to `(x, y, z)`. That ordering is not chosen here: it is the one under which
+ * the shipped pack's declared `handedness` is true, and it matches the
+ * right-handed Y-up convention of glTF and three.js. If the planning session
+ * intends a different ordering, this is a one-line change.
+ */
+export function orientationProblem(orientation: OrientationConvention): string | null {
+  const letters = [orientation.patient_left, orientation.up, orientation.anterior].map(
+    (axis) => axis[1],
+  );
+  if (new Set(letters).size !== 3) {
+    return 'up, anterior, and patient_left must map to three distinct axes';
+  }
+
+  const determinant = dot3(
+    AXIS_VECTORS[orientation.patient_left],
+    cross3(AXIS_VECTORS[orientation.up], AXIS_VECTORS[orientation.anterior]),
+  );
+  const expected = orientation.handedness === 'right' ? 1 : -1;
+  if (determinant !== expected) {
+    return `declared handedness "${orientation.handedness}" contradicts the axis mapping`;
+  }
+  return null;
+}
 
 export const Structure = z.strictObject({
   id: Slug,
@@ -142,12 +202,19 @@ export const Meshes = z.strictObject({
     scale: z.number().positive(),
   }),
   units: z.enum(['mm', 'cm', 'm']),
-  orientation: z.strictObject({
-    up: Axis,
-    anterior: Axis,
-    patient_left: Axis,
-    handedness: z.enum(['right', 'left']),
-  }),
+  orientation: z
+    .strictObject({
+      up: Axis,
+      anterior: Axis,
+      patient_left: Axis,
+      handedness: z.enum(['right', 'left']),
+    })
+    .superRefine((orientation, ctx) => {
+      const problem = orientationProblem(orientation);
+      if (problem !== null) {
+        ctx.addIssue({ code: 'custom', message: problem });
+      }
+    }),
 });
 export type Meshes = z.infer<typeof Meshes>;
 
@@ -176,12 +243,48 @@ export const FreeCutState = z.strictObject({
 });
 export type FreeCutState = z.infer<typeof FreeCutState>;
 
-export const CameraState = z.strictObject({
-  position: Vec3,
-  target: Vec3,
-  up: UnitVec3,
-  fov_deg: z.number().positive().max(179),
-});
+/**
+ * A camera whose position equals its target has no view direction, and an `up`
+ * parallel to that direction yields no basis — `lookAt` produces NaNs from
+ * either. Both are refused so a pack cannot seed the viewer with a camera that
+ * cannot be built.
+ */
+export const CameraState = z
+  .strictObject({
+    position: Vec3,
+    target: Vec3,
+    up: UnitVec3,
+    fov_deg: z.number().positive().max(179),
+  })
+  .superRefine((camera, ctx) => {
+    const direction: Vec3 = [
+      camera.target[0] - camera.position[0],
+      camera.target[1] - camera.position[1],
+      camera.target[2] - camera.position[2],
+    ];
+    const distance = length3(direction);
+    if (distance <= UNIT_TOLERANCE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['target'],
+        message: 'camera target must differ from its position',
+      });
+      return;
+    }
+
+    const normalized: Vec3 = [
+      direction[0] / distance,
+      direction[1] / distance,
+      direction[2] / distance,
+    ];
+    if (Math.abs(dot3(camera.up, normalized)) >= 1 - ORTHOGONAL_TOLERANCE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['up'],
+        message: 'camera up must not be parallel to the view direction',
+      });
+    }
+  });
 export type CameraState = z.infer<typeof CameraState>;
 
 /**

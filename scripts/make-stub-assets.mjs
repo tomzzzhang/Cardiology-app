@@ -177,22 +177,33 @@ const gltf = {
 /* -------------------------------------------------------------------------- */
 
 /**
- * 32^3 `raw-u8` label volume matching the two boxes above.
- * 0 = background, 1 = stub_shell, 2 = stub_core.
+ * 32^3 `raw-u8` label volume covering the same [-1, 1]^3 model bounds as the
+ * meshes above, sampled at voxel centres.
+ *
+ * Labels: 0 = background (reserved, never declared in `echo_volume.labels`),
+ * 1 = stub_shell, 2 = stub_core.
+ *
+ * The label extents are deliberately NOT identical to the mesh extents. The
+ * core label matches its mesh at Chebyshev radius 0.4, but the shell label stops
+ * at 0.9 while the shell mesh reaches 1.0, so the volume retains a rim of
+ * background voxels. A fixture with no background at all could not exercise the
+ * reserved-background rule that `checkRawVolume` enforces.
  */
+const SHELL_LABEL_EXTENT = 0.9;
+const CORE_LABEL_EXTENT = 0.4;
 const RESOLUTION = 32;
 const volume = Buffer.alloc(RESOLUTION ** 3);
 for (let z = 0; z < RESOLUTION; z += 1) {
   for (let y = 0; y < RESOLUTION; y += 1) {
     for (let x = 0; x < RESOLUTION; x += 1) {
-      // Voxel centre in model space, where the shell spans [-1, 1].
+      // Voxel centre in model space, where the shell mesh spans [-1, 1].
       const nx = ((x + 0.5) / RESOLUTION) * 2 - 1;
       const ny = ((y + 0.5) / RESOLUTION) * 2 - 1;
       const nz = ((z + 0.5) / RESOLUTION) * 2 - 1;
       const chebyshev = Math.max(Math.abs(nx), Math.abs(ny), Math.abs(nz));
       let label = 0;
-      if (chebyshev <= 0.4) label = 2;
-      else if (chebyshev <= 0.9) label = 1;
+      if (chebyshev <= CORE_LABEL_EXTENT) label = 2;
+      else if (chebyshev <= SHELL_LABEL_EXTENT) label = 1;
       volume[x + RESOLUTION * (y + RESOLUTION * z)] = label;
     }
   }

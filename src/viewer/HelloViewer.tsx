@@ -9,8 +9,15 @@
  * plane-normal depth control, touch controls, and the copy-only
  * "Align free cut to echo view" bridge — is wave 1c, specified in
  * `contracts/viewer-core.md`. None of it is implemented or stubbed here.
+ *
+ * WebGL may be unavailable — a hospital desktop with GPU acceleration disabled
+ * is a first-class target (`docs/build_plan.md` "Stack"), and there the context
+ * request is refused. `THREE.WebGLRenderer` throws in that case, so the failure
+ * is caught here and reported inside the viewer region. It must never take down
+ * the surrounding shell: the pack status and the "simulated, not diagnostic"
+ * disclaimer have to stay on screen.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 /** `?freeze=1` stops the animation so visual-regression screenshots are stable. */
@@ -22,10 +29,24 @@ function prefersStaticFrame(): boolean {
 
 export default function HelloViewer() {
   const hostRef = useRef<HTMLDivElement>(null);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    } catch (cause) {
+      // Report and stop. Everything outside the viewer region stays mounted.
+      console.warn('3D viewer unavailable: WebGL context creation failed.', cause);
+      setUnavailable(true);
+      host.dataset.viewerStatus = 'webgl-unavailable';
+      return () => {
+        delete host.dataset.viewerStatus;
+      };
+    }
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0d1117);
@@ -34,7 +55,6 @@ export default function HelloViewer() {
     camera.position.set(2.6, 1.8, 3.2);
     camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(renderer.domElement);
@@ -90,11 +110,13 @@ export default function HelloViewer() {
     }
 
     host.dataset.viewerReady = 'true';
+    host.dataset.viewerStatus = 'ok';
 
     return () => {
       if (frame !== 0) cancelAnimationFrame(frame);
       observer.disconnect();
       delete host.dataset.viewerReady;
+      delete host.dataset.viewerStatus;
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
           object.geometry.dispose();
@@ -108,5 +130,23 @@ export default function HelloViewer() {
     };
   }, []);
 
-  return <div className="viewer" ref={hostRef} data-testid="viewer" role="img" aria-label="Hello-world three.js scene" />;
+  return (
+    <div
+      className={unavailable ? 'viewer viewer--unavailable' : 'viewer'}
+      ref={hostRef}
+      data-testid="viewer"
+      // `role="img"` hides descendants from assistive technology, so it applies
+      // only while the canvas is the content. The fallback must be readable.
+      role={unavailable ? undefined : 'img'}
+      aria-label={unavailable ? undefined : 'Hello-world three.js scene'}
+    >
+      {unavailable && (
+        <p className="viewer__message" data-testid="viewer-unavailable">
+          The 3D viewer needs WebGL, which this browser did not provide. Everything else on this
+          page still works. Enabling hardware acceleration, or opening the page in another browser,
+          usually restores it.
+        </p>
+      )}
+    </div>
+  );
 }

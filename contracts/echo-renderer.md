@@ -23,9 +23,13 @@ volume; accumulate Beer-Lambert attenuation (acoustic shadowing, distal dropout)
 
 ```
 echo = scatterer_amplitude(seeded) × PSF(depth, lateral)
-     + specular(beam · normal at label boundaries)
+                                   × specular(beam · normal at label boundaries)
      + boundary_reflection
 ```
+
+The specular term **multiplies**; only `boundary_reflection` is added. This is the form
+`docs/build_plan.md` specifies, and it is the binding one — an earlier revision of this contract
+transcribed the specular term as an addition, which would have changed the model Wave 1b implements.
 
 **Post:** TGC, log compression + dynamic range, polar→Cartesian scan-conversion LUT, sector mask,
 subtle near-field clutter.

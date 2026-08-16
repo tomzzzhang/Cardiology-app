@@ -17,6 +17,7 @@
     "test:visual:update": "playwright test --update-snapshots",
     "validate:packs": "tsx scripts/validate-packs.ts",
     "check:provenance": "tsx scripts/check-provenance.ts",
+    "check:base-path": "tsx scripts/check-base-path.ts",
     "gen:stub-assets": "node scripts/make-stub-assets.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run validate:packs && npm run check:provenance"
   },

@@ -20,8 +20,7 @@
 import { validatePack } from '../src/schema/validate.ts';
 import type { Provenance } from '../src/schema/packV0.ts';
 import { discoverPacks, relativeToRepo } from './lib/discoverPacks.ts';
-
-const PLACEHOLDERS = ['tbd', 'todo', 'fixme', 'unknown', 'n/a', 'na', 'xxx', 'placeholder', '???'];
+import { isPlaceholder } from './lib/placeholders.ts';
 
 const failures: string[] = [];
 
@@ -41,7 +40,7 @@ function checkProvenance(where: string, provenance: Provenance): void {
       fail(`${field} is empty`);
       continue;
     }
-    if (PLACEHOLDERS.includes(value.trim().toLowerCase())) {
+    if (isPlaceholder(value)) {
       fail(`${field} is a placeholder ("${value}")`);
     }
   }
@@ -76,6 +75,11 @@ if (packs.length === 0) {
 
 for (const found of packs) {
   const label = relativeToRepo(found.jsonPath);
+  if (found.problem !== null) {
+    failures.push(`${label}: ${found.problem}`);
+    continue;
+  }
+
   const result = validatePack(found.raw);
   if (!result.ok) {
     failures.push(`${label}: does not validate against schema v0; run "npm run validate:packs"`);

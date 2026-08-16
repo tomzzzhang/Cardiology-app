@@ -92,9 +92,11 @@ updated and pushed before handback. Workers never change the schema or the contr
 changes route through the planning session via the
 [contract-change issue template](.github/ISSUE_TEMPLATE/contract-or-schema-change.yml).
 
-No personal names, program names, availability details, or machine-specific absolute paths belong in
-this repository. Vetter names are consent-gated; role labels are used until consent is recorded. CI
-enforces the path and privacy guardrails.
+No personal names, collaborator institution or program affiliations, availability details, or
+machine-specific absolute paths belong in this repository. Vetter names are consent-gated; role
+labels are used until consent is recorded. Crediting a third party whose model a licence requires you
+to credit is a different thing and stays required — see **Licensing**. CI enforces the path and
+privacy guardrails.
 
 ## Licensing
 

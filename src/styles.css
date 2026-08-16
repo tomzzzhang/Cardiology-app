@@ -59,6 +59,22 @@ body {
   height: 100%;
 }
 
+.viewer--unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--surface);
+}
+
+.viewer__message {
+  margin: 0;
+  max-width: 34rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .panel {
   border: 1px solid var(--border);
   border-radius: 0.75rem;

@@ -45,7 +45,11 @@ export function readSchemaVersion(value: unknown): string | null {
   const meta = (value as { meta?: unknown }).meta;
   if (typeof meta !== 'object' || meta === null) return null;
   const version = (meta as { schema_version?: unknown }).schema_version;
-  return typeof version === 'string' ? version : null;
+  if (typeof version === 'string') return version;
+  // A pack that writes `0` or `1` unquoted still declared a version. Report it
+  // so the caller refuses with a version message rather than a shape-error wall.
+  if (typeof version === 'number' && Number.isFinite(version)) return String(version);
+  return null;
 }
 
 export function formatIssues(issues: PackIssue[]): string {

@@ -3,17 +3,22 @@
  *
  *   npm run validate:packs
  *
- * Also checks that referenced assets exist on disk and that the declared
- * `echo_volume` resolution matches the size of a `raw-u8` asset — a mismatch
- * there is invisible to the schema but fatal to the renderer.
+ * Beyond the schema, this checks asset *semantics*: referenced files exist,
+ * every `mesh_node` resolves to a named node inside the glTF, the glTF's own
+ * external resources are embedded or present, and a `raw-u8` volume matches its
+ * declared resolution and declares every voxel value it contains. A pack that
+ * passes a reference-only check can still fail, or silently mislabel, at
+ * runtime.
  */
-import { existsSync, statSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { SCHEMA_VERSION } from '../src/schema/packV0.ts';
 import { formatIssues, readSchemaVersion, validatePack } from '../src/schema/validate.ts';
 import { discoverPacks, relativeToRepo } from './lib/discoverPacks.ts';
+import { checkGltfReferences, checkRawVolume } from './lib/packAssets.ts';
 
 const failures: string[] = [];
+const notes: string[] = [];
 
 const packs = discoverPacks();
 if (packs.length === 0) {
@@ -23,6 +28,11 @@ if (packs.length === 0) {
 
 for (const found of packs) {
   const label = relativeToRepo(found.jsonPath);
+
+  if (found.problem !== null) {
+    failures.push(`${label}: ${found.problem}`);
+    continue;
+  }
 
   const declared = readSchemaVersion(found.raw);
   if (declared !== SCHEMA_VERSION) {
@@ -37,27 +47,31 @@ for (const found of packs) {
   }
 
   const { pack } = result;
-  const assets: string[] = [pack.meshes.gltf, pack.echo_volume.asset];
-  for (const asset of assets) {
-    const assetPath = join(found.dir, asset);
-    if (!existsSync(assetPath)) {
+  for (const asset of [pack.meshes.gltf, pack.echo_volume.asset]) {
+    if (!existsSync(join(found.dir, asset))) {
       failures.push(`${label}: referenced asset "${asset}" does not exist`);
     }
   }
 
+  const gltf = checkGltfReferences(
+    join(found.dir, pack.meshes.gltf),
+    pack.meshes.structures.map((structure) => structure.mesh_node),
+  );
+  failures.push(...gltf.failures.map((failure) => `${label}: ${failure}`));
+  notes.push(...gltf.skipped.map((skip) => `${label}: ${skip}`));
+
   if (pack.echo_volume.format === 'raw-u8') {
-    const assetPath = join(found.dir, pack.echo_volume.asset);
-    if (existsSync(assetPath)) {
-      const [x, y, z] = pack.echo_volume.resolution;
-      const expected = x * y * z;
-      const actual = statSync(assetPath).size;
-      if (actual !== expected) {
-        failures.push(
-          `${label}: echo_volume "${pack.echo_volume.asset}" is ${actual} B; ` +
-            `resolution ${x}x${y}x${z} implies ${expected} B`,
-        );
-      }
-    }
+    const volume = checkRawVolume(
+      join(found.dir, pack.echo_volume.asset),
+      pack.echo_volume.resolution,
+      pack.echo_volume.labels.map((entry) => entry.id),
+    );
+    failures.push(...volume.failures.map((failure) => `${label}: ${failure}`));
+    notes.push(...volume.skipped.map((skip) => `${label}: ${skip}`));
+  } else {
+    notes.push(
+      `${label}: echo_volume format "${pack.echo_volume.format}" — contents not inspected in wave 0`,
+    );
   }
 
   console.log(
@@ -65,6 +79,8 @@ for (const found of packs) {
       `${pack.meshes.structures.length} structures, ${pack.views.length} views)`,
   );
 }
+
+for (const note of notes) console.log(`note  ${note}`);
 
 if (failures.length > 0) {
   console.error(`\n${failures.length} pack validation failure(s):\n`);

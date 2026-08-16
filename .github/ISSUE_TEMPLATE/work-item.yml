@@ -26,9 +26,11 @@ body:
     attributes:
       label: Handoff file
       description: >-
-        The one handoff file this work item owns, `handoffs/<issue-number>-<slug>.md`. The worker
-        updates this file and no other. Read `handoffs/README.md` before starting.
-      placeholder: handoffs/01-model-pipeline.md
+        The one handoff file this work item owns, `handoffs/<work-item-id>-<slug>.md`. The work-item
+        id is assigned by the dispatcher (`00`, `01a`, `01b`, …), not the GitHub issue number — that
+        number does not exist yet while this form is being filled in. The worker updates this file
+        and no other. Read `handoffs/README.md` before starting.
+      placeholder: handoffs/01a-model-pipeline.md
     validations:
       required: true
 
@@ -89,7 +91,7 @@ body:
       placeholder: |
         - [ ] ...
         - [ ] `npm run verify` passes
-        - [ ] Before handback, update and push the assigned `handoffs/<issue-number>-<slug>.md`
+        - [ ] Before handback, update and push the assigned `handoffs/<work-item-id>-<slug>.md`
     validations:
       required: true
 
@@ -105,13 +107,13 @@ body:
       label: Standing boundaries
       description: These hold for every work item. Confirm they are compatible with this one.
       options:
-        - label: Before handback, update and push the assigned `handoffs/<issue-number>-<slug>.md` — and no other handoff file.
+        - label: Before handback, update and push the assigned `handoffs/<work-item-id>-<slug>.md` — and no other handoff file.
           required: true
         - label: Workers never change the schema or the contracts; interface changes route back through the planning session.
           required: true
         - label: Workers never edit `docs/` — those are one-way, privacy-scrubbed copies of the product truth.
           required: true
-        - label: No personal names, program names, or availability details anywhere in this repository.
+        - label: No personal names, collaborator institution or program affiliations, or availability details anywhere in this repository. Licence-required attribution of a third-party model's source is a different thing and stays required.
           required: true
         - label: The free anatomical cutter and the vetted echo wedge stay separate objects on separate data paths.
           required: true

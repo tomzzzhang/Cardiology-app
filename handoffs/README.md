@@ -13,7 +13,7 @@ Read this file and the active work item's handoff **before** doing anything else
 Each dispatched work item owns exactly **one mutable builder handoff**:
 
 ```
-handoffs/<issue-number>-<slug>.md
+handoffs/<work-item-id>-<slug>.md
 ```
 
 ```
@@ -185,9 +185,12 @@ proceed to avoid blocking, say which assumption you proceeded under and that it 
 
 These apply to handoffs exactly as they apply to the rest of the repository:
 
-- **No personal names, program or institution names, availability details, or any other private
-  collaborator information.** Clinical collaborators are referred to by **role label** — `fellow`,
-  `attending`, "the clinical vetter" — and vetter names in pack data stay consent-gated.
+- **No personal names, no institution or program affiliations of collaborators, no availability
+  details, and no other private collaborator information.** Clinical collaborators are referred to by
+  **role label** — `fellow`, `attending`, "the clinical vetter" — and vetter names in pack data stay
+  consent-gated. The rule bans *identifying a collaborator*, not naming a third party: licences
+  oblige the packs and the credits screen to credit a model's source creator and institution, and
+  that attribution must stay possible.
 - **No secrets, tokens, or credentials.**
 - **No machine-specific absolute paths** — no home-directory paths from macOS, Windows, or Linux.
   Use repository-relative paths. (The Repository guardrails CI job holds the exact patterns; this

@@ -7,7 +7,7 @@ relying on this summary.
 
 1. **[`WORKFLOW.md`](WORKFLOW.md)** — how work is dispatched, branched, and landed.
 2. **[`handoffs/README.md`](handoffs/README.md)** — the handoff protocol.
-3. **The handoff for the active issue**: `handoffs/<issue-number>-<slug>.md`. The issue names it.
+3. **The handoff for the active work item**: `handoffs/<work-item-id>-<slug>.md`. The issue names it; the id is dispatcher-assigned, not the GitHub issue number.
 4. **The contracts your issue lists**, under [`contracts/`](contracts/).
 
 ## While working
@@ -20,9 +20,11 @@ relying on this summary.
   contents. `docs/` is the only sanctioned copy of the specification.
 - **Never change the schema or a contract.** Interface changes route back through the planning
   session — open a contract-change issue and keep coding against the current contract.
-- No personal names, program or institution names, availability details, secrets, or
-  machine-specific absolute paths anywhere in the repository. Clinical collaborators are referred to
-  by role label.
+- No personal names, no institution or program affiliations **of collaborators**, no availability
+  details, no secrets, and no machine-specific absolute paths anywhere in the repository. Clinical
+  collaborators are referred to by role label. This bans *identifying a collaborator*; it does not
+  ban crediting a third party whose model a licence requires you to credit — pack provenance and the
+  credits screen must still carry the source creator, source institution, and licence.
 
 ## Before stopping
 

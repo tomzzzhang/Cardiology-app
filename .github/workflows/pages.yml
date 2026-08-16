@@ -19,6 +19,11 @@ jobs:
   build:
     name: Build site
     runs-on: ubuntu-latest
+    # The spec says Pages deploys from `main`. `workflow_dispatch` can be aimed
+    # at any branch, so the branch is checked here in code rather than relying
+    # on the `github-pages` environment's deployment-branch setting, which is
+    # repository state and can be changed independently.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     steps:
       - uses: actions/checkout@v4
 
@@ -36,8 +41,25 @@ jobs:
 
       - run: npm ci
 
-      # Gate the deploy on the same pack checks CI runs, so a broken pack
-      # cannot reach the published site.
+      # Gate the deploy on the quality checks, not just the pack checks. `ci.yml`
+      # runs on push to `main` concurrently with this workflow and does not block
+      # it, so without these steps a commit that regresses on `main` would still
+      # publish. Reproduced here rather than chained on `workflow_run` so the
+      # deploy stays a single, readable pipeline.
+      #
+      # Deliberately NOT reproduced: the Playwright visual suite (needs a browser
+      # download, and its screenshot comparison is skipped until baselines land)
+      # and the pull-request-only docs/ guard. Whether the deploy should also
+      # wait on the full CI workflow is an open owner decision.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test
+
       - name: Validate packs against schema v0
         run: npm run validate:packs
 
