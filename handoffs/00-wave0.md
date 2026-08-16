@@ -1,11 +1,11 @@
 # Handoff — Wave 0
 
-**Last Updated:** 2026-08-16 17:51 ET
+**Last Updated:** 2026-08-16 18:07 ET
 **Work Item:** Wave 0 — scaffold, CI, Pages, schema v0 + validator + stub pack, module contracts, `WORKFLOW.md`, issue templates. Dispatched directly, before the issue templates existed; no GitHub issue number.
 **Branch:** `feat/00-wave0`
 **Pull Request:** https://github.com/tomzzzhang/Cardiology-app/pull/1
-**Implementation / Review Target SHA:** `61767ea306f2c9baa5770c87d67bd4d78572c46a`
-**Status:** repaired; awaiting two independent verification reviews of the new target
+**Implementation / Review Target SHA:** `fdf6158e45c3ba0f1368935f3f61358f24eb7440`
+**Status:** repaired, owner decisions resolved; awaiting two independent verification reviews of the new target
 
 ## Objective
 
@@ -32,7 +32,12 @@ The review gate for target `8705186` completed and its accepted repairs landed.
   classified; nothing was accepted merely because a reviewer raised it.
 - **All 20 accepted repairs implemented** in `61767ea`, with 70 new unit tests and one new Playwright
   spec. Detail under **Repairs landed** below.
-- The new target `61767ea306f2c9baa5770c87d67bd4d78572c46a` supersedes `8705186` for review purposes.
+- **The owner resolved decisions 1–4**, and the two that needed code landed in `fdf6158`:
+  AGPL-3.0-only as the code licence, and the sanctioned `docs/` sync route. Detail under **Owner
+  decisions resolved** below.
+- The new target `fdf6158e45c3ba0f1368935f3f61358f24eb7440` supersedes `8705186` and the intermediate
+  `61767ea` for review purposes. No review was ever dispatched against `61767ea`, so nothing is
+  orphaned by superseding it.
 
 ## Repairs landed
 
@@ -103,6 +108,35 @@ dispatched against the wrong model. Found by the Codex review.
 - Handoff filenames use a **dispatcher-assigned work-item id**; the issue form cannot require a
   GitHub issue number that does not exist while the form is being filled in.
 - The stub fixture's documented claim now matches its actual label extents.
+
+## Owner decisions resolved
+
+All four were answered by the owner in session; decisions 5 and 6 remain open below.
+
+1. **Pages auto-publish — keep `enablement: true`.** No code change: merging turns Pages on and
+   publishes the site at `https://tomzzzhang.github.io/Cardiology-app/` with no second confirmation.
+2. **Code licence — AGPL-3.0-only.** Verbatim text in `LICENSE`, declared in `package.json`,
+   summarised in the README. Copyright is attributed to "the Cardiology app project contributors"
+   rather than a personal name, consistent with the repository's privacy rule; a named holder is
+   stronger for enforcement and is a one-line change if the owner wants it. **The code licence does
+   not touch content licensing** — packs stay under their own terms, the Alberta models stay
+   CC BY-NC 4.0, and the non-commercial red lines still bind the product.
+3. **Repository name — keep `Cardiology-app`.** No repository change needed: the five committed
+   strings already use that spelling and the base path is derived. The consequence is that
+   `docs/build_plan.md`, which specifies the lowercase name and URL, is now wrong. The owner chose
+   **option B**: the planning session corrects it in its own pull request after this one merges,
+   which is why decision 4 had to be answered first.
+4. **`docs/` sync route — `docs/sync-*` branch, docs-only pull request.** The guard stands down only
+   when the branch matches `docs/sync-*` **and** the pull request changes nothing outside `docs/`.
+   Both halves are required: the branch name states the intent, the docs-only check is what actually
+   stops a code change riding along under it. Everything else stays a blanket ban, and the
+   initial-sync stand-down still admits additions only.
+
+   The guard moved out of inline workflow YAML into `scripts/check-docs-guard.sh` so it could be
+   tested; `tests/unit/docsGuard.test.ts` drives it against real git history across ten cases,
+   including a `docs/sync-*` branch attempting to smuggle a source change and branch names that
+   merely resemble the sanctioned prefix. Workflow values now reach the script through `env` rather
+   than being interpolated into the shell.
 
 ## Current implementation state
 
@@ -180,16 +214,20 @@ no committed local absolute paths, no references to a synced planning tree).
 
 ## Files changed
 
-30 files between the previous target `8705186` and the new target `61767ea`
-(+1839 / −130), across three commits: the Claude review record, the reconciliation,
-and the repair.
+33 files between the previous target `8705186` and the current target `fdf6158`
+(+2959 / −267), across four commits: the Claude review record (`c5b380c`), the reconciliation
+(`98209cd`), the repair (`61767ea`), and the owner-decision changes (`fdf6158`). One handoff-only
+commit (`2036ab8`) sits between the last two and changes no implementation file.
 
 New this round:
 
 ```
+LICENSE
 scripts/check-base-path.ts
+scripts/check-docs-guard.sh
 scripts/lib/packAssets.ts
 scripts/lib/placeholders.ts
+tests/unit/docsGuard.test.ts
 tests/unit/loadPack.test.ts
 tests/unit/packAssets.test.ts
 tests/unit/schemaInvariants.test.ts
@@ -206,25 +244,26 @@ Modified this round: `src/schema/{primitives,packV0,validate}.ts`, `src/viewer/H
 
 ## Verification
 
-Run locally on 2026-08-16 against the tree committed as `61767ea`.
+Run locally on 2026-08-16 against the tree committed as `fdf6158`, the current target.
 
 | Check | Result |
 |---|---|
 | Typecheck | `npm run typecheck` — pass |
 | Lint | `npm run lint` — pass, 0 problems |
-| Unit tests | `npm run test` — **90 passed**, 4 files, 0 failed (was 20 in 1 file) |
-| Build | `npm run build` — succeeded, `✓ built in 1.28s` |
-| Relevant CI | Run 31974633604 on `61767ea` — **success**, all four jobs. Earlier runs this round: 31973776415 on `c5b380c` (review record) — success. |
+| Unit tests | `npm run test` — **100 passed**, 5 files, 0 failed (was 20 in 1 file before the repair round) |
+| Build | `npm run build` — succeeded, `✓ built in 1.25s` |
+| Relevant CI | Run 31975408586 on `fdf6158` — **success**, all four jobs. Earlier runs this round, all success: 31973776415 on `c5b380c` (review record), 31974633604 on `61767ea` (repair), 31974797428 on `2036ab8` (handoff). |
 
 Additional checks at the same tree:
 
 | Check | Result |
 |---|---|
-| Full local gate | `npm run verify` — pass (typecheck, lint, 90 tests, pack schema, provenance) |
+| Full local gate | `npm run verify` — pass (typecheck, lint, 100 tests, pack schema, provenance) |
 | Pack schema | `npm run validate:packs` — `1 pack(s) valid against schema v0` |
 | Provenance | `npm run check:provenance` — `Provenance and attribution complete for 1 pack(s)` |
 | Production base | `npm run check:base-path` — `ok production base "/base-path-check/" reaches index.html, the bundle, and pack URLs`; the same step passed in CI |
 | Visual suite | `npm run test:visual` — **8 passed, 2 skipped** locally and in CI (10 tests; the 2 skips are the screenshot comparison, no baseline yet) |
+| `docs/` guard | `tests/unit/docsGuard.test.ts` — 10 cases against real git history: initial-sync additions pass, a same-PR edit or deletion fails, a worker edit fails, a docs-only `docs/sync-*` PR passes, a `docs/sync-*` PR carrying a source change fails, near-miss branch names fail |
 | Stub determinism | `npm run gen:stub-assets` then `git diff` — assets and `pack.json` byte-identical |
 | `WORKFLOW.md` byte-identity | still a verbatim substring of its source section in `docs/build_plan.md` — checked programmatically |
 | `docs/` untouched | no change to `docs/` in any commit this round |
@@ -243,31 +282,15 @@ Additional checks at the same tree:
 - **Handoffs are per work item, never global.** Review records are immutable and target-keyed.
 - **Five schema/contract edits were authorized by the reconciliation**, each only as enforcement of
   an already-stated invariant. Anything requiring a design choice was deferred instead.
-- **No code `LICENSE` chosen.** Deliberately left to the owner.
+- **AGPL-3.0-only for the code**, chosen by the owner. Content licensing is a separate, unaffected
+  layer.
+- **`docs/` gets exactly one sync route**, `docs/sync-*` plus docs-only, and the guard that enforces
+  it lives in a tested script rather than untested workflow YAML.
 
 ## Decisions needed from owner
 
-None is answered here, and none blocked the repair round.
+Decisions 1–4 are resolved above. Two remain, and neither blocks the verification reviews.
 
-1. **Merging this pull request enables and publishes GitHub Pages.** `actions/configure-pages` runs
-   with `enablement: true`, so the first run on `main` turns Pages on with no second confirmation.
-   The repository is already public. Keep automatic, or drop `enablement` and enable by hand first?
-   *(The Codex review recommends keeping it only once branch protection and full-CI deploy gating
-   exist.)*
-2. **The repository has no code `LICENSE` file.** Until one is added the code is under default
-   copyright. Which licence, or is default copyright intended for now? *(Codex recommends MIT; not
-   adopted, because licensing is an owner decision.)*
-3. **Repository-name capitalization differs from the planned name.** `docs/build_plan.md` specifies
-   `cardiology-app`; the repository is `Cardiology-app`, so the published URL will be
-   `https://tomzzzhang.github.io/Cardiology-app/`. **Correction to an earlier version of this
-   handoff:** it is not true that nothing hardcodes the spelling. The base path is derived, but the
-   name is hardcoded in five places — three `source_url` values in `public/packs/stub/pack.json` and
-   two `contact_links` URLs in `.github/ISSUE_TEMPLATE/config.yml`, where GitHub requires absolute
-   URLs. A rename needs those updated. Rename, or update the plan? `docs/` was not edited.
-4. **`docs/` sync route after merge.** Once `docs/` exists on `main` the guard blocks every change to
-   it, including the planning session's own schema-v1 sync that `WORKFLOW.md` requires. What route
-   should that sync take — a maintainer label, an actor allowlist, a commit trailer, or a separate
-   protected path?
 5. **Two-role vetting.** Should schema v1 require both a fellow and an attending before
    `status: vetted`? `docs/mvp_scope.md` and `docs/view_canon.md` imply both; `docs/build_plan.md`
    qualifies the attending with "if available" and records that attendings are still being scouted.
@@ -293,11 +316,12 @@ None is answered here, and none blocked the repair round.
   scalars with `emphasis` a nullable string (the renderer's knob names come from wave 1b; emphasis
   vocabulary is assigned at vetting).
 - `real_clip_slot` is required and must be `null` in v0.
-- **Deferred review findings**, with reasons, in the reconciliation: two-role vetting (D1), the
-  post-merge `docs/` sync route (D2), `.glb`/KTX2 semantic inspection (D3), full glTF resource-graph
-  walking (D4), committed visual baselines (D5), `webglcontextlost` and render-on-demand (D6),
-  `npm run verify` not running the build (D7), loader cancellation/race tests and pack-directory-name
-  agreement (D8), label creation (D9), branch protection (D10).
+- **Deferred review findings**, with reasons, in the reconciliation: two-role vetting (D1),
+  `.glb`/KTX2 semantic inspection (D3), full glTF resource-graph walking (D4), committed visual
+  baselines (D5), `webglcontextlost` and render-on-demand (D6), `npm run verify` not running the
+  build (D7), loader cancellation/race tests and pack-directory-name agreement (D8), label creation
+  (D9), branch protection (D10). **D2 — the post-merge `docs/` sync route — is no longer deferred**;
+  the owner decided it and it landed in `fdf6158`.
 - **No committed screenshot baselines.** The comparison is skipped, not enforced, until Linux
   baselines land in wave 1.
 - The hello-world viewer is a build-and-deploy smoke test. viewer-core, the echo renderer, the view
@@ -308,25 +332,30 @@ None is answered here, and none blocked the repair round.
 ## Blockers
 
 None blocking further work. The branch is pushed, the pull request is open and mergeable, and CI is
-green on the new target `61767ea`.
+green on the new target `fdf6158`.
 
 The pull request is **not ready to merge**: the repaired target has not yet been independently
-verified, and owner decisions 1–3 remain merge gates.
+verified. The three decisions that were merge gates are now resolved, so verification is the only
+remaining gate.
 
 ## Exact next action
 
 1. **A fresh Claude review session and a fresh Codex review session** each independently review exact
-   target `61767ea306f2c9baa5770c87d67bd4d78572c46a` — not the latest branch head — without reading
+   target `fdf6158e45c3ba0f1368935f3f61358f24eb7440` — not the latest branch head — without reading
    the other's record first, and publish only
-   `handoffs/reviews/00-wave0/61767ea-claude.md` and `handoffs/reviews/00-wave0/61767ea-codex.md`.
-   Each should confirm the 20 repairs and re-check whether any deferred finding has become urgent.
+   `handoffs/reviews/00-wave0/fdf6158-claude.md` and `handoffs/reviews/00-wave0/fdf6158-codex.md`.
+   Each should confirm the 20 repairs plus the two owner-decision changes, and re-check whether any
+   deferred finding has become urgent. Neither reviewer may be the session that implemented them.
 2. If either verification raises new accepted findings, reconcile again as
-   `handoffs/reviews/00-wave0/61767ea-reconciliation.md` and repair; otherwise the work item is ready
+   `handoffs/reviews/00-wave0/fdf6158-reconciliation.md` and repair; otherwise the work item is ready
    to land.
-3. **Owner:** resolve decisions 1–3, and create the three missing labels.
-4. Merge only after both verification verdicts are clear, required CI is green, and those decisions
-   are resolved. Merging publishes the site — confirm the Pages deployment succeeded before
-   dispatching wave 1.
+3. **Owner:** create the three missing labels (commands in the reconciliation), and answer decisions
+   5 and 6 when convenient — neither blocks the merge.
+4. Merge only after both verification verdicts are clear and required CI is green. Merging publishes
+   the site; confirm the Pages deployment succeeded before dispatching wave 1.
+5. **After merge:** the planning session corrects the repository-name spelling in
+   `docs/build_plan.md` via a `docs/sync-*` branch whose pull request changes nothing outside
+   `docs/` — the route decision 4 opened. This is the only sanctioned way to change `docs/`.
 
 **Do not merge this pull request**, and do not start wave 1 work on this branch.
 
