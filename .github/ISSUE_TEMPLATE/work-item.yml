@@ -1,0 +1,108 @@
+name: Work item (dispatch unit)
+description: One work item for one worker session. This is the dispatch unit in WORKFLOW.md.
+title: '[NN] '
+labels: ['work-item']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **One issue per session.** `WORKFLOW.md`: the dispatch unit is a GitHub issue carrying goal,
+        explicit owned files/directories, contracts to read, definition of done, and the standing
+        footer. If it is not pushed to a branch or written in a PR/issue, it did not happen.
+
+  - type: input
+    id: slug
+    attributes:
+      label: Branch
+      description: Branch this session works on. `feat/NN-slug`, branched from `main`. Never two sessions on one branch.
+      placeholder: feat/01a-model-pipeline-slice
+    validations:
+      required: true
+
+  - type: dropdown
+    id: wave
+    attributes:
+      label: Wave
+      options:
+        - '0 — scaffold, CI, schema, contracts (serial)'
+        - '1a — model pipeline slice'
+        - '1b — echo slice'
+        - '1c — viewer-core'
+        - '1d — view rail + sweep scrubber'
+        - '2 — integration'
+        - 'later — authoring mode, additional packs'
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What this session delivers, in a few sentences. One work item, not a wish list.
+    validations:
+      required: true
+
+  - type: textarea
+    id: owned
+    attributes:
+      label: Owned files and directories
+      description: >-
+        Explicit paths this session may write. Workers fan out on DISJOINT files — anything not
+        listed here is out of bounds, including `docs/`, `contracts/`, and `src/schema/`.
+      placeholder: |
+        src/viewer/**
+        tests/unit/viewer/**
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: contracts
+    attributes:
+      label: Contracts to read first
+      description: Contract files this session codes against. Read them before writing anything.
+      placeholder: |
+        contracts/viewer-core.md
+        contracts/pack-loader.md
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of done
+      description: Checkable outcomes. CI green counts; "looks fine" does not.
+      placeholder: |
+        - [ ] ...
+        - [ ] `npm run verify` passes
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Explicitly out of scope
+      description: Things a reasonable worker might otherwise pull in. Name them so they do not.
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Standing boundaries
+      description: These hold for every work item. Confirm they are compatible with this one.
+      options:
+        - label: Workers never change the schema or the contracts; interface changes route back through the planning session.
+          required: true
+        - label: Workers never edit `docs/` — those are one-way, privacy-scrubbed copies of the product truth.
+          required: true
+        - label: No personal names, program names, or availability details anywhere in this repository.
+          required: true
+        - label: The free anatomical cutter and the vetted echo wedge stay separate objects on separate data paths.
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Standing footer.** Branch from `main` as `feat/NN-slug`, do not touch files outside your
+        area, do not merge, open a PR and stop.

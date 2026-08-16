@@ -1,0 +1,74 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; never cancel one that is mid-flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `enablement: true` lets the first run on `main` turn Pages on and set its
+      # source to GitHub Actions, so no manual repository-settings step is
+      # needed. Merging to `main` therefore publishes the site publicly.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - run: npm ci
+
+      # Gate the deploy on the same pack checks CI runs, so a broken pack
+      # cannot reach the published site.
+      - name: Validate packs against schema v0
+        run: npm run validate:packs
+
+      - name: Licence and attribution completeness
+        run: npm run check:provenance
+
+      # A project site is served from /<repository-name>/. The repository name
+      # is read from the event so no path is hardcoded anywhere in the repo.
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      # Pages serves static files only: an unknown path 404s instead of falling
+      # back to index.html. Deep links use query params (?a=&v=&s=) so the SPA
+      # never needs a path fallback; this copy is belt-and-braces for a
+      # mistyped URL landing on a styled page rather than the stock 404.
+      - name: Add 404 fallback
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,536 @@
+/**
+ * Content pack schema — v0 PROVISIONAL.
+ *
+ * Transcribed from `docs/build_plan.md` (v1.2) "Content pack schema — v0
+ * PROVISIONAL", with the per-view field list from `docs/view_canon.md`
+ * "Per-view schema (feeds pack schema)".
+ *
+ * OWNERSHIP: the schema is owned by the planning session. Workers code AGAINST
+ * v0 and must not freeze, simplify, or extend it. Exactly one controlled
+ * revision (v1) is expected after the wave 1 technical slice review; interface
+ * changes route back through the planning session, they are not made here.
+ *
+ * BOUNDARY (build_plan v1.2, "Viewer interaction contract"): the free
+ * anatomical cutter and the vetted echo wedge are different objects on
+ * different data paths. The free cutter appears in this file exactly once, as
+ * the optional `interaction.free_cut` viewer default. It must never appear in
+ * `views[]`.
+ */
+import { z } from 'zod';
+import {
+  AssetPath,
+  HttpUrl,
+  IndicatorClock,
+  IsoDate,
+  ORTHOGONAL_TOLERANCE,
+  Slug,
+  UnitVec3,
+  Vec3,
+  dot3,
+} from './primitives.ts';
+
+/** Packs declaring any other value are rejected outright rather than coerced. */
+export const SCHEMA_VERSION = '0' as const;
+
+/* -------------------------------------------------------------------------- */
+/* meta                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const PackMeta = z.strictObject({
+  id: Slug,
+  display_name: z.string().min(1),
+  anatomy: z.string().min(1),
+  /** One canonical variant per lesion, named and disclosed in-app (mvp_scope, locked decision 5). */
+  canonical_variant: z.string().min(1),
+  pack_version: z.string().min(1),
+  schema_version: z.literal(SCHEMA_VERSION),
+});
+export type PackMeta = z.infer<typeof PackMeta>;
+
+/* -------------------------------------------------------------------------- */
+/* provenance — carried per anatomy AND per view                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Vetter identity. `name` is consent-gated: it is omitted until explicit naming
+ * consent is recorded, and the provenance UI falls back to the role label.
+ * `docs/` and this repository carry role labels only.
+ */
+export const Vetter = z.strictObject({
+  name: z.string().min(1).optional(),
+  role: z.enum(['fellow', 'attending']),
+  date: IsoDate,
+});
+export type Vetter = z.infer<typeof Vetter>;
+
+export const VettingState = z
+  .strictObject({
+    status: z.enum(['draft', 'vetted']),
+    vetters: z.array(Vetter),
+    last_reviewed: IsoDate.nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.status !== 'vetted') return;
+    if (value.vetters.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['vetters'],
+        message: 'a vetted item must record at least one vetter',
+      });
+    }
+    if (value.last_reviewed === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['last_reviewed'],
+        message: 'a vetted item must record last_reviewed',
+      });
+    }
+  });
+export type VettingState = z.infer<typeof VettingState>;
+
+/**
+ * Attribution surface. CI fails the build on any missing provenance or license
+ * field (build_plan, "Licensing plan"); the credits screen renders creator,
+ * source URL, license + URL, and the modified note per model.
+ */
+export const Provenance = z.strictObject({
+  creator: z.string().min(1),
+  source: z.string().min(1),
+  source_url: HttpUrl,
+  license: z.string().min(1),
+  license_url: HttpUrl,
+  modified: z.strictObject({
+    flag: z.boolean(),
+    note: z.string(),
+  }),
+  derivation_chain: z.array(z.string().min(1)),
+  vetted: VettingState,
+});
+export type Provenance = z.infer<typeof Provenance>;
+
+/* -------------------------------------------------------------------------- */
+/* meshes                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export const Axis = z.enum(['+x', '-x', '+y', '-y', '+z', '-z']);
+
+export const Structure = z.strictObject({
+  id: Slug,
+  /** Name of the sub-mesh node inside the referenced glTF. */
+  mesh_node: z.string().min(1),
+  display_label: z.string().min(1),
+  /** Structure hierarchy; `null` marks a root. Validated for existence and cycles. */
+  parent: Slug.nullable(),
+  /** Drives blood-pool colouring in viewer-core. */
+  blood_pool: z.boolean(),
+  /**
+   * Honest labelling for substrate completion (build_plan, "Anatomical
+   * substrate risk"): shelled myocardium, sculpted leaflets, and interface-only
+   * pericardium are stylized geometry and say so in provenance.
+   */
+  stylized: z.boolean(),
+});
+export type Structure = z.infer<typeof Structure>;
+
+export const Meshes = z.strictObject({
+  gltf: AssetPath,
+  structures: z.array(Structure).min(1),
+  /** Canonical pose applied on load; `reset` returns the camera to this orientation. */
+  canonical_pose: z.strictObject({
+    position: Vec3,
+    rotation_euler_xyz_deg: Vec3,
+    scale: z.number().positive(),
+  }),
+  units: z.enum(['mm', 'cm', 'm']),
+  orientation: z.strictObject({
+    up: Axis,
+    anterior: Axis,
+    patient_left: Axis,
+    handedness: z.enum(['right', 'left']),
+  }),
+});
+export type Meshes = z.infer<typeof Meshes>;
+
+/* -------------------------------------------------------------------------- */
+/* interaction — viewer defaults only, NOT medical view metadata              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The free anatomical cutter as stored in a pack: the initial value of the
+ * oriented radial plane `{N, s}` relative to the interaction pivot `C`.
+ *
+ *   dot(N, X - C) = s          closest point Q = C + sN
+ *
+ * The plane is mathematically infinite. Any rendered rectangle is a helper
+ * sized from model bounds and never limits clipping. Reversing the oriented
+ * plane changes which side remains visible.
+ *
+ * This is runtime inspection state seeded from the pack — it is NOT a clinical
+ * view, and there is deliberately no path from here into `views[]`.
+ */
+export const FreeCutState = z.strictObject({
+  /** `N` — plane normal in model space. */
+  normal: UnitVec3,
+  /** `s` — signed distance from the interaction pivot `C`, in pack `units`. */
+  offset: z.number(),
+});
+export type FreeCutState = z.infer<typeof FreeCutState>;
+
+export const CameraState = z.strictObject({
+  position: Vec3,
+  target: Vec3,
+  up: UnitVec3,
+  fov_deg: z.number().positive().max(179),
+});
+export type CameraState = z.infer<typeof CameraState>;
+
+/**
+ * Optional. Governs viewer defaults only; it is not medical view metadata and
+ * carries no provenance because nothing here is a clinical claim.
+ */
+export const InteractionDefaults = z.strictObject({
+  /** Interaction pivot `C`. Absent means "use the model-bounds centroid". */
+  pivot: Vec3.optional(),
+  /** Initial camera/orientation. Absent means "use `meshes.canonical_pose`". */
+  camera: CameraState.optional(),
+  /** Initial free-cut state. Absent means "start with the free cutter disabled". */
+  free_cut: FreeCutState.optional(),
+});
+export type InteractionDefaults = z.infer<typeof InteractionDefaults>;
+
+/* -------------------------------------------------------------------------- */
+/* echo_volume                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Per-label acoustic properties consumed by the echo renderer. Perceptual
+ * priority 1 (build_plan, "Simulated echo work item") is correct grey-level
+ * ORDERING, so these are relative, unitless authoring values.
+ */
+export const EchoLabel = z.strictObject({
+  /** Voxel value in the labelled volume. */
+  id: z.number().int().min(0).max(255),
+  /** Structure this label maps to. Validated against `meshes.structures`. */
+  structure: Slug,
+  echogenicity: z.number().min(0).max(1),
+  attenuation: z.number().min(0),
+});
+export type EchoLabel = z.infer<typeof EchoLabel>;
+
+export const EchoVolume = z.strictObject({
+  asset: AssetPath,
+  format: z.enum(['raw-u8', 'ktx2']),
+  resolution: z.tuple([
+    z.number().int().positive(),
+    z.number().int().positive(),
+    z.number().int().positive(),
+  ]),
+  /** Model space -> volume space, 4x4 column-major. */
+  mesh_to_volume: z.array(z.number()).length(16),
+  labels: z.array(EchoLabel).min(1),
+  /**
+   * The scatterer field is NOT shipped. It is generated at runtime from this
+   * seed, deterministically. Baking a scatterer channel remains a fallback if
+   * runtime generation is too costly on phones — that call belongs to the
+   * technical slice, so no baked-channel field exists in v0.
+   */
+  scatterer_seed: z.number().int(),
+});
+export type EchoVolume = z.infer<typeof EchoVolume>;
+
+/* -------------------------------------------------------------------------- */
+/* views[] — vetted clinical content                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Full vetted probe pose. This is the ONE source of truth for a clinical view:
+ * the cut plane `{anchor, basis_u, basis_v}` is DERIVED from it
+ * (anchor = origin, basis = beam/lateral axes), so the wedge drawn on the model
+ * and the echo fan cannot disagree.
+ *
+ * Derivation belongs to viewer-core and echo-renderer (wave 1); the schema only
+ * guarantees the pose is well formed.
+ */
+export const ProbePose = z
+  .strictObject({
+    /** Probe origin in model space — the fan apex. */
+    origin: Vec3,
+    beam_axis: UnitVec3,
+    lateral_axis: UnitVec3,
+    fan: z.strictObject({
+      angle_deg: z.number().positive().max(180),
+      depth_cm: z.number().positive(),
+      focus_cm: z.number().positive(),
+    }),
+    display: z.strictObject({
+      /**
+       * Pediatric convention: subcostal and apical families render vertex-DOWN.
+       * User-toggleable at runtime; this is the authored default.
+       */
+      vertex: z.enum(['up', 'down']),
+      flip_lr: z.boolean(),
+      marker_side: z.enum(['left', 'right']),
+    }),
+  })
+  .superRefine((value, ctx) => {
+    if (Math.abs(dot3(value.beam_axis, value.lateral_axis)) > ORTHOGONAL_TOLERANCE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['lateral_axis'],
+        message: `beam_axis and lateral_axis must be orthogonal (tolerance ${ORTHOGONAL_TOLERANCE})`,
+      });
+    }
+    if (value.fan.focus_cm > value.fan.depth_cm) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fan', 'focus_cm'],
+        message: 'focus_cm must lie within depth_cm',
+      });
+    }
+  });
+export type ProbePose = z.infer<typeof ProbePose>;
+
+/** A swept pose: `{mode, axis, range, interpolation, ordered structure list crossed}`. */
+export const Sweep = z
+  .strictObject({
+    mode: z.enum(['tilt', 'rotate', 'translate']),
+    axis: z.strictObject({
+      direction: UnitVec3,
+      /** Absent means "through the probe origin". */
+      origin: Vec3.optional(),
+    }),
+    range: z.strictObject({
+      unit: z.enum(['deg', 'mm']),
+      from: z.number(),
+      to: z.number(),
+    }),
+    /** Interpolated over `t` in [0, 1] by the sweep scrubber. */
+    interpolation: z.enum(['slerp', 'lerp']),
+    /** Ordered structures crossed; drives the scrubber's teaching readout. */
+    structures_in_order: z.array(Slug),
+  })
+  .superRefine((value, ctx) => {
+    const expected = value.mode === 'translate' ? 'mm' : 'deg';
+    if (value.range.unit !== expected) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['range', 'unit'],
+        message: `mode "${value.mode}" requires range unit "${expected}"`,
+      });
+    }
+    if (value.range.from === value.range.to) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['range'],
+        message: 'sweep range must be non-empty',
+      });
+    }
+  });
+export type Sweep = z.infer<typeof Sweep>;
+
+export const ShowHidePreset = z.strictObject({
+  visible: z.array(Slug),
+  hidden: z.array(Slug),
+});
+
+/**
+ * Per-view echo tuning overrides. Deliberately an open bag of scalars: the
+ * renderer's knob names are fixed by the echo slice (wave 1b), and inventing
+ * them here would extend the schema beyond v0.
+ */
+export const EchoTuning = z.record(z.string().min(1), z.union([z.number(), z.boolean(), z.string()]));
+
+export const PackView = z.strictObject({
+  /* --- view identity, per view_canon.md ---------------------------------- */
+  /**
+   * Free-form in v0. `view_canon.md` is a DRAFT pending clinical vetting, so
+   * the family/view_id vocabulary is not enumerated here; enumerating it would
+   * freeze draft clinical content into the engine.
+   */
+  family: z.string().min(1),
+  view_id: z.string().min(1),
+  name: z.string().min(1),
+  aliases: z.array(z.string().min(1)),
+  placement_landmark: z.string().min(1),
+  indicator_clock: IndicatorClock,
+
+  /* --- the vetted pose, and everything derived from it -------------------- */
+  probe: ProbePose,
+  sweep: Sweep.optional(),
+
+  /* --- teaching content --------------------------------------------------- */
+  structures: z.array(Slug),
+  measurements: z.array(z.string().min(1)),
+  lesion_attachments: z.array(z.string().min(1)),
+
+  /* --- presentation ------------------------------------------------------- */
+  show_hide_preset: ShowHidePreset,
+  echo_tuning: EchoTuning,
+
+  /**
+   * Reserved slot for a real de-identified clip. v0 requires it EMPTY: real
+   * clips carry their own licensing/IRB decision, and the slot exists so that
+   * adding them later is additive, never a rearchitecture.
+   */
+  real_clip_slot: z.null(),
+
+  /**
+   * Per-lesion view emphasis, assigned in a vetting session. `null` until then;
+   * deliberately not an enum, because the vocabulary is content, not engine.
+   */
+  emphasis: z.string().min(1).nullable(),
+
+  /** Provenance is carried per view as well as per anatomy. */
+  provenance: Provenance,
+});
+export type PackView = z.infer<typeof PackView>;
+
+/* -------------------------------------------------------------------------- */
+/* display flags                                                              */
+/* -------------------------------------------------------------------------- */
+
+export const DisplayFlags = z.strictObject({
+  /** Subcostal and apical families render vertex-down unless overridden. */
+  pediatric_vertex_convention: z.boolean(),
+  /** PLAX apex always on screen-left — holds in levocardia and dextrocardia. */
+  plax_apex_left_exception: z.boolean(),
+  /** Stored per pack, default off in the MVP. */
+  dextrocardia_indicator_profile: z.strictObject({
+    enabled: z.boolean(),
+    profile: z.string().min(1).nullable(),
+  }),
+});
+export type DisplayFlags = z.infer<typeof DisplayFlags>;
+
+/* -------------------------------------------------------------------------- */
+/* pack root                                                                  */
+/* -------------------------------------------------------------------------- */
+
+const PackShape = z.strictObject({
+  meta: PackMeta,
+  provenance: Provenance,
+  meshes: Meshes,
+  interaction: InteractionDefaults.optional(),
+  echo_volume: EchoVolume,
+  views: z.array(PackView).min(1),
+  display_flags: DisplayFlags,
+  /**
+   * The schema tolerates a future volumetric-data reference (CT/CMR-derived
+   * segmentations). Shape is intentionally unconstrained in v0 — v1 defines it.
+   */
+  volumetric_data: z.unknown().optional(),
+});
+
+/** Cross-field integrity: every id referenced anywhere must resolve. */
+export const Pack = PackShape.superRefine((pack, ctx) => {
+  const structureIds = new Set<string>();
+  pack.meshes.structures.forEach((structure, index) => {
+    if (structureIds.has(structure.id)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['meshes', 'structures', index, 'id'],
+        message: `duplicate structure id "${structure.id}"`,
+      });
+    }
+    structureIds.add(structure.id);
+  });
+
+  const requireStructure = (id: string, path: (string | number)[]) => {
+    if (!structureIds.has(id)) {
+      ctx.addIssue({
+        code: 'custom',
+        path,
+        message: `unknown structure id "${id}"`,
+      });
+    }
+  };
+
+  // Hierarchy: parents resolve, and no structure is its own ancestor.
+  const parentOf = new Map(pack.meshes.structures.map((s) => [s.id, s.parent]));
+  pack.meshes.structures.forEach((structure, index) => {
+    if (structure.parent === null) return;
+    if (!structureIds.has(structure.parent)) {
+      requireStructure(structure.parent, ['meshes', 'structures', index, 'parent']);
+      return;
+    }
+    const seen = new Set<string>([structure.id]);
+    let cursor = structure.parent;
+    for (;;) {
+      if (seen.has(cursor)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['meshes', 'structures', index, 'parent'],
+          message: `structure hierarchy contains a cycle at "${structure.id}"`,
+        });
+        return;
+      }
+      seen.add(cursor);
+      const next = parentOf.get(cursor);
+      if (next === undefined || next === null) return;
+      cursor = next;
+    }
+  });
+
+  const meshNodes = new Set<string>();
+  pack.meshes.structures.forEach((structure, index) => {
+    if (meshNodes.has(structure.mesh_node)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['meshes', 'structures', index, 'mesh_node'],
+        message: `duplicate glTF node reference "${structure.mesh_node}"`,
+      });
+    }
+    meshNodes.add(structure.mesh_node);
+  });
+
+  const labelIds = new Set<number>();
+  pack.echo_volume.labels.forEach((label, index) => {
+    if (labelIds.has(label.id)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['echo_volume', 'labels', index, 'id'],
+        message: `duplicate echo label id ${label.id}`,
+      });
+    }
+    labelIds.add(label.id);
+    requireStructure(label.structure, ['echo_volume', 'labels', index, 'structure']);
+  });
+
+  const viewIds = new Set<string>();
+  pack.views.forEach((view, index) => {
+    if (viewIds.has(view.view_id)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['views', index, 'view_id'],
+        message: `duplicate view_id "${view.view_id}"`,
+      });
+    }
+    viewIds.add(view.view_id);
+
+    view.structures.forEach((id, i) =>
+      requireStructure(id, ['views', index, 'structures', i]),
+    );
+    view.show_hide_preset.visible.forEach((id, i) =>
+      requireStructure(id, ['views', index, 'show_hide_preset', 'visible', i]),
+    );
+    view.show_hide_preset.hidden.forEach((id, i) =>
+      requireStructure(id, ['views', index, 'show_hide_preset', 'hidden', i]),
+    );
+    view.sweep?.structures_in_order.forEach((id, i) =>
+      requireStructure(id, ['views', index, 'sweep', 'structures_in_order', i]),
+    );
+
+    const overlap = view.show_hide_preset.visible.filter((id) =>
+      view.show_hide_preset.hidden.includes(id),
+    );
+    if (overlap.length > 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['views', index, 'show_hide_preset'],
+        message: `structures listed as both visible and hidden: ${overlap.join(', ')}`,
+      });
+    }
+  });
+});
+
+export type Pack = z.infer<typeof Pack>;

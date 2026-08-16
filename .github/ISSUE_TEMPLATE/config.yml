@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Parallel workflow protocol
+    url: https://github.com/tomzzzhang/Cardiology-app/blob/main/WORKFLOW.md
+    about: How work is dispatched, branched, and landed. Read this before opening an issue.
+  - name: Module contracts
+    url: https://github.com/tomzzzhang/Cardiology-app/tree/main/contracts
+    about: One page per engine module. Workers code against these and never change them.
