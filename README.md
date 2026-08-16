@@ -19,6 +19,7 @@ rail come in wave 1.
 | [`docs/build_plan.md`](docs/build_plan.md) | Build specification, v1.2. Authoritative. |
 | [`docs/view_canon.md`](docs/view_canon.md) | Clinical view/sweep canon. **DRAFT**, pending vetting. |
 | [`WORKFLOW.md`](WORKFLOW.md) | How work is dispatched, branched, and landed. |
+| [`handoffs/README.md`](handoffs/README.md) | The handoff protocol — one file per work item. |
 | [`contracts/`](contracts/) | One page per engine module. Code against these. |
 
 `docs/` holds one-way, privacy-scrubbed copies synced from the planning session. **Workers never edit
@@ -84,9 +85,11 @@ no backend and no accounts.
 
 ## Contributing
 
-Read [`WORKFLOW.md`](WORKFLOW.md). One branch per session per work item (`feat/NN-slug`), branched
-from `main`; open a pull request and stop — workers do not merge their own. Workers never change the
-schema or the contracts; interface changes route through the planning session via the
+Read [`WORKFLOW.md`](WORKFLOW.md) and [`handoffs/README.md`](handoffs/README.md). One branch per
+session per work item (`feat/NN-slug`), branched from `main`; open a pull request and stop — workers
+do not merge their own. Each work item owns exactly one handoff file, `handoffs/<issue>-<slug>.md`,
+updated and pushed before handback. Workers never change the schema or the contracts; interface
+changes route through the planning session via the
 [contract-change issue template](.github/ISSUE_TEMPLATE/contract-or-schema-change.yml).
 
 No personal names, program names, availability details, or machine-specific absolute paths belong in

@@ -18,6 +18,7 @@ Closes #
 - [ ] `npm run verify` passes locally (typecheck, lint, unit tests, pack schema, provenance)
 - [ ] `npm run test:visual` passes
 - [ ] No files outside my owned area changed
+- [ ] My issue's handoff file is updated and pushed — and no other handoff file was touched
 - [ ] No changes to `docs/` — those are one-way, privacy-scrubbed copies
 - [ ] No changes to `contracts/` or `src/schema/` (or: a contract-change issue is linked and approved)
 - [ ] No personal names, program names, availability details, or local absolute paths added

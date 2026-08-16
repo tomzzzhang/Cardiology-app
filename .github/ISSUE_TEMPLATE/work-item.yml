@@ -10,12 +10,25 @@ body:
         explicit owned files/directories, contracts to read, definition of done, and the standing
         footer. If it is not pushed to a branch or written in a PR/issue, it did not happen.
 
+        Every work item also owns exactly one handoff file. See `handoffs/README.md`.
+
   - type: input
     id: slug
     attributes:
       label: Branch
       description: Branch this session works on. `feat/NN-slug`, branched from `main`. Never two sessions on one branch.
       placeholder: feat/01a-model-pipeline-slice
+    validations:
+      required: true
+
+  - type: input
+    id: handoff
+    attributes:
+      label: Handoff file
+      description: >-
+        The one handoff file this work item owns, `handoffs/<issue-number>-<slug>.md`. The worker
+        updates this file and no other. Read `handoffs/README.md` before starting.
+      placeholder: handoffs/01-model-pipeline.md
     validations:
       required: true
 
@@ -76,6 +89,7 @@ body:
       placeholder: |
         - [ ] ...
         - [ ] `npm run verify` passes
+        - [ ] Before handback, update and push the assigned `handoffs/<issue-number>-<slug>.md`
     validations:
       required: true
 
@@ -91,6 +105,8 @@ body:
       label: Standing boundaries
       description: These hold for every work item. Confirm they are compatible with this one.
       options:
+        - label: Before handback, update and push the assigned `handoffs/<issue-number>-<slug>.md` — and no other handoff file.
+          required: true
         - label: Workers never change the schema or the contracts; interface changes route back through the planning session.
           required: true
         - label: Workers never edit `docs/` — those are one-way, privacy-scrubbed copies of the product truth.
