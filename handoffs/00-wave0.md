@@ -1,6 +1,6 @@
 # Handoff — Wave 0
 
-**Last Updated:** 2026-08-16 18:07 ET
+**Last Updated:** 2026-08-16 18:18 ET
 **Work Item:** Wave 0 — scaffold, CI, Pages, schema v0 + validator + stub pack, module contracts, `WORKFLOW.md`, issue templates. Dispatched directly, before the issue templates existed; no GitHub issue number.
 **Branch:** `feat/00-wave0`
 **Pull Request:** https://github.com/tomzzzhang/Cardiology-app/pull/1
@@ -302,11 +302,11 @@ Decisions 1–4 are resolved above. Two remain, and neither blocks the verificat
 
 ## Maintainer actions outside this pull request
 
-- The labels `work-item`, `contract-change`, and `needs-planning-decision` referenced by the issue
-  forms **do not exist** on the repository (only `bug` does), so GitHub silently drops them. Exact
-  `gh label create` commands are in the reconciliation. Not done here: it is repository state outside
-  this pull request.
-- Branch protection for `main` (owner decision 6).
+- ~~Create the labels the issue forms reference.~~ **Done** at owner request:
+  `work-item`, `contract-change`, and `needs-planning-decision` now exist alongside `bug`, so the
+  forms apply them instead of silently dropping them. This was repository state outside the pull
+  request, so it is recorded here rather than in a commit.
+- Branch protection for `main` — still outstanding (owner decision 6).
 
 ## Known limitations and deferred work
 
@@ -319,9 +319,9 @@ Decisions 1–4 are resolved above. Two remain, and neither blocks the verificat
 - **Deferred review findings**, with reasons, in the reconciliation: two-role vetting (D1),
   `.glb`/KTX2 semantic inspection (D3), full glTF resource-graph walking (D4), committed visual
   baselines (D5), `webglcontextlost` and render-on-demand (D6), `npm run verify` not running the
-  build (D7), loader cancellation/race tests and pack-directory-name agreement (D8), label creation
-  (D9), branch protection (D10). **D2 — the post-merge `docs/` sync route — is no longer deferred**;
-  the owner decided it and it landed in `fdf6158`.
+  build (D7), loader cancellation/race tests and pack-directory-name agreement (D8), branch
+  protection (D10). **D2 — the post-merge `docs/` sync route — is no longer deferred**; the owner
+  decided it and it landed in `fdf6158`. **D9 — label creation — is done.**
 - **No committed screenshot baselines.** The comparison is skipped, not enforced, until Linux
   baselines land in wave 1.
 - The hello-world viewer is a build-and-deploy smoke test. viewer-core, the echo renderer, the view
@@ -349,13 +349,18 @@ remaining gate.
 2. If either verification raises new accepted findings, reconcile again as
    `handoffs/reviews/00-wave0/fdf6158-reconciliation.md` and repair; otherwise the work item is ready
    to land.
-3. **Owner:** create the three missing labels (commands in the reconciliation), and answer decisions
-   5 and 6 when convenient — neither blocks the merge.
+3. **Owner:** answer decisions 5 and 6 when convenient — neither blocks the merge.
 4. Merge only after both verification verdicts are clear and required CI is green. Merging publishes
    the site; confirm the Pages deployment succeeded before dispatching wave 1.
 5. **After merge:** the planning session corrects the repository-name spelling in
    `docs/build_plan.md` via a `docs/sync-*` branch whose pull request changes nothing outside
    `docs/` — the route decision 4 opened. This is the only sanctioned way to change `docs/`.
+6. **Before wave 1 fans out:** design the core screen. It has never been drawn — `docs/mvp_scope.md`
+   "Design direction (core screen)" and the v1.2 interaction contract specify behaviour and layout
+   intent in prose, but no visual design exists. Waves 1c and 1d are both UI and run in parallel, so
+   without a design each will invent its own visual language and wave 2 integration becomes rework.
+   Layout and interaction shell can be settled now; the echo panel's treatment should wait for a real
+   frame from the 1b slice. Worth its own work item and handoff.
 
 **Do not merge this pull request**, and do not start wave 1 work on this branch.
 
