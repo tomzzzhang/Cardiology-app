@@ -10,6 +10,11 @@ is a pointer, not a spec. Read the canonical documents rather than relying on th
 3. **The handoff for the active issue**: `handoffs/<issue-number>-<slug>.md`. The issue names it.
 4. **The contracts your issue lists**, under [`contracts/`](contracts/).
 
+If the assignment is an independent review, also follow **Review, repair, and landing loop** in
+`handoffs/README.md`. Inspect the exact implementation/review target SHA named by the assignment,
+not the latest branch head. Do not read the other reviewer’s record until your own conclusions are
+fixed.
+
 ## While working
 
 - Work **only** within the files and directories your issue says it owns. Anything else is out of
@@ -24,7 +29,20 @@ is a pointer, not a spec. Read the canonical documents rather than relying on th
   machine-specific absolute paths anywhere in the repository. Clinical collaborators are referred to
   by role label.
 
-## Before stopping
+## Review-only sessions
+
+- Stay read-only against implementation, contracts, schemas, planning copies, and the builder’s
+  handoff.
+- Write only your reviewer-owned file under
+  `handoffs/reviews/<work-item>/<target-sha>-<reviewer>.md`.
+- Review the exact frozen target independently. A review-only commit may advance the branch head but
+  never changes the declared target.
+- Pull the latest remote state immediately before adding the review file; review-only commits are
+  serialized and never pushed concurrently.
+- After publishing your review, verify CI, report the review path and commit SHA, and stop without
+  implementing or merging.
+
+## Implementation workers — before stopping
 
 1. Reconcile actual repository, branch, test, CI, and pull request state — from `git` and GitHub, not
    from memory.
@@ -38,6 +56,7 @@ Never claim a test, CI job, push, or deployment succeeded without having verifie
 
 - `npm run verify` is the local gate: typecheck, lint, unit tests, pack schema, provenance.
   `npm run test:visual` runs the Playwright suite.
-- Handoff files are the only Markdown in this repository that carry a `**Last Updated:**` timestamp.
-  Do not add one to `docs/`, to `WORKFLOW.md`, or to the contracts — `WORKFLOW.md` in particular must
-  stay byte-identical to its source section in `docs/build_plan.md`.
+- Handoff-family records — builder handoffs, independent reviews, and reconciliations — are the only
+  Markdown in this repository that carry a `**Last Updated:**` timestamp. Do not add one to `docs/`,
+  to `WORKFLOW.md`, or to the contracts — `WORKFLOW.md` in particular must stay byte-identical to
+  its source section in `docs/build_plan.md`.

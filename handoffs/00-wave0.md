@@ -1,11 +1,11 @@
 # Handoff — Wave 0
 
-**Last Updated:** 2026-08-16 14:21 ET
+**Last Updated:** 2026-08-16 15:05 ET
 **Work Item:** Wave 0 — scaffold, CI, Pages, schema v0 + validator + stub pack, module contracts, `WORKFLOW.md`, issue templates. Dispatched directly, before the issue templates existed; no GitHub issue number.
 **Branch:** `feat/00-wave0`
 **Pull Request:** https://github.com/tomzzzhang/Cardiology-app/pull/1
-**HEAD:** `b9cce61` — the commit this handoff describes. The refresh commit that carries this text follows it and changes only this file.
-**Status:** ready for review
+**Implementation / Review Target SHA:** `8705186abc1a0c533758dfde139a35acb8f716ca`
+**Status:** awaiting second independent review, reconciliation, and repair
 
 ## Objective
 
@@ -22,10 +22,15 @@ pull request, not merged.
 
 ## Completed this round
 
-- **Handoff protocol** added: `handoffs/README.md`, this file, root `CLAUDE.md` and `AGENTS.md`, and a
-  required handoff field plus checklist item in the work-item issue template. One handoff file per
-  work item, `handoffs/<issue-number>-<slug>.md`; a worker updates only its own.
-- Verified all wave 0 behaviour is unchanged by that addition (see **Verification**).
+- **Handoff protocol** added: one mutable builder handoff per work item plus immutable, target-SHA-
+  keyed reviewer records and a reconciliation record under `handoffs/reviews/`.
+- **Review, repair, and landing loop** documented in `handoffs/README.md`: freeze, two independent
+  reviews, reconciliation, one repair owner, two verification reviews, then owner-controlled merge.
+  `AGENTS.md` routes future reviewers into that loop and prevents them from editing the builder's
+  handoff or reading each other's conclusions before fixing their own.
+- **Wave 0 review gate entered:** Codex's independent review is published; Claude's independent
+  review, reconciliation, and repair remain pending. No implementation files changed.
+- Verified all wave 0 behaviour is unchanged by the process additions (see **Verification**).
 
 Earlier rounds on this branch delivered the wave 0 scaffold itself; the state of that work is
 described under **Current implementation state** rather than replayed here. `git log` has the
@@ -125,18 +130,19 @@ this host cannot produce (no Docker available). So:
 
 ## Files changed
 
-49 files on the wave 0 commit, plus this round's handoff-protocol additions.
+49 files on the wave 0 implementation commit, plus the handoff and review-protocol additions.
 
-Added this round:
+Protocol and review records now added:
 
 ```
 handoffs/README.md
 handoffs/00-wave0.md
+handoffs/reviews/00-wave0/8705186-codex.md
 CLAUDE.md
 AGENTS.md
 ```
 
-Modified this round:
+Related files modified during the protocol rounds:
 
 ```
 .github/ISSUE_TEMPLATE/work-item.yml   required handoff field + checklist items
@@ -169,10 +175,10 @@ Additional checks this round:
 | Visual suite | `npm run test:visual` — 6 passed, 2 skipped (screenshot comparison, no baseline yet) |
 | `WORKFLOW.md` byte-identity | Its full text is still a verbatim substring of the source section in `docs/build_plan.md` — checked programmatically |
 | `docs/` untouched | Clean in the working tree; the only diff against `main` is the initial sync, which the guard now permits |
+| Review-loop documentation | `git diff --check` — pass; `npm run verify` — pass, including 20 unit tests, pack validation, and provenance validation |
 
-The commit carrying this refreshed text changes only this file, so CI for it is expected to match run
-31964281012. Whoever next touches this handoff should confirm that from the pull request rather than
-assume it.
+Later review and process commits do not alter the frozen implementation target. Their CI results
+must still be read from the pull request rather than inferred from the earlier implementation run.
 
 ## Decisions made
 
@@ -225,25 +231,25 @@ assume it.
 
 ## Blockers
 
-None. The branch is pushed, the pull request is open and mergeable, and CI is green on `b9cce61`.
-
-The three items under **Decisions needed from owner** gate the *merge*, not the work — decision 1
-takes effect the moment the pull request lands.
+The pull request is intentionally **not ready to merge**. Codex completed an independent review of
+target `8705186abc1a0c533758dfde139a35acb8f716ca`; the second independent review, reconciliation,
+and approved repair pass are still pending. The three items under **Decisions needed from owner**
+also remain merge gates.
 
 ## Exact next action
 
-**Owner:** answer the three decisions above, then merge
-https://github.com/tomzzzhang/Cardiology-app/pull/1 once CI is green on the handoff commit. Merging
-publishes the site at `https://tomzzzhang.github.io/<repository-name>/`; confirm the Pages deployment
-succeeded before dispatching wave 1.
+1. A fresh Claude review session independently reviews exact target
+   `8705186abc1a0c533758dfde139a35acb8f716ca` without first reading the Codex review, then publishes
+   only `handoffs/reviews/00-wave0/8705186-claude.md`.
+2. After Claude's conclusions are fixed, reconcile both reviews in
+   `handoffs/reviews/00-wave0/8705186-reconciliation.md`, recording accepted, deferred, and rejected
+   findings, unresolved owner decisions, and one implementation owner.
+3. That one owner implements only the accepted repair list, runs the full gate, and updates this
+   handoff with the repaired implementation/review target SHA.
+4. Claude and Codex independently verify the repaired target. Merge only after both verdicts and
+   required CI are clear and the owner decisions above are resolved.
 
-**Then:** dispatch wave 1a (model pipeline slice) as the first templated work item — one real Alberta
-Normal asset, myocardial-variant check first, owning `pipeline/` and `packs/normal/`, with handoff
-file `handoffs/01-model-pipeline.md`. Per `docs/build_plan.md`, 1a and 1b run before the slice review
-gate that freezes schema v1; 1c (viewer-core) and 1d (view rail + scrubber) can proceed in parallel
-against the stub pack, since their contracts do not depend on the slice.
-
-Do **not** start wave 1 work on this branch.
+Do **not** merge this pull request or start wave 1 work yet.
 
 ## Scope and privacy check
 
