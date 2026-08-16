@@ -39,8 +39,9 @@ npm run dev
 | `npm run verify` | Typecheck, lint, unit tests, pack schema, provenance — the CI gate |
 | `npm run test:visual` | Playwright suite (builds and previews the site) |
 | `npm run test:visual:update` | Write screenshot baselines for the current platform |
-| `npm run validate:packs` | Validate every pack against schema v0 |
+| `npm run validate:packs` | Validate every pack against schema v0, including asset semantics |
 | `npm run check:provenance` | Licence and attribution completeness |
+| `npm run check:base-path` | Build with a sentinel base path and assert the output is prefixed |
 | `npm run gen:stub-assets` | Regenerate the synthetic stub pack assets |
 
 ## Architecture
