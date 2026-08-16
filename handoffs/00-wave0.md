@@ -1,10 +1,10 @@
 # Handoff — Wave 0
 
-**Last Updated:** 2026-08-16 14:15 ET
+**Last Updated:** 2026-08-16 14:21 ET
 **Work Item:** Wave 0 — scaffold, CI, Pages, schema v0 + validator + stub pack, module contracts, `WORKFLOW.md`, issue templates. Dispatched directly, before the issue templates existed; no GitHub issue number.
 **Branch:** `feat/00-wave0`
 **Pull Request:** https://github.com/tomzzzhang/Cardiology-app/pull/1
-**HEAD:** `2662339` — the commit this handoff describes. The handoff commit follows it.
+**HEAD:** `b9cce61` — the commit this handoff describes. The refresh commit that carries this text follows it and changes only this file.
 **Status:** ready for review
 
 ## Objective
@@ -150,7 +150,7 @@ build configuration.
 
 ## Verification
 
-Run locally at HEAD `2662339` plus this round's uncommitted additions, on 2026-08-16.
+Run locally on 2026-08-16, at the tree committed as `b9cce61`.
 
 | Check | Result |
 |---|---|
@@ -158,7 +158,7 @@ Run locally at HEAD `2662339` plus this round's uncommitted additions, on 2026-0
 | Lint | `npm run lint` — pass, 0 problems |
 | Unit tests | `npm run test` — 20 passed, 1 file, 0 failed |
 | Build | `npm run build` — succeeded, `✓ built in 1.24s` |
-| Relevant CI | Run 31963610996 on `2662339` — **success**, all four jobs: Typecheck/lint/tests, Pack schema and provenance, Visual regression, Repository guardrails |
+| Relevant CI | Run 31964281012 on `b9cce61` — **success**, all four jobs: Typecheck/lint/tests, Pack schema and provenance, Visual regression, Repository guardrails. Previous run 31963610996 on `2662339` also green. |
 
 Additional checks this round:
 
@@ -170,8 +170,9 @@ Additional checks this round:
 | `WORKFLOW.md` byte-identity | Its full text is still a verbatim substring of the source section in `docs/build_plan.md` — checked programmatically |
 | `docs/` untouched | Clean in the working tree; the only diff against `main` is the initial sync, which the guard now permits |
 
-CI for this round's handoff commit runs after the push; its result is recorded in the pull request,
-and this table is updated by whoever next touches this handoff if it did not come back green.
+The commit carrying this refreshed text changes only this file, so CI for it is expected to match run
+31964281012. Whoever next touches this handoff should confirm that from the pull request rather than
+assume it.
 
 ## Decisions made
 
@@ -224,7 +225,7 @@ and this table is updated by whoever next touches this handoff if it did not com
 
 ## Blockers
 
-None. The branch is pushed, the pull request is open and mergeable, and CI is green on `2662339`.
+None. The branch is pushed, the pull request is open and mergeable, and CI is green on `b9cce61`.
 
 The three items under **Decisions needed from owner** gate the *merge*, not the work — decision 1
 takes effect the moment the pull request lands.
