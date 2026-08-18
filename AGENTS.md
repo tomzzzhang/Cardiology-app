@@ -1,6 +1,6 @@
 # Coding agents — start here
 
-**Updated:** 2026-08-18
+**Updated:** 2026-08-18 11:50 EDT
 
 Applies to any coding agent working in this repository. A pointer, not a spec.
 

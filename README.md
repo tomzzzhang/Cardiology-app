@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-18
+**Updated:** 2026-08-18 11:50 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane

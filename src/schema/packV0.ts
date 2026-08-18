@@ -191,6 +191,106 @@ export const Structure = z.strictObject({
 });
 export type Structure = z.infer<typeof Structure>;
 
+/* -------------------------------------------------------------------------- */
+/* the derived anatomical frame                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * How a pack's frame was DERIVED, recorded so it can be checked.
+ *
+ * A pack has always had to declare `meshes.orientation`. Declaring it is cheap
+ * and says nothing about whether the declaration is true: the first version of
+ * this pipeline measured "superior" from the ventricular centroid to the
+ * aortic-wall centroid, which produces a frame in which the inferior vena cava
+ * is superior to the valve plane. The declaration looked identical.
+ *
+ * This block is the evidence behind the declaration — which tags were used,
+ * what was measured, and which independent anatomical checks the result passed.
+ * It is optional because not every source can support it: a fused surface with
+ * no chamber labels genuinely cannot derive a frame, and must say so by
+ * omitting this rather than by inventing one.
+ *
+ * The axes recorded here are CARDIAC. A heart-only mesh carries no spine,
+ * diaphragm or chest wall, so the patient's axes are not recoverable from it —
+ * see `pipeline/anatomy.py`, which measures three defensible proxies for body
+ * superior-inferior and finds them up to 46 degrees apart.
+ *
+ * The shapes of `inputs`, `landmarks_source_mm` and `measurements` are
+ * deliberately open. They are a record for a human reader and a future
+ * re-derivation, and pinning their keys here would mean a schema change every
+ * time the pipeline measures one more thing about a new substrate.
+ */
+export const AnatomicalFrame = z
+  .strictObject({
+    /** Versioned name of the derivation, so a pack states which one produced it. */
+    method: z.string().min(1),
+    description: z.string().min(1),
+    inputs: z.record(z.string(), z.unknown()),
+    landmarks_source_mm: z.record(z.string(), z.unknown()),
+    /** Rows of the rotation carrying source coordinates into pack coordinates. */
+    basis_source_to_pack: z.strictObject({
+      patient_left: UnitVec3,
+      basal: UnitVec3,
+      anterior: UnitVec3,
+    }),
+    measurements: z.record(z.string(), z.unknown()),
+    /** Named anatomical checks and their outcomes. A failing check is allowed
+     *  to be RECORDED — hiding it would defeat the point — but never hidden. */
+    checks: z.record(z.string(), z.boolean()),
+    checks_passed: z.number().int().nonnegative(),
+    checks_total: z.number().int().nonnegative(),
+  })
+  .superRefine((frame, ctx) => {
+    const { patient_left: left, basal, anterior } = frame.basis_source_to_pack;
+    const pairs: [string, string, number][] = [
+      ['patient_left', 'basal', dot3(left, basal)],
+      ['basal', 'anterior', dot3(basal, anterior)],
+      ['anterior', 'patient_left', dot3(anterior, left)],
+    ];
+    for (const [a, b, product] of pairs) {
+      if (Math.abs(product) > ORTHOGONAL_TOLERANCE) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['basis_source_to_pack'],
+          message: `${a} and ${b} must be orthogonal (tolerance ${ORTHOGONAL_TOLERANCE})`,
+        });
+      }
+    }
+
+    /*
+     * A left-handed basis would silently mirror the anatomy — every view built
+     * on it would place right-sided structures on the left and look entirely
+     * plausible doing it. Checked by triple product rather than trusted.
+     */
+    const cross: [number, number, number] = [
+      left[1] * basal[2] - left[2] * basal[1],
+      left[2] * basal[0] - left[0] * basal[2],
+      left[0] * basal[1] - left[1] * basal[0],
+    ];
+    if (dot3(cross, anterior) <= 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['basis_source_to_pack'],
+        message: 'basis must be right-handed: patient_left x basal must point along anterior',
+      });
+    }
+
+    // The counts are a summary of `checks`, so they cannot be free to disagree
+    // with it — a pack claiming 9 of 9 while recording a failure is worse than
+    // one that records nothing.
+    const total = Object.keys(frame.checks).length;
+    const passed = Object.values(frame.checks).filter(Boolean).length;
+    if (frame.checks_total !== total || frame.checks_passed !== passed) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['checks_passed'],
+        message: `checks_passed/checks_total (${frame.checks_passed}/${frame.checks_total}) `
+          + `disagree with checks (${passed}/${total})`,
+      });
+    }
+  });
+export type AnatomicalFrame = z.infer<typeof AnatomicalFrame>;
+
 export const Meshes = z.strictObject({
   gltf: AssetPath,
   structures: z.array(Structure).min(1),
@@ -214,6 +314,8 @@ export const Meshes = z.strictObject({
         ctx.addIssue({ code: 'custom', message: problem });
       }
     }),
+  /** Evidence for `orientation`. Absent where the source cannot support one. */
+  anatomical_frame: AnatomicalFrame.optional(),
 });
 export type Meshes = z.infer<typeof Meshes>;
 

@@ -15,7 +15,7 @@
     "license_url": "https://creativecommons.org/licenses/by/4.0/",
     "modified": {
       "flag": true,
-      "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. Pose normalised by the pipeline: the superior axis was measured from the ventricular centroid to the aortic-wall centroid and the patient-left axis from the right-atrial to the left-atrial centroid, then orthonormalised. The declared convention is a measurement of this mesh, not an assumption."
+      "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. Pose normalised into a CARDIAC frame measured from this mesh: +y from the left-ventricular apex (located by the source's universal ventricular coordinate) to the centroid of the four valve rings, +x from the right-atrial to the left-atrial centroid orthogonalised against it, +z completing a right-handed basis. The axes are cardiac, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. 9 of 9 independent anatomical checks pass; the full derivation is in meshes.anatomical_frame."
     },
     "derivation_chain": [
       "https://zenodo.org/records/4593738",
@@ -243,13 +243,114 @@
       "anterior": "+z",
       "patient_left": "+x",
       "handedness": "right"
+    },
+    "anatomical_frame": {
+      "method": "cardiac-landmarks-v1",
+      "description": "Cardiac basis measured from the mesh. Primary axis: left-ventricular apex to the centroid of the four valve-ring centroids, the apex located from the source's universal ventricular coordinate Z. Secondary axis: right-atrial to left-atrial myocardium centroid, orthogonalised against the primary. Third axis completes a right-handed basis. Axes are CARDIAC, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and the three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. See pipeline/anatomy.py.",
+      "inputs": {
+        "apex": {
+          "source": "universal ventricular coordinate Z on left-ventricular myocardium",
+          "tag": 1,
+          "percentile": 1.0
+        },
+        "base": {
+          "source": "mean of the valve-ring centroids",
+          "tags": [
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        "left_right": {
+          "source": "right-atrial to left-atrial centroid",
+          "tags": [
+            4,
+            3
+          ]
+        }
+      },
+      "landmarks_source_mm": {
+        "apex": [
+          46.407023203617264,
+          -29.02126519894988,
+          -42.193544877479646
+        ],
+        "base": [
+          -8.631511048367527,
+          -2.1361084587121466,
+          19.129978568330504
+        ],
+        "valve_rings": {
+          "7": [
+            3.1915795870008705,
+            21.234154866802733,
+            12.632715112212209
+          ],
+          "8": [
+            -31.996683090867133,
+            -5.567860413200307,
+            -3.150279188795082
+          ],
+          "9": [
+            -8.61929340161199,
+            1.0255656328515856,
+            26.032688754585898
+          ],
+          "10": [
+            2.898352712008145,
+            -25.236293921302597,
+            41.00478959531899
+          ]
+        }
+      },
+      "basis_source_to_pack": {
+        "patient_left": [
+          0.7054508899448154,
+          0.6060770522141211,
+          0.36743659133993356
+        ],
+        "basal": [
+          -0.6349959604900172,
+          0.310182059882459,
+          0.7075077525288576
+        ],
+        "anterior": [
+          0.314831974293318,
+          -0.7324327249014179,
+          0.6036746900906609
+        ]
+      },
+      "measurements": {
+        "long_axis_mm": 86.68,
+        "base_plane_residuals_mm": [
+          -2.42,
+          -1.09,
+          5.8,
+          -2.29
+        ],
+        "base_normal_vs_long_axis_deg": 6.0
+      },
+      "checks": {
+        "pulmonary valve anterior to aortic valve": true,
+        "mitral valve left of tricuspid valve": true,
+        "left ventricle left of right ventricle": true,
+        "aortic valve right of mitral valve": true,
+        "left atrium basal to left ventricle": true,
+        "right atrium basal to right ventricle": true,
+        "superior vena cava basal to the valve plane": true,
+        "inferior vena cava posterior to superior vena cava": true,
+        "apex apical to every valve ring": true
+      },
+      "checks_passed": 9,
+      "checks_total": 9
     }
   },
   "interaction": {
     "pivot": [
-      -4.783069610595703,
-      4.583599090576172,
-      0.9184226989746094
+      -4.955181121826172,
+      1.2884674072265625,
+      8.505151748657227
     ],
     "free_cut": {
       "normal": [
@@ -269,21 +370,21 @@
       192
     ],
     "mesh_to_volume": [
-      1.3095116041168906,
+      1.29139830074324,
       0.0,
       0.0,
       0.0,
       0.0,
-      1.3095116041168906,
+      1.29139830074324,
       0.0,
       0.0,
       0.0,
       0.0,
-      1.3095116041168906,
+      1.29139830074324,
       0.0,
-      102.26157675728054,
-      89.99772645970255,
-      94.79562204954087,
+      102.39357952990761,
+      94.34396152683479,
+      85.01638190573547,
       1.0
     ],
     "labels": [
@@ -436,6 +537,146 @@
   },
   "views": [
     {
+      "family": "B",
+      "view_id": "b1-apical-four-chamber",
+      "name": "Apical four-chamber (draft)",
+      "aliases": [
+        "A4C",
+        "apical 4C"
+      ],
+      "placement_landmark": "Cardiac apex, derived from this mesh: probe at the left-ventricular apex located by the source's universal ventricular coordinate, looking along the measured long axis at the valve plane. The model carries no chest wall, so the transducer stands off the epicardium rather than sitting in an intercostal space.",
+      "indicator_clock": "3:00",
+      "probe": {
+        "origin": [
+          0.1054158086849426,
+          -79.87412567548702,
+          12.86589048118901
+        ],
+        "beam_axis": [
+          -0.03892056723675134,
+          0.9771453673924172,
+          -0.2089787559287014
+        ],
+        "lateral_axis": [
+          0.9992134710353209,
+          0.039647631078269435,
+          -0.0007103882230686514
+        ],
+        "fan": {
+          "angle_deg": 80.0,
+          "depth_cm": 16.79,
+          "focus_cm": 9.23
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      },
+      "sweep": {
+        "mode": "tilt",
+        "axis": {
+          "direction": [
+            0.9992134710353209,
+            0.039647631078269435,
+            -0.0007103882230686514
+          ],
+          "origin": [
+            0.1054158086849426,
+            -79.87412567548702,
+            12.86589048118901
+          ]
+        },
+        "range": {
+          "unit": "deg",
+          "from": -18.0,
+          "to": 22.0
+        },
+        "interpolation": "slerp",
+        "structures_in_order": []
+      },
+      "structures": [
+        "lv-myocardium",
+        "rv-myocardium",
+        "ra-myocardium",
+        "la-myocardium",
+        "aortic-wall",
+        "pulmonary-artery-wall",
+        "tagged-region-8",
+        "tagged-region-9",
+        "tagged-region-7",
+        "tagged-region-10",
+        "tagged-region-18",
+        "tagged-region-16",
+        "tagged-region-11",
+        "tagged-region-17",
+        "tagged-region-23",
+        "tagged-region-24",
+        "tagged-region-21",
+        "tagged-region-19",
+        "tagged-region-22",
+        "tagged-region-15",
+        "tagged-region-20",
+        "tagged-region-14",
+        "tagged-region-12",
+        "tagged-region-13"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "lv-myocardium",
+          "rv-myocardium",
+          "ra-myocardium",
+          "la-myocardium",
+          "aortic-wall",
+          "pulmonary-artery-wall",
+          "tagged-region-8",
+          "tagged-region-9",
+          "tagged-region-7",
+          "tagged-region-10",
+          "tagged-region-18",
+          "tagged-region-16",
+          "tagged-region-11",
+          "tagged-region-17",
+          "tagged-region-23",
+          "tagged-region-24",
+          "tagged-region-21",
+          "tagged-region-19",
+          "tagged-region-22",
+          "tagged-region-15",
+          "tagged-region-20",
+          "tagged-region-14",
+          "tagged-region-12",
+          "tagged-region-13"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+        "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+        "source_url": "https://zenodo.org/records/4593738",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "modified": {
+          "flag": true,
+          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame: origin at the left-ventricular apex standing off the epicardium along the long axis, beam toward the valve-plane centroid, imaging plane through the apex and both atrioventricular ring centroids. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. structures_in_order is deliberately empty because naming the structures a sweep crosses is a clinical reading."
+        },
+        "derivation_chain": [
+          "pipeline/ingest.py (view derived from the measured cardiac frame)",
+          "docs/view_canon.md B1 (family, indicator clock, display convention)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
       "family": "INGEST",
       "view_id": "ingest-reference-pose",
       "name": "Ingest reference pose \u2014 not a clinical view",
@@ -444,9 +685,9 @@
       "indicator_clock": "12:00",
       "probe": {
         "origin": [
-          -4.783069610595703,
-          4.583599090576172,
-          66.02778625488281
+          -4.955181121826172,
+          1.2884674072265625,
+          72.2540283203125
         ],
         "beam_axis": [
           0.0,
@@ -460,8 +701,8 @@
         ],
         "fan": {
           "angle_deg": 75.0,
-          "depth_cm": 15.7,
-          "focus_cm": 8.63
+          "depth_cm": 15.54,
+          "focus_cm": 8.55
         },
         "display": {
           "vertex": "down",

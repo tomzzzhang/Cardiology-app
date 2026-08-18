@@ -1,6 +1,6 @@
 # Module contracts
 
-**Updated:** 2026-08-18
+**Updated:** 2026-08-18 11:50 EDT
 
 One page per engine module, from `docs/build_plan.md` ("Architecture: engine + content packs").
 They describe the interface and behaviour each module owes the rest of the system.
@@ -12,7 +12,7 @@ saying so.
 | Module | Contract | Status |
 | --- | --- | --- |
 | pack-loader | [`pack-loader.md`](pack-loader.md) | implemented; revisit at schema v1 |
-| viewer-core | [`viewer-core.md`](viewer-core.md) | not built |
+| viewer-core | [`viewer-core.md`](viewer-core.md) | partial: orbit, framing, cutter depth + solid caps, probe indicator. Target selection, rotation gizmos and the align bridge outstanding |
 | echo-renderer | [`echo-renderer.md`](echo-renderer.md) | not built |
 | view rail + sweep scrubber | [`view-rail-sweep-scrubber.md`](view-rail-sweep-scrubber.md) | not built |
 | provenance UI | [`provenance-ui.md`](provenance-ui.md) | not built |

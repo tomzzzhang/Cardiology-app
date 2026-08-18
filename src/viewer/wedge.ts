@@ -154,13 +154,18 @@ export class ProbeIndicator {
         color: SECTOR_COLOUR,
         transparent: true,
         /*
-         * Deliberately faint. UI-2 settled that the imaged tissue is marked by
-         * DIMMING the anatomy the beam misses, not by tinting the wedge; a
-         * strongly tinted sector would double-signal the same thing and wash
-         * the tissue colour underneath it. The sector is here to show geometry
-         * — where the probe points and how far it reaches — not to shade.
+         * Almost invisible, and that is the UI-2 finding rather than a taste
+         * call. The rule settled in the design pass is that imaged tissue is
+         * marked by DIMMING the anatomy the beam misses. Tested in 3D at
+         * opacity 0.1, the sector fill lightened roughly a third of the panel
+         * — competing with the dimming and putting a wash over the tissue
+         * colours, which is the tinting the rule exists to avoid, only weaker.
+         *
+         * What the sector still has to do is read as a SURFACE, so the fan's
+         * plane is legible when the camera is near edge-on to it. 0.035 is
+         * enough for that and not enough to shift the background.
          */
-        opacity: 0.1,
+        opacity: 0.035,
         side: THREE.DoubleSide,
         depthWrite: false,
       }),

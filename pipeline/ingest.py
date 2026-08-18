@@ -40,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import fast_simplification  # noqa: E402
 
+from anatomy import CardiacFrame, derive_cardiac_frame, frame_record  # noqa: E402
 from meshlib import Surface, TetMesh, read_binary_stl, read_gltf_surfaces, read_vtk_tets, write_gltf  # noqa: E402
 from sources import SOURCES, Source  # noqa: E402
 
@@ -139,12 +140,15 @@ def tet_group_surface(mesh: TetMesh, selector: np.ndarray) -> Surface:
     )
 
 
-def split_rodero(source: Source, path: Path) -> tuple[list[Structure], np.ndarray]:
-    """Split the tetrahedral mesh by its per-element tissue tag."""
-    mesh = read_vtk_tets(path)
-    rotation = anatomical_frame(mesh)
-    mesh.points = mesh.points @ rotation.T
+def split_rodero(source: Source, mesh: TetMesh) -> list[Structure]:
+    """
+    Split the tetrahedral mesh by its per-element tissue tag.
 
+    The mesh arrives ALREADY rotated into the derived cardiac frame. Rotating
+    inside this function, as an earlier revision did, meant reading the 187 MB
+    ASCII source twice — once to split and once to voxelise — and left two
+    copies of the geometry that could in principle disagree about their frame.
+    """
     structures: list[Structure] = []
     for tag in np.unique(mesh.tags):
         selector = mesh.tags == tag
@@ -166,43 +170,7 @@ def split_rodero(source: Source, path: Path) -> tuple[list[Structure], np.ndarra
             attenuation=0.45 if int(tag) <= 4 else 0.6,
             centroid=tuple(float(v) for v in centroid),
         ))
-    return structures, rotation
-
-
-def anatomical_frame(mesh: TetMesh) -> np.ndarray:
-    """
-    Rotation carrying the source frame into the pack's declared convention:
-    `+y` up (superior), `+x` patient-left, `+z` anterior, right-handed.
-
-    The axes are derived from the mesh's own anatomy rather than assumed:
-
-    * superior — from the ventricular centroid toward the aortic-wall centroid;
-    * patient-left — from the right-atrial centroid toward the left-atrial one;
-    * anterior — completes the right-handed basis.
-
-    Gram-Schmidt orthonormalises the pair, so the result is a true rotation and
-    the pack's `meshes.orientation` block is a measurement rather than a guess.
-    This is only possible because the source labels chambers; the surface-only
-    sources cannot do it, and say so.
-    """
-    def centroid(tag: int) -> np.ndarray:
-        return mesh.points[np.unique(mesh.tets[mesh.tags == tag])].mean(axis=0)
-
-    ventricles = (centroid(1) + centroid(2)) / 2.0
-    superior = centroid(5) - ventricles
-    left = centroid(3) - centroid(4)
-
-    superior = superior / np.linalg.norm(superior)
-    left = left - np.dot(left, superior) * superior
-    left = left / np.linalg.norm(left)
-    anterior = np.cross(left, superior)
-    anterior = anterior / np.linalg.norm(anterior)
-
-    # Rows map source coordinates onto (x=patient-left, y=superior, z=anterior).
-    rotation = np.vstack([left, superior, anterior])
-    if np.linalg.det(rotation) < 0:
-        raise ValueError("derived anatomical frame is left-handed")
-    return rotation
+    return structures
 
 
 def split_gltf_groups(source: Source, path: Path) -> list[Structure]:
@@ -302,40 +270,118 @@ def slugify(name: str) -> str:
 # --------------------------------------------------------------------------- #
 
 
-def decimate(structures: list[Structure], budget: int) -> None:
+def repair(surface: Surface) -> tuple[Surface, dict[str, int]]:
     """
-    Reduce to a total triangle budget, in place.
+    Tidy what decimation leaves behind, and MEASURE what it leaves behind.
+
+    `tet_group_surface` emits a closed boundary by construction — a face on the
+    boundary of a tag group belongs to exactly one selected tetrahedron — and
+    `fast_simplification` does not preserve that exactly. What it actually
+    breaks is worth being precise about, because the two failure modes have
+    opposite consequences for the stencil caps:
+
+    * **boundary edges** (an edge used by ONE face) are real holes. They break
+      the front/back face parity the caps count, so the cut face speckles at
+      them. `fill_holes` triangulates each boundary loop and closes them.
+    * **non-manifold edges** (an edge used by more than two faces) are pinches,
+      where the decimator has welded two sheets along a shared edge. The surface
+      is still closed and its winding is still consistent, so the parity is
+      unaffected and the caps are correct.
+
+    On the Rodero pack the residue is entirely the second kind: zero boundary
+    edges, and three to thirteen edges per structure carrying four faces. An
+    earlier revision of this pipeline reported those with a single "open edges"
+    count and concluded the caps were at risk. They are not — but the number is
+    still reported, because a count that rises means the decimator has started
+    doing something new.
+    """
+    mesh = trimesh.Trimesh(
+        vertices=surface.vertices.astype(np.float64),
+        faces=surface.faces.astype(np.int64),
+        process=False,
+    )
+    mesh.merge_vertices()
+    mesh.fill_holes()
+    mesh.fix_normals()
+
+    edges = mesh.edges_sorted
+    _, counts = np.unique(edges, axis=0, return_counts=True)
+    report = {
+        "boundary_edges": int(np.count_nonzero(counts == 1)),
+        "nonmanifold_edges": int(np.count_nonzero(counts > 2)),
+        "winding_consistent": int(bool(mesh.is_winding_consistent)),
+    }
+    return (
+        Surface(
+            name=surface.name,
+            vertices=np.ascontiguousarray(mesh.vertices, dtype=np.float32),
+            faces=np.ascontiguousarray(mesh.faces, dtype=np.int32),
+        ),
+        report,
+    )
+
+
+def decimate(structures: list[Structure], budget: int) -> list[str]:
+    """
+    Reduce to a total triangle budget, in place, then close what that opened.
 
     The budget is shared out in proportion to each structure's current triangle
     count, with a floor: a valve ring is small but decimating it into nothing
     would delete a structure the pack still references. Structures already under
     the floor are left untouched.
+
+    Any structure left with a real hole, or with inconsistent winding, is
+    REPORTED rather than silently shipped: those are the two conditions under
+    which a stencil cap cannot be trusted. Pinched edges are counted separately
+    because they are harmless — see `repair`.
     """
     total = sum(s.surface.triangle_count for s in structures)
-    if total <= budget:
-        return
     floor = 800
+    notes: list[str] = []
+    pinches: list[str] = []
 
     for structure in structures:
-        share = structure.surface.triangle_count / total
-        target = max(floor, int(budget * share))
-        current = structure.surface.triangle_count
-        if current <= target or current <= floor:
-            continue
-        reduction = 1.0 - (target / current)
-        points, faces = fast_simplification.simplify(
-            structure.surface.vertices.astype(np.float32),
-            structure.surface.faces.astype(np.int32),
-            min(max(reduction, 0.0), 0.98),
+        if total > budget:
+            share = structure.surface.triangle_count / total
+            target = max(floor, int(budget * share))
+            current = structure.surface.triangle_count
+            if current > target and current > floor:
+                reduction = 1.0 - (target / current)
+                points, faces = fast_simplification.simplify(
+                    structure.surface.vertices.astype(np.float32),
+                    structure.surface.faces.astype(np.int32),
+                    min(max(reduction, 0.0), 0.98),
+                )
+                structure.surface = Surface(
+                    name=structure.surface.name,
+                    vertices=np.ascontiguousarray(points, dtype=np.float32),
+                    faces=np.ascontiguousarray(faces, dtype=np.int32),
+                )
+        structure.surface, report = repair(structure.surface)
+        # A boundary edge is a hole and breaks the caps; report it loudly. A
+        # non-manifold edge is a pinch and does not, so it is reported only in
+        # aggregate, and only to make a regression visible.
+        if report["boundary_edges"]:
+            notes.append(
+                f"{structure.slug}: {report['boundary_edges']} boundary edges remain after "
+                "hole-filling; its stencil cap will speckle there"
+            )
+        if not report["winding_consistent"]:
+            notes.append(
+                f"{structure.slug}: inconsistent winding after decimation; face parity is "
+                "unreliable and its stencil cap cannot be trusted"
+            )
+        pinched = report["nonmanifold_edges"]
+        if pinched:
+            pinches.append(f"{structure.slug}:{pinched}")
+    if pinches:
+        notes.append(
+            "non-manifold (pinched) edges after decimation, which leave the surfaces closed and "
+            "the caps correct: " + ", ".join(pinches)
         )
-        structure.surface = Surface(
-            name=structure.surface.name,
-            vertices=np.ascontiguousarray(points, dtype=np.float32),
-            faces=np.ascontiguousarray(faces, dtype=np.int32),
-        )
+    return notes
 
 
-# --------------------------------------------------------------------------- #
 # step 3 — labelled voxelisation                                               #
 # --------------------------------------------------------------------------- #
 
@@ -571,13 +617,187 @@ def reference_view(structures: list[Structure], bounds: tuple[np.ndarray, np.nda
     }
 
 
+def apical_four_chamber(
+    structures: list[Structure], frame: CardiacFrame, source: Source
+) -> dict:
+    """
+    The first clinical view: apical four-chamber, `docs/view_canon.md` B1. DRAFT.
+
+    ## Why this view first, on this substrate
+
+    The mesh is an adult population average with valve RINGS but no leaflets,
+    no papillary muscles, no coronaries and no chest wall. That rules out most
+    of the canon as a first view, and picks this one out:
+
+    * **It is the derived frame, rendered.** The probe sits at the apex and
+      looks along the long axis at the base — both of which are exactly what
+      `derive_cardiac_frame` measures. The view is not placed against the frame
+      by hand; it falls out of it.
+    * **Its teaching payload survives the missing leaflets.** Chamber sizes,
+      both septa, and the relationship of the two atrioventricular rings at the
+      crux. PLAX (C1) leans on mitral-aortic leaflet continuity and root
+      detail; PSAX (C2) at the papillary level has no papillary muscles to show.
+    * **It is the strongest test of the cut.** Align the free cutter with this
+      plane and the stencil caps reproduce the echo panel's cross-section, so a
+      disagreement between the two panels is visible rather than arguable.
+
+    ## What is NOT claimed
+
+    The pose is geometry derived from measured landmarks, not a reading of an
+    imaging protocol. Nobody clinical has looked at it. In particular: the mesh
+    has no chest wall, so the transducer stands off the epicardium in empty
+    space rather than sitting in an intercostal space; and the indicator clock
+    and marker side are the canon's values for B1 carried across unverified.
+    `structures_in_order` is left EMPTY — naming the structures a sweep crosses
+    is teaching content and a clinical reading, and this pipeline may not assert
+    it. Everything here is draft-flagged and must survive vetting before it
+    means anything.
+    """
+    apex = frame.rotation @ frame.apex
+    base = frame.rotation @ frame.base
+    rings = {tag: frame.rotation @ centroid for tag, centroid in frame.ring_centroids.items()}
+    mitral, tricuspid = rings[7], rings[8]
+
+    def unit(vector: np.ndarray) -> np.ndarray:
+        return vector / np.linalg.norm(vector)
+
+    # THE defining property of this view: the imaging plane passes through the
+    # apex and both atrioventricular rings. So that plane is built first and
+    # everything else is derived inside it.
+    #
+    # Building the beam along the long axis instead and merely *using* this
+    # normal for the sweep — an earlier revision — produced a plane 12 degrees
+    # off, which missed both rings by about 17 mm. The pose looked entirely
+    # reasonable and was not a four-chamber view.
+    normal = unit(np.cross(mitral - apex, tricuspid - apex))
+    if normal[2] < 0:
+        normal = -normal
+
+    # The beam looks from the apex at the middle of the atrioventricular valve
+    # plane. Both endpoints lie in the plane above, so the beam does too.
+    target = (mitral + tricuspid) / 2.0
+    axis = unit(target - apex)
+
+    # Stand the transducer off outside the apical epicardium. Measured, not
+    # assumed: how far the model extends past the apex against the beam, plus a
+    # small gap for the transducer face.
+    everything = np.vstack([s.surface.vertices.astype(np.float64) for s in structures])
+    beyond = float(np.max((apex - everything) @ axis))
+    origin_v = apex - axis * (max(beyond, 0.0) + 8.0)
+    beam = unit(target - origin_v)
+
+    # Lateral completes the plane. Its sign points toward the patient's left —
+    # toward the mitral ring — so that rightward structures fall on the opposite
+    # side of the sector, per the canon's anatomically-correct orientation rule.
+    lateral = unit(np.cross(normal, beam))
+    if np.dot(lateral, mitral - tricuspid) < 0:
+        lateral = -lateral
+
+    # Depth: to the far side of the atria, which are the deepest structures in
+    # this view, plus a margin.
+    #
+    # Measured over the tissue this fan actually IMAGES — the slab about the
+    # imaging plane — not over every vertex in the model. Measuring over all of
+    # them lets a pulmonary-vein stub sitting well out of plane set the depth,
+    # which put 4 cm of empty sector under the heart and pushed the anatomy into
+    # the top of the frame.
+    half_angle = np.radians(80.0 / 2.0)
+    offsets = everything - origin_v
+    in_slab = np.abs(offsets @ normal) <= 12.0
+    imaged = offsets[in_slab] if in_slab.any() else offsets
+    reach = float(np.max(np.linalg.norm(imaged, axis=1)))
+    depth_cm = round(reach * 1.08 / 10.0, 2)
+
+    # The view has to actually contain what it is named for. Both rings, and the
+    # apex, must fall inside the sector this pose describes.
+    for label, point in (("mitral ring", mitral), ("tricuspid ring", tricuspid), ("apex", apex)):
+        offset = point - origin_v
+        elevation = abs(float(np.dot(offset, normal)))
+        in_plane = offset - np.dot(offset, normal) * normal
+        angle = abs(float(np.arctan2(np.dot(in_plane, lateral), np.dot(in_plane, beam))))
+        if elevation > 6.0 or angle > half_angle or np.linalg.norm(in_plane) > depth_cm * 10.0:
+            raise ValueError(
+                f"apical four-chamber pose does not contain the {label}: "
+                f"{elevation:.1f} mm off plane, {np.degrees(angle):.1f} deg off axis"
+            )
+
+    # Positive sweep tilts the plane ANTERIORLY. For a rotation about axis `a`,
+    # the beam moves toward `a x beam`; choosing `a = beam x normal` makes that
+    # product the anterior normal exactly, so the declared range reads the way
+    # the canon describes the sweep.
+    sweep_axis = unit(np.cross(beam, normal))
+
+    return {
+        "family": "B",
+        "view_id": "b1-apical-four-chamber",
+        "name": "Apical four-chamber (draft)",
+        "aliases": ["A4C", "apical 4C"],
+        "placement_landmark": (
+            "Cardiac apex, derived from this mesh: probe at the left-ventricular apex located by "
+            "the source's universal ventricular coordinate, looking along the measured long axis "
+            "at the valve plane. The model carries no chest wall, so the transducer stands off "
+            "the epicardium rather than sitting in an intercostal space."
+        ),
+        # docs/view_canon.md B1: indicator 3:00. Carried across unverified.
+        "indicator_clock": "3:00",
+        "probe": {
+            "origin": [float(v) for v in origin_v],
+            "beam_axis": [float(v) for v in beam],
+            "lateral_axis": [float(v) for v in lateral],
+            "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": depth_cm,
+                "focus_cm": round(depth_cm * 0.55, 2),
+            },
+            # Family B renders vertex-down — the paediatric convention in
+            # docs/view_canon.md, unlike most adult labs.
+            "display": {"vertex": "down", "flip_lr": False, "marker_side": "right"},
+        },
+        "sweep": {
+            "mode": "tilt",
+            "axis": {
+                "direction": [float(v) for v in sweep_axis],
+                "origin": [float(v) for v in origin_v],
+            },
+            # Posterior (toward the coronary sinus) through the reference plane
+            # to anterior (toward the outflow tract, the "five-chamber").
+            "range": {"unit": "deg", "from": -18.0, "to": 22.0},
+            "interpolation": "slerp",
+            "structures_in_order": [],
+        },
+        "structures": [s.slug for s in structures],
+        "measurements": [],
+        "lesion_attachments": [],
+        "show_hide_preset": {"visible": [s.slug for s in structures], "hidden": []},
+        "echo_tuning": {},
+        "real_clip_slot": None,
+        "emphasis": None,
+        "provenance": provenance_block(
+            source,
+            note=(
+                "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame: "
+                "origin at the left-ventricular apex standing off the epicardium along the long "
+                "axis, beam toward the valve-plane centroid, imaging plane through the apex and "
+                "both atrioventricular ring centroids. Geometry only — not read from an imaging "
+                "protocol, not reviewed by a clinician, and not a claim that this is a reachable "
+                "window on a real patient. structures_in_order is deliberately empty because "
+                "naming the structures a sweep crosses is a clinical reading."
+            ),
+            chain=[
+                "pipeline/ingest.py (view derived from the measured cardiac frame)",
+                "docs/view_canon.md B1 (family, indicator clock, display convention)",
+            ],
+        ),
+    }
+
+
 def build_pack(
     source: Source,
     structures: list[Structure],
     resolution: int,
     origin: np.ndarray,
     pitch: float,
-    orientation_measured: bool,
+    frame: CardiacFrame | None,
 ) -> dict:
     low = np.min([s.surface.vertices.min(axis=0) for s in structures], axis=0)
     high = np.max([s.surface.vertices.max(axis=0) for s in structures], axis=0)
@@ -591,12 +811,18 @@ def build_pack(
         float(-origin[0] * scale), float(-origin[1] * scale), float(-origin[2] * scale), 1.0,
     ]
 
-    if orientation_measured:
+    if frame is not None:
         orientation_note = (
-            "Pose normalised by the pipeline: the superior axis was measured from the ventricular "
-            "centroid to the aortic-wall centroid and the patient-left axis from the right-atrial "
-            "to the left-atrial centroid, then orthonormalised. The declared convention is a "
-            "measurement of this mesh, not an assumption."
+            "Pose normalised into a CARDIAC frame measured from this mesh: +y from the "
+            "left-ventricular apex (located by the source's universal ventricular coordinate) to "
+            "the centroid of the four valve rings, +x from the right-atrial to the left-atrial "
+            "centroid orthogonalised against it, +z completing a right-handed basis. The axes are "
+            "cardiac, not the patient's: a heart-only mesh carries no spine, diaphragm or chest "
+            "wall, and three defensible proxies for body superior-inferior disagree by up to 46 "
+            "degrees on this mesh, so no body frame is claimed. "
+            f"{frame_record(frame)['checks_passed']} of {frame_record(frame)['checks_total']} "
+            "independent anatomical checks pass; the full derivation is in "
+            "meshes.anatomical_frame."
         )
     else:
         orientation_note = (
@@ -664,11 +890,24 @@ def build_pack(
             },
             "units": "mm",
             "orientation": {
+                # `up` is the cardiac basal direction where a frame was derived:
+                # apex at -y, valve plane at +y. See meshes.anatomical_frame for
+                # what that is and is not a claim about.
                 "up": "+y", "anterior": "+z", "patient_left": "+x", "handedness": "right",
             },
+            **({"anatomical_frame": frame_record(frame)} if frame is not None else {}),
         },
         "interaction": {
             "pivot": [float(v) for v in (low + high) / 2.0],
+            # Seed the free cutter on the four-chamber plane where the frame is
+            # known: normal along the derived anterior axis, through the pivot.
+            # A pack that opens on load shows the learner what the cutter is for;
+            # `offset: 0` puts the plane on the pivot, which is where the camera
+            # is already aimed. Where no frame was derived the cutter stays off,
+            # because an arbitrary plane through an unmeasured model teaches
+            # nothing.
+            **({"free_cut": {"normal": [0.0, 0.0, 1.0], "offset": 0.0}}
+               if frame is not None else {}),
         },
         "echo_volume": {
             "asset": "assets/echo-volume.raw",
@@ -686,7 +925,14 @@ def build_pack(
             ],
             "scatterer_seed": 20260818,
         },
-        "views": [reference_view(structures, (low, high), source)],
+        # The derived clinical view leads where there is a frame to derive it
+        # from, so the app opens on anatomy rather than on a pipeline artefact.
+        # The reference pose stays behind it: it is mechanically generated and
+        # says so, and it exercises a second sweep mode against a real pack.
+        "views": (
+            ([apical_four_chamber(structures, frame, source)] if frame is not None else [])
+            + [reference_view(structures, (low, high), source)]
+        ),
         "display_flags": {
             "pediatric_vertex_convention": True,
             "plax_apex_left_exception": True,
@@ -711,13 +957,16 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
     timings["acquire_s"] = time.time() - clock
 
     clock = time.time()
-    orientation_measured = False
     tet_mesh: TetMesh | None = None
+    frame: CardiacFrame | None = None
     if source.key == "rodero":
-        structures, _rotation = split_rodero(source, path)
-        orientation_measured = True
         tet_mesh = read_vtk_tets(path)
-        tet_mesh.points = tet_mesh.points @ anatomical_frame(tet_mesh).T
+        # Derive the frame from the SOURCE coordinates, then carry the mesh into
+        # it. Deriving after rotating would measure the frame against itself.
+        frame = derive_cardiac_frame(tet_mesh)
+        notes.extend(frame.notes)
+        tet_mesh.points = tet_mesh.points @ frame.rotation.T
+        structures = split_rodero(source, tet_mesh)
     elif path.suffix.lower() == ".gltf":
         structures = split_gltf_groups(source, path)
     else:
@@ -733,7 +982,7 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
     triangles_before = sum(s.surface.triangle_count for s in structures)
 
     clock = time.time()
-    decimate(structures, budget)
+    notes.extend(decimate(structures, budget))
     timings["decimate_s"] = time.time() - clock
     triangles_after = sum(s.surface.triangle_count for s in structures)
 
@@ -776,7 +1025,7 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
     )
     (assets / "echo-volume.raw").write_bytes(volume.tobytes())
 
-    pack = build_pack(source, structures, resolution, origin, pitch, orientation_measured)
+    pack = build_pack(source, structures, resolution, origin, pitch, frame)
     (out_dir / "pack.json").write_text(json.dumps(pack, indent=2) + "\n")
 
     raw_bytes = volume.size

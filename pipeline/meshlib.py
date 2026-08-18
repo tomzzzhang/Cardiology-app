@@ -16,7 +16,7 @@ import base64
 import json
 import re
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -53,6 +53,21 @@ class TetMesh:
     points: np.ndarray  # (N, 3) float64
     tets: np.ndarray    # (M, 4) int32
     tags: np.ndarray    # (M,)   int32
+    #: Per-POINT scalar fields carried by the source, by name. The Rodero export
+    #: ships the universal ventricular coordinates (Bayer et al.): `Z.dat`
+    #: apicobasal, `RHO.dat` transmural, `PHI.dat` rotational, `V.dat` which
+    #: ventricle. They are what makes the apex a MEASUREMENT rather than an
+    #: assumption, so they are read rather than skipped past.
+    point_data: dict[str, np.ndarray] = field(default_factory=dict)
+
+    def uvc(self, name: str) -> np.ndarray:
+        """One UVC field by short name (`Z`, `RHO`, `PHI`, `V`)."""
+        for key in (name, f"{name}.dat"):
+            if key in self.point_data:
+                return self.point_data[key]
+        raise KeyError(
+            f"source carries no {name!r} field; available: {sorted(self.point_data)}"
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -137,7 +152,29 @@ def read_vtk_tets(path: Path) -> TetMesh:
     )
     tags = parse(lookup_offset, n_cells, np.int32)
 
-    return TetMesh(points=points, tets=tets, tags=tags)
+    # POINT_DATA scalars, if present. Every SCALARS block after the POINT_DATA
+    # header is one per-point field; the Rodero export writes four. A source
+    # that writes none is still valid and yields an empty mapping, which the
+    # frame derivation reports as a missing input rather than silently
+    # substituting a guess.
+    point_data: dict[str, np.ndarray] = {}
+    try:
+        point_offset, _ = find("POINT_DATA")
+    except ValueError:
+        point_offset = None
+    if point_offset is not None:
+        for position, _, words in headers:
+            if position <= point_offset or words[0] != "SCALARS" or len(words) < 2:
+                continue
+            lookup = next(
+                (p for p, _, w in headers if p > position and w[0] == "LOOKUP_TABLE"),
+                None,
+            )
+            if lookup is None:
+                continue
+            point_data[words[1]] = parse(lookup, n_points, np.float64)
+
+    return TetMesh(points=points, tets=tets, tags=tags, point_data=point_data)
 
 
 def _gltf_accessor(doc: dict, buffers: list[bytes], accessor_index: int) -> np.ndarray:

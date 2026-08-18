@@ -29,10 +29,18 @@ import type { ImagingFrame } from '../echo/probeFrame.ts';
  */
 export const SLAB_HALF_MM = 5;
 
-/** How much of the original colour a non-crossed fragment keeps. */
-const DIM_FACTOR = 0.5;
-/** How much of its saturation a non-crossed fragment keeps. */
-const DIM_SATURATION = 0.45;
+/*
+ * How far a non-crossed fragment is pushed down and toward grey.
+ *
+ * Tuned against the competing requirement, which is real: the same panel has to
+ * stay a LABELLED anatomy viewer while the highlight is on. At 0.5/0.45 the
+ * un-imaged structures kept their shape but lost their hue — the right
+ * ventricle read as generic blue-grey rather than as the right ventricle — and
+ * per-structure colour is the thing that makes the model teachable. These
+ * values keep the highlight obvious while leaving the palette recognisable.
+ */
+const DIM_FACTOR = 0.58;
+const DIM_SATURATION = 0.62;
 
 interface DimUniforms {
   uBeamOrigin: { value: THREE.Vector3 };
