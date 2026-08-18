@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-18 13:05 EDT
+**Last Updated:** 2026-08-18 13:15 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -110,7 +110,33 @@ imaging attending, and `echo_tuning` per view exists precisely so the answer can
 
 ---
 
-## 4. Tags 11–24 are still unnamed
+## 4. Display orientation: the renderer was honouring `display.vertex` backwards
+
+**Where.** Echo panel. The sector's vertex — the transducer point, where the fan is narrowest —
+should now be at the **bottom** of the panel, with the fan opening upward: atria at the top,
+ventricles below, cardiac apex at the bottom.
+
+**Verdict on the question asked.** The authored view was **right** and the renderer was **wrong**.
+The pack declares `display.vertex: "down"`, which `docs/view_canon.md` makes the pediatric default
+for the subcostal and apical families. `displayPass.ts` mirrored the panel when the flag said
+`down` and left it alone when it said `up` — exactly inverted — so the deployed apical four-chamber
+rendered vertex-**up**, the adult convention.
+
+**How to judge it.** For this view the transducer sits at the cardiac apex, so vertex-down and
+apex-down are the same thing: the apex should be at the bottom of the image and the atria at the
+top. Against an adult lab's four-chamber this will look upside down. That is correct here.
+
+**Guarded now.** A visual test measures the horizontal extent of lit pixels near the top and near
+the bottom of the canvas: a sector is pinched at its vertex and wide at depth, so the shape says
+which way up the fan is. Every previous assertion on this canvas was about grey levels, and a
+vertically mirrored sector has exactly the same ones.
+
+**Still open.** The apex up/down user toggle is not built. The pediatric default is now correct,
+which is the part that had to be right first.
+
+---
+
+## 5. Tags 11–24 are still unnamed
 
 **Where.** Anatomy panel: fourteen small grey structures around the atria — pulmonary vein stubs,
 caval stubs, the left atrial appendage.

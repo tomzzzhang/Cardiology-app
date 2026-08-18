@@ -8,7 +8,9 @@
  *
  * Pediatric display conventions live here, from `views[i].probe.display` — the
  * subcostal and apical families render vertex-DOWN, which is the opposite of
- * most adult labs (`docs/view_canon.md`).
+ * most adult labs (`docs/view_canon.md`). "Vertex" is the sector's own vertex,
+ * the point the transducer occupies: vertex-down puts it at the BOTTOM of the
+ * panel with the fan opening upward.
  */
 export const DISPLAY_FRAGMENT = /* glsl */ `#version 300 es
 precision highp float;
@@ -29,13 +31,25 @@ uniform int   uFlipLr;
 uniform float uAspect;       // output width / height
 
 void main() {
-  // Screen -> fan coordinates. Apex at the top when vertex-down.
   vec2 p = vUv * 2.0 - 1.0;
   p.x *= uAspect;
   if (uFlipLr == 1) p.x = -p.x;
-  if (uVertexDown == 1) p.y = -p.y;
 
-  // Apex sits above the visible area so the sector fills the panel.
+  /*
+   * vUv.y is 0 at the BOTTOM of the panel, so the sector vertex placed at
+   * p = (0, -1) below sits at the bottom and the fan opens upward. That is the
+   * vertex-DOWN presentation, which docs/view_canon.md makes the paediatric
+   * default for the subcostal and apical families -- the transducer mark at the
+   * bottom of the image, unlike most adult labs. Vertex-UP mirrors it, so
+   * vertex-UP is the case that flips.
+   *
+   * This condition was inverted, and the deployed apical four-chamber rendered
+   * vertex-UP while its pack correctly declared vertex "down". The renderer was
+   * at fault, not the authored view: the flag was being honoured backwards.
+   */
+  if (uVertexDown == 0) p.y = -p.y;
+
+  // The vertex sits below the visible area so the sector fills the panel.
   vec2 fromApex = vec2(p.x, p.y + 1.0);
   float radius = length(fromApex);
   float angle = atan(fromApex.x, fromApex.y);

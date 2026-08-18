@@ -116,7 +116,8 @@ const report = await page.evaluate(async ({ packId, structure }) => {
     const radius = (2 * d) / depthMm;
     let px = radius * Math.sin(a);
     let py = radius * Math.cos(a) - 1;
-    if (probe.display.vertex === 'down') py = -py;
+    // Mirrors displayPass.ts: vertex-DOWN is the unflipped case.
+    if (probe.display.vertex !== 'down') py = -py;
     if (probe.display.flip_lr) px = -px;
     px /= aspect;
     const ux = (px + 1) / 2;

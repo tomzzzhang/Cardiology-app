@@ -558,8 +558,11 @@ export const ProbePose = z
     }),
     display: z.strictObject({
       /**
-       * Pediatric convention: subcostal and apical families render vertex-DOWN.
-       * User-toggleable at runtime; this is the authored default.
+       * Where the sector's VERTEX — the point the transducer occupies — is
+       * drawn on the panel. `down` puts it at the bottom with the fan opening
+       * upward, which is the pediatric convention for the subcostal and apical
+       * families and the opposite of most adult labs. User-toggleable at
+       * runtime; this is the authored default.
        */
       vertex: z.enum(['up', 'down']),
       flip_lr: z.boolean(),

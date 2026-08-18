@@ -98,6 +98,65 @@ test('renders the simulated echo over the real labelled volume', async ({ page }
   expect(greys!.mid).toBeGreaterThan(greys!.total * 0.05);
 });
 
+test('renders the sector vertex-down, the paediatric default for family B', async ({ page }) => {
+  /*
+   * `docs/view_canon.md` makes vertex-DOWN the paediatric convention for the
+   * subcostal and apical families — transducer mark at the BOTTOM of the image,
+   * the fan opening upward — and the shipped apical four-chamber declares it.
+   * The renderer honoured the flag backwards and drew the deployed view
+   * vertex-up, which no assertion here could see: every check on this canvas
+   * was about grey levels, and a vertically mirrored sector has exactly the
+   * same ones.
+   *
+   * So the assertion is about SHAPE. A sector is narrow at its vertex and wide
+   * at full depth, so the extent of lit pixels across the panel grows away from
+   * the vertex. Measuring that near the top and near the bottom says which way
+   * up the fan is, independently of what is inside it.
+   */
+  await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
+  const width = await page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="echo-canvas"]');
+    if (!canvas) return null;
+    const size = 128;
+    const scratch = document.createElement('canvas');
+    scratch.width = size;
+    scratch.height = size;
+    const context = scratch.getContext('2d');
+    if (!context) return null;
+    context.drawImage(canvas, 0, 0, size, size);
+    const { data } = context.getImageData(0, 0, size, size);
+
+    // Horizontal extent of lit pixels on one row, in columns.
+    const litSpan = (row: number) => {
+      let first = -1;
+      let last = -1;
+      for (let column = 0; column < size; column += 1) {
+        if (data[(row * size + column) * 4] > 16) {
+          if (first < 0) first = column;
+          last = column;
+        }
+      }
+      return first < 0 ? 0 : last - first + 1;
+    };
+
+    // Averaged over a band, so one speckle-free row cannot decide it.
+    const band = (from: number, to: number) => {
+      let total = 0;
+      for (let row = from; row < to; row += 1) total += litSpan(row);
+      return total / (to - from);
+    };
+
+    return { top: band(4, 20), bottom: band(size - 20, size - 4) };
+  });
+
+  expect(width).not.toBeNull();
+  // Vertex at the bottom: the fan is wide at the top and pinched at the bottom.
+  expect(width!.top).toBeGreaterThan(width!.bottom * 1.5);
+});
+
 test('scrubbing the sweep changes the image', async ({ page }) => {
   await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,
