@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-18 13:45 EDT
+**Last Updated:** 2026-08-18 13:50 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -223,7 +223,39 @@ two-finger pan are also still missing.
 
 ---
 
-## 8. Tags 11–24 are still unnamed
+## 8. Beam dim: the two channels now do different jobs
+
+**Where.** Anatomy panel, the **Beam** checkbox. On, everything the beam does not cross is pushed
+toward grey and down in brightness.
+
+**What changed.** One knob became two. Luminance 58% → **60%**, saturation 62% → **28%**. So the
+surround is barely darker than before but much greyer, and the imaged band is now marked mostly by
+being the part that still has colour.
+
+**Why that split.** Lightness is the channel the eye segments a scene by, so it carries the
+marking. Hue *difference* survives being cut hard — two colours stay tellable apart long after
+they have stopped being vivid — so saturation is where the cutting can happen cheaply.
+
+**The test that set the numbers.** Outside the beam, can the right ventricle still be told from
+the left atrium at a glance? Measured in CIE Lab over the shipped palette rather than judged by
+eye. At the specified 72%/28% starting point the answer was yes with a lot of room (25 Lab units),
+so luminance was pushed to 60%. The binding constraint turned out not to be that pair but the
+**gold left atrium against the green right atrium**, which sits at 11.8 — above the ~10 where two
+colours stop reading as different at a glance, and the reason it stopped at 60% rather than going
+lower. In/out contrast is 49.8, up from 41.0.
+
+**How to judge it.** Toggle **Beam** off and on. Off, every structure should be its own colour.
+On, the band the beam crosses should be obviously the coloured part of the picture, and you should
+still be able to name the right ventricle and the left atrium in the greyed surround without
+hovering anything. If the surround has gone anonymous, saturation is too low; if the band does not
+stand out, luminance is too high.
+
+**Taste.** This is a deliberate trade and a matter of taste. `UI-2` in the planning folder's
+`ui_design_questions.md` is now closed on these values, with the measurement recorded there.
+
+---
+
+## 9. Tags 11–24 are still unnamed
 
 **Where.** Anatomy panel: fourteen small grey structures around the atria — pulmonary vein stubs,
 caval stubs, the left atrial appendage.

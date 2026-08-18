@@ -30,17 +30,48 @@ import type { ImagingFrame } from '../echo/probeFrame.ts';
 export const SLAB_HALF_MM = 5;
 
 /*
- * How far a non-crossed fragment is pushed down and toward grey.
+ * How far a non-crossed fragment is pushed down and toward grey — as TWO
+ * independent numbers, which is the point.
  *
- * Tuned against the competing requirement, which is real: the same panel has to
- * stay a LABELLED anatomy viewer while the highlight is on. At 0.5/0.45 the
- * un-imaged structures kept their shape but lost their hue — the right
- * ventricle read as generic blue-grey rather than as the right ventricle — and
- * per-structure colour is the thing that makes the model teachable. These
- * values keep the highlight obvious while leaving the palette recognisable.
+ * The panel has to do two things at once: mark the imaged slab, and stay a
+ * labelled anatomy viewer while doing it. Those pull in opposite directions
+ * only if the dim is treated as one knob. Split, they do not:
+ *
+ * * **luminance** carries the marking. A darker surround is what makes the
+ *   bright band read as the imaged tissue, and lightness is the channel the eye
+ *   segments a scene by.
+ * * **saturation** carries the labelling, and it survives being cut hard.
+ *   Structures stay tellable apart by hue long after the hue has stopped being
+ *   vivid, because "tellable apart" is a difference, not an intensity.
+ *
+ * So saturation is cut much harder than luminance, and luminance is pushed
+ * exactly as far as the labelling will bear. Measured on the shipped palette in
+ * CIE Lab (`tests/unit/beamDim.test.ts`), at these values the closest pair in
+ * the palette — the gold left atrium against the green right atrium — is still
+ * 11.8 units apart outside the beam, well above the ~10 at which two colours
+ * stop reading as different, while the in/out contrast rises to 49.8 from the
+ * 41.0 the previous single-knob setting managed.
+ *
+ * UI-2 in the planning folder's `ui_design_questions.md` is closed on these.
  */
-const DIM_FACTOR = 0.58;
-const DIM_SATURATION = 0.62;
+export const DIM_LUMINANCE = 0.6;
+export const DIM_SATURATION = 0.28;
+
+/**
+ * The shader's dim, in TypeScript, on 0-255 sRGB.
+ *
+ * A duplicate of two lines of GLSL, and worth it: this is the pair of numbers
+ * that decides whether the model stays readable while the highlight is on, and
+ * a claim about that has to be measurable rather than remembered. The shader
+ * applies it to the shaded fragment AFTER the colour-space conversion, so sRGB
+ * is the space to reason in and this is the same arithmetic on the same values.
+ */
+export function dimmedColour(rgb: readonly [number, number, number]): [number, number, number] {
+  const luma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  return rgb.map((channel) =>
+    Math.min(255, Math.max(0, (luma + DIM_SATURATION * (channel - luma)) * DIM_LUMINANCE)),
+  ) as [number, number, number];
+}
 
 interface DimUniforms {
   uBeamOrigin: { value: THREE.Vector3 };
@@ -120,7 +151,8 @@ if ( uBeamDim > 0.0 ) {
   float crossed = inSlab * inRange * inFan * ahead;
 
   float luma = dot( gl_FragColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) );
-  vec3 dimmed = mix( vec3( luma ), gl_FragColor.rgb, ${DIM_SATURATION.toFixed(2)} ) * ${DIM_FACTOR.toFixed(2)};
+  // Saturation first, then luminance: two independent channels, in that order.
+  vec3 dimmed = mix( vec3( luma ), gl_FragColor.rgb, ${DIM_SATURATION.toFixed(2)} ) * ${DIM_LUMINANCE.toFixed(2)};
   gl_FragColor.rgb = mix( mix( gl_FragColor.rgb, dimmed, uBeamDim ), gl_FragColor.rgb, crossed );
 }`,
       );

@@ -1,6 +1,6 @@
 # Project workflow
 
-**Updated:** 2026-08-18 13:45 EDT
+**Updated:** 2026-08-18 13:50 EDT
 
 How work happens in this repository. Product intent, clinical context, decisions, and the
 progress log live in the owner's planning folder; this file is the code-side operating rule

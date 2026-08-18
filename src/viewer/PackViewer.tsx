@@ -79,7 +79,7 @@ export type DragTarget = 'camera' | 'cut' | 'echo';
  * greens and teals. They are lighter than the walls because a fibrous annulus
  * is the brightest thing in the neighbourhood on the echo side too.
  */
-const PALETTE: Record<string, number> = {
+export const PALETTE: Record<string, number> = {
   'lv-myocardium': 0xd94f4f,
   'rv-myocardium': 0x4f8fd9,
   'la-myocardium': 0xe0a33c,
