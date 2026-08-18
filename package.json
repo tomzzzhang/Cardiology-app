@@ -17,6 +17,7 @@
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots",
     "bench:echo": "node tests/perf/echo-bench.mjs",
+    "measure:echo": "node tests/perf/echo-fill.mjs",
     "validate:packs": "tsx scripts/validate-packs.ts",
     "check:provenance": "tsx scripts/check-provenance.ts",
     "check:base-path": "tsx scripts/check-base-path.ts",

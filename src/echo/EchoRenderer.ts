@@ -246,6 +246,7 @@ export class EchoRenderer {
     this.setFloat(this.scanProgram, 'uAttenuationScale', descriptor.lut.attenuationScale);
     this.setFloat(this.scanProgram, 'uAttenDbPerCm', tuning.attenuationDbPerCm);
     this.setFloat(this.scanProgram, 'uScattererDensity', tuning.scattererDensity);
+    this.setFloat(this.scanProgram, 'uScatter', tuning.scatter);
     this.setFloat(this.scanProgram, 'uSpecular', tuning.specular);
     this.setFloat(this.scanProgram, 'uBoundaryReflection', tuning.boundaryReflection);
     this.setFloat(this.scanProgram, 'uClutter', tuning.clutter);

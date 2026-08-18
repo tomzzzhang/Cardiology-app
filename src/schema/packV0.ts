@@ -496,6 +496,21 @@ export const EchoLabel = z.strictObject({
 });
 export type EchoLabel = z.infer<typeof EchoLabel>;
 
+/**
+ * The labelled volume the echo renderer samples.
+ *
+ * **`raw-u8` is x-fastest**, one byte per voxel:
+ *
+ *     offset = x + resolution[0] * (y + resolution[1] * z)
+ *
+ * That is not a free choice. It is the layout `texImage3D` reads, so any other
+ * ordering is silently transposed on upload. Stating it here because leaving it
+ * unstated already cost one: the Python pipeline wrote its grid x-slowest
+ * (numpy's C order over `[ix, iy, iz]`), so the renderer sampled an x/z-swapped
+ * heart while the wedge drawn on the model used the untransposed geometry. The
+ * two panels disagreed about which slice they were showing, and the echo still
+ * looked like a plausible echo of a plausible heart.
+ */
 export const EchoVolume = z.strictObject({
   asset: AssetPath,
   format: z.enum(['raw-u8', 'ktx2']),

@@ -172,6 +172,34 @@ describe('compress', () => {
     expect(compress(floor * 0.9, DEFAULT_TUNING)).toBe(0);
   });
 
+  it('holds the whole scale the model produces, from interface to blood', () => {
+    /*
+     * The three levels the renderer actually emits, and the reason `scatter`
+     * exists. Diffuse tissue is the label's echogenicity times `scatter`; a
+     * strong interface is `boundaryReflection` times the echogenicity STEP
+     * across it. If the window cannot hold all three at once, the image goes
+     * two-tone: tissue clips to white and blood falls through the rejection
+     * floor to black, which is what shipped before this.
+     */
+    const tuning = DEFAULT_TUNING;
+    const myocardium = compress(0.55 * tuning.scatter, tuning);
+    const blood = compress(0.02 * tuning.scatter, tuning);
+    const interface_ = compress(tuning.boundaryReflection * 0.53, tuning);
+
+    expect(blood).toBeGreaterThan(0);          // textured, not a hole
+    expect(blood).toBeLessThan(0.2);           // and still near-black
+    expect(myocardium).toBeGreaterThan(0.3);   // mid-grey…
+    expect(myocardium).toBeLessThan(0.75);     // …not clipped
+    expect(interface_).toBeGreaterThan(myocardium);
+    expect(interface_).toBeLessThanOrEqual(1);
+  });
+
+  it('keeps the rejection floor below blood, which is signal and not noise', () => {
+    // Rejection above blood deletes the darkest real content in the image
+    // rather than the noise under it, and every chamber renders pure black.
+    expect(DEFAULT_TUNING.reject).toBeLessThan(BLOOD.echogenicity * DEFAULT_TUNING.scatter);
+  });
+
   it('narrowing the dynamic range raises contrast', () => {
     // Contrast is the SEPARATION between two returns, not the brightness of
     // one. A narrower window steepens the ramp, so a mid-level sample actually

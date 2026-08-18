@@ -10,7 +10,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkGltfReferences, checkRawVolume } from '../../scripts/lib/packAssets.ts';
+import {
+  checkGltfReferences,
+  checkRawVolume,
+  checkVolumeRegistration,
+} from '../../scripts/lib/packAssets.ts';
 import { isPlaceholder } from '../../scripts/lib/placeholders.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -161,5 +165,105 @@ describe('R15 — placeholder attribution is caught at a token boundary', () => 
     '',
   ])('does not flag legitimate attribution %j', (value) => {
     expect(isPlaceholder(value)).toBe(false);
+  });
+});
+
+describe('R13 — the label volume is registered to the mesh it came from', () => {
+  /*
+   * The check that was missing when it mattered. Every other volume check is
+   * about the file's contents — right size, declared values — and a volume with
+   * its axes permuted is the same bytes in a different order, so it passes all
+   * of them. The Python pipeline wrote its grid x-slowest while `texImage3D`
+   * reads x-fastest, and every pack it produced shipped an x/z-transposed heart
+   * that the renderer sampled and the wedge did not.
+   */
+  const RESOLUTION: [number, number, number] = [8, 8, 8];
+  /** Model space -> voxel space: identity scale, origin shifted to the middle. */
+  const MESH_TO_VOLUME = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 4, 4, 1];
+
+  /** A cube of `label` voxels centred on model-space `at`, written x-fastest. */
+  function volumeWithBlobAt(at: [number, number, number], label: number, transposed = false) {
+    const [width, height, depth] = RESOLUTION;
+    const grid = Buffer.alloc(width * height * depth);
+    const centre = [at[0] + 4, at[1] + 4, at[2] + 4];
+    for (let z = 0; z < depth; z += 1) {
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const near = Math.abs(x + 0.5 - centre[0]) <= 1
+            && Math.abs(y + 0.5 - centre[1]) <= 1
+            && Math.abs(z + 0.5 - centre[2]) <= 1;
+          if (!near) continue;
+          const offset = transposed
+            ? z + width * (y + height * x)   // x-slowest: the pipeline's old bug
+            : x + width * (y + height * z);  // x-fastest: the format
+          grid[offset] = label;
+        }
+      }
+    }
+    const path = join(workDir, `volume-${transposed ? 'transposed' : 'correct'}.raw`);
+    writeFileSync(path, grid);
+    return path;
+  }
+
+  /** A one-node glTF whose only structure is a small cube around `at`. */
+  function gltfWithBlobAt(at: [number, number, number]) {
+    const corners = new Float32Array(8 * 3);
+    let cursor = 0;
+    for (const dx of [-1, 1]) {
+      for (const dy of [-1, 1]) {
+        for (const dz of [-1, 1]) {
+          corners[cursor] = at[0] + dx;
+          corners[cursor + 1] = at[1] + dy;
+          corners[cursor + 2] = at[2] + dz;
+          cursor += 3;
+        }
+      }
+    }
+    return writeGltf({
+      nodes: [{ name: 'blob', mesh: 0 }],
+      meshes: [{ name: 'blob', primitives: [{ attributes: { POSITION: 0 } }] }],
+      accessors: [{ bufferView: 0, componentType: 5126, count: 8, type: 'VEC3' }],
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: corners.byteLength }],
+      buffers: [{
+        byteLength: corners.byteLength,
+        uri: `data:application/octet-stream;base64,${Buffer.from(corners.buffer).toString('base64')}`,
+      }],
+    });
+  }
+
+  const LABELS = [{ id: 1, structure: 'blob' }];
+  const NODE_OF = () => 'blob';
+
+  it('passes when the volume and the mesh agree about where the structure is', () => {
+    const result = checkVolumeRegistration(
+      gltfWithBlobAt([2, 0, -3]),
+      volumeWithBlobAt([2, 0, -3], 1),
+      RESOLUTION, MESH_TO_VOLUME, LABELS, NODE_OF,
+    );
+    expect(result.failures).toEqual([]);
+  });
+
+  it('fails a volume written x-slowest, which is the transpose that shipped', () => {
+    const result = checkVolumeRegistration(
+      gltfWithBlobAt([2, 0, -3]),
+      volumeWithBlobAt([2, 0, -3], 1, true),
+      RESOLUTION, MESH_TO_VOLUME, LABELS, NODE_OF,
+    );
+    expect(result.failures).toHaveLength(1);
+    expect(result.failures[0]).toMatch(/not registered to the mesh/);
+    expect(result.failures[0]).toMatch(/x-fastest/);
+  });
+
+  it('passes the shipped stub pack, whose volume is generated x-fastest', () => {
+    const result = checkVolumeRegistration(
+      join(stubDir, 'assets', 'stub.gltf'),
+      join(stubDir, 'assets', 'stub-volume.raw'),
+      [32, 32, 32],
+      [16, 0, 0, 0, 0, 16, 0, 0, 0, 0, 16, 0, 16, 16, 16, 1],
+      [{ id: 1, structure: 'stub-shell' }, { id: 2, structure: 'stub-core' }],
+      (structure) => (structure === 'stub-shell' ? 'stub_shell' : 'stub_core'),
+    );
+    expect(result.failures).toEqual([]);
+    expect(result.skipped).toEqual([]);
   });
 });

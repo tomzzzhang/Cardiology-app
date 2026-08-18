@@ -15,7 +15,11 @@ import { join } from 'node:path';
 import { SCHEMA_VERSION } from '../src/schema/packV0.ts';
 import { formatIssues, readSchemaVersion, validatePack } from '../src/schema/validate.ts';
 import { discoverPacks, relativeToRepo } from './lib/discoverPacks.ts';
-import { checkGltfReferences, checkRawVolume } from './lib/packAssets.ts';
+import {
+  checkGltfReferences,
+  checkRawVolume,
+  checkVolumeRegistration,
+} from './lib/packAssets.ts';
 
 const failures: string[] = [];
 const notes: string[] = [];
@@ -68,6 +72,22 @@ for (const found of packs) {
     );
     failures.push(...volume.failures.map((failure) => `${label}: ${failure}`));
     notes.push(...volume.skipped.map((skip) => `${label}: ${skip}`));
+
+    // R13: the volume and the mesh have to describe the same heart in the same
+    // orientation. Every check above is satisfied by a permuted volume.
+    const meshNodeOf = new Map(
+      pack.meshes.structures.map((structure) => [structure.id, structure.mesh_node]),
+    );
+    const registration = checkVolumeRegistration(
+      join(found.dir, pack.meshes.gltf),
+      join(found.dir, pack.echo_volume.asset),
+      pack.echo_volume.resolution,
+      pack.echo_volume.mesh_to_volume,
+      pack.echo_volume.labels,
+      (structure) => meshNodeOf.get(structure),
+    );
+    failures.push(...registration.failures.map((failure) => `${label}: ${failure}`));
+    notes.push(...registration.skipped.map((skip) => `${label}: ${skip}`));
   } else {
     notes.push(
       `${label}: echo_volume format "${pack.echo_volume.format}" — contents not inspected in wave 0`,

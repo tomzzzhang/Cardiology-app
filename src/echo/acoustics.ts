@@ -106,6 +106,14 @@ export interface EchoTuning {
   attenuationDbPerCm: number;
   /** Scatterer density, in scatterers per mm along a scanline. */
   scattererDensity: number;
+  /**
+   * Diffuse backscatter amplitude, as a fraction of a label's echogenicity.
+   *
+   * The ratio between the tissue interior and a specular interface. Diffuse
+   * backscatter from sub-resolution scatterers is far weaker than a specular
+   * reflection off a boundary, and this is where that difference lives.
+   */
+  scatter: number;
   /** Axial PSF sigma in mm at the focus. */
   psfAxialMm: number;
   /** Lateral PSF sigma in mm at the focus. */
@@ -131,8 +139,16 @@ export const DEFAULT_TUNING: Readonly<EchoTuning> = {
    * over a 16 cm sector the blood outside the heart came back mid-grey, which
    * inverts priority 1's ordering: blood must be near-black.
    */
-  tgcDb: 16,
-  dynamicRangeDb: 55,
+  tgcDb: 8,
+  /*
+   * Wide enough to hold the whole scale the model produces at once: a specular
+   * interface near full scale, diffuse myocardium about 25 dB under it, blood
+   * about 29 dB under that. At 55 dB the two ends did not fit — tissue clipped
+   * to white and blood fell through the rejection floor to black, so the sector
+   * came out as a two-tone mask with no mid-grey anywhere in it, which is the
+   * "reads as a segmentation, not an echo" failure.
+   */
+  dynamicRangeDb: 60,
   gamma: 1.25,
   attenuationDbPerCm: 4.0,
   /*
@@ -142,13 +158,32 @@ export const DEFAULT_TUNING: Readonly<EchoTuning> = {
    * inside one PSF width.
    */
   scattererDensity: 3.6,
+  /*
+   * Diffuse tissue sits ~20 dB below a perfect reflector. With the pack's
+   * echogenicity 0.55 for myocardium that puts the myocardial envelope near
+   * -25 dB, roughly the middle of the window above, and blood at 0.02 near
+   * -54 dB — dark but still textured rather than a hole.
+   */
+  scatter: 0.1,
   psfAxialMm: 0.7,
   psfLateralMm: 0.95,
   psfDefocus: 0.014,
   specular: 1.0,
+  /*
+   * A strong interface — blood against myocardium, an echogenicity step of
+   * about 0.53 — now returns ~0.29 at normal incidence, some 14 dB above the
+   * tissue interior rather than swamping it. The border reads as a border and
+   * the wall behind it still reads as a wall.
+   */
   boundaryReflection: 0.55,
-  clutter: 0.05,
-  reject: 0.02,
+  clutter: 0.012,
+  /*
+   * Rejection has to sit BELOW blood, or it deletes the darkest real signal in
+   * the image instead of the noise floor. At 0.02 it was above blood's ~0.002
+   * envelope, so every chamber rendered as pure black and the sector lost the
+   * low end of its scale entirely.
+   */
+  reject: 0.0008,
 };
 
 /**

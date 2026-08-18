@@ -490,6 +490,27 @@ def voxelize_tets(
     return volume, origin, pitch
 
 
+def raw_volume_bytes(volume: np.ndarray) -> bytes:
+    """
+    Serialise a `[ix, iy, iz]` label grid into `raw-u8`, which is **x-fastest**.
+
+    Both voxelisers index the grid the way the geometry reads — `volume[ix, iy,
+    iz]` is the voxel at model `(x, y, z)` — and numpy's C order makes `ix` the
+    slowest axis in memory. `raw-u8` is the opposite: a WebGL `texImage3D`
+    upload reads `offset = x + width * (y + height * z)`, so x varies fastest,
+    and `scripts/make-stub-assets.mjs` writes the fixture that way.
+
+    Writing `volume.tobytes()` therefore shipped an x/z-TRANSPOSED volume. The
+    echo renderer sampled the transposed copy while the wedge on the model used
+    the untransposed geometry, so the two panels were showing different slices
+    of the same heart — and because a heart is a compact blob, the result looked
+    like a plausible echo of a plausible heart rather than like an error.
+    Nothing caught it because no test compared the volume's own labels against
+    the mesh they came from; `tests/unit/packAssets.test.ts` now does.
+    """
+    return np.ascontiguousarray(volume.transpose(2, 1, 0)).tobytes()
+
+
 def voxelize_surfaces(
     structures: list[Structure], resolution: int
 ) -> tuple[np.ndarray, np.ndarray, float, list[str]]:
@@ -1066,7 +1087,7 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
     gltf_bytes, bin_bytes = write_gltf(
         assets / "model.gltf", [s.surface for s in structures], bin_name="model.bin"
     )
-    (assets / "echo-volume.raw").write_bytes(volume.tobytes())
+    (assets / "echo-volume.raw").write_bytes(raw_volume_bytes(volume))
 
     pack = build_pack(source, structures, resolution, origin, pitch, frame)
     (out_dir / "pack.json").write_text(json.dumps(pack, indent=2) + "\n")
@@ -1076,7 +1097,7 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
         "gltf": gltf_bytes,
         "bin": bin_bytes,
         "volume_raw": raw_bytes,
-        "volume_gzip": len(gzip.compress(volume.tobytes(), 6)),
+        "volume_gzip": len(gzip.compress(raw_volume_bytes(volume), 6)),
         "pack_json": len((out_dir / "pack.json").read_bytes()),
     }
     sizes["total_raw"] = sizes["gltf"] + sizes["bin"] + sizes["volume_raw"] + sizes["pack_json"]

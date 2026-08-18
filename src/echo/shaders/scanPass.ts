@@ -38,6 +38,7 @@ uniform float uAttenuationScale;
 uniform float uAttenDbPerCm;
 
 uniform float uScattererDensity;
+uniform float uScatter;
 uniform float uSpecular;
 uniform float uBoundaryReflection;
 uniform float uClutter;
@@ -207,9 +208,34 @@ void main() {
     boundary = uBoundaryReflection * gradientLength * pow(incidence, 3.0);
   }
 
+  /*
+   * Two returns, on two different scales, and keeping them apart is what makes
+   * a wall a BAND rather than an outline.
+   *
+   *   interior  diffuse backscatter from sub-resolution scatterers. Roughly
+   *             ISOTROPIC — a homogeneous wall returns the same from any
+   *             direction — and present at every depth inside the tissue, which
+   *             is why the tissue fills in. Its amplitude is the label's
+   *             echogenicity times uScatter.
+   *
+   *   boundary  specular reflection at an interface. Present only where the
+   *             echogenicity field has a gradient, and falling off as the cube
+   *             of the cosine of incidence, so a wall lying along the beam
+   *             loses its border while keeping its interior. That is lateral
+   *             dropout, and it is teaching content rather than a defect.
+   *
+   * uScatter is the ratio between them, and it is the number that decides
+   * whether myocardium reads as a filled band. A specular interface returns
+   * far more than diffuse tissue does — tens of decibels more in real tissue —
+   * so diffuse tissue has to sit well below full scale, and the display window
+   * has to be wide enough to hold both. Before this split there was no such
+   * knob: the interior return was pinned at the label's echogenicity, the same
+   * 0..1 scale the boundary term used, so the only way to brighten tissue was
+   * to brighten the interfaces with it.
+   */
   float amplitude = scattererAmplitude(here, uSeed);
   // Signed RF, not an envelope. The envelope is formed after the PSF pass.
-  float echo = (props.r * amplitude * specular + boundary) * transmit;
+  float echo = (props.r * uScatter * amplitude * specular + boundary) * transmit;
 
   // Subtle near-field clutter — reverberation just under the transducer face.
   float nearField = exp(-target / (uDepthMm * 0.05));

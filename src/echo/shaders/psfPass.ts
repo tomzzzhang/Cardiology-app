@@ -39,6 +39,7 @@ void main() {
 
   float sum = 0.0;
   float weightSum = 0.0;
+  float weightSquares = 0.0;
   for (int i = -64; i <= 64; i++) {
     if (i < -uRadius || i > uRadius) continue;
     float offset = float(i);
@@ -50,6 +51,7 @@ void main() {
     // Coherent while convolving; squared only on the envelope pass (below).
     sum += (uEnvelope == 1 ? value * value : value) * weight;
     weightSum += weight;
+    weightSquares += weight * weight;
   }
 
   /*
@@ -64,8 +66,24 @@ void main() {
    * signal, which has no such zeros. sqrt(mean(RF^2)) over a short axial window
    * estimates that magnitude directly, keeps Rayleigh speckle statistics, and
    * costs one multiply.
+   *
+   * The two passes normalise DIFFERENTLY, and that is the point.
+   *
+   * The envelope pass averages squares, so it divides by sum(w): a mean.
+   *
+   * The coherent pass divides by sqrt(sum(w^2)), which is the normalisation
+   * that leaves a white-noise input with the variance it arrived with. Dividing
+   * by sum(w) instead — an average — is what an earlier revision did, and it
+   * attenuates independent scatterers by roughly 1/sqrt(2*sigma*sqrt(pi)):
+   * about 9 dB at this resolution, and a DIFFERENT number at any other polar
+   * resolution or PSF width. So the rendered brightness of a tissue depended on
+   * the renderer's internal sampling rather than on the echogenicity the pack
+   * authored, and every attempt to fix the resulting darkness by raising gain
+   * moved the whole image, interfaces included.
    */
-  float value = sum / max(weightSum, 1e-6);
+  float value = uEnvelope == 1
+    ? sum / max(weightSum, 1e-6)
+    : sum / max(sqrt(weightSquares), 1e-6);
   vec4 centre = texture(uSource, vUv);
   outColour = vec4(uEnvelope == 1 ? sqrt(max(value, 0.0)) : value, centre.g, centre.b, 1.0);
 }

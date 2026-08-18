@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-18 12:43 EDT
+**Last Updated:** 2026-08-18 13:05 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -42,7 +42,75 @@ with the artery or slightly detached from it.
 
 ---
 
-## 2. Tags 11–24 are still unnamed
+## 2. The echo was sampling a transposed heart — and that was the real defect
+
+**Where.** Echo panel. Compare it against the 3D panel's wedge: the two are supposed to be showing
+the same slice of the same heart.
+
+**Why it was uncertain.** The previous session recorded the thin bright walls as an echo-tuning
+finding, with `boundaryReflection` blamed for saturating the interfaces while the interior stayed
+dark. That reading was wrong. The label volume was being written x-slowest by the Python pipeline
+and read x-fastest by `texImage3D`, so **every pack shipped an x/z-transposed volume**. The
+renderer sampled the transposed heart while the wedge on the model used the untransposed geometry.
+The two panels were showing different slices — and because a heart is a compact blob, the result
+looked like a plausible echo of a plausible heart.
+
+**How to judge it.** Turn the cut plane to the echo plane and compare the cut faces with the echo
+image, chamber for chamber. They should now correspond. Before this fix they could not, no matter
+how the echo was tuned.
+
+**Guarded now.** `npm run validate:packs` checks each label's voxel centroid against the vertex
+centroid of the mesh node it names, so an axis permutation fails CI. Every check that existed
+before was satisfied by a permuted volume — same bytes, different order.
+
+---
+
+## 3. Echo tuning: before and after
+
+**Where.** Echo panel, apical four-chamber, sweep parked at 0°.
+
+**Measured with** `npm run measure:echo` (against a built `dist/` on `http://127.0.0.1:4173`),
+which marches the shader's own rays, reads the label the pack carries at each depth, and reads the
+displayed grey at the screen pixel that depth lands on.
+
+| | before | after |
+| --- | --- | --- |
+| blood / background, mean grey | 0.07 (median **0**) | 0.11 (median 0.04) |
+| LV myocardium, mean grey | 0.70 | 0.53 |
+| valve ring, mean grey | 0.94 | 0.59–0.90 |
+| rim vs core brightness across a wall | 0.97 | 1.21 |
+| rendered wall thickness, near-perpendicular chords | 10.5 mm | 10.5 mm |
+| true wall thickness, same chords | 10.5 mm | 10.5 mm |
+
+**What changed and why.**
+
+1. **The PSF's coherent pass was normalising wrongly.** It divided by `sum(w)` — an average —
+   which attenuates independent scatterers by about 9 dB *at this resolution*, and by a different
+   amount at any other. Tissue brightness therefore depended on the renderer's internal sampling
+   rather than on the echogenicity the pack authored. It now divides by `sqrt(sum(w²))`, which is
+   the normalisation that leaves white noise with the variance it arrived with.
+2. **Interior scatter and boundary reflection now have separate scales**, via a new `scatter` knob.
+   Diffuse backscatter sits ~20 dB below a specular interface, which is physical, and is what makes
+   a wall a band with a border rather than a border alone.
+3. **The window was too narrow to hold both ends**: at 55 dB tissue clipped to white while blood
+   fell through a rejection floor set *above* it, so the sector was a two-tone mask with no mid-grey
+   anywhere. Now 60 dB, with rejection below blood.
+
+**How to judge it.** The wall should read as a textured mid-grey band with a brighter border, not
+as a white outline; blood should be dark but grainy, not a black hole; the valve rings should be
+the brightest things in the image. If it reads as a segmentation mask, this regressed.
+
+**Kept on purpose.** A wall lying along the beam still loses its bright border while keeping its
+interior. That is lateral dropout, and it is teaching content.
+
+**Unverified / taste.** `scatter: 0.1`, `dynamicRangeDb: 60`, `tgcDb: 8` and `reject: 0.0008` are
+chosen to land the three levels where the table above says, not measured against a real scanner.
+The grey a real pediatric machine puts on myocardium at these settings is a question for the
+imaging attending, and `echo_tuning` per view exists precisely so the answer can be authored.
+
+---
+
+## 4. Tags 11–24 are still unnamed
 
 **Where.** Anatomy panel: fourteen small grey structures around the atria — pulmonary vein stubs,
 caval stubs, the left atrial appendage.
