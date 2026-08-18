@@ -1,0 +1,91 @@
+{
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 108513,
+   "max": [
+    37.990806579589844,
+    50.40031814575195,
+    80.14469909667969
+   ],
+   "min": [
+    -71.7159194946289,
+    -72.39852905273438,
+    -64.56045532226562
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 108513,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5125,
+   "count": 659994,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "generator": "Cardiology app ingest pipeline (pipeline/ingest.py)",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 1302156,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1302156,
+   "byteOffset": 1302156,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 2639976,
+   "byteOffset": 2604312,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 5244288,
+   "uri": "model.bin"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "myocardial-tissue",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0
+     },
+     "indices": 2,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "myocardial-tissue"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ]
+}

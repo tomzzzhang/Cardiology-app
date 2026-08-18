@@ -8,26 +8,32 @@ transcribed from `docs/build_plan.md` v1.2. Workers code against v0 and do not c
 
 ## Shipped packs
 
-| Pack | What it is |
-| --- | --- |
-| `stub/` | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** |
-| `normal-rodero/` | Normal heart, Rodero/CEMRG average four-chamber mesh (CC BY 4.0). Real anatomy, **not vetted**. |
+| Pack | What it is | Licence |
+| --- | --- | --- |
+| `stub/` | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 |
+| `normal-rodero/` | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 |
+| `normal-alberta-neonatal/` | Normal neonatal heart, 3D Heart Project. Blood pool + separate myocardium. | CC BY 4.0 † |
+| `normal-vhl-heart0102/` | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 ‡ |
 
-`normal-rodero/` is produced by the ingest pipeline (`pipeline/README.md`) from a
-volumetric tetrahedral source with per-element tissue tags. Its myocardium is native, not
-shelled: chamber walls have real thickness because the source stores tissue as elements
-rather than as a surface. Six structures carry documented anatomical names; the other
-eighteen tags are valve rings, veins and the left atrial appendage, carried through with
-honest generic labels because naming them is a clinical reading and not the pipeline's to
-assert. Its single view is an ingest reference pose, explicitly not a clinical view.
+All three anatomical packs are produced by the ingest pipeline (`pipeline/README.md`) and are
+**`draft` — none has been read by a clinician.** Each ships one ingest reference view, which is a
+mechanically derived pose explicitly flagged as not a clinical view.
 
-Two further candidates are built by the same pipeline but **do not ship**, and are written
-to the gitignored `build/packs/` instead:
+† **Contested grant, resolved by owner decision (2026-08-18).** 3dheartproject.com states a
+site-wide CC BY-NC grant, while the per-model Sketchfab grant *and* the `license.txt` inside the
+download both read CC BY 4.0. The owner elected the CC BY 4.0 reading. The conflict is recorded in
+the pack's own provenance rather than only here, so the decision is auditable from the credits
+screen and reversible if written confirmation contradicts it.
 
-| Candidate | Why it is not here |
-| --- | --- |
-| Alberta "Normal Neonatal Heart" | Licence conflict: the site states CC BY-NC site-wide, the per-model Sketchfab grant and bundled `license.txt` both read CC BY 4.0. Written confirmation pending. |
-| Visible Heart Labs `Heart0102` | CC BY-NC 4.0. Whether a non-commercial content pack ships at all is an open owner decision. |
+‡ **Non-commercial, and it binds the whole application.** `docs/build_plan.md` lists the NC red
+lines: ads, paid sponsorship tied to content, paid tiers including NC content, selling institutional
+access. A free educational app with zero revenue is squarely permitted. This pack is kept logically
+separable so it can be dropped without touching the others.
+
+Only `normal-rodero` carries a **measured** orientation — it is the only source with chamber labels,
+so it is the only one where superior and patient-left can be derived from the geometry rather than
+assumed. The other two declare the glTF default and say so in provenance; their orientation must be
+set at vetting before any clinical use.
 
 The stub pack exists so the loader, the schema, and CI have something to run against before any real
 model exists. Its geometry and both of its "views" are synthetic and explicitly labelled as such; its

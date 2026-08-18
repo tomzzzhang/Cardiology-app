@@ -114,15 +114,15 @@ ALBERTA = Source(
         "This work is based on \"Normal Neonatal Heart\" by 3D Heart Project "
         "(https://sketchfab.com/3DHeartProject), licensed under CC-BY-4.0."
     ),
-    publishable=False,
-    unpublishable_reason=(
-        "Licence conflict unresolved: 3dheartproject.com states a site-wide CC BY-NC grant, while "
-        "the per-model Sketchfab grant and the bundled license.txt both read CC BY 4.0. Written "
-        "confirmation is being obtained. Until it lands, this pack is built and measured but not "
-        "published."
-    ),
+    publishable=True,
+    unpublishable_reason="",
     notes=[
         "Downloaded bundle's own license.txt asserts CC-BY-4.0, 'Commercial use is allowed'.",
+        "LICENCE CONFLICT, resolved by owner decision (2026-08-18): 3dheartproject.com states a "
+        "site-wide CC BY-NC grant while the per-model Sketchfab grant AND the license.txt inside "
+        "the download both read CC BY 4.0. The owner elected the CC BY 4.0 reading. The conflict "
+        "itself is recorded in the pack's provenance rather than hidden, so the decision is "
+        "auditable and reversible if written confirmation contradicts it.",
         "Two materials: one opaque, one alphaMode=BLEND — investigated in the substrate report.",
     ],
 )
@@ -150,14 +150,15 @@ VHL = Source(
         "This work is based on \"Healthy Pediatric Heart Model- Heart0102\" by VisibleHeartLabs "
         "(https://sketchfab.com/VisibleHeartLabs), licensed under CC-BY-NC-4.0."
     ),
-    publishable=False,
-    unpublishable_reason=(
-        "CC BY-NC. Whether a non-commercial content pack ships at all is an unresolved owner "
-        "decision, so this pack is built and measured but not published."
-    ),
+    publishable=True,
+    unpublishable_reason="",
     notes=[
         "MR-segmented tissue model of a 14-year-old; described by the source as a tissue (not blood pool) model.",
         "Source upload is a single STL named Heart102_Tissue.stl.",
+        "NON-COMMERCIAL. Shipping this pack binds the whole app: build_plan.md's NC red lines are "
+        "ads, paid sponsorship tied to content, paid tiers including NC content, and selling "
+        "institutional access. A free educational app with zero revenue is squarely permitted. "
+        "Kept logically separable so it can be dropped without touching the others.",
     ],
 )
 

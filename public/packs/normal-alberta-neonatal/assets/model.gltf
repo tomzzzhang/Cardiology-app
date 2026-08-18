@@ -1,0 +1,155 @@
+{
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 59004,
+   "max": [
+    27.730716705322266,
+    18.079740524291992,
+    29.002668380737305
+   ],
+   "min": [
+    -32.95612335205078,
+    -25.418272018432617,
+    -15.135398864746094
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 59004,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5125,
+   "count": 354432,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 50918,
+   "max": [
+    23.43741226196289,
+    34.947052001953125,
+    25.36350440979004
+   ],
+   "min": [
+    -34.63884735107422,
+    -49.55482864379883,
+    -26.873153686523438
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 50918,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5125,
+   "count": 305556,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "generator": "Cardiology app ingest pipeline (pipeline/ingest.py)",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 708048,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 708048,
+   "byteOffset": 708048,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1417728,
+   "byteOffset": 1416096,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 611016,
+   "byteOffset": 2833824,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 611016,
+   "byteOffset": 3444840,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1222224,
+   "byteOffset": 4055856,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 5278080,
+   "uri": "model.bin"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "eg-myocardium-1",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0
+     },
+     "indices": 2,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "eg-blood-pool-0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 4,
+      "POSITION": 3
+     },
+     "indices": 5,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "eg-myocardium-1"
+  },
+  {
+   "mesh": 1,
+   "name": "eg-blood-pool-0"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0,
+    1
+   ]
+  }
+ ]
+}

@@ -606,6 +606,16 @@ def build_pack(
             "before any clinical use."
         )
 
+    # Licence caveats travel WITH the pack, not just in the repository. A pack
+    # whose grant is contested, or whose grant binds the whole application, has
+    # to say so on the attribution surface the credits screen renders — that is
+    # what makes the owner's decision auditable rather than merely recorded in a
+    # commit message.
+    caveats = " ".join(
+        note for note in source.notes
+        if note.startswith(("LICENCE CONFLICT", "NON-COMMERCIAL"))
+    )
+
     return {
         "meta": {
             "id": source.pack_id,
@@ -622,6 +632,7 @@ def build_pack(
                 "decimated for interactive display, exported to glTF, and voxelised to a labelled "
                 f"echo volume at {resolution}^3. No geometry was added, sculpted, or invented. "
                 + orientation_note
+                + (f" {caveats}" if caveats else "")
             ),
             chain=[
                 source.source_url,

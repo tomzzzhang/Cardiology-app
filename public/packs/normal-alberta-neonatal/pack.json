@@ -1,0 +1,218 @@
+{
+  "meta": {
+    "id": "normal-alberta-neonatal",
+    "display_name": "Normal Neonatal Heart \u2014 3D Heart Project",
+    "anatomy": "Normal neonatal heart",
+    "canonical_variant": "Single neonatal specimen, segmented blood pool with a myocardial surface",
+    "pack_version": "0.1.0",
+    "schema_version": "0"
+  },
+  "provenance": {
+    "creator": "3D Heart Project (University of Alberta / Stollery Children's Hospital)",
+    "source": "Sketchfab model 'Normal Neonatal Heart', uid 7869b91a0c0744e9a3a2035eb3a72236",
+    "source_url": "https://sketchfab.com/3d-models/normal-neonatal-heart-7869b91a0c0744e9a3a2035eb3a72236",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "modified": {
+      "flag": true,
+      "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. ORIENTATION UNVERIFIED. This source carries no chamber labels, so anterior and patient-left cannot be derived from the geometry. The declared convention is the glTF default (+y up) with the remaining axes unconfirmed, and must be set at vetting before any clinical use. LICENCE CONFLICT, resolved by owner decision (2026-08-18): 3dheartproject.com states a site-wide CC BY-NC grant while the per-model Sketchfab grant AND the license.txt inside the download both read CC BY 4.0. The owner elected the CC BY 4.0 reading. The conflict itself is recorded in the pack's provenance rather than hidden, so the decision is auditable and reversible if written confirmation contradicts it."
+    },
+    "derivation_chain": [
+      "https://sketchfab.com/3d-models/normal-neonatal-heart-7869b91a0c0744e9a3a2035eb3a72236",
+      "pipeline/fetch.py (checksum-verified acquisition)",
+      "pipeline/ingest.py (split, pose-normalise, decimate, voxelise)"
+    ],
+    "vetted": {
+      "status": "draft",
+      "vetters": [],
+      "last_reviewed": null
+    }
+  },
+  "meshes": {
+    "gltf": "assets/model.gltf",
+    "structures": [
+      {
+        "id": "eg-myocardium-1",
+        "mesh_node": "eg-myocardium-1",
+        "display_label": "EG Myocardium_1",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "eg-blood-pool-0",
+        "mesh_node": "eg-blood-pool-0",
+        "display_label": "Eg Blood Pool_0",
+        "parent": null,
+        "blood_pool": true,
+        "stylized": false
+      }
+    ],
+    "canonical_pose": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler_xyz_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0
+    },
+    "units": "mm",
+    "orientation": {
+      "up": "+y",
+      "anterior": "+z",
+      "patient_left": "+x",
+      "handedness": "right"
+    }
+  },
+  "interaction": {
+    "pivot": [
+      -3.4540653228759766,
+      -7.303888320922852,
+      1.0647573471069336
+    ]
+  },
+  "echo_volume": {
+    "asset": "assets/echo-volume.raw",
+    "format": "raw-u8",
+    "resolution": [
+      192,
+      192,
+      192
+    ],
+    "mesh_to_volume": [
+      2.248470705793869,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      2.248470705793869,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      2.248470705793869,
+      0.0,
+      103.76636505126953,
+      112.42257690429688,
+      93.60592651367188,
+      1.0
+    ],
+    "labels": [
+      {
+        "id": 1,
+        "structure": "eg-myocardium-1",
+        "echogenicity": 0.6,
+        "attenuation": 0.5
+      },
+      {
+        "id": 2,
+        "structure": "eg-blood-pool-0",
+        "echogenicity": 0.05,
+        "attenuation": 0.05
+      }
+    ],
+    "scatterer_seed": 20260818
+  },
+  "views": [
+    {
+      "family": "INGEST",
+      "view_id": "ingest-reference-pose",
+      "name": "Ingest reference pose \u2014 not a clinical view",
+      "aliases": [],
+      "placement_landmark": "Derived from model bounds by the ingest pipeline; carries no anatomical landmark and no clinical meaning",
+      "indicator_clock": "12:00",
+      "probe": {
+        "origin": [
+          -3.4540653228759766,
+          -7.303888320922852,
+          35.707767486572266
+        ],
+        "beam_axis": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "lateral_axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "fan": {
+          "angle_deg": 75.0,
+          "depth_cm": 8.58,
+          "focus_cm": 4.72
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      },
+      "sweep": {
+        "mode": "tilt",
+        "axis": {
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        "range": {
+          "unit": "deg",
+          "from": -22.0,
+          "to": 22.0
+        },
+        "interpolation": "slerp",
+        "structures_in_order": []
+      },
+      "structures": [
+        "eg-myocardium-1",
+        "eg-blood-pool-0"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "eg-myocardium-1",
+          "eg-blood-pool-0"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "3D Heart Project (University of Alberta / Stollery Children's Hospital)",
+        "source": "Sketchfab model 'Normal Neonatal Heart', uid 7869b91a0c0744e9a3a2035eb3a72236",
+        "source_url": "https://sketchfab.com/3d-models/normal-neonatal-heart-7869b91a0c0744e9a3a2035eb3a72236",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "modified": {
+          "flag": true,
+          "note": "Pose generated mechanically from model bounds by pipeline/ingest.py. Not a clinical view, not vetted, and not derived from any imaging protocol."
+        },
+        "derivation_chain": [
+          "pipeline/ingest.py"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    }
+  ],
+  "display_flags": {
+    "pediatric_vertex_convention": true,
+    "plax_apex_left_exception": true,
+    "dextrocardia_indicator_profile": {
+      "enabled": false,
+      "profile": null
+    }
+  }
+}
