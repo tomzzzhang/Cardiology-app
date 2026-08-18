@@ -1,0 +1,20 @@
+# Python environment for the model ingest pipeline (pipeline/).
+#
+# The pipeline is Python-only and deliberately does not require Blender: it
+# parses, labels, decimates, voxelises, and exports glTF directly, so the whole
+# ingest is reproducible from the command line and runnable in CI.
+#
+#   conda env create -f environment.yml
+#   conda run -n cardiology-app python pipeline/ingest.py --help
+name: cardiology-app
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy>=1.26
+  - scipy>=1.11
+  - pip
+  - pip:
+      - trimesh>=4.4
+      - fast-simplification>=0.1.7
+      - rtree>=1.2

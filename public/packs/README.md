@@ -11,6 +11,23 @@ transcribed from `docs/build_plan.md` v1.2. Workers code against v0 and do not c
 | Pack | What it is |
 | --- | --- |
 | `stub/` | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** |
+| `normal-rodero/` | Normal heart, Rodero/CEMRG average four-chamber mesh (CC BY 4.0). Real anatomy, **not vetted**. |
+
+`normal-rodero/` is produced by the ingest pipeline (`pipeline/README.md`) from a
+volumetric tetrahedral source with per-element tissue tags. Its myocardium is native, not
+shelled: chamber walls have real thickness because the source stores tissue as elements
+rather than as a surface. Six structures carry documented anatomical names; the other
+eighteen tags are valve rings, veins and the left atrial appendage, carried through with
+honest generic labels because naming them is a clinical reading and not the pipeline's to
+assert. Its single view is an ingest reference pose, explicitly not a clinical view.
+
+Two further candidates are built by the same pipeline but **do not ship**, and are written
+to the gitignored `build/packs/` instead:
+
+| Candidate | Why it is not here |
+| --- | --- |
+| Alberta "Normal Neonatal Heart" | Licence conflict: the site states CC BY-NC site-wide, the per-model Sketchfab grant and bundled `license.txt` both read CC BY 4.0. Written confirmation pending. |
+| Visible Heart Labs `Heart0102` | CC BY-NC 4.0. Whether a non-commercial content pack ships at all is an open owner decision. |
 
 The stub pack exists so the loader, the schema, and CI have something to run against before any real
 model exists. Its geometry and both of its "views" are synthetic and explicitly labelled as such; its

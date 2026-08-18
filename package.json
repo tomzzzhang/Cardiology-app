@@ -20,6 +20,8 @@
     "check:provenance": "tsx scripts/check-provenance.ts",
     "check:base-path": "tsx scripts/check-base-path.ts",
     "gen:stub-assets": "node scripts/make-stub-assets.mjs",
+    "ingest": "conda run --no-capture-output -n cardiology-app python pipeline/ingest.py",
+    "ingest:fetch": "conda run --no-capture-output -n cardiology-app python pipeline/fetch.py",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run validate:packs && npm run check:provenance"
   },
   "dependencies": {
