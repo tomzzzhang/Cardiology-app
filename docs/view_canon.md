@@ -1,6 +1,6 @@
 # View canon — pediatric TTE views and sweeps
 
-> **Build-facing copy for the public repo.** Synced one-way from the private Drive doc home by the planning session; privacy-scrubbed (clinical collaborators appear by role, not name). The Drive originals are authoritative; workers never edit `docs/`. The DR4 research report backing this doc lives in the Drive doc home only.
+> **Clinical view/sweep specification.** Clinical collaborators are referred to by role, not name. The backing research report lives in the owner's planning folder.
 
 **STATUS: DRAFT — NOT YET VETTED.** Every view below carries the draft flag until the clinical vetter and an imaging attending sign off (vetting checklist at the bottom). Anchored on the 2024 ASE comprehensive pediatric TTE guideline.
 

@@ -28,7 +28,7 @@ in the learner path may become editable because authoring mode exists.
    before it is offered for download. An export that does not validate is a bug and must not be
    written.
 4. **The schema is not editable from here.** Authoring mode writes packs, never schema. Schema v0 is
-   provisional and owned by the planning session; v1 arrives once, after the wave 1 slice review.
+   provisional; v1 is expected once the technical slice supplies evidence.
 5. **Sign-off is a deliberate act with a checklist.** It stamps `vetted.vetters[]`, `vetted.status`,
    and `vetted.last_reviewed`, and it clears the draft flag. It cannot be inferred from "the author
    saved something". The checklist is the seven-item list in `docs/view_canon.md` "Vetting checklist".

@@ -1,8 +1,64 @@
-## Parallel workflow protocol (also `WORKFLOW.md`)
+# Project workflow
 
-1. **Two truths.** Drive doc home = product truth (docs), single writer. GitHub repo = build truth; worker sessions touch only the repo, never Drive.
-2. **One branch per session per work item** (`feat/NN-slug`); never two sessions on one branch; everything lands on `main` via PR, merged serially. Small PRs, land daily.
-3. **Contracts first, then fan out.** Wave 0 is serial: scaffold, CI, pack schema (v0 provisional), module contracts, `WORKFLOW.md`. Only after wave 0 lands do workers fan out, one module each, on disjoint files. Workers never change schema or contracts; interface changes route back through the planning session. Schema v1 freeze happens after the technical slice review.
-4. **Dispatch unit = GitHub issue.** Each issue: goal, explicit owned files/directories, contracts to read, definition of done, and the standing footer: "branch from main as feat/NN-slug, do not touch files outside your area, do not merge, open a PR and stop." One issue per session. If it is not pushed to a branch or written in a PR/issue, it did not happen.
+**Updated:** 2026-08-17
 
-Practical traps: repo OUTSIDE any Drive-synced tree; separate worktrees/clones for parallel local sessions; workers cannot read Drive — `docs/` carries the scrubbed spec copies, synced one way by the planning session; workers never edit `docs/`.
+How work happens in this repository. Product intent, clinical context, decisions, and the
+progress log live in the owner's planning folder; this file is the code-side operating rule
+and matches the planning folder's `WORKFLOW.md`.
+
+## Sources of truth
+
+| Material | Authority |
+|---|---|
+| Product intent, clinical context, decisions, research, progress | The planning folder |
+| Code, tests, schemas, technical contracts, build configuration | This repository and its pushed history |
+| Published app | `main`, after an intentional stable release |
+| Active development | The persistent `dev` branch |
+
+The Git checkout stays outside any file-sync tree.
+
+## One work cycle
+
+1. **Plan.** Define one bounded task: goal, relevant files, constraints, acceptance checks,
+   and what is deferred.
+2. **Inspect.** Check `git status` and read the relevant code and tests before editing.
+3. **Build.** Work directly on `dev`. Keep the change coherent. Do not manufacture issues,
+   branches, review artifacts, or handoff documents unless they genuinely help.
+4. **Verify.** Run the checks the change deserves. `npm run verify` is the normal gate; run
+   `npm run test:visual` and look at the app in a browser when rendering or UI changed.
+5. **Record.** Commit and push the checkpoint, then add one concise newest-first entry to the
+   planning folder's `progress_log.md`: outcome, commit SHA, verification, next step.
+
+A good checkpoint is small enough to understand, complete enough to revert, and pushed before
+the session ends.
+
+## Git rules
+
+- One persistent `dev` branch for ongoing work.
+- Push useful checkpoints straight to `origin/dev`. GitHub is the backup and audit trail.
+- Pull requests and issues are optional, never mandatory.
+- Do not force-push shared history. Prefer `git revert <sha>` to roll back.
+- Advance `main` only for a stable publication checkpoint — normally a local fast-forward
+  merge from `dev`, then a direct push.
+- CI runs on pushes to both `dev` and `main`. GitHub Pages deploys only from `main`.
+
+## Checks
+
+| Command | What it covers |
+|---|---|
+| `npm run verify` | typecheck, lint, unit tests, pack schema, provenance |
+| `npm run test:visual` | Playwright suite against a production build |
+| `npm run build` | production build |
+| `npm run check:base-path` | the deployed sub-path the Pages build uses |
+
+## Safeguards that do not lapse
+
+- The engine stays anatomy-agnostic; lesions are versioned content packs.
+- The free anatomical cutter and the vetted echo wedge remain separate data and interaction
+  paths. See `contracts/README.md`.
+- Every model and view keeps source, licence, modification, and review provenance.
+- Review states mean what they say: `draft` → `fellow_reviewed` → `vetted`. `vetted` requires
+  both a pediatric-cardiology fellow and an imaging attending.
+- Simulated echo is labelled simulated, and is judged by whether a trainee can learn from it.
+- No PHI, and no interpretation of arbitrary patient images.
+- Never publish collaborator identities or private context without consent.

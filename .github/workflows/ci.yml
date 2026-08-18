@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [dev, main]
   pull_request:
   workflow_dispatch:
 
@@ -104,8 +104,8 @@ jobs:
 
       # Baselines are platform-specific and none are committed yet, so the
       # screenshot comparison skips itself (see playwright.config.ts). This
-      # publishes Linux references generated on demand, so wave 1 can commit a
-      # set that was produced by the same runner image that will check it.
+      # publishes Linux references generated on demand, so a later checkpoint can
+      # commit a set produced by the same runner image that will check it.
       # No `|| true`: a partial or failed seed must not be uploaded as if it
       # were a usable baseline set.
       - name: Seed Linux screenshot baselines (manual runs only)
@@ -126,23 +126,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # `docs/` holds one-way, privacy-scrubbed copies of the product truth.
-      # Workers never edit them. The planning session does need a route to sync
-      # a later revision — schema v1, for one — so there is exactly one, and it
-      # is narrow enough that a code change cannot ride along inside it.
-      #
-      # Interpolated values go through `env`, not directly into the script, so a
-      # branch name can never be executed as shell.
-      - name: docs/ is read-only for workers
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: bash scripts/check-docs-guard.sh
-
+      # A committed absolute path breaks the build on every other machine, and
+      # leaks the layout of whoever committed it.
       - name: No local absolute paths committed
         run: |
           if git grep -nIE '(/Users/[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\|/home/[A-Za-z0-9._-]+/)' \
@@ -151,13 +137,3 @@ jobs:
             exit 1
           fi
           echo "No local absolute paths found."
-
-      - name: No Drive-synced tree references
-        run: |
-          if git grep -nIiE 'CloudStorage|GoogleDrive|My Drive|OneDrive' \
-               -- . ':(exclude).github/workflows/ci.yml'; then
-            echo "::error::A reference to a Drive-synced planning tree is committed."
-            echo "The repository must live outside any synced tree and must not point back into one."
-            exit 1
-          fi
-          echo "No Drive references found."

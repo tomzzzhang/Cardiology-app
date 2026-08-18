@@ -1,64 +1,29 @@
 # Coding agents — start here
 
-Applies to any coding agent working in this repository (Codex, Claude Code, or otherwise). This file
-is a pointer, not a spec. Read the canonical documents rather than relying on this summary.
+**Updated:** 2026-08-17
 
-## Before doing anything
+Applies to any coding agent working in this repository. A pointer, not a spec.
 
-1. **[`WORKFLOW.md`](WORKFLOW.md)** — how work is dispatched, branched, and landed.
-2. **[`handoffs/README.md`](handoffs/README.md)** — the handoff protocol.
-3. **The handoff for the active work item**: `handoffs/<work-item-id>-<slug>.md`. The issue names it; the id is dispatcher-assigned, not the GitHub issue number.
-4. **The contracts your issue lists**, under [`contracts/`](contracts/).
+1. Read **[`WORKFLOW.md`](WORKFLOW.md)** — the development loop, Git rules, and the safeguards
+   that do not lapse.
+2. Read the **contracts your task touches**, under [`contracts/`](contracts/), and
+   [`contracts/README.md`](contracts/README.md) for the free-cutter / vetted-wedge boundary.
+3. Read [`docs/`](docs/) for product scope, build plan, and the clinical view canon.
 
-If the assignment is an independent review, also follow **Review, repair, and landing loop** in
-`handoffs/README.md`. Inspect the exact implementation/review target SHA named by the assignment,
-not the latest branch head. Do not read the other reviewer’s record until your own conclusions are
-fixed.
+## Working
 
-## While working
+- Work directly on `dev`. Keep each checkpoint coherent, verified, and pushed.
+- `npm run verify` is the normal gate. Run `npm run test:visual` and look at the app in a
+  browser when rendering or UI changed.
+- Change the schema or a contract deliberately, with evidence, updating tests and
+  documentation in the same commit — never silently.
+- No personal collaborator context, no PHI, and no machine-specific absolute paths in
+  anything committed.
 
-- Work **only** within the files and directories your issue says it owns. Anything else is out of
-  bounds, including other work items' handoffs.
-- **Never edit `docs/`.** Those are one-way, privacy-scrubbed copies of the product truth, synced by
-  the planning session. CI fails a pull request that changes them.
-- **Never read from or write to the private planning workspace**, and never reference its paths or
-  contents. `docs/` is the only sanctioned copy of the specification.
-- **Never change the schema or a contract.** Interface changes route back through the planning
-  session — open a contract-change issue and keep coding against the current contract.
-- No personal names, no institution or program affiliations **of collaborators**, no availability
-  details, no secrets, and no machine-specific absolute paths anywhere in the repository. Clinical
-  collaborators are referred to by role label. This bans *identifying a collaborator*; it does not
-  ban crediting a third party whose model a licence requires you to credit — pack provenance and the
-  credits screen must still carry the source creator, source institution, and licence.
+## Before stopping
 
-## Review-only sessions
-
-- Stay read-only against implementation, contracts, schemas, planning copies, and the builder’s
-  handoff.
-- Write only your reviewer-owned file under
-  `handoffs/reviews/<work-item>/<target-sha>-<reviewer>.md`.
-- Review the exact frozen target independently. A review-only commit may advance the branch head but
-  never changes the declared target.
-- Pull the latest remote state immediately before adding the review file; review-only commits are
-  serialized and never pushed concurrently.
-- After publishing your review, verify CI, report the review path and commit SHA, and stop without
-  implementing or merging.
-
-## Implementation workers — before stopping
-
-1. Reconcile actual repository, branch, test, CI, and pull request state — from `git` and GitHub, not
-   from memory.
-2. Update **only your issue's handoff file** and push it to the same branch and pull request.
-3. Report the handoff path and the resulting commit SHA.
-4. **Do not merge your own pull request.** Open it and stop.
+Commit and push to `origin/dev`, then add one concise newest-first entry to the planning
+folder's `progress_log.md`: outcome, commit SHA, verification results, known limitations, and
+the exact next step. Report any decision the owner has to make.
 
 Never claim a test, CI job, push, or deployment succeeded without having verified it.
-
-## Repository conventions
-
-- `npm run verify` is the local gate: typecheck, lint, unit tests, pack schema, provenance.
-  `npm run test:visual` runs the Playwright suite.
-- Handoff-family records — builder handoffs, independent reviews, and reconciliations — are the only
-  Markdown in this repository that carry a `**Last Updated:**` timestamp. Do not add one to `docs/`,
-  to `WORKFLOW.md`, or to the contracts — `WORKFLOW.md` in particular must stay byte-identical to
-  its source section in `docs/build_plan.md`.

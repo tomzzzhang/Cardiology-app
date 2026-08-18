@@ -32,7 +32,7 @@ built through `import.meta.env.BASE_URL` — never hardcoded.
 
 ## Rules
 
-1. **Schema v0 is PROVISIONAL and owned by the planning session.** Code against it. Do not freeze,
+1. **Schema v0 is PROVISIONAL.** Code against it. Do not freeze,
    simplify, or extend it. Exactly one controlled revision (v1) is expected after the wave 1
    technical slice review.
 2. **`meta.schema_version` is exact-match.** A pack declaring anything but `"0"` is refused with a

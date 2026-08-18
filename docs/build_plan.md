@@ -1,6 +1,6 @@
 # Build plan — Cardiology app
 
-> **Build-facing copy for the public repo.** Synced one-way from the private Drive doc home by the planning session; privacy-scrubbed (clinical collaborators appear by role, not name). The Drive originals are authoritative; workers never edit `docs/`. Referenced `research/DR*.md` reports live in the Drive doc home only.
+> **Build specification.** Clinical collaborators are referred to by role, not name. Referenced `research/DR*.md` reports live in the owner's planning folder.
 
 Status: **v1.2** (2026-08-16). The viewer now has an explicit coordinate/control contract: the independent free anatomical cutter is separate from the vetted echo wedge, with radial plane state and touch/mouse behavior pinned. Anatomy set, echo investment, release ladder, and definition of done are unchanged. Scope authority is `docs/mvp_scope.md` (LOCKED); nothing here changes scope. View/sweep content spec: `docs/view_canon.md` (DRAFT, pending clinical vetting).
 
@@ -29,8 +29,8 @@ The echo renderer consumes labeled TISSUE (myocardium, pericardium, valve leafle
 
 - Repo: **github.com/tomzzzhang/cardiology-app** — public.
 - Hosting: **GitHub Pages** at `https://tomzzzhang.github.io/cardiology-app/`, deployed from `main` via GitHub Actions. Deep links use URL query params (`?a=<anatomy>&v=<view>&s=<sweep-pos>`); no SPA-routing hacks needed.
-- Local clones live OUTSIDE any Drive-synced tree (e.g. `C:\dev\cardiology-app`); Drive sync corrupts git state. Parallel local sessions use separate worktrees or clones.
-- **Privacy rule:** `docs/` copies are privacy-scrubbed — no personal names, program names, or availability details of clinical collaborators. In-app provenance shows vetter ROLE labels until explicit naming consent is recorded.
+- The Git checkout lives OUTSIDE any file-sync tree; sync services corrupt git state.
+- **Privacy rule:** no personal names, program names, or availability details of clinical collaborators anywhere in this repository. In-app provenance shows vetter ROLE labels until explicit naming consent is recorded. Licence-required attribution of a third-party model's source is a separate obligation and stays required.
 
 ## Stack (confirmed)
 
@@ -38,7 +38,7 @@ TypeScript + three.js, thin React shell, Vite. Fully static site: no backend, no
 
 ## Architecture: engine + content packs
 
-Anatomy-agnostic engine, versioned self-contained packs, zero lesion-specific engine logic. Engine modules — each gets a one-page contract file in wave 0; workers never change contracts or schema (changes route through the planning session and get logged):
+Anatomy-agnostic engine, versioned self-contained packs, zero lesion-specific engine logic. Engine modules — each has a one-page contract file under `contracts/`; change a contract or the schema deliberately, with evidence, updating tests and documentation in the same commit:
 
 1. **pack-loader** — fetch, schema-validate, parse packs; exposes typed pack model.
 2. **viewer-core** — scene + orbit; per-structure show/hide, labels, blood-pool coloring; an independent free anatomical cut plane; clipping with stencil-buffer caps so cut faces render solid; a separate translucent sector-wedge probe indicator driven by the same vetted probe pose + fan params as the echo panel (one-to-one match). Implements the interaction contract below.
@@ -75,7 +75,7 @@ Anatomy-agnostic engine, versioned self-contained packs, zero lesion-specific en
 
 ## Content pack schema — v0 PROVISIONAL
 
-**Provisional until the technical slice review; owned by the planning session; workers code against v0 but should expect exactly one revision (v1) after the slice.** Versioned via `schema_version`.
+**Provisional until the technical slice review; expect one revision (v1) after the slice.** Versioned via `schema_version`.
 
 - `meta`: id, display name, anatomy, canonical-variant label, pack version, `schema_version`.
 - `provenance` (per anatomy AND per view): `{creator, source, source_url, license, license_url, modified: {flag, note}, derivation_chain, vetted: {status: draft|vetted, vetters: [{name (optional, consent-gated), role: fellow|attending, date}], last_reviewed}}`.
@@ -122,26 +122,24 @@ v1 sources: Normal + d-TGA from the University of Alberta 3D Heart Library (CC B
 - Keep CC BY-NC-SA assets logically separable. Verify each Sketchfab license badge in a browser before download.
 - CI enforces attribution completeness; build fails on missing provenance/license fields.
 
-## Parallel workflow protocol (also `WORKFLOW.md`)
+## Workflow
 
-1. **Two truths.** Drive doc home = product truth (docs), single writer. GitHub repo = build truth; worker sessions touch only the repo, never Drive.
-2. **One branch per session per work item** (`feat/NN-slug`); never two sessions on one branch; everything lands on `main` via PR, merged serially. Small PRs, land daily.
-3. **Contracts first, then fan out.** Wave 0 is serial: scaffold, CI, pack schema (v0 provisional), module contracts, `WORKFLOW.md`. Only after wave 0 lands do workers fan out, one module each, on disjoint files. Workers never change schema or contracts; interface changes route back through the planning session. Schema v1 freeze happens after the technical slice review.
-4. **Dispatch unit = GitHub issue.** Each issue: goal, explicit owned files/directories, contracts to read, definition of done, and the standing footer: "branch from main as feat/NN-slug, do not touch files outside your area, do not merge, open a PR and stop." One issue per session. If it is not pushed to a branch or written in a PR/issue, it did not happen.
+Development happens on a persistent `dev` branch in a local checkout outside any file-sync tree;
+see `WORKFLOW.md`. Product intent, clinical context, decisions, and the progress log live in the
+owner's planning folder. Code, tests, schemas, and contracts live in this repository. CI runs on
+pushes to `dev` and `main`; GitHub Pages deploys only from `main`.
 
-Practical traps: repo OUTSIDE any Drive-synced tree; separate worktrees/clones for parallel local sessions; workers cannot read Drive — `docs/` carries the scrubbed spec copies, synced one way by the planning session; workers never edit `docs/`.
-
-## CI (wave 0)
+## CI
 
 Typecheck + lint; pack schema validation; per-view visual regression (headless screenshot diff, tolerance-based); license/attribution completeness check; Pages deploy on merge to `main`.
 
 ## Milestones and waves
 
-**Wave 0 — serial, one session (one combined issue).** Scaffold (Vite + TS + React + three.js), CI, Pages deploy, pack schema v0 + validator + stub pack, module contract files, `WORKFLOW.md`, issue templates. DoD: `main` auto-deploys a hello-world viewer to Pages; stub pack loads and validates; contracts + WORKFLOW.md merged.
+**Wave 0 — done.** Scaffold (Vite + TS + React + three.js), CI, Pages deploy, pack schema v0 + validator + stub pack, module contract files, `WORKFLOW.md`. The stub pack loads and validates; the viewer is a hello-world scene.
 
 **Wave 1 — slice first, then fan out:**
-- **(1a) Model pipeline slice** — one real Alberta Normal asset: myocardial-variant check, label split, substrate completion as needed, decimation, glTF + `echo_volume` voxelization. Owned: `pipeline/`, `packs/normal/`.
-- **(1b) Echo slice** — Stage 0 then the full scanline pass against 1a's real volume; one hard sweep end-to-end with the synced wedge (primary: subcostal coronal posterior→anterior sweep; alternate: PLAX TV↔PV); laptop + phone perf numbers. Owned: `src/echo/`.
+- **(1a) Model pipeline slice** — one real Alberta Normal asset: myocardial-variant check, label split, substrate completion as needed, decimation, glTF + `echo_volume` voxelization. Touches `pipeline/`, `packs/normal/`.
+- **(1b) Echo slice** — Stage 0 then the full scanline pass against 1a's real volume; one hard sweep end-to-end with the synced wedge (primary: subcostal coronal posterior→anterior sweep; alternate: PLAX TV↔PV); laptop + phone perf numbers. Touches `src/echo/`.
 - **Slice review gate:** interpretation read by the clinical vetter (+ attending if available); decides substrate verdict and freezes schema v1.
 - **(1c) viewer-core** implements the interaction contract above (orbit/pan/zoom, explicit selection, radial free cutter, solid caps, slider/modifier-wheel depth, touch controls, align-to-echo bridge), while **(1d) view rail + scrubber** drives only vetted probe poses/sweeps. They proceed in parallel against the stub pack; their contracts do not depend on the slice.
 

@@ -23,3 +23,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+
+# Agent/editor local config
+.claude/

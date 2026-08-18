@@ -1,8 +1,8 @@
 # MVP scope — Cardiology app
 
-> **Build-facing copy for the public repo.** Synced one-way from the private Drive doc home by the planning session; privacy-scrubbed (clinical collaborators appear by role, not name; interview documents stay in the private doc home). The Drive originals are authoritative; workers never edit `docs/`.
+> **Product scope.** Clinical collaborators are referred to by role, not name; interview documents stay in the owner's planning folder.
 
-**LOCKED 2026-08-15** (factual annotations and UI/UX clarifications 2026-08-16; the scope itself is unchanged since lock). Locked by the project owner immediately after reviewing the clinical vetter's discovery interview (result in the private doc home). Inputs: the clinical vetter's feature force-ranking, hardest-lesion and hardest-view lists, the feasibility evaluation, and a model-availability check against the Alberta 3D Heart Library (2026-08-15). Changes to this doc are scope changes and are logged in the doc home progress log first.
+**LOCKED 2026-08-15** (factual annotations and UI/UX clarifications 2026-08-16; the scope itself is unchanged since lock). Locked by the project owner immediately after reviewing the clinical vetter's discovery interview. Inputs: the clinical vetter's feature force-ranking, hardest-lesion and hardest-view lists, the feasibility evaluation, and a model-availability check against the Alberta 3D Heart Library (2026-08-15). Changing this document is a scope change, and is recorded in the progress log first.
 
 ## Product in one sentence
 
@@ -12,12 +12,12 @@ A free, browser-based teaching tool where a pediatric cardiology trainee picks a
 
 1. **Anatomy set, the "foundation slice":** Normal heart + ASD module (secundum and sinus venosus) + d-TGA. DORV with subpulmonary VSD is the first post-MVP anatomy, then DILV (S,L,L).
 2. **Echo image posture: simulated, and invested in.** Echo-styled rendering from the labeled model; honest "simulated" labeling everywhere; per-view slot reserved for real clips later. No PHI/IRB/licensing workstream in v1.
-3. **Sequencing: scope locked on the clinical vetter's signal.** Co-fellow interviews stay open (kit in the private doc home) and can re-weight content priorities; they do not gate the build.
+3. **Sequencing: scope locked on the clinical vetter's signal.** Co-fellow interviews stay open and can re-weight content priorities; they do not gate the build.
 4. **Platform: web-first confirmed.** One shareable URL, no install, phone-portrait usable; hospital desktop and laptop fully supported. Native/visionOS stays a later showcase.
 5. **Variant policy:** one canonical variant per lesion, named and disclosed in-app; further variants are later content rows through the same pipeline.
 6. **Trust architecture direction:** visible provenance per anatomy and per view mapping (model source and license, who vetted, last-reviewed date); unvetted content is visibly draft-flagged. Vetter names appear only with recorded consent; role labels otherwise.
 7. **Modular content architecture:** the app is an anatomy-agnostic engine plus self-contained content packs. New lesions come from any source, directly or converted, by conforming them to the pack schema; nothing in the engine hardcodes lesion names or counts. See "Modularity and expansion" below.
-8. **Build toolchain:** planning and product docs in Cowork; Claude Code is the builder; GPT Codex assists on code. Docs live in the private Drive doc home; code lives in this repo. *[Update 2026-08-16: repo + hosting resolved — public GitHub repo `tomzzzhang/cardiology-app`, GitHub Pages; see `docs/build_plan.md`.]*
+8. **Build toolchain:** planning happens in ChatGPT or Claude Cowork; implementation happens in one local checkout. *[Update 2026-08-16: repo + hosting resolved — public GitHub repo `tomzzzhang/Cardiology-app`, GitHub Pages; see `docs/build_plan.md`.]*
 
 ## Why this anatomy set
 
@@ -93,9 +93,9 @@ Engine and content are strictly separated:
 
 ## Build workflow
 
-- **Planning and product docs:** Cowork sessions against the private Drive doc home (source of truth).
+- **Planning and product docs:** the owner's planning folder is the source of truth for product intent, clinical context, decisions, and progress.
 - **Implementation:** Claude Code, working from this doc plus `docs/build_plan.md` and `docs/view_canon.md`; the handoff prompt points at the plan first and requires acknowledging the approach before writing code. GPT Codex assists on code as directed.
-- **Code ground truth:** this repo. Docs in the doc home, code here; scope changes get logged before implementation follows. Full parallel workflow protocol: `WORKFLOW.md`.
+- **Code ground truth:** this repository. Scope changes are recorded before implementation follows. Development loop: `WORKFLOW.md`.
 
 ## Licensing and regulatory
 

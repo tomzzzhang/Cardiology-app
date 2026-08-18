@@ -5,10 +5,9 @@
  * PROVISIONAL", with the per-view field list from `docs/view_canon.md`
  * "Per-view schema (feeds pack schema)".
  *
- * OWNERSHIP: the schema is owned by the planning session. Workers code AGAINST
- * v0 and must not freeze, simplify, or extend it. Exactly one controlled
- * revision (v1) is expected after the wave 1 technical slice review; interface
- * changes route back through the planning session, they are not made here.
+ * STABILITY: v0 is provisional. Do not freeze, simplify, or extend it casually.
+ * A v1 revision is expected once the technical slice supplies evidence; make
+ * that change deliberately, updating tests and documentation in the same commit.
  *
  * BOUNDARY (build_plan v1.2, "Viewer interaction contract"): the free
  * anatomical cutter and the vetted echo wedge are different objects on
@@ -152,8 +151,8 @@ export interface OrientationConvention {
  * Handedness is evaluated in the ordering `(patient_left, up, anterior)` mapped
  * to `(x, y, z)`. That ordering is not chosen here: it is the one under which
  * the shipped pack's declared `handedness` is true, and it matches the
- * right-handed Y-up convention of glTF and three.js. If the planning session
- * intends a different ordering, this is a one-line change.
+ * right-handed Y-up convention of glTF and three.js. If a different ordering is
+ * intended, this is a one-line change.
  */
 export function orientationProblem(orientation: OrientationConvention): string | null {
   const letters = [orientation.patient_left, orientation.up, orientation.anterior].map(

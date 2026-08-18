@@ -1,9 +1,8 @@
 /**
- * Adversarial coverage for the invariants repaired after the Wave 0 reviews.
+ * Adversarial coverage for the schema invariants hardened after the Wave 0 review.
  *
- * Each block corresponds to a repair in
- * `handoffs/reviews/00-wave0/8705186-reconciliation.md`. Every case here was
- * ACCEPTED by the schema before that round.
+ * Every case here was ACCEPTED by the schema before that round — the labels R7
+ * through R10 identify the repairs in the Git history.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
