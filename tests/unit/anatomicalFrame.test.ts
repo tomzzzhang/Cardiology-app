@@ -35,6 +35,7 @@ function record(): {
   checks: Record<string, boolean>;
   checks_passed: number;
   checks_total: number;
+  valve_identification?: Record<string, unknown>;
 } {
   return {
     method: 'cardiac-landmarks-v1',
@@ -135,6 +136,91 @@ describe('the shipped Rodero frame', () => {
   });
 });
 
+describe('valve identification by face adjacency', () => {
+  const frame = packJson('normal-rodero').meshes.anatomical_frame;
+  const valves = frame.valve_identification;
+
+  /**
+   * The published Rodero/CEMRG mapping, and the chamber pair that DEFINES each
+   * valve. The pair is the anatomy; the tag is the convention being checked.
+   */
+  const PUBLISHED: Record<string, { tag: number; borders: [string, string] }> = {
+    mitral: { tag: 7, borders: ['lv', 'la'] },
+    tricuspid: { tag: 8, borders: ['rv', 'ra'] },
+    aortic: { tag: 9, borders: ['lv', 'aorta'] },
+    pulmonary: { tag: 10, borders: ['rv', 'pa'] },
+  };
+
+  it('is shipped, so a reader holding only the pack can re-run it', () => {
+    expect(valves).toBeDefined();
+    expect(valves.method).toBe('tag-face-adjacency-v1');
+    expect(Object.keys(valves.valves).sort()).toEqual(Object.keys(PUBLISHED).sort());
+  });
+
+  it('agrees with the published Rodero mapping', () => {
+    /*
+     * The gate. Disagreement means the mesh is Strocchi-tagged or re-exported
+     * under another convention, and every number derived from the rings — the
+     * base plane, the long axis, the four-chamber pose — is wrong in a way that
+     * still looks plausible.
+     */
+    expect(valves.agrees_with_published).toBe(true);
+    for (const [name, expected] of Object.entries(PUBLISHED)) {
+      expect(valves.valves[name].tag).toBe(expected.tag);
+      expect(valves.published_tags[name]).toBe(expected.tag);
+    }
+  });
+
+  it('identifies each valve by the two chambers it separates', () => {
+    for (const [name, expected] of Object.entries(PUBLISHED)) {
+      const borders = valves.valves[name].borders;
+      const tags = expected.borders.map((chamber) => String(valves.chamber_tags[chamber]));
+      expect(Object.keys(borders).sort()).toEqual([...tags].sort());
+      // Every border is a real shared surface, not a graze at a seam.
+      for (const shared of Object.values(borders)) {
+        expect(shared as number).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  it('names the four ring landmarks by valve rather than by tag number', () => {
+    // A landmark keyed by a bare tag is only readable next to the tag table it
+    // came from; keyed by valve it survives on its own.
+    expect(Object.keys(frame.landmarks_source_mm.valve_rings).sort())
+      .toEqual(Object.keys(PUBLISHED).sort());
+  });
+
+  it('rejects a record whose valve borders three chambers', () => {
+    const impossible = record();
+    impossible.valve_identification = {
+      method: 'tag-face-adjacency-v1',
+      description: 'test',
+      chamber_tags: { lv: 1, la: 3, ra: 4 },
+      valves: { mitral: { tag: 7, borders: { '1': 766, '3': 893, '4': 12 } } },
+      published_tags: { mitral: 7 },
+      agrees_with_published: true,
+    };
+    const result = AnatomicalFrame.safeParse(impossible);
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(result.error?.issues)).toContain('exactly two chambers');
+  });
+
+  it('rejects a record that claims agreement it does not have', () => {
+    const lying = record();
+    lying.valve_identification = {
+      method: 'tag-face-adjacency-v1',
+      description: 'test',
+      chamber_tags: { lv: 1, la: 3 },
+      valves: { mitral: { tag: 12, borders: { '1': 766, '3': 893 } } },
+      published_tags: { mitral: 7 },
+      agrees_with_published: true, // the lie
+    };
+    const result = AnatomicalFrame.safeParse(lying);
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(result.error?.issues)).toContain('agrees_with_published');
+  });
+});
+
 describe('the derived apical four-chamber view', () => {
   const pack = packJson('normal-rodero');
   const view = pack.views[0];
@@ -191,9 +277,9 @@ describe('the derived apical four-chamber view', () => {
     };
 
     const rings = frame.landmarks_source_mm.valve_rings;
-    // Tag 7 is the mitral ring and tag 8 the tricuspid, by centroid position.
-    expect(offPlane(rings['7'])).toBeLessThan(6);
-    expect(offPlane(rings['8'])).toBeLessThan(6);
+    // Named by face adjacency, not by position — see the suite below.
+    expect(offPlane(rings.mitral)).toBeLessThan(6);
+    expect(offPlane(rings.tricuspid)).toBeLessThan(6);
     expect(offPlane(frame.landmarks_source_mm.apex)).toBeLessThan(6);
   });
 

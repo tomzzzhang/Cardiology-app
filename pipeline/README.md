@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-18 11:50 EDT
+**Updated:** 2026-08-18 12:43 EDT
 
 Turns a raw anatomical source into a content pack: a decimated glTF plus a labelled
 echo volume conforming to schema v0, with complete provenance.
@@ -22,6 +22,7 @@ npm run ingest -- --budget-table           # volume size against resolution
 | `sources.py` | The source registry: acquisition, licence, citation, publish policy. |
 | `fetch.py` | Checksum-verified download into the gitignored `.cache/`. |
 | `meshlib.py` | Readers (VTK tets, glTF, binary STL) and the glTF writer. |
+| `anatomy.py` | Valve identification by face adjacency, and the cardiac frame derived from it. |
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
 
@@ -43,6 +44,17 @@ The pipeline is source-shaped in exactly two places, both unavoidable and both e
   A leaky source shows up as a number rather than as silently missing tissue.
 
 Everything after that is shared.
+
+## What gets named, and on what evidence
+
+Six Rodero tags are named because the source documents them. The four valve planes are named
+because `anatomy.py` **derives** which is which: a valve plane borders exactly two of those six
+tags, and the pair identifies it (LV+LA mitral, RV+RA tricuspid, LV+aorta aortic, RV+PA
+pulmonary). Adjacency, not position — position is what the frame is being derived to interpret,
+so reading identity off it would be circular. Disagreement with the published mapping **raises**.
+
+The remaining fourteen tags each border exactly one chamber, so adjacency cannot separate a right
+upper pulmonary vein from a left lower one. They keep generic labels until a clinician names them.
 
 ## No Blender
 

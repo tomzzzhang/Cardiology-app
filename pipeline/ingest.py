@@ -40,7 +40,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import fast_simplification  # noqa: E402
 
-from anatomy import CardiacFrame, derive_cardiac_frame, frame_record  # noqa: E402
+from anatomy import (  # noqa: E402
+    CardiacFrame,
+    ValveIdentification,
+    derive_cardiac_frame,
+    frame_record,
+)
 from meshlib import Surface, TetMesh, read_binary_stl, read_gltf_surfaces, read_vtk_tets, write_gltf  # noqa: E402
 from sources import SOURCES, Source  # noqa: E402
 
@@ -57,11 +62,15 @@ DEFAULT_RESOLUTION = 192
 # structure naming                                                             #
 # --------------------------------------------------------------------------- #
 
-#: The Rodero/CEMRG per-element tag map. Only the six tags whose identity is
-#: documented are named. Tags 7-24 are valve rings, veins and the left atrial
-#: appendage; which is which is a CLINICAL reading, not something this pipeline
-#: may assert, so they are carried through with honest generic labels and their
-#: centroids are printed for the vetter to name at the slice review.
+#: The Rodero/CEMRG per-element tag map. Only the six tags whose identity the
+#: source documents are named here. Tags 11-24 are veins, caval stubs and the
+#: left atrial appendage; telling those apart is a CLINICAL reading, not
+#: something this pipeline may assert, so they are carried through with honest
+#: generic labels for the vetter to name at the slice review.
+#:
+#: The four VALVE tags are not in this table and are not assumed: they are
+#: derived per mesh by `pipeline/anatomy.py` from face adjacency, and named by
+#: `valve_structure_names` below from the result.
 RODERO_NAMED = {
     1: ("lv-myocardium", "Left ventricular myocardium", False),
     2: ("rv-myocardium", "Right ventricular myocardium", False),
@@ -70,6 +79,26 @@ RODERO_NAMED = {
     5: ("aortic-wall", "Aortic wall", False),
     6: ("pulmonary-artery-wall", "Pulmonary artery wall", False),
 }
+
+#: Display names for the derived valve planes.
+#:
+#: "Ring", not "valve": this substrate carries the fibrous annulus as a tagged
+#: element group and has no leaflets at all. Calling it a valve would promise
+#: motion and coaptation the geometry cannot show.
+VALVE_LABELS = {
+    "mitral": ("mitral-valve-ring", "Mitral valve ring"),
+    "tricuspid": ("tricuspid-valve-ring", "Tricuspid valve ring"),
+    "aortic": ("aortic-valve-ring", "Aortic valve ring"),
+    "pulmonary": ("pulmonary-valve-ring", "Pulmonary valve ring"),
+}
+
+
+def valve_structure_names(valves: ValveIdentification) -> dict[int, tuple[str, str, bool]]:
+    """Tag -> (slug, label, stylized) for the valve planes adjacency identified."""
+    return {
+        tag: (*VALVE_LABELS[valve], False)
+        for valve, tag in valves.by_valve.items()
+    }
 
 
 @dataclass
@@ -86,6 +115,11 @@ class Structure:
     attenuation: float
     label_id: int = 0
     centroid: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    #: Source per-element tag, where the source has one. Carried so the
+    #: voxeliser can map tags to label ids directly instead of recovering the
+    #: tag by parsing it back out of a slug — which stopped working the moment
+    #: the valve planes acquired real names.
+    tag: int | None = None
 
 
 @dataclass
@@ -140,7 +174,7 @@ def tet_group_surface(mesh: TetMesh, selector: np.ndarray) -> Surface:
     )
 
 
-def split_rodero(source: Source, mesh: TetMesh) -> list[Structure]:
+def split_rodero(source: Source, mesh: TetMesh, valves: ValveIdentification) -> list[Structure]:
     """
     Split the tetrahedral mesh by its per-element tissue tag.
 
@@ -148,14 +182,18 @@ def split_rodero(source: Source, mesh: TetMesh) -> list[Structure]:
     inside this function, as an earlier revision did, meant reading the 187 MB
     ASCII source twice — once to split and once to voxelise — and left two
     copies of the geometry that could in principle disagree about their frame.
+
+    `valves` comes from the frame derivation, which measured it from adjacency
+    on this same mesh. Passing it in rather than re-deriving keeps one answer.
     """
+    named = {**RODERO_NAMED, **valve_structure_names(valves)}
     structures: list[Structure] = []
     for tag in np.unique(mesh.tags):
         selector = mesh.tags == tag
         surface = tet_group_surface(mesh, selector)
         if surface.triangle_count == 0:
             continue
-        slug, label, stylized = RODERO_NAMED.get(
+        slug, label, stylized = named.get(
             int(tag),
             (f"tagged-region-{int(tag)}", f"Tagged region {int(tag)} (unnamed pending vetting)", False),
         )
@@ -169,6 +207,7 @@ def split_rodero(source: Source, mesh: TetMesh) -> list[Structure]:
             echogenicity=0.55 if int(tag) <= 4 else 0.7,
             attenuation=0.45 if int(tag) <= 4 else 0.6,
             centroid=tuple(float(v) for v in centroid),
+            tag=int(tag),
         ))
     return structures
 
@@ -654,9 +693,10 @@ def apical_four_chamber(
     means anything.
     """
     apex = frame.rotation @ frame.apex
-    base = frame.rotation @ frame.base
-    rings = {tag: frame.rotation @ centroid for tag, centroid in frame.ring_centroids.items()}
-    mitral, tricuspid = rings[7], rings[8]
+    # Named, not numbered: which tag carries which ring is derived per mesh from
+    # face adjacency, so this view reads the identity rather than assuming it.
+    mitral = frame.rotation @ frame.ring("mitral")
+    tricuspid = frame.rotation @ frame.ring("tricuspid")
 
     def unit(vector: np.ndarray) -> np.ndarray:
         return vector / np.linalg.norm(vector)
@@ -965,8 +1005,14 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
         # it. Deriving after rotating would measure the frame against itself.
         frame = derive_cardiac_frame(tet_mesh)
         notes.extend(frame.notes)
+        notes.append(
+            "valve planes identified by face adjacency: "
+            + ", ".join(f"{valve} = tag {tag}" for valve, tag in frame.valves.by_valve.items())
+            + (" (agrees with the published Rodero mapping)"
+               if frame.valves.agrees_with_published else " (DISAGREES with the published mapping)")
+        )
         tet_mesh.points = tet_mesh.points @ frame.rotation.T
-        structures = split_rodero(source, tet_mesh)
+        structures = split_rodero(source, tet_mesh, frame.valves)
     elif path.suffix.lower() == ".gltf":
         structures = split_gltf_groups(source, path)
     else:
@@ -988,13 +1034,10 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
 
     clock = time.time()
     if tet_mesh is not None:
-        tag_to_label: dict[int, int] = {}
-        for structure in structures:
-            for tag, (slug, _label, _stylized) in RODERO_NAMED.items():
-                if slug == structure.slug:
-                    tag_to_label[tag] = structure.label_id
-            if structure.slug.startswith("tagged-region-"):
-                tag_to_label[int(structure.slug.rsplit("-", 1)[1])] = structure.label_id
+        tag_to_label = {
+            structure.tag: structure.label_id
+            for structure in structures if structure.tag is not None
+        }
         volume, origin, pitch = voxelize_tets(tet_mesh, tag_to_label, resolution)
     else:
         volume, origin, pitch, surface_notes = voxelize_surfaces(structures, resolution)

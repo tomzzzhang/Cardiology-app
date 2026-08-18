@@ -220,12 +220,61 @@ export type Structure = z.infer<typeof Structure>;
  * re-derivation, and pinning their keys here would mean a schema change every
  * time the pipeline measures one more thing about a new substrate.
  */
+/**
+ * Which structure carries which valve plane, and the adjacency that says so.
+ *
+ * A frame built on valve rings is only as good as the identification of those
+ * rings, and identifying them by where they sit is circular — position is what
+ * the frame is being derived to interpret. Identifying them by what they
+ * SEPARATE is not: a valve plane borders exactly two labelled chambers, and the
+ * pair names it uniquely.
+ *
+ * So this block records, per valve, the shared-face count against every chamber
+ * the plane borders. `borders` having exactly two entries is enforced here
+ * rather than trusted: a third entry means the tag is not a valve plane, and a
+ * pack asserting a valve identity it cannot support is exactly the failure the
+ * whole `anatomical_frame` block exists to prevent.
+ *
+ * Optional, like the frame itself — a substrate whose groups do not share faces
+ * (a set of separate surfaces rather than one tagged volume) cannot produce it.
+ */
+export const ValveIdentification = z.strictObject({
+  method: z.string().min(1),
+  description: z.string().min(1),
+  /** Which source tag is which chamber, so `borders` can be read. */
+  chamber_tags: z.record(z.string(), z.number().int()),
+  valves: z
+    .record(
+      z.string(),
+      z.strictObject({
+        tag: z.number().int(),
+        /** Chamber tag -> shared triangles. Exactly two, by definition. */
+        borders: z.record(z.string(), z.number().int().positive()),
+      }),
+    )
+    .refine(
+      (valves) => Object.values(valves).every((v) => Object.keys(v.borders).length === 2),
+      { message: 'a valve plane borders exactly two chambers' },
+    )
+    .refine(
+      (valves) => new Set(Object.values(valves).map((v) => v.tag)).size
+        === Object.keys(valves).length,
+      { message: 'two valves cannot share one tag' },
+    ),
+  /** The mapping this derivation was checked against. */
+  published_tags: z.record(z.string(), z.number().int()),
+  agrees_with_published: z.boolean(),
+});
+export type ValveIdentification = z.infer<typeof ValveIdentification>;
+
 export const AnatomicalFrame = z
   .strictObject({
     /** Versioned name of the derivation, so a pack states which one produced it. */
     method: z.string().min(1),
     description: z.string().min(1),
     inputs: z.record(z.string(), z.unknown()),
+    /** Absent where the substrate cannot support an adjacency derivation. */
+    valve_identification: ValveIdentification.optional(),
     landmarks_source_mm: z.record(z.string(), z.unknown()),
     /** Rows of the rotation carrying source coordinates into pack coordinates. */
     basis_source_to_pack: z.strictObject({
@@ -273,6 +322,32 @@ export const AnatomicalFrame = z
         path: ['basis_source_to_pack'],
         message: 'basis must be right-handed: patient_left x basal must point along anterior',
       });
+    }
+
+    /*
+     * `agrees_with_published` is a summary of two objects that are both present,
+     * so it is checked rather than believed. A pack that claims agreement while
+     * recording a different mapping would send a reader to the wrong reference
+     * and defeat the point of carrying both.
+     */
+    const valves = frame.valve_identification;
+    if (valves) {
+      const measured = Object.entries(valves.valves)
+        .map(([name, { tag }]) => `${name}=${tag}`)
+        .sort()
+        .join(',');
+      const published = Object.entries(valves.published_tags)
+        .map(([name, tag]) => `${name}=${tag}`)
+        .sort()
+        .join(',');
+      if (valves.agrees_with_published !== (measured === published)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['valve_identification', 'agrees_with_published'],
+          message: `agrees_with_published is ${valves.agrees_with_published} but measured `
+            + `(${measured}) and published (${published}) mappings say otherwise`,
+        });
+      }
     }
 
     // The counts are a summary of `checks`, so they cannot be free to disagree

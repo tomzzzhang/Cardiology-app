@@ -1197,7 +1197,7 @@
    ]
   },
   {
-   "name": "tagged-region-8",
+   "name": "tricuspid-valve-ring",
    "primitives": [
     {
      "attributes": {
@@ -1210,7 +1210,7 @@
    ]
   },
   {
-   "name": "tagged-region-9",
+   "name": "aortic-valve-ring",
    "primitives": [
     {
      "attributes": {
@@ -1223,7 +1223,7 @@
    ]
   },
   {
-   "name": "tagged-region-7",
+   "name": "mitral-valve-ring",
    "primitives": [
     {
      "attributes": {
@@ -1236,7 +1236,7 @@
    ]
   },
   {
-   "name": "tagged-region-10",
+   "name": "pulmonary-valve-ring",
    "primitives": [
     {
      "attributes": {
@@ -1458,19 +1458,19 @@
   },
   {
    "mesh": 6,
-   "name": "tagged-region-8"
+   "name": "tricuspid-valve-ring"
   },
   {
    "mesh": 7,
-   "name": "tagged-region-9"
+   "name": "aortic-valve-ring"
   },
   {
    "mesh": 8,
-   "name": "tagged-region-7"
+   "name": "mitral-valve-ring"
   },
   {
    "mesh": 9,
-   "name": "tagged-region-10"
+   "name": "pulmonary-valve-ring"
   },
   {
    "mesh": 10,

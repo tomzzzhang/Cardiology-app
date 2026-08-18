@@ -80,33 +80,33 @@
         "stylized": false
       },
       {
-        "id": "tagged-region-8",
-        "mesh_node": "tagged-region-8",
-        "display_label": "Tagged region 8 (unnamed pending vetting)",
+        "id": "tricuspid-valve-ring",
+        "mesh_node": "tricuspid-valve-ring",
+        "display_label": "Tricuspid valve ring",
         "parent": null,
         "blood_pool": false,
         "stylized": false
       },
       {
-        "id": "tagged-region-9",
-        "mesh_node": "tagged-region-9",
-        "display_label": "Tagged region 9 (unnamed pending vetting)",
+        "id": "aortic-valve-ring",
+        "mesh_node": "aortic-valve-ring",
+        "display_label": "Aortic valve ring",
         "parent": null,
         "blood_pool": false,
         "stylized": false
       },
       {
-        "id": "tagged-region-7",
-        "mesh_node": "tagged-region-7",
-        "display_label": "Tagged region 7 (unnamed pending vetting)",
+        "id": "mitral-valve-ring",
+        "mesh_node": "mitral-valve-ring",
+        "display_label": "Mitral valve ring",
         "parent": null,
         "blood_pool": false,
         "stylized": false
       },
       {
-        "id": "tagged-region-10",
-        "mesh_node": "tagged-region-10",
-        "display_label": "Tagged region 10 (unnamed pending vetting)",
+        "id": "pulmonary-valve-ring",
+        "mesh_node": "pulmonary-valve-ring",
+        "display_label": "Pulmonary valve ring",
         "parent": null,
         "blood_pool": false,
         "stylized": false
@@ -245,8 +245,8 @@
       "handedness": "right"
     },
     "anatomical_frame": {
-      "method": "cardiac-landmarks-v1",
-      "description": "Cardiac basis measured from the mesh. Primary axis: left-ventricular apex to the centroid of the four valve-ring centroids, the apex located from the source's universal ventricular coordinate Z. Secondary axis: right-atrial to left-atrial myocardium centroid, orthogonalised against the primary. Third axis completes a right-handed basis. Axes are CARDIAC, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and the three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. See pipeline/anatomy.py.",
+      "method": "cardiac-landmarks-v2",
+      "description": "Cardiac basis measured from the mesh. Valve planes identified by FACE ADJACENCY: each valve plane borders exactly two of the six documented tags and that pair names it uniquely (LV+LA mitral, RV+RA tricuspid, LV+aorta aortic, RV+PA pulmonary). Primary axis: left-ventricular apex to the centroid of the four valve-ring centroids, the apex located from the source's universal ventricular coordinate Z. Secondary axis: right-atrial to left-atrial myocardium centroid, orthogonalised against the primary. Third axis completes a right-handed basis. Axes are CARDIAC, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and the three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. See pipeline/anatomy.py.",
       "inputs": {
         "apex": {
           "source": "universal ventricular coordinate Z on left-ventricular myocardium",
@@ -270,6 +270,55 @@
           ]
         }
       },
+      "valve_identification": {
+        "method": "tag-face-adjacency-v1",
+        "description": "Each valve plane is the interface between a chamber and what it opens into, so it borders exactly two of the six documented tags and that pair identifies it. Counts are shared triangles between tag groups; a neighbour carrying less than 2% of a group's chamber-facing boundary is a graze, not a border. Position is not consulted.",
+        "chamber_tags": {
+          "lv": 1,
+          "rv": 2,
+          "la": 3,
+          "ra": 4,
+          "aorta": 5,
+          "pa": 6
+        },
+        "valves": {
+          "mitral": {
+            "tag": 7,
+            "borders": {
+              "1": 766,
+              "3": 893
+            }
+          },
+          "tricuspid": {
+            "tag": 8,
+            "borders": {
+              "2": 766,
+              "4": 734
+            }
+          },
+          "aortic": {
+            "tag": 9,
+            "borders": {
+              "1": 983,
+              "5": 737
+            }
+          },
+          "pulmonary": {
+            "tag": 10,
+            "borders": {
+              "2": 497,
+              "6": 44
+            }
+          }
+        },
+        "published_tags": {
+          "mitral": 7,
+          "tricuspid": 8,
+          "aortic": 9,
+          "pulmonary": 10
+        },
+        "agrees_with_published": true
+      },
       "landmarks_source_mm": {
         "apex": [
           46.407023203617264,
@@ -282,22 +331,22 @@
           19.129978568330504
         ],
         "valve_rings": {
-          "7": [
+          "mitral": [
             3.1915795870008705,
             21.234154866802733,
             12.632715112212209
           ],
-          "8": [
+          "tricuspid": [
             -31.996683090867133,
             -5.567860413200307,
             -3.150279188795082
           ],
-          "9": [
+          "aortic": [
             -8.61929340161199,
             1.0255656328515856,
             26.032688754585898
           ],
-          "10": [
+          "pulmonary": [
             2.898352712008145,
             -25.236293921302597,
             41.00478959531899
@@ -426,25 +475,25 @@
       },
       {
         "id": 7,
-        "structure": "tagged-region-8",
+        "structure": "tricuspid-valve-ring",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 8,
-        "structure": "tagged-region-9",
+        "structure": "aortic-valve-ring",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 9,
-        "structure": "tagged-region-7",
+        "structure": "mitral-valve-ring",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 10,
-        "structure": "tagged-region-10",
+        "structure": "pulmonary-valve-ring",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
@@ -602,10 +651,10 @@
         "la-myocardium",
         "aortic-wall",
         "pulmonary-artery-wall",
-        "tagged-region-8",
-        "tagged-region-9",
-        "tagged-region-7",
-        "tagged-region-10",
+        "tricuspid-valve-ring",
+        "aortic-valve-ring",
+        "mitral-valve-ring",
+        "pulmonary-valve-ring",
         "tagged-region-18",
         "tagged-region-16",
         "tagged-region-11",
@@ -631,10 +680,10 @@
           "la-myocardium",
           "aortic-wall",
           "pulmonary-artery-wall",
-          "tagged-region-8",
-          "tagged-region-9",
-          "tagged-region-7",
-          "tagged-region-10",
+          "tricuspid-valve-ring",
+          "aortic-valve-ring",
+          "mitral-valve-ring",
+          "pulmonary-valve-ring",
           "tagged-region-18",
           "tagged-region-16",
           "tagged-region-11",
@@ -734,10 +783,10 @@
         "la-myocardium",
         "aortic-wall",
         "pulmonary-artery-wall",
-        "tagged-region-8",
-        "tagged-region-9",
-        "tagged-region-7",
-        "tagged-region-10",
+        "tricuspid-valve-ring",
+        "aortic-valve-ring",
+        "mitral-valve-ring",
+        "pulmonary-valve-ring",
         "tagged-region-18",
         "tagged-region-16",
         "tagged-region-11",
@@ -763,10 +812,10 @@
           "la-myocardium",
           "aortic-wall",
           "pulmonary-artery-wall",
-          "tagged-region-8",
-          "tagged-region-9",
-          "tagged-region-7",
-          "tagged-region-10",
+          "tricuspid-valve-ring",
+          "aortic-valve-ring",
+          "mitral-valve-ring",
+          "pulmonary-valve-ring",
           "tagged-region-18",
           "tagged-region-16",
           "tagged-region-11",
