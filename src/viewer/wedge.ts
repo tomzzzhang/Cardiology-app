@@ -1,6 +1,6 @@
 /**
- * The probe wedge: the translucent sector drawn in the 3D scene, showing where
- * the echo panel is imaging.
+ * The probe: the transducer body, its orientation marker, and the finite sector
+ * it images, drawn in the 3D scene from the pose the echo panel is rendering.
  *
  * `contracts/viewer-core.md` calls for "a separate translucent sector-wedge
  * probe indicator driven by the same vetted probe pose and fan params as the
@@ -9,14 +9,41 @@
  * thing. This module takes the SAME `ImagingFrame` the renderer rasterises and
  * builds geometry from it. Neither side owns a copy of the fan.
  *
- * This is deliberately not the free anatomical cutter, which is a different
- * object on a different data path and never appears here.
+ * The sector is FINITE, and that is a claim about the instrument rather than a
+ * rendering shortcut: a sector image ends at `fan.depth_cm` because that is
+ * where the scanner stopped listening. The free anatomical cutter's plane, by
+ * contrast, is infinite. The two objects look similar and mean opposite things,
+ * which is why they are on separate data paths and never merge
+ * (`contracts/README.md`).
  */
 import * as THREE from 'three';
 import type { ImagingFrame } from '../echo/probeFrame.ts';
 
 /** Radial segments across the fan. Enough that the arc does not read as facets. */
 const ARC_SEGMENTS = 48;
+
+/* Transducer body, in pack units (mm). A paediatric phased-array footprint —
+ * small enough not to swamp a neonatal heart, large enough to read as hardware
+ * rather than as a stray marker. */
+const BODY_LENGTH = 26;
+const BODY_WIDTH = 20;
+const BODY_THICKNESS = 13;
+/** Radius of the orientation marker on the probe's marker side. */
+const MARKER_RADIUS = 3.4;
+
+const SECTOR_COLOUR = 0x49b0ff;
+const OUTLINE_COLOUR = 0x8fd2ff;
+const BODY_COLOUR = 0x2b3440;
+const MARKER_COLOUR = 0xffc857;
+
+function vectors(frame: ImagingFrame) {
+  return {
+    apex: new THREE.Vector3(...frame.origin),
+    beam: new THREE.Vector3(...frame.beam),
+    lateral: new THREE.Vector3(...frame.lateral),
+    normal: new THREE.Vector3(...frame.normal),
+  };
+}
 
 /**
  * Triangle-fan geometry for the sector, in model space.
@@ -28,9 +55,7 @@ const ARC_SEGMENTS = 48;
  */
 export function wedgeGeometry(frame: ImagingFrame): THREE.BufferGeometry {
   const positions: number[] = [];
-  const apex = new THREE.Vector3(...frame.origin);
-  const beam = new THREE.Vector3(...frame.beam);
-  const lateral = new THREE.Vector3(...frame.lateral);
+  const { apex, beam, lateral } = vectors(frame);
 
   const edge = (index: number) => {
     const t = index / ARC_SEGMENTS;
@@ -57,9 +82,7 @@ export function wedgeGeometry(frame: ImagingFrame): THREE.BufferGeometry {
 
 /** Outline of the sector: the two straight edges and the far arc. */
 export function wedgeOutline(frame: ImagingFrame): THREE.BufferGeometry {
-  const apex = new THREE.Vector3(...frame.origin);
-  const beam = new THREE.Vector3(...frame.beam);
-  const lateral = new THREE.Vector3(...frame.lateral);
+  const { apex, beam, lateral } = vectors(frame);
 
   const points: THREE.Vector3[] = [apex];
   for (let i = 0; i <= ARC_SEGMENTS; i += 1) {
@@ -78,34 +101,100 @@ export function wedgeOutline(frame: ImagingFrame): THREE.BufferGeometry {
 }
 
 /**
- * A wedge that can be re-pointed as a sweep scrubs.
+ * Rigid placement of the transducer body: aperture face on the sector's apex,
+ * long axis back along the beam, width along the lateral axis.
  *
- * Geometry is rebuilt rather than transformed: the fan's depth and angle are
- * free to differ per view, so there is no single rigid motion that carries one
- * frame's sector onto another's.
+ * The body sits BEHIND the apex — the scan starts at the aperture, so a body
+ * centred on the apex would bury half the transducer in the first two
+ * centimetres of the image.
  */
-export class ProbeWedge {
+function bodyMatrix(frame: ImagingFrame): THREE.Matrix4 {
+  const { apex, beam, lateral, normal } = vectors(frame);
+  const basis = new THREE.Matrix4().makeBasis(lateral, normal, beam.clone().negate());
+  return basis.setPosition(apex.clone().addScaledVector(beam, -BODY_LENGTH / 2));
+}
+
+/**
+ * Where the orientation marker sits.
+ *
+ * `display.marker_side` names the side of the DISPLAYED image the indicator
+ * corresponds to, so on the probe it is the end of the aperture that maps to
+ * that edge of the sector: `right` is `+lateral`, `left` is `-lateral`. That
+ * mapping is a convention, and it is stated here so a later display-flag change
+ * has one place to correct rather than a guess embedded in geometry.
+ */
+function markerPosition(frame: ImagingFrame): THREE.Vector3 {
+  const { apex, beam, lateral } = vectors(frame);
+  const side = frame.markerSide === 'right' ? 1 : -1;
+  return apex
+    .clone()
+    .addScaledVector(beam, -BODY_LENGTH * 0.55)
+    .addScaledVector(lateral, (side * BODY_WIDTH) / 2);
+}
+
+/**
+ * The probe as one object: body, marker, sector, sector outline.
+ *
+ * Geometry for the sector is rebuilt rather than transformed as a sweep scrubs:
+ * the fan's depth and angle are free to differ per view, so there is no single
+ * rigid motion that carries one frame's sector onto another's. The body and
+ * marker ARE rigid, so those move by matrix.
+ */
+export class ProbeIndicator {
   readonly object = new THREE.Group();
   private surface: THREE.Mesh;
   private outline: THREE.Line;
+  private body: THREE.Mesh;
+  private marker: THREE.Mesh;
 
   constructor(frame: ImagingFrame) {
     this.surface = new THREE.Mesh(
       wedgeGeometry(frame),
       new THREE.MeshBasicMaterial({
-        color: 0x49b0ff,
+        color: SECTOR_COLOUR,
         transparent: true,
-        opacity: 0.18,
+        /*
+         * Deliberately faint. UI-2 settled that the imaged tissue is marked by
+         * DIMMING the anatomy the beam misses, not by tinting the wedge; a
+         * strongly tinted sector would double-signal the same thing and wash
+         * the tissue colour underneath it. The sector is here to show geometry
+         * — where the probe points and how far it reaches — not to shade.
+         */
+        opacity: 0.1,
         side: THREE.DoubleSide,
         depthWrite: false,
       }),
     );
     this.outline = new THREE.Line(
       wedgeOutline(frame),
-      new THREE.LineBasicMaterial({ color: 0x8fd2ff, transparent: true, opacity: 0.9 }),
+      new THREE.LineBasicMaterial({ color: OUTLINE_COLOUR, transparent: true, opacity: 0.9 }),
     );
-    this.object.add(this.surface, this.outline);
+
+    this.body = new THREE.Mesh(
+      new THREE.BoxGeometry(BODY_WIDTH, BODY_THICKNESS, BODY_LENGTH),
+      new THREE.MeshStandardMaterial({ color: BODY_COLOUR, roughness: 0.6, metalness: 0.1 }),
+    );
+    this.body.matrixAutoUpdate = false;
+
+    this.marker = new THREE.Mesh(
+      new THREE.SphereGeometry(MARKER_RADIUS, 16, 12),
+      new THREE.MeshStandardMaterial({
+        color: MARKER_COLOUR,
+        roughness: 0.4,
+        emissive: MARKER_COLOUR,
+        emissiveIntensity: 0.35,
+      }),
+    );
+    this.marker.matrixAutoUpdate = false;
+
+    this.object.add(this.surface, this.outline, this.body, this.marker);
     this.object.renderOrder = 2;
+    this.place(frame);
+  }
+
+  private place(frame: ImagingFrame): void {
+    this.body.matrix.copy(bodyMatrix(frame));
+    this.marker.matrix.identity().setPosition(markerPosition(frame));
   }
 
   update(frame: ImagingFrame): void {
@@ -113,12 +202,13 @@ export class ProbeWedge {
     this.outline.geometry.dispose();
     this.surface.geometry = wedgeGeometry(frame);
     this.outline.geometry = wedgeOutline(frame);
+    this.place(frame);
   }
 
   dispose(): void {
-    this.surface.geometry.dispose();
-    this.outline.geometry.dispose();
-    (this.surface.material as THREE.Material).dispose();
-    (this.outline.material as THREE.Material).dispose();
+    for (const mesh of [this.surface, this.outline, this.body, this.marker]) {
+      mesh.geometry.dispose();
+      (mesh.material as THREE.Material).dispose();
+    }
   }
 }

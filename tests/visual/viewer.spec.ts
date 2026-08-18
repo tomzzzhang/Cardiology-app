@@ -159,6 +159,76 @@ test('the wedge and the echo move together on one scrub value', async ({ page })
   expect(changed(echoStart, echoEnd)).toBeGreaterThan(0.1);
 });
 
+/**
+ * `contracts/viewer-core.md`: "Cut faces render **solid**, via stencil-buffer
+ * caps. A hollow cut is a bug, not a style."
+ *
+ * The discriminator is exact colour. Cap quads are unlit `MeshBasicMaterial`
+ * in the structure's palette colour, so an interior cap pixel lands on that
+ * value exactly. Every anatomy surface is `MeshStandardMaterial` under two
+ * lights and cannot produce it except by coincidence at a single shading angle.
+ * If clipping opened the model but the stencil pass drew nothing — which is the
+ * failure mode when the WebGL context is created without a stencil buffer —
+ * the cut region shows the lit interior of the far wall and this count is zero.
+ *
+ * The beam highlight is switched off first: it multiplies the cap colour
+ * everywhere the beam does not reach, which would defeat an exact-match test
+ * for reasons that have nothing to do with whether the cap is solid.
+ */
+test('the cut renders solid caps, not a hollow shell', async ({ page }) => {
+  await expect(page.getByTestId('cut-enabled')).toBeChecked();
+  await page.getByTestId('beam-dim').uncheck();
+
+  const exactPaletteHits = async () =>
+    page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('.anatomy canvas');
+      if (!canvas) return 0;
+      const scratch = document.createElement('canvas');
+      scratch.width = canvas.width;
+      scratch.height = canvas.height;
+      const context = scratch.getContext('2d', { willReadFrequently: true });
+      if (!context) return 0;
+      context.drawImage(canvas, 0, 0);
+      const { data } = context.getImageData(0, 0, scratch.width, scratch.height);
+      // The four chamber-wall palette entries from PackViewer.
+      const palette = [
+        [0xd9, 0x4f, 0x4f], [0x4f, 0x8f, 0xd9],
+        [0xe0, 0xa3, 0x3c], [0x5f, 0xb8, 0x7a],
+      ];
+      let hits = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        for (const [r, g, b] of palette) {
+          if (data[i] === r && data[i + 1] === g && data[i + 2] === b) {
+            hits += 1;
+            break;
+          }
+        }
+      }
+      return hits;
+    });
+
+  expect(await exactPaletteHits()).toBeGreaterThan(200);
+
+  /*
+   * And the caps follow the plane: pushed clear of the model, they vanish.
+   *
+   * The value is written through React's own value setter rather than with
+   * `fill()`, which does not drive a range input. Dispatching `input` after it
+   * is what React listens for, so this exercises the real state path — slider
+   * to `s` to plane to cap — instead of poking the renderer behind it.
+   */
+  await page.getByTestId('cut-offset').evaluate((node: HTMLInputElement) => {
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )?.set;
+    setter?.call(node, node.max);
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(page.getByTestId('cut-readout')).not.toContainText('0.0 mm');
+  expect(await exactPaletteHits()).toBe(0);
+});
+
 test('a rejected pack is not reachable in the production build', async ({ page }) => {
   // The visual suite runs against a real production build, so this is the only
   // check that exercises the shipped artefact. Both rejected packs are licence

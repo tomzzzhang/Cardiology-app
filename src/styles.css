@@ -261,3 +261,65 @@ body {
 .stage .echo {
   margin: 0;
 }
+
+/* --- the free anatomical cutter's controls ------------------------------- */
+
+.anatomy-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* One row of controls, all of them views of the same `s`. It wraps rather than
+   scrolls: docs/build_plan.md names phone portrait a first-class layout, and a
+   control the learner has to scroll sideways to reach is a control they will
+   not find. */
+.cutter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.cutter__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.cutter__slider {
+  flex: 1 1 8rem;
+  min-width: 6rem;
+  /* The slider owns horizontal drags; without this a touch drag scrolls the
+     page instead of moving the plane. */
+  touch-action: none;
+}
+
+.cutter__slider:disabled {
+  opacity: 0.4;
+}
+
+/* Tabular figures so the readout does not jitter its neighbours as `s` runs
+   through different digit widths while the plane is being dragged. */
+.cutter__readout {
+  min-width: 5.5rem;
+  font-variant-numeric: tabular-nums;
+  color: #9fb0c3;
+}
+
+.cutter button {
+  padding: 0.2rem 0.55rem;
+  font: inherit;
+  color: #cfe0f2;
+  background: #1a2430;
+  border: 1px solid #2c3a49;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cutter button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
