@@ -153,6 +153,25 @@ describe('compress', () => {
     expect(blood).toBeLessThan(compress(0.55, DEFAULT_TUNING));
   });
 
+  it('spends its range on mid-greys instead of saturating to white', () => {
+    // Regression for the double-compression bug: a log knee followed by a dB
+    // window pushed everything above ~1% of full scale to within a few dB of
+    // white, so the sector rendered bimodal with no mid-grey. That reads as CT,
+    // which is precisely the Stage 0 failure the contract names.
+    const samples = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.4, 0.7, 1.0];
+    const values = samples.map((envelope) => compress(envelope, DEFAULT_TUNING));
+    const saturated = values.filter((value) => value > 0.98).length;
+    const midGrey = values.filter((value) => value > 0.15 && value < 0.85).length;
+    expect(saturated).toBeLessThanOrEqual(1);
+    expect(midGrey).toBeGreaterThanOrEqual(4);
+  });
+
+  it('puts full scale at white and the dynamic range below it at black', () => {
+    expect(compress(1, DEFAULT_TUNING)).toBeCloseTo(1, 6);
+    const floor = Math.pow(10, -DEFAULT_TUNING.dynamicRangeDb / 20);
+    expect(compress(floor * 0.9, DEFAULT_TUNING)).toBe(0);
+  });
+
   it('narrowing the dynamic range raises contrast', () => {
     // Contrast is the SEPARATION between two returns, not the brightness of
     // one. A narrower window steepens the ramp, so a mid-level sample actually

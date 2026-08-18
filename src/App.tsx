@@ -8,8 +8,19 @@
  */
 import { useEffect, useState } from 'react';
 import HelloViewer from './viewer/HelloViewer.tsx';
-import { loadPackById, PackLoadError, type LoadedPack } from './packs/loadPack.ts';
+import EchoPanel from './echo/EchoPanel.tsx';
+import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
 import { SCHEMA_VERSION } from './schema/packV0.ts';
+
+/**
+ * Which pack the shell shows. `?pack=` exists so the visual suite can hold the
+ * synthetic stub while the echo slice develops against the real one; the real
+ * deep-link scheme (`?a=`/`?v=`/`?s=`) is `contracts/app-shell.md`, wave 2.
+ */
+function requestedPackId(): string {
+  if (typeof window === 'undefined') return 'normal-rodero';
+  return new URLSearchParams(window.location.search).get('pack') ?? 'normal-rodero';
+}
 
 type PackState =
   | { status: 'loading' }
@@ -22,7 +33,7 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
 
-    loadPackById('stub', { signal: controller.signal })
+    loadPackById(requestedPackId(), { signal: controller.signal })
       .then((loaded) => setPackState({ status: 'ok', loaded }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
@@ -40,14 +51,22 @@ export default function App() {
       <header className="shell__header">
         <h1>Cardiology app</h1>
         <p className="shell__tagline">
-          Wave 0 scaffold — hello-world viewer and content-pack schema v{SCHEMA_VERSION} (provisional).
+          Wave 1b — simulated echo over a real labelled volume. Content-pack schema v
+          {SCHEMA_VERSION} (provisional).
         </p>
       </header>
 
       <HelloViewer />
 
+      {packState.status === 'ok' && (
+        <EchoPanel
+          pack={packState.loaded.pack}
+          volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
+        />
+      )}
+
       <section className="panel" data-testid="pack-status" data-status={packState.status}>
-        <h2>Stub content pack</h2>
+        <h2>Content pack</h2>
         {packState.status === 'loading' && <p>Loading…</p>}
 
         {packState.status === 'error' && (

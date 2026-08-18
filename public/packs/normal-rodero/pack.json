@@ -438,7 +438,7 @@
         "origin": [
           -4.783069610595703,
           4.583599090576172,
-          69.17823791503906
+          66.02778625488281
         ],
         "beam_axis": [
           0.0,
@@ -452,14 +452,31 @@
         ],
         "fan": {
           "angle_deg": 75.0,
-          "depth_cm": 33.992,
-          "focus_cm": 16.996
+          "depth_cm": 15.7,
+          "focus_cm": 8.63
         },
         "display": {
           "vertex": "down",
           "flip_lr": false,
           "marker_side": "right"
         }
+      },
+      "sweep": {
+        "mode": "tilt",
+        "axis": {
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        "range": {
+          "unit": "deg",
+          "from": -22.0,
+          "to": 22.0
+        },
+        "interpolation": "slerp",
+        "structures_in_order": []
       },
       "structures": [
         "lv-myocardium",

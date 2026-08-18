@@ -36,6 +36,18 @@ export default tseslint.config(
     },
   },
   {
+    // Browser benchmarks: Node at the top level, browser inside page.evaluate().
+    // Both sets of globals are genuinely in scope in one file.
+    files: ['tests/perf/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
     // Schema tests deliberately hand malformed values to the validator.
     files: ['tests/**/*.ts'],
     rules: {

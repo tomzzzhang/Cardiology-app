@@ -140,3 +140,85 @@ body {
     aspect-ratio: 4 / 3;
   }
 }
+
+/* --- echo panel (wave 1b) ------------------------------------------------ */
+
+.echo {
+  margin: 1.5rem 0;
+  border: 1px solid #26303c;
+  border-radius: 10px;
+  background: #0b0f14;
+  overflow: hidden;
+}
+
+.echo__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #26303c;
+}
+
+.echo__header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* The "simulated" label is a contract requirement, not decoration. It must stay
+   legible at every viewport and must never be the thing that gets clipped. */
+.echo__badge {
+  margin: 0;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #7a2e2e;
+  color: #ffe9e9;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.echo__stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #000;
+}
+
+.echo__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.echo__message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  padding: 1.5rem;
+  color: #d7dee8;
+  text-align: center;
+}
+
+.echo__scrub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #26303c;
+  font-size: 0.85rem;
+}
+
+.echo__scrub input {
+  width: 100%;
+}
+
+.echo__provenance {
+  padding: 0.6rem 1rem;
+  border-top: 1px solid #26303c;
+  color: #9aa7b6;
+  font-size: 0.78rem;
+}

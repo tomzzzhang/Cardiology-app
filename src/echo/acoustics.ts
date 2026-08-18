@@ -100,8 +100,10 @@ export interface EchoTuning {
   tgcDb: number;
   /** Displayed dynamic range in dB. Narrower is higher contrast. */
   dynamicRangeDb: number;
-  /** Log-compression knee. Higher lifts low-level speckle into view. */
-  compression: number;
+  /** Display gamma applied after the dB window. <1 lifts mid-greys, >1 deepens them. */
+  gamma: number;
+  /** Attenuation of a label with coefficient 1.0, in dB/cm. Round trip is twice this. */
+  attenuationDbPerCm: number;
   /** Scatterer density, in scatterers per mm along a scanline. */
   scattererDensity: number;
   /** Axial PSF sigma in mm at the focus. */
@@ -122,12 +124,26 @@ export interface EchoTuning {
 
 export const DEFAULT_TUNING: Readonly<EchoTuning> = {
   gain: 1.0,
-  tgcDb: 26,
+  /*
+   * TGC compensates the attenuation the beam actually suffers. Setting it far
+   * above that does not "brighten the image" — it lifts the near-anechoic
+   * regions, because they are the ones with nothing attenuating them. At 42 dB
+   * over a 16 cm sector the blood outside the heart came back mid-grey, which
+   * inverts priority 1's ordering: blood must be near-black.
+   */
+  tgcDb: 16,
   dynamicRangeDb: 55,
-  compression: 180,
-  scattererDensity: 2.2,
-  psfAxialMm: 0.42,
-  psfLateralMm: 0.9,
+  gamma: 1.25,
+  attenuationDbPerCm: 4.0,
+  /*
+   * Scatterer cells must be comfortably FINER than the PSF, or the speckle
+   * degenerates into visible dots: the convolution has nothing to average and
+   * each cell survives as its own blob. Density here puts roughly three cells
+   * inside one PSF width.
+   */
+  scattererDensity: 3.6,
+  psfAxialMm: 0.7,
+  psfLateralMm: 0.95,
   psfDefocus: 0.014,
   specular: 1.0,
   boundaryReflection: 0.55,
@@ -162,19 +178,26 @@ export function tgcGain(rMm: number, depthMm: number, tgcDb: number): number {
 /**
  * Envelope -> displayed brightness in [0, 1].
  *
- * Log compression first, then the dynamic-range window. Real scanners do it in
- * this order and it matters: compressing after windowing would clip the speckle
- * that priority 1 depends on before it could be seen.
+ * ONE logarithmic mapping, not two. An earlier revision applied a log-compression
+ * knee and *then* a dynamic-range window, which double-compressed: every return
+ * above roughly a hundredth of full scale landed within a few dB of white, and
+ * the rendered sector came out bimodal — saturated inside, black outside — with
+ * almost no mid-grey. That is the "looks like CT" failure the contract's Stage 0
+ * benchmark is meant to catch, and it was a modelling error rather than a tuning
+ * one.
+ *
+ * A scanner maps the envelope logarithmically onto the displayed dynamic range:
+ * full scale is white, `dynamicRangeDb` below full scale is black, and
+ * everything between is linear IN DECIBELS. `gamma` then shapes the mid-greys.
+ * That is what this is.
  */
 export function compress(envelope: number, tuning: EchoTuning): number {
   const gained = Math.max(0, envelope) * tuning.gain;
   if (gained <= tuning.reject) return 0;
 
-  const compressed = Math.log(1 + tuning.compression * gained) / Math.log(1 + tuning.compression);
-  // Map [-dynamicRange, 0] dB onto [0, 1].
-  const db = 20 * Math.log10(Math.max(compressed, 1e-6));
+  const db = 20 * Math.log10(gained);
   const normalized = 1 + db / tuning.dynamicRangeDb;
-  return Math.min(1, Math.max(0, normalized));
+  return Math.pow(Math.min(1, Math.max(0, normalized)), tuning.gamma);
 }
 
 /**

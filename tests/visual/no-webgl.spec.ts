@@ -20,7 +20,7 @@ test.use({
 
 test.describe('WebGL unavailable', () => {
   test('the shell survives and explains itself', async ({ page }) => {
-    await page.goto('/?freeze=1');
+    await page.goto('/?freeze=1&pack=stub');
 
     // The viewer reports its own unavailability rather than disappearing.
     const viewer = page.getByTestId('viewer');
@@ -37,6 +37,13 @@ test.describe('WebGL unavailable', () => {
     });
     await expect(page.getByTestId('pack-status')).toContainText('Synthetic stub pack');
     await expect(page.locator('body')).toContainText('not for diagnostic use');
+
+    // The echo panel degrades the same way: it reports that it cannot render
+    // and keeps its "simulated" label and provenance on screen. A panel that
+    // threw here would take the disclaimer down with it.
+    await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'unavailable');
+    await expect(page.getByTestId('echo-unavailable')).toContainText('WebGL2');
+    await expect(page.getByTestId('echo-simulated')).toBeVisible();
 
     // The page must not be blank.
     const rendered = await page.evaluate(() => document.body.innerText.trim().length);

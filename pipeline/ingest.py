@@ -507,8 +507,18 @@ def reference_view(structures: list[Structure], bounds: tuple[np.ndarray, np.nda
     """
     low, high = bounds
     centre = (low + high) / 2.0
-    depth_cm = float(np.linalg.norm(high - low) / 10.0)
-    origin = [float(centre[0]), float(centre[1]), float(high[2] + (high[2] - low[2]) * 0.15)]
+    origin_v = np.array([centre[0], centre[1], high[2] + (high[2] - low[2]) * 0.12])
+
+    # Depth is measured, not guessed: the distance from the probe to the
+    # farthest corner of the model, plus a small margin. Deriving it from the
+    # bounding-box DIAGONAL instead (an earlier attempt) overshot by roughly
+    # three times, and the anatomy rendered into the top third of the sector
+    # with two thirds of the fan empty.
+    corners = np.array([[x, y, z] for x in (low[0], high[0])
+                        for y in (low[1], high[1]) for z in (low[2], high[2])])
+    reach = float(np.linalg.norm(corners - origin_v, axis=1).max())
+    depth_cm = round(reach * 1.05 / 10.0, 2)
+    origin = [float(v) for v in origin_v]
     return {
         "family": "INGEST",
         "view_id": "ingest-reference-pose",
@@ -525,10 +535,23 @@ def reference_view(structures: list[Structure], bounds: tuple[np.ndarray, np.nda
             "lateral_axis": [1.0, 0.0, 0.0],
             "fan": {
                 "angle_deg": 75.0,
-                "depth_cm": round(depth_cm * 1.6, 3),
-                "focus_cm": round(depth_cm * 0.8, 3),
+                "depth_cm": depth_cm,
+                "focus_cm": round(depth_cm * 0.55, 2),
             },
             "display": {"vertex": "down", "flip_lr": False, "marker_side": "right"},
+        },
+        "sweep": {
+            # A mechanical tilt about the pose's own lateral axis, so the
+            # end-to-end sweep path (pack -> loader -> poseAt -> renderer) is
+            # exercised against a real pack. It is NOT the A3 subcostal coronal
+            # sweep or any other clinical sweep, and `structures_in_order` is
+            # deliberately EMPTY: naming the structures a sweep crosses is a
+            # clinical reading, and an empty list claims nothing.
+            "mode": "tilt",
+            "axis": {"direction": [1.0, 0.0, 0.0]},
+            "range": {"unit": "deg", "from": -22.0, "to": 22.0},
+            "interpolation": "slerp",
+            "structures_in_order": [],
         },
         "structures": [s.slug for s in structures],
         "measurements": [],
