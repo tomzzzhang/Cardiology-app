@@ -26,7 +26,14 @@ import { frameAt, type ImagingFrame } from '../echo/probeFrame.ts';
 import { ProbeIndicator } from './wedge.ts';
 import { StencilCaps, type CapSource } from './caps.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
-import { orbitPose, wrapAngle, yawDirection } from './orbit.ts';
+import {
+  dragOrientation,
+  echoOrientation,
+  glideStep,
+  orbitPose,
+  orientationFromYawPitch,
+  shortestTarget,
+} from './orbit.ts';
 import {
   clippingPlane,
   enclosingRadius,
@@ -81,6 +88,7 @@ interface ViewerApi {
   setCut: (cut: { enabled: boolean; offset: number; flipped: boolean }) => void;
   setBeamDim: (strength: number) => void;
   resetCamera: () => void;
+  matchEchoOrientation: (frame: ImagingFrame) => void;
 }
 
 export default function PackViewer({
@@ -182,21 +190,49 @@ export default function PackViewer({
     /* --- orbit state, pivoting on C -------------------------------------- */
     let pivot = new THREE.Vector3();
     let radius = 400;
-    let yaw = 0.9;
-    let pitch = 0.35;
-
     /*
-     * The pose comes from `orbit.ts`, which derives the camera offset AND its
-     * `up` from one rotation. The previous revision positioned the camera from
-     * angles and pinned `up` to (0, 1, 0), which is undefined at the pole and
-     * inverted past it — so pitch had to be clamped to +-1.5 radians and the
-     * model could not be turned over. That clamp is gone.
+     * The camera's orientation is held whole rather than as yaw and pitch. Two
+     * angles cannot express a roll, and "match echo orientation" has to be able
+     * to set an arbitrary basis; rebuilding from angles is also what created
+     * the pole that pitch used to be clamped away from. See `orbit.ts`.
      */
+    const REST = orientationFromYawPitch(0.9, 0.35);
+    let orientation = REST.clone();
+
     const applyCamera = () => {
-      const pose = orbitPose(yaw, pitch, radius);
+      const pose = orbitPose(orientation, radius);
       camera.position.copy(pivot).add(pose.offset);
       camera.up.copy(pose.up);
       camera.lookAt(pivot);
+    };
+
+    /* --- camera animation ------------------------------------------------- */
+    /* The curve, the duration and the shortest-path choice live in `orbit.ts`,
+     * where they can be tested; this is only the clock and the flag. */
+    let glide: { from: THREE.Quaternion; to: THREE.Quaternion; start: number } | null = null;
+
+    const stepGlide = (now: number) => {
+      if (!glide) return false;
+      const step = glideStep(glide.from, glide.to, now - glide.start);
+      orientation.copy(step.orientation);
+      applyCamera();
+      if (step.done) {
+        glide = null;
+        delete host.dataset.cameraGlide;
+        return false;
+      }
+      return true;
+    };
+
+    const glideTo = (target: THREE.Quaternion) => {
+      glide = {
+        from: orientation.clone(),
+        to: shortestTarget(orientation, target),
+        start: performance.now(),
+      };
+      // Announced on the host so a caller can tell a move is in flight.
+      host.dataset.cameraGlide = 'true';
+      schedule();
     };
 
     /**
@@ -232,11 +268,19 @@ export default function PackViewer({
       }
     };
 
+    /*
+     * One scheduler for both cases. The viewer draws ON DEMAND — a static scene
+     * has no reason to burn a frame every 16 ms — so an animation is expressed
+     * as "this draw wants another one after it" rather than as a second loop
+     * that would have to be started, stopped and reconciled with this one.
+     */
     const schedule = () => {
       if (disposed || frameHandle !== 0) return;
-      frameHandle = requestAnimationFrame(() => {
+      frameHandle = requestAnimationFrame((now) => {
         frameHandle = 0;
+        const again = stepGlide(now);
         draw();
+        if (again) schedule();
       });
     };
 
@@ -264,24 +308,19 @@ export default function PackViewer({
 
     const onPointerDown = (event: PointerEvent) => {
       dragging = true;
+      // The learner's hand outranks an animation in flight.
+      glide = null;
+      delete host.dataset.cameraGlide;
       lastX = event.clientX;
       lastY = event.clientY;
       renderer.domElement.setPointerCapture(event.pointerId);
     };
     const onPointerMove = (event: PointerEvent) => {
       if (!dragging) return;
-      /*
-       * Horizontal drag turns the model the same way on screen whichever way up
-       * it is. Once the camera passes a pole its `up` inverts, and a yaw delta
-       * that was "drag right, model turns right" becomes its own opposite — the
-       * model fights the pointer for the entire upside-down half of the orbit.
-       * Taking the sign from cos(pitch), which is exactly the term that flips,
-       * keeps the gesture meaning one thing.
-       */
-      yaw -= (event.clientX - lastX) * 0.008 * yawDirection(pitch);
-      // No clamp: the model turns all the way over. Wrapped only so the angle
-      // cannot drift without bound across a long session.
-      pitch = wrapAngle(pitch + (event.clientY - lastY) * 0.008);
+      // No clamp anywhere: the model turns all the way over. See `orbit.ts`.
+      orientation = dragOrientation(
+        orientation, event.clientX - lastX, event.clientY - lastY,
+      );
       lastX = event.clientX;
       lastY = event.clientY;
       applyCamera();
@@ -462,12 +501,16 @@ export default function PackViewer({
         schedule();
       },
       resetCamera: () => {
-        yaw = 0.9;
-        pitch = 0.35;
         radius = framingRadius();
-        applyCamera();
-        schedule();
+        glideTo(REST);
       },
+      /*
+       * CAMERA ONLY, and structurally so: `echoOrientation` takes an
+       * ImagingFrame and returns a rotation. It cannot reach the wedge, the
+       * view or the pack, and nothing here writes to any of them — the free
+       * cutter's `{N, s}` and the vetted `views[]` are both untouched.
+       */
+      matchEchoOrientation: (frame) => glideTo(echoOrientation(frame)),
     };
     onCutOffset = (value) => setCutOffset(value);
 
@@ -495,6 +538,7 @@ export default function PackViewer({
       renderer.dispose();
       renderer.domElement.remove();
       delete host.dataset.viewerReady;
+      delete host.dataset.cameraGlide;
     };
   }, [gltfUrl, pack, viewIndex]);
 
@@ -582,6 +626,25 @@ export default function PackViewer({
             data-testid="cut-flip"
           >
             Reverse
+          </button>
+
+          {/*
+            * CAMERA ONLY. It turns the model to face the echo's imaging plane
+            * and does not touch the wedge, the selected view, or anything in
+            * the pack — the free cutter keeps its `{N, s}` and `views[]` is not
+            * written to at all. `contracts/README.md`: the two objects may
+            * coincide visually and never merge.
+            */}
+          <button
+            type="button"
+            onClick={() => {
+              const view = pack.views[viewIndex];
+              if (view) apiRef.current?.matchEchoOrientation(frameAt(view.probe, view.sweep, scrub));
+            }}
+            title="Turn the model to face the echo's imaging plane. Camera only."
+            data-testid="match-echo"
+          >
+            Match echo
           </button>
 
           <button

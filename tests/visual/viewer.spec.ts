@@ -220,6 +220,72 @@ test('the orbit is not clamped at the poles', async ({ page }) => {
   expect(lit.length).toBeGreaterThan(20);
 });
 
+test('"Match echo" turns the model to the echo plane, and moves nothing else', async ({ page }) => {
+  /*
+   * The button exists to make one relationship visible: the echo image is a
+   * slice of this model, taken on this plane. So it has to turn the model to
+   * face that plane — and it has to do that WITHOUT touching the wedge, the
+   * selected view or any pack data. `contracts/README.md`: the free cutter and
+   * the vetted wedge may coincide visually and never merge.
+   *
+   * Both halves are asserted here, because "camera only" is exactly the kind of
+   * claim that decays quietly.
+   */
+  await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
+  const sample = (selector: string) => page.evaluate((query) => {
+    const canvas = document.querySelector<HTMLCanvasElement>(query);
+    if (!canvas) return null;
+    const scratch = document.createElement('canvas');
+    scratch.width = 48;
+    scratch.height = 48;
+    const context = scratch.getContext('2d');
+    if (!context) return null;
+    context.drawImage(canvas, 0, 0, 48, 48);
+    return [...context.getImageData(0, 0, 48, 48).data];
+  }, selector);
+
+  const differing = (a: number[], b: number[]) =>
+    a.filter((value, index) => Math.abs(value - b[index]) > 8).length;
+
+  const anatomyBefore = await sample('.anatomy canvas');
+  const echoBefore = await sample('[data-testid="echo-canvas"]');
+  const scrubBefore = await page.getByTestId('echo-scrub').inputValue();
+  const cutBefore = await page.getByTestId('cut-readout').textContent();
+
+  /*
+   * The transition is animated, and that is NOT asserted here — it is asserted
+   * in tests/unit/orbit.test.ts, over the easing curve and the glide step.
+   *
+   * Two attempts to assert it from the browser both measured the machine rather
+   * than the code. Headless Chromium falls back to software GL and draws this
+   * scene, with a stencil cap pass per structure, at a few frames per second:
+   * counting distinct frames cannot separate a 700 ms animation from a cut, and
+   * polling for the in-flight flag cannot see it either, because the flag is set
+   * and cleared inside a single long frame with no gap for a poll to land in.
+   *
+   * What this test is for is the part a unit test cannot reach: that the button
+   * moves the camera and moves NOTHING else.
+   */
+  await page.getByTestId('match-echo').click();
+  await expect(page.getByTestId('anatomy-viewer'))
+    .not.toHaveAttribute('data-camera-glide', 'true', { timeout: 10_000 });
+
+  const anatomyAfter = await sample('.anatomy canvas');
+  const echoAfter = await sample('[data-testid="echo-canvas"]');
+
+  expect(anatomyBefore).not.toBeNull();
+  // The camera really moved.
+  expect(differing(anatomyBefore!, anatomyAfter!)).toBeGreaterThan(anatomyBefore!.length * 0.05);
+
+  // CAMERA ONLY: the echo image, the sweep position and the cutter are untouched.
+  expect(differing(echoBefore!, echoAfter!)).toBe(0);
+  expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
+  expect(await page.getByTestId('cut-readout').textContent()).toBe(cutBefore);
+});
+
 test('scrubbing the sweep changes the image', async ({ page }) => {
   await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,

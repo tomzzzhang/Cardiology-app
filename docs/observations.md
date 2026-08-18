@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-18 13:20 EDT
+**Last Updated:** 2026-08-18 13:35 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -158,7 +158,35 @@ worth having is a judgement call for review.
 
 ---
 
-## 6. Tags 11–24 are still unnamed
+## 6. "Match echo" — the button that makes the correspondence visible
+
+**Where.** Anatomy panel, in the control row. Press it and the model turns to face the echo's
+imaging plane over about three quarters of a second.
+
+**What it claims.** Only that the camera is now looking at the model the way the echo panel
+presents it: the beam axis running up the screen (because this view is vertex-down), the fan's
+lateral axis across it. It is **camera only** — it does not move the wedge, the cutter, the sweep
+position, or anything in the pack.
+
+**How to judge it.** After pressing it, the shape of the heart in the anatomy panel should read as
+the same slice the echo shows, at the same rotation. Turn the cut on and it should agree too. Then
+check the sweep slider and the cut readout have not moved.
+
+**Decision worth knowing.** `flip_lr` is honoured by viewing the plane **from the other side**, not
+by mirroring. A mirrored model is a left-handed heart, and an anatomy viewer must not be able to
+show one by accident. No view in the pack sets `flip_lr` yet, so this is untested against real
+content.
+
+**Why the camera state changed shape.** Matching the echo generally needs a *roll*, and yaw and
+pitch cannot express one — the up vector follows from them with no freedom left. The camera now
+holds a full rotation, which is also what removed the pole from item 5 above.
+
+**Not built.** It matches orientation only, not zoom or framing. Whether it should also frame the
+sector's depth is a judgement call for review.
+
+---
+
+## 7. Tags 11–24 are still unnamed
 
 **Where.** Anatomy panel: fourteen small grey structures around the atria — pulmonary vein stubs,
 caval stubs, the left atrial appendage.
