@@ -22,6 +22,16 @@ interface EchoPanelProps {
   /** URL of the pack's `echo_volume.asset`, already resolved by the loader. */
   volumeUrl: string;
   viewIndex?: number;
+  /**
+   * Scrub position, 0..1, owned by the caller.
+   *
+   * Lifted out of this component on purpose: the wedge in the 3D scene and the
+   * echo image must be the same sweep position, and the only way to guarantee
+   * that is for one value to drive both. Two components each holding their own
+   * scrub state is precisely the drift the one-to-one match forbids.
+   */
+  scrub: number;
+  onScrubChange: (scrub: number) => void;
 }
 
 type Status =
@@ -29,11 +39,12 @@ type Status =
   | { kind: 'ready' }
   | { kind: 'unavailable'; message: string };
 
-export default function EchoPanel({ pack, volumeUrl, viewIndex = 0 }: EchoPanelProps) {
+export default function EchoPanel({
+  pack, volumeUrl, viewIndex = 0, scrub, onScrubChange,
+}: EchoPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<EchoRenderer | null>(null);
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
-  const [scrub, setScrub] = useState(0.5);
 
   const view = pack.views[viewIndex];
   const descriptor = useMemo(() => describePack(pack), [pack]);
@@ -157,7 +168,7 @@ export default function EchoPanel({ pack, volumeUrl, viewIndex = 0 }: EchoPanelP
             max={1}
             step={0.01}
             value={scrub}
-            onChange={(event) => setScrub(Number(event.target.value))}
+            onChange={(event) => onScrubChange(Number(event.target.value))}
           />
         </div>
       )}

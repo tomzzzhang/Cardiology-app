@@ -14,15 +14,17 @@ import { expect, test } from '@playwright/test';
  */
 test.beforeEach(async ({ page }) => {
   await page.goto('/?freeze=1');
-  await expect(page.getByTestId('viewer')).toHaveAttribute('data-viewer-ready', 'true');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
 });
 
 test('renders a non-blank WebGL canvas', async ({ page }) => {
-  const canvas = page.locator('.viewer canvas');
+  const canvas = page.locator('.anatomy canvas');
   await expect(canvas).toBeVisible();
 
   const distinctColours = await page.evaluate(() => {
-    const canvas = document.querySelector<HTMLCanvasElement>('.viewer canvas');
+    const canvas = document.querySelector<HTMLCanvasElement>('.anatomy canvas');
     if (!canvas) return 0;
     const scratch = document.createElement('canvas');
     scratch.width = 64;
@@ -122,6 +124,39 @@ test('scrubbing the sweep changes the image', async ({ page }) => {
   // position and the scrubber would be decorative.
   const changed = before.reduce((count, value, i) => count + (value === after[i] ? 0 : 1), 0);
   expect(changed).toBeGreaterThan(before.length * 0.1);
+});
+
+test('the wedge and the echo move together on one scrub value', async ({ page }) => {
+  // The one-to-one match is structural — both read the same ImagingFrame — but
+  // it is worth an end-to-end assertion, because a regression that gave either
+  // panel its own scrub state would still render two plausible pictures.
+  const sample = (selector: string) =>
+    page.evaluate((sel) => {
+      const canvas = document.querySelector<HTMLCanvasElement>(sel);
+      const scratch = document.createElement('canvas');
+      scratch.width = 40;
+      scratch.height = 40;
+      const context = scratch.getContext('2d')!;
+      context.drawImage(canvas!, 0, 0, 40, 40);
+      return [...context.getImageData(0, 0, 40, 40).data].filter((_, i) => i % 4 === 0);
+    }, selector);
+
+  const changed = (before: number[], after: number[]) =>
+    before.reduce((count, value, i) => count + (value === after[i] ? 0 : 1), 0) / before.length;
+
+  await page.getByTestId('echo-scrub').fill('0');
+  await page.waitForTimeout(600);
+  const anatomyStart = await sample('.anatomy canvas');
+  const echoStart = await sample('[data-testid="echo-canvas"]');
+
+  await page.getByTestId('echo-scrub').fill('1');
+  await page.waitForTimeout(600);
+  const anatomyEnd = await sample('.anatomy canvas');
+  const echoEnd = await sample('[data-testid="echo-canvas"]');
+
+  // One scrubber moved BOTH: the wedge in the scene and the echo image.
+  expect(changed(anatomyStart, anatomyEnd)).toBeGreaterThan(0.02);
+  expect(changed(echoStart, echoEnd)).toBeGreaterThan(0.1);
 });
 
 test('no console errors on load', async ({ page }) => {

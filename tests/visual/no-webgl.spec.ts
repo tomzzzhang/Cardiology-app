@@ -22,13 +22,13 @@ test.describe('WebGL unavailable', () => {
   test('the shell survives and explains itself', async ({ page }) => {
     await page.goto('/?freeze=1&pack=stub');
 
-    // The viewer reports its own unavailability rather than disappearing.
-    const viewer = page.getByTestId('viewer');
+    // The anatomy viewer reports its own unavailability rather than disappearing.
+    const viewer = page.getByTestId('anatomy-viewer');
     await expect(viewer).toBeVisible();
-    await expect(viewer).toHaveAttribute('data-viewer-status', 'webgl-unavailable');
-    await expect(page.getByTestId('viewer-unavailable')).toBeVisible();
-    await expect(page.getByTestId('viewer-unavailable')).toContainText('WebGL');
-    await expect(page.locator('.viewer canvas')).toHaveCount(0);
+    await expect(viewer).toHaveAttribute('data-status', 'unavailable');
+    await expect(page.getByTestId('anatomy-unavailable')).toBeVisible();
+    await expect(page.getByTestId('anatomy-unavailable')).toContainText('WebGL');
+    await expect(page.locator('.anatomy canvas')).toHaveCount(0);
 
     // Everything outside the viewer keeps working: the pack still loads and
     // validates, and the non-diagnostic disclaimer is still on screen.

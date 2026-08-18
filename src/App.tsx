@@ -7,7 +7,7 @@
  * specified in `contracts/app-shell.md` and built later.
  */
 import { useEffect, useState } from 'react';
-import HelloViewer from './viewer/HelloViewer.tsx';
+import PackViewer from './viewer/PackViewer.tsx';
 import EchoPanel from './echo/EchoPanel.tsx';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
 import { SCHEMA_VERSION } from './schema/packV0.ts';
@@ -29,6 +29,12 @@ type PackState =
 
 export default function App() {
   const [packState, setPackState] = useState<PackState>({ status: 'loading' });
+  /*
+   * One scrub position for the whole screen. The wedge drawn on the anatomy and
+   * the echo image are two renderings of the SAME sweep position, so the value
+   * lives here rather than inside either panel.
+   */
+  const [scrub, setScrub] = useState(0.5);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -51,18 +57,25 @@ export default function App() {
       <header className="shell__header">
         <h1>Cardiology app</h1>
         <p className="shell__tagline">
-          Wave 1b — simulated echo over a real labelled volume. Content-pack schema v
+          Anatomy and simulated echo from one vetted probe pose. Content-pack schema v
           {SCHEMA_VERSION} (provisional).
         </p>
       </header>
 
-      <HelloViewer />
-
       {packState.status === 'ok' && (
-        <EchoPanel
-          pack={packState.loaded.pack}
-          volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
-        />
+        <div className="stage">
+          <PackViewer
+            pack={packState.loaded.pack}
+            gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
+            scrub={scrub}
+          />
+          <EchoPanel
+            pack={packState.loaded.pack}
+            volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
+            scrub={scrub}
+            onScrubChange={setScrub}
+          />
+        </div>
       )}
 
       <section className="panel" data-testid="pack-status" data-status={packState.status}>
