@@ -79,6 +79,69 @@ export function planeAnchor(state: CutPlaneState, pivot: THREE.Vector3): THREE.V
 }
 
 /**
+ * Turn `N` by a screen drag, holding `s` fixed.
+ *
+ * `contracts/viewer-core.md`: "Default free rotation holds `s` constant while
+ * rotating `N` around the heart. A gesture FREEZES ITS PIVOT for the duration
+ * so the plane cannot drift from a continuously recomputed pivot."
+ *
+ * Both halves of that are here rather than in the component, because both are
+ * easy to get subtly wrong and impossible to see afterwards:
+ *
+ * * **`s` constant.** The plane turns about `C`, not about its own current
+ *   anchor. Rotating about the anchor would translate the plane as well as turn
+ *   it, so a pure rotation gesture would walk the cut through the heart.
+ * * **Frozen start.** The rotation is computed from the drag's TOTAL offset
+ *   applied to the normal the gesture started with, never accumulated step by
+ *   step onto the live normal. Accumulating makes the result depend on how the
+ *   pointer got there — the same gesture at different sampling rates lands
+ *   somewhere different — and makes dragging back to the start not return.
+ *
+ * The screen axes come from the camera, so the plane turns the way the hand
+ * moves: dragging right swings the normal right, dragging down tips it down.
+ */
+export function rotatedNormal(
+  startNormal: THREE.Vector3,
+  cameraRight: THREE.Vector3,
+  cameraUp: THREE.Vector3,
+  totalDx: number,
+  totalDy: number,
+  radiansPerPixel: number,
+): THREE.Vector3 {
+  /*
+   * Signs chosen so the plane follows the hand rather than the camera. Dragging
+   * the CAMERA right turns the model right because the camera moves the other
+   * way; here the object itself is being turned, so the rotation is in the same
+   * sense as the drag: right swings the normal right, down tips it down.
+   */
+  const yaw = new THREE.Quaternion().setFromAxisAngle(
+    cameraUp.clone().normalize(), totalDx * radiansPerPixel,
+  );
+  const pitch = new THREE.Quaternion().setFromAxisAngle(
+    cameraRight.clone().normalize(), totalDy * radiansPerPixel,
+  );
+  return startNormal.clone().applyQuaternion(pitch).applyQuaternion(yaw).normalize();
+}
+
+/**
+ * The free cutter's state that reproduces a vetted view's imaging plane.
+ *
+ * The ONE permitted bridge, and it is one-way and copy-only: geometry is read
+ * out of the frame and written into cutter state. Nothing here can write back,
+ * because there is nothing to write back to — a `CutPlaneState` is not a view,
+ * and `views[]` is not an argument.
+ *
+ * `s` is measured from the pivot along the plane's normal, so the copied plane
+ * lands exactly where the echo's plane is rather than merely parallel to it.
+ */
+export function alignedToPlane(
+  planeNormal: THREE.Vector3, planePoint: THREE.Vector3, pivot: THREE.Vector3,
+): { normal: THREE.Vector3; offset: number } {
+  const normal = planeNormal.clone().normalize();
+  return { normal, offset: normal.dot(planePoint.clone().sub(pivot)) };
+}
+
+/**
  * Radius of the smallest sphere about `pivot` containing every vertex.
  *
  * Measured from the geometry, not from the bounding box. The box's furthest

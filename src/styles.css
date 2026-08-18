@@ -323,3 +323,63 @@ body {
   opacity: 0.4;
   cursor: default;
 }
+
+/* --------------------------------------------------------------------------
+   Drag target, and the one permitted bridge
+   -------------------------------------------------------------------------- */
+
+/* The active target has to be visible at all times — contracts/viewer-core.md
+   requires it, because a learner cannot otherwise know which object a drag is
+   about to move. Rendered as a segmented control so exactly one reads as on. */
+.targets {
+  display: flex;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.targets__button {
+  padding: 0.2rem 0.6rem;
+  font: inherit;
+  color: #9fb0c3;
+  background: #141c26;
+  border: 1px solid #2c3a49;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.targets__button--on {
+  color: #0b0f14;
+  background: #ffc857;
+  border-color: #ffc857;
+  font-weight: 600;
+}
+
+.bridge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.bridge button {
+  padding: 0.2rem 0.55rem;
+  font: inherit;
+  color: #cfe0f2;
+  background: #1a2430;
+  border: 1px solid #2c3a49;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.bridge button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The association is a claim about provenance, so it is stated in words rather
+   than implied by a highlight: the cutter either was copied from a named view
+   or is free, and free is the honest default. */
+.bridge__state {
+  color: #9fb0c3;
+}

@@ -69,6 +69,7 @@ export default function App() {
             pack={packState.loaded.pack}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
             scrub={scrub}
+            onScrubChange={setScrub}
           />
           <EchoPanel
             pack={packState.loaded.pack}

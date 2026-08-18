@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-18 13:35 EDT
+**Last Updated:** 2026-08-18 13:45 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -186,7 +186,44 @@ sector's depth is a judgement call for review.
 
 ---
 
-## 7. Tags 11–24 are still unnamed
+## 7. Three targets, one drag, and the bridge that only goes one way
+
+**Where.** Anatomy panel, the segmented control above the cut row: **Heart / Cut / Echo view**.
+Below the buttons, **Align cut to echo view** and a line of text saying what the cutter currently
+is.
+
+**What each target does when you drag.**
+
+| Target | Drag does | Drag cannot do |
+| --- | --- | --- |
+| Heart | turns the model | move the cut, move the sweep |
+| Cut | turns the cut plane, holding its depth `s` | change `s`, move the camera |
+| Echo view | scrubs the sweep | reposition the probe — there is no code path to it |
+
+**How to judge it.** With **Cut** selected a gold ring appears in the plane of the cut, showing what
+you are about to turn; drag and the plane should follow your hand while the depth readout does not
+move a digit. Switch to **Heart** and the same drag should move the camera and leave the plane
+alone. Switch to **Echo view** and the same drag should move the sweep slider and nothing else.
+
+**The bridge.** Press **Align cut to echo view** and the cutter takes the echo's plane exactly —
+position as well as tilt, so the cut faces should reproduce the echo image's cross-section. The
+line of text then names the view it was copied from. Move the cutter at all and the text reverts to
+"Free cut". Nothing is ever written back: the view's name, sweep and draft flag are the same before
+and after, which the visual suite asserts explicitly.
+
+**Judgement call worth reviewing.** The **Echo view** target scrubs. That is the only motion a
+vetted wedge is allowed in learner mode — `contracts/viewer-core.md` says viewer-core exposes no
+learner-facing control that repositions a vetted wedge — so a drag there writes the same scrub
+value the slider owns rather than doing nothing. If it should instead refuse to move and say why,
+that is a small change.
+
+**Not built.** Grab-ring gizmos you can take hold of directly; the drag is on the whole panel
+instead, which is what makes it work on a phone without hidden hit targets. Pinch-zoom and
+two-finger pan are also still missing.
+
+---
+
+## 8. Tags 11–24 are still unnamed
 
 **Where.** Anatomy panel: fourteen small grey structures around the atria — pulmonary vein stubs,
 caval stubs, the left atrial appendage.

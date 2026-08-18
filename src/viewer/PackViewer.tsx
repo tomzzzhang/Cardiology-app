@@ -35,12 +35,15 @@ import {
   shortestTarget,
 } from './orbit.ts';
 import {
+  alignedToPlane,
   clippingPlane,
   enclosingRadius,
   initialCutPlane,
   planeAnchor,
+  rotatedNormal,
   type CutPlaneState,
 } from './cutPlane.ts';
+import { PlaneHandle } from './planeHandle.ts';
 
 interface PackViewerProps {
   pack: Pack;
@@ -49,7 +52,23 @@ interface PackViewerProps {
   scrub: number;
   viewIndex?: number;
   hidden?: ReadonlySet<string>;
+  /**
+   * Lets the echo-view target scrub. Optional: without it that target still
+   * selects, and says that it cannot be moved from here — which is the truth
+   * under `contracts/viewer-core.md`, where a vetted wedge is driven only by
+   * the view rail and the sweep scrubber.
+   */
+  onScrubChange?: (scrub: number) => void;
 }
+
+/**
+ * What a drag moves. Exactly one, always visible.
+ *
+ * `contracts/viewer-core.md`: "The active target is always visible and is
+ * exactly one of heart/camera, free cut, or echo view. A drag must never
+ * silently manipulate a different object."
+ */
+export type DragTarget = 'camera' | 'cut' | 'echo';
 
 /**
  * Distinct hues for the named structures; anything unnamed stays neutral grey.
@@ -86,13 +105,17 @@ interface ViewerApi {
   setFrame: (frame: ImagingFrame) => void;
   setHidden: (hidden: ReadonlySet<string>) => void;
   setCut: (cut: { enabled: boolean; offset: number; flipped: boolean }) => void;
+  setTarget: (target: DragTarget) => void;
   setBeamDim: (strength: number) => void;
   resetCamera: () => void;
   matchEchoOrientation: (frame: ImagingFrame) => void;
+  /** The one permitted bridge. Returns the copied `s` for the slider. */
+  alignCutToEchoPlane: (frame: ImagingFrame) => number;
+  resetCutPlane: () => void;
 }
 
 export default function PackViewer({
-  pack, gltfUrl, scrub, viewIndex = 0, hidden,
+  pack, gltfUrl, scrub, viewIndex = 0, hidden, onScrubChange,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
@@ -106,6 +129,21 @@ export default function PackViewer({
   const [beamDim, setBeamDim] = useState(true);
   /** Slider bound, from model bounds; 0 until the model reports its size. */
   const [cutLimit, setCutLimit] = useState(0);
+  /** What a drag moves. Always exactly one, and always on screen. */
+  const [target, setTarget] = useState<DragTarget>('camera');
+  /*
+   * Which vetted view the free cutter was last aligned TO, or null.
+   *
+   * This is a note about provenance, not a link. `contracts/README.md`: the
+   * bridge is one-way and copy-only, and "subsequent free movement breaks the
+   * association and never modifies the saved view". So the only thing stored is
+   * the name, and the only thing that happens when the association breaks is
+   * that the name stops being shown — nothing anywhere is written back.
+   */
+  const [alignedTo, setAlignedTo] = useState<string | null>(null);
+
+  const onScrubRef = useRef(onScrubChange);
+  onScrubRef.current = onScrubChange;
 
   /*
    * The scrub position is read through a ref inside the load effect, not listed
@@ -170,6 +208,7 @@ export default function PackViewer({
     const dimUniforms: ReturnType<typeof applyBeamDim>[] = [];
     let probe: ProbeIndicator | null = null;
     let caps: StencilCaps | null = null;
+    let handle: PlaneHandle | null = null;
     let bounds = new THREE.Box3();
     /** Enclosing radius about `C`: frames the camera and bounds the slider. */
     let reach = 0;
@@ -284,9 +323,23 @@ export default function PackViewer({
       });
     };
 
+    /*
+     * The association with a vetted view is a claim, and free movement retracts
+     * it. Nothing is written back — there is nothing to write back to — the
+     * label simply stops being shown. Guarded by a local flag so a drag does
+     * not push React state on every pointer sample.
+     */
+    let aligned = false;
+    const breakAlignment = () => {
+      if (!aligned) return;
+      aligned = false;
+      setAlignedTo(null);
+    };
+
     const applyCut = () => {
       planes[0].copy(clippingPlane(cut, pivot));
       caps?.setPlane(planeAnchor(cut, pivot), cut.normal);
+      handle?.update(planeAnchor(cut, pivot), cut.normal, cut.flipped);
       if (caps) caps.enabled = cutActive;
       for (const object of byStructure.values()) {
         if (!(object instanceof THREE.Mesh)) continue;
@@ -302,9 +355,37 @@ export default function PackViewer({
     };
 
     /* --- input ------------------------------------------------------------ */
+    /*
+     * One drag, three possible subjects, and the subject is never inferred.
+     * `contracts/viewer-core.md`: "A drag must never silently manipulate a
+     * different object." So the gesture reads `dragTarget`, which the learner
+     * sets explicitly and can see, and nothing here guesses from what is under
+     * the pointer.
+     */
+    let dragTarget: DragTarget = 'camera';
     let dragging = false;
     let lastX = 0;
     let lastY = 0;
+
+    /*
+     * The state a rotation gesture freezes at pointerdown.
+     *
+     * The contract requires the pivot to be frozen for the duration so the
+     * plane cannot drift from a continuously recomputed one. The START NORMAL
+     * is frozen for a related reason: the rotation is applied to it from the
+     * drag's total offset, so the same gesture lands in the same place whatever
+     * rate the pointer was sampled at, and dragging back to where you started
+     * returns the plane to where it started. Accumulating small rotations onto
+     * the live normal does neither.
+     */
+    let gesture: {
+      normal: THREE.Vector3;
+      right: THREE.Vector3;
+      up: THREE.Vector3;
+      scrub: number;
+      startX: number;
+      startY: number;
+    } | null = null;
 
     const onPointerDown = (event: PointerEvent) => {
       dragging = true;
@@ -313,21 +394,61 @@ export default function PackViewer({
       delete host.dataset.cameraGlide;
       lastX = event.clientX;
       lastY = event.clientY;
+      gesture = {
+        normal: cut.normal.clone(),
+        right: new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion),
+        up: new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion),
+        scrub: scrubRef.current,
+        startX: event.clientX,
+        startY: event.clientY,
+      };
       renderer.domElement.setPointerCapture(event.pointerId);
     };
+
     const onPointerMove = (event: PointerEvent) => {
-      if (!dragging) return;
-      // No clamp anywhere: the model turns all the way over. See `orbit.ts`.
-      orientation = dragOrientation(
-        orientation, event.clientX - lastX, event.clientY - lastY,
-      );
+      if (!dragging || !gesture) return;
+      const totalX = event.clientX - gesture.startX;
+      const totalY = event.clientY - gesture.startY;
+
+      if (dragTarget === 'cut') {
+        /*
+         * Turn `N` about the frozen pivot, holding `s`. The cut only moves when
+         * the cutter is the selected target — never as a side effect of
+         * orbiting, which is the whole point of having a target.
+         */
+        cut.normal.copy(rotatedNormal(
+          gesture.normal, gesture.right, gesture.up, totalX, totalY, 0.006,
+        ));
+        applyCut();
+        // Free movement breaks the association with the vetted view. It does
+        // not touch the view; it stops CLAIMING to be it.
+        breakAlignment();
+      } else if (dragTarget === 'echo') {
+        /*
+         * The only motion a vetted wedge is allowed in learner mode is along
+         * its own sweep, so that is the only thing this drag can do. It writes
+         * the same scrub value the slider owns — one value, two controls — and
+         * it cannot reposition the probe, because there is no code path from
+         * here to `views[].probe`.
+         */
+        const next = Math.min(1, Math.max(0, gesture.scrub + totalX / 400));
+        onScrubRef.current?.(next);
+      } else {
+        // No clamp anywhere: the model turns all the way over. See `orbit.ts`.
+        orientation = dragOrientation(
+          orientation, event.clientX - lastX, event.clientY - lastY,
+        );
+        applyCamera();
+      }
+
       lastX = event.clientX;
       lastY = event.clientY;
-      applyCamera();
       schedule();
     };
+
     const onPointerUp = (event: PointerEvent) => {
       dragging = false;
+      gesture = null;
       if (renderer.domElement.hasPointerCapture(event.pointerId)) {
         renderer.domElement.releasePointerCapture(event.pointerId);
       }
@@ -343,6 +464,8 @@ export default function PackViewer({
       if (event.shiftKey && cutActive) {
         const step = reach * 0.02;
         onCutOffset(Math.max(-reach, Math.min(reach, cut.offset - Math.sign(event.deltaY) * step)));
+        // Moving the cutter freely retracts any claim to be a vetted plane.
+        breakAlignment();
         return;
       }
       radius = Math.max(40, Math.min(3000, radius * (1 + Math.sign(event.deltaY) * 0.1)));
@@ -450,6 +573,12 @@ export default function PackViewer({
         caps.setClippingPlanes(planes);
         dimUniforms.push(caps.beamUniforms);
 
+        // The cutter, drawn as something you can see yourself grabbing. Shown
+        // only while it is the selected target, which makes the selection
+        // legible without a mode banner.
+        handle = new PlaneHandle(reach);
+        scene.add(handle.object);
+
         const view = pack.views[viewIndex];
         if (view) {
           const frame = frameAt(view.probe, view.sweep, scrubRef.current);
@@ -493,6 +622,37 @@ export default function PackViewer({
         cutActive = next.enabled;
         cut.offset = next.offset;
         cut.flipped = next.flipped;
+        if (handle) handle.visible = dragTarget === 'cut' && cutActive;
+        applyCut();
+        schedule();
+      },
+      setTarget: (next) => {
+        dragTarget = next;
+        if (handle) handle.visible = next === 'cut' && cutActive;
+        schedule();
+      },
+      /*
+       * THE ONE PERMITTED BRIDGE, and it runs in one direction only.
+       *
+       * Geometry is read out of the ImagingFrame and written into the cutter.
+       * There is no path back: this function cannot see `views[]`, the pack, or
+       * anything that could be saved, and it returns `s` purely so the slider
+       * and readout can follow the value they are views of.
+       */
+      alignCutToEchoPlane: (frame) => {
+        const copied = alignedToPlane(
+          new THREE.Vector3(...frame.normal), new THREE.Vector3(...frame.origin), pivot,
+        );
+        cut.normal.copy(copied.normal);
+        cut.offset = copied.offset;
+        aligned = true;
+        applyCut();
+        schedule();
+        return copied.offset;
+      },
+      resetCutPlane: () => {
+        cut.normal.copy(initialCutPlane(pack.interaction?.free_cut).normal);
+        breakAlignment();
         applyCut();
         schedule();
       },
@@ -527,6 +687,7 @@ export default function PackViewer({
       element.removeEventListener('wheel', onWheel);
       probe?.dispose();
       caps?.dispose();
+      handle?.dispose();
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
@@ -561,6 +722,10 @@ export default function PackViewer({
     apiRef.current?.setBeamDim(beamDim ? 1 : 0);
   }, [beamDim, status]);
 
+  useEffect(() => {
+    apiRef.current?.setTarget(target);
+  }, [target, status]);
+
   return (
     <div className="anatomy-panel">
       <div
@@ -580,6 +745,34 @@ export default function PackViewer({
       </div>
 
       {status === 'ready' && (
+        <>
+        {/*
+          * The active target, always on screen and always exactly one.
+          * `contracts/viewer-core.md` requires both — a drag must never
+          * silently manipulate a different object, and the only way a learner
+          * can know which object a drag will move is to be shown it.
+          */}
+        <div className="targets" role="radiogroup" aria-label="What dragging moves" data-testid="drag-target">
+          {([
+            ['camera', 'Heart', 'Drag turns the model'],
+            ['cut', 'Cut', 'Drag turns the cut plane, holding its depth'],
+            ['echo', 'Echo view', 'Drag scrubs the sweep — the only motion a vetted view has'],
+          ] as [DragTarget, string, string][]).map(([value, label, hint]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={target === value}
+              className={target === value ? 'targets__button targets__button--on' : 'targets__button'}
+              onClick={() => setTarget(value)}
+              title={hint}
+              data-testid={`target-${value}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <div className="cutter" data-testid="cutter-controls">
           <label className="cutter__toggle">
             <input
@@ -652,6 +845,7 @@ export default function PackViewer({
             onClick={() => {
               setCutOffset(pack.interaction?.free_cut?.offset ?? 0);
               setCutFlipped(false);
+              apiRef.current?.resetCutPlane();
               apiRef.current?.resetCamera();
             }}
             data-testid="cut-reset"
@@ -659,6 +853,41 @@ export default function PackViewer({
             Reset
           </button>
         </div>
+
+        <div className="bridge" data-testid="align-bridge">
+          {/*
+            * One-way and copy-only. It reads the selected view's plane into the
+            * free cutter; it can never write in the other direction, and moving
+            * the cutter afterwards retracts the label rather than editing the
+            * view. `contracts/README.md`.
+            */}
+          <button
+            type="button"
+            disabled={!cutEnabled}
+            onClick={() => {
+              const view = pack.views[viewIndex];
+              if (!view) return;
+              const copied = apiRef.current?.alignCutToEchoPlane(
+                frameAt(view.probe, view.sweep, scrub),
+              );
+              if (copied !== undefined) {
+                setCutOffset(copied);
+                setCutFlipped(false);
+                setAlignedTo(view.name);
+              }
+            }}
+            title="Copy this view's imaging plane into the free cutter. One-way: the view is never modified."
+            data-testid="align-cut"
+          >
+            Align cut to echo view
+          </button>
+          <span className="bridge__state" data-testid="align-state">
+            {alignedTo === null
+              ? 'Free cut — not aligned to any view'
+              : `Copied from ${alignedTo}. Moving the cut breaks the link; the view is unchanged.`}
+          </span>
+        </div>
+        </>
       )}
     </div>
   );

@@ -286,6 +286,106 @@ test('"Match echo" turns the model to the echo plane, and moves nothing else', a
   expect(await page.getByTestId('cut-readout').textContent()).toBe(cutBefore);
 });
 
+test('a drag moves the selected target and nothing else', async ({ page }) => {
+  // Three drags, each forcing several full redraws of a 24-structure scene with
+  // a stencil cap pass per structure. Under headless software GL that is slow
+  // enough to exceed the default budget when the suite runs at full width.
+  test.slow();
+  /*
+   * `contracts/viewer-core.md`: "The active target is always visible and is
+   * exactly one of heart/camera, free cut, or echo view. A drag must never
+   * silently manipulate a different object."
+   *
+   * The second sentence is the one worth testing, and it is a NEGATIVE claim,
+   * so it is tested by dragging with each target selected and checking what did
+   * NOT move. The camera has no readout, so the model image stands in for it.
+   */
+  const canvas = page.locator('.anatomy canvas');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+
+  const drag = async (pixels: number) => {
+    const centre = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down();
+    for (let step = 1; step <= 4; step += 1) {
+      await page.mouse.move(centre.x + (pixels * step) / 4, centre.y + (pixels * step) / 8);
+    }
+    await page.mouse.up();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+  };
+
+  const anatomy = () => page.evaluate(() => {
+    const element = document.querySelector<HTMLCanvasElement>('.anatomy canvas');
+    const scratch = document.createElement('canvas');
+    scratch.width = 40;
+    scratch.height = 40;
+    const context = scratch.getContext('2d');
+    if (!element || !context) return null;
+    context.drawImage(element, 0, 0, 40, 40);
+    return [...context.getImageData(0, 0, 40, 40).data];
+  });
+  const changed = (a: number[], b: number[]) =>
+    a.filter((value, index) => Math.abs(value - b[index]) > 8).length;
+
+  // Heart: the model turns, the sweep does not.
+  await page.getByTestId('target-camera').click();
+  const beforeCamera = await anatomy();
+  const scrubBefore = await page.getByTestId('echo-scrub').inputValue();
+  await drag(140);
+  expect(changed(beforeCamera!, (await anatomy())!)).toBeGreaterThan(beforeCamera!.length * 0.05);
+  expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
+
+  // Echo view: the sweep moves. Its only permitted motion, and the same value
+  // the scrubber slider owns — one `t`, two controls.
+  await page.getByTestId('target-echo').click();
+  await drag(150);
+  expect(Number(await page.getByTestId('echo-scrub').inputValue()))
+    .toBeGreaterThan(Number(scrubBefore));
+
+  // Free cut: the plane turns while its depth `s` stays exactly where it was.
+  await page.getByTestId('target-cut').click();
+  const depthBefore = await page.getByTestId('cut-readout').textContent();
+  const beforeCut = await anatomy();
+  await drag(150);
+  expect(await page.getByTestId('cut-readout').textContent()).toBe(depthBefore);
+  expect(changed(beforeCut!, (await anatomy())!)).toBeGreaterThan(beforeCut!.length * 0.02);
+});
+
+test('the align bridge copies one way, and the copy is retracted by free movement', async ({ page }) => {
+  /*
+   * `contracts/README.md`: "Align free cut to echo view copies the selected
+   * echo plane into the free cutter. Subsequent free movement breaks the
+   * association and never modifies the saved view."
+   *
+   * So: the copy lands, the association is stated in words, and moving the
+   * cutter afterwards retracts the statement while the view carries on
+   * unchanged.
+   */
+  await expect(page.getByTestId('align-state')).toContainText('not aligned');
+
+  const viewName = await page.locator('.echo__header h2').textContent();
+  await page.getByTestId('align-cut').click();
+  await expect(page.getByTestId('align-state')).toContainText(viewName!.trim());
+
+  // The vetted view is untouched by the copy: same name, same sweep position,
+  // same draft flag. There is no code path that could change them, and this is
+  // the assertion that says so out loud.
+  await expect(page.locator('.echo__header h2')).toHaveText(viewName!);
+  await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
+
+  // Move the cutter freely; the claim is retracted.
+  await page.getByTestId('target-cut').click();
+  const box = await page.locator('.anatomy canvas').boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 + 90, box!.y + box!.height / 2 + 40);
+  await page.mouse.up();
+
+  await expect(page.getByTestId('align-state')).toContainText('not aligned');
+  await expect(page.locator('.echo__header h2')).toHaveText(viewName!);
+});
+
 test('scrubbing the sweep changes the image', async ({ page }) => {
   await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,
