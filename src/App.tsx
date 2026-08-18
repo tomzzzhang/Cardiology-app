@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import PackViewer from './viewer/PackViewer.tsx';
 import EchoPanel from './echo/EchoPanel.tsx';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
+import { DEFAULT_PACK_ID } from './packs/published.ts';
 import { SCHEMA_VERSION } from './schema/packV0.ts';
 
 /**
@@ -18,8 +19,8 @@ import { SCHEMA_VERSION } from './schema/packV0.ts';
  * deep-link scheme (`?a=`/`?v=`/`?s=`) is `contracts/app-shell.md`, wave 2.
  */
 function requestedPackId(): string {
-  if (typeof window === 'undefined') return 'normal-rodero';
-  return new URLSearchParams(window.location.search).get('pack') ?? 'normal-rodero';
+  if (typeof window === 'undefined') return DEFAULT_PACK_ID;
+  return new URLSearchParams(window.location.search).get('pack') ?? DEFAULT_PACK_ID;
 }
 
 type PackState =

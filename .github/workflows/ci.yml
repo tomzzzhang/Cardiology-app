@@ -39,6 +39,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Unpublished packs are licence-blocked. The build filter removes them;
+      # this asserts it worked, so a regression is caught on `dev` rather than
+      # first appearing on a public URL.
+      - name: Only published packs are in the build
+        run: npm run check:published-packs
+
       # Every other check builds at `/`; Pages builds at `/<repository-name>/`.
       # Without this step a hardcoded root-absolute URL would only surface on
       # the deployed site, after a merge to `main`.

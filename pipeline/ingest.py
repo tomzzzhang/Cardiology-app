@@ -615,6 +615,10 @@ def build_pack(
         note for note in source.notes
         if note.startswith(("LICENCE CONFLICT", "NON-COMMERCIAL"))
     )
+    # A rejected candidate says so in its own provenance. The verdict has to
+    # survive being read years later by someone holding only the pack.
+    if source.rejection:
+        caveats = f"{source.rejection} {caveats}".strip()
 
     return {
         "meta": {

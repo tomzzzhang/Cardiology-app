@@ -6,6 +6,7 @@
  * unvalidated pack.
  */
 import { SCHEMA_VERSION, type Pack } from '../schema/packV0.ts';
+import { isPublishedPack, rejectionFor } from './published.ts';
 import { formatIssues, readSchemaVersion, validatePack, type PackIssue } from '../schema/validate.ts';
 
 export class PackLoadError extends Error {
@@ -79,6 +80,28 @@ export async function loadPack(url: string, init?: RequestInit): Promise<LoadedP
   };
 }
 
+/**
+ * Load a pack by id, refusing unpublished packs in a production build.
+ *
+ * This is a SECOND line, not the mechanism: unpublished packs are removed from
+ * `dist/` at build time (`vite.config.ts`), so on the deployed site the files
+ * are not there to fetch. The guard exists so that a deep link to a rejected
+ * pack fails with an explanation of *why* it is not published, rather than a
+ * bare 404 that looks like a broken deployment.
+ *
+ * In development every pack in the repository stays loadable. The rejected wave
+ * 1a candidates are evidence, and the comparison that produced the substrate
+ * verdict has to remain reproducible.
+ */
 export async function loadPackById(packId: string, init?: RequestInit): Promise<LoadedPack> {
+  if (import.meta.env.PROD && !isPublishedPack(packId)) {
+    const rejection = rejectionFor(packId);
+    throw new PackLoadError(
+      packUrl(packId),
+      rejection
+        ? `pack "${packId}" is not published. ${rejection.licence}`
+        : `pack "${packId}" is not part of the published build`,
+    );
+  }
   return loadPack(packUrl(packId), init);
 }

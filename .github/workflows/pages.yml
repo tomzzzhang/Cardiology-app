@@ -73,6 +73,12 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 
+      # The deploy is the one place a licence-blocked pack could reach a public
+      # URL, so the build output is asserted here rather than trusted. Runs
+      # AFTER the build and before the artifact is uploaded.
+      - name: Only published packs are in the build
+        run: npm run check:published-packs
+
       # Pages serves static files only: an unknown path 404s instead of falling
       # back to index.html. Deep links use query params (?a=&v=&s=) so the SPA
       # never needs a path fallback; this copy is belt-and-braces for a

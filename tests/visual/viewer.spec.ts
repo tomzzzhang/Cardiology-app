@@ -159,6 +159,27 @@ test('the wedge and the echo move together on one scrub value', async ({ page })
   expect(changed(echoStart, echoEnd)).toBeGreaterThan(0.1);
 });
 
+test('a rejected pack is not reachable in the production build', async ({ page }) => {
+  // The visual suite runs against a real production build, so this is the only
+  // check that exercises the shipped artefact. Both rejected packs are licence
+  // blocked; the requirement is that their FILES are absent, not merely that
+  // the shell declines to show them.
+  for (const packId of ['normal-alberta-neonatal', 'normal-vhl-heart0102']) {
+    const response = await page.request.get(`/packs/${packId}/pack.json`);
+    expect(response.status(), `${packId} pack.json must not be served`).toBe(404);
+
+    const asset = await page.request.get(`/packs/${packId}/assets/echo-volume.raw`);
+    expect(asset.status(), `${packId} assets must not be served`).toBe(404);
+  }
+
+  // And a deep link to one fails visibly rather than rendering a blank screen.
+  await page.goto('/?freeze=1&pack=normal-alberta-neonatal');
+  await expect(page.getByTestId('pack-status')).toHaveAttribute('data-status', 'error', {
+    timeout: 15_000,
+  });
+  await expect(page.getByTestId('pack-error')).toContainText('not published');
+});
+
 test('no console errors on load', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (message) => {

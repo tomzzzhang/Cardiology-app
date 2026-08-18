@@ -56,9 +56,17 @@ export default defineConfig({
   ],
 
   webServer: {
-    // `--host 127.0.0.1` is required: vite preview otherwise binds ::1 only,
-    // which the runner's IPv4 baseURL cannot reach.
-    command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${PORT} --strictPort`,
+    /*
+     * Serves `dist/` directly rather than through `vite preview`.
+     *
+     * `vite preview` also serves the project's `publicDir`, so files the build
+     * deliberately excluded remain reachable over HTTP. Unpublished packs are
+     * licence-blocked and pruned from `dist/` at build time; under preview they
+     * were still being served, which made "the production build does not expose
+     * them" untestable here. tests/static-server.mjs serves only the artefact
+     * that deploys, and 404s like Pages does.
+     */
+    command: `npm run build && node tests/static-server.mjs ${PORT}`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

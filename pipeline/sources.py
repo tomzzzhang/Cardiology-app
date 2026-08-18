@@ -54,6 +54,12 @@ class Source:
     #: Free-text notes surfaced in the substrate report.
     notes: list[str] = field(default_factory=list)
 
+    #: Why this candidate lost the wave 1a substrate comparison, if it did.
+    #: Written into the pack's own provenance so the verdict travels with the
+    #: evidence rather than living only in a commit message. Empty for the
+    #: substrate that was selected.
+    rejection: str = ""
+
 
 RODERO = Source(
     key="rodero",
@@ -116,6 +122,16 @@ ALBERTA = Source(
     ),
     publishable=True,
     unpublishable_reason="",
+    rejection=(
+        "REJECTED AS SUBSTRATE (2026-08-19). The blood pool and the myocardium interpenetrate "
+        "rather than nesting: they are not a cast-and-shell pair, so wall thickness cannot be "
+        "derived by pairing them. Extents differ sharply (84.5 mm against 43.5 mm on the superior "
+        "axis, the blood pool running up the great vessels where no myocardium exists), only about "
+        "a third of the blood-pool surface lies inside the myocardium, and the pairwise distance "
+        "spreads from 0.05 to 33.9 mm. NOT PUBLISHED, and independently licence-blocked: the "
+        "site-wide CC BY-NC claim and the per-model CC BY 4.0 grant are unreconciled. Retained in "
+        "the repository as evidence. Renders in an UNVERIFIED orientation."
+    ),
     notes=[
         "Downloaded bundle's own license.txt asserts CC-BY-4.0, 'Commercial use is allowed'.",
         "LICENCE CONFLICT, resolved by owner decision (2026-08-18): 3dheartproject.com states a "
@@ -152,6 +168,15 @@ VHL = Source(
     ),
     publishable=True,
     unpublishable_reason="",
+    rejection=(
+        "REJECTED AS SUBSTRATE (2026-08-19). A single undivided tissue body: one material, one "
+        "echo label, no per-chamber structures, so nothing can be shown or hidden per chamber and "
+        "a sweep has no ordered structure list to read out. Interior endocardial surfaces are "
+        "genuinely present, but 1,026 connected components — trabecular islands and segmentation "
+        "debris — render as voids through the tissue. NOT PUBLISHED, and independently "
+        "licence-constrained as CC BY-NC 4.0. Retained in the repository as evidence. Renders in "
+        "an UNVERIFIED orientation."
+    ),
     notes=[
         "MR-segmented tissue model of a 14-year-old; described by the source as a tissue (not blood pool) model.",
         "Source upload is a single STL named Heart102_Tissue.stl.",

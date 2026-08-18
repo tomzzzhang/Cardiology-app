@@ -8,32 +8,51 @@ transcribed from `docs/build_plan.md` v1.2. Workers code against v0 and do not c
 
 ## Shipped packs
 
-| Pack | What it is | Licence |
+| Pack | What it is | Licence | Published? |
+| --- | --- | --- | --- |
+| `stub/` | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | yes |
+| `normal-rodero/` | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 | **yes — the selected substrate** |
+| `normal-alberta-neonatal/` | Normal neonatal heart, 3D Heart Project. Blood pool plus a separate myocardium. | CC BY 4.0 (contested) | **no** |
+| `normal-vhl-heart0102/` | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 | **no** |
+
+## The substrate verdict (2026-08-19)
+
+**`normal-rodero` is the substrate.** It is the only candidate with native volumetric myocardium:
+tissue is stored as tagged tetrahedra, so extracting a tag group's boundary yields its endocardial
+*and* epicardial surface and wall thickness exists by construction. It is also the only one whose
+orientation is **measured** rather than assumed — superior from the ventricular to the aortic-wall
+centroid, patient-left from the right- to the left-atrial centroid — because it is the only source
+with chamber labels.
+
+The other two are **rejected candidates, retained as evidence.** They lost the wave 1a comparison
+and they are licence-blocked; both facts are recorded, because they fail differently. A substrate
+verdict can be revisited by re-reading the geometry. A licence block cannot be resolved by anything
+in this repository.
+
+| Rejected | Substrate verdict | Licence position |
 | --- | --- | --- |
-| `stub/` | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 |
-| `normal-rodero/` | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 |
-| `normal-alberta-neonatal/` | Normal neonatal heart, 3D Heart Project. Blood pool + separate myocardium. | CC BY 4.0 † |
-| `normal-vhl-heart0102/` | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 ‡ |
+| `normal-alberta-neonatal` | Blood pool and myocardium **interpenetrate** rather than nesting — not a cast-and-shell pair, so wall thickness cannot be derived by pairing them. Extents differ sharply (84.5 mm vs 43.5 mm superior), only ~⅓ of the blood-pool surface lies inside the myocardium, and pairwise distance spreads 0.05–33.9 mm. | **Blocked pending written confirmation.** 3dheartproject.com states a site-wide CC BY-NC grant; the per-model Sketchfab grant and the bundled licence file both read CC BY 4.0. Unreconciled. |
+| `normal-vhl-heart0102` | A **single undivided label** — one material, no per-chamber structures, so nothing can be shown or hidden per chamber and a sweep has no ordered structure list. Interior endocardial surfaces are present, but 1,026 connected components (trabecular islands and segmentation debris) render as voids through the tissue. | **CC BY-NC 4.0.** A non-commercial pack binds the whole application to the NC red lines; not accepted for the published build. |
 
-All three anatomical packs are produced by the ingest pipeline (`pipeline/README.md`) and are
-**`draft` — none has been read by a clinician.** Each ships one ingest reference view, which is a
-mechanically derived pose explicitly flagged as not a clinical view.
+**Both rejected packs render in UNVERIFIED orientations.** Neither source carries chamber labels, so
+superior and patient-left cannot be derived from the geometry. Each declares the glTF default and
+says so in its own provenance. Verifying them is deliberately not done — they are not shipping.
 
-† **Contested grant, resolved by owner decision (2026-08-18).** 3dheartproject.com states a
-site-wide CC BY-NC grant, while the per-model Sketchfab grant *and* the `license.txt` inside the
-download both read CC BY 4.0. The owner elected the CC BY 4.0 reading. The conflict is recorded in
-the pack's own provenance rather than only here, so the decision is auditable from the credits
-screen and reversible if written confirmation contradicts it.
+Each rejected pack also carries its verdict inside its own `provenance.modified.note`, so the
+reasoning survives being read by someone holding only the pack.
 
-‡ **Non-commercial, and it binds the whole application.** `docs/build_plan.md` lists the NC red
-lines: ads, paid sponsorship tied to content, paid tiers including NC content, selling institutional
-access. A free educational app with zero revenue is squarely permitted. This pack is kept logically
-separable so it can be dropped without touching the others.
+## What reaches the deployed site
 
-Only `normal-rodero` carries a **measured** orientation — it is the only source with chamber labels,
-so it is the only one where superior and patient-left can be derived from the geometry rather than
-assumed. The other two declare the glTF default and say so in provenance; their orientation must be
-set at vetting before any clinical use.
+`src/packs/published.ts` is the single allowlist. It is read by the build filter in
+`vite.config.ts`, by the loader's guard, and by `npm run check:published-packs`.
+
+Removal is enforced at **build time** — unpublished packs are absent from `dist/`, not merely hidden
+— so no deep link or guessed URL can reach them. They stay loadable under `npm run dev` so the
+substrate comparison remains reproducible. `npm run check:published-packs` asserts the outcome after
+a build, because a filter that silently stops working would mean a licence breach on a public URL.
+
+All anatomical packs are **`draft` — none has been read by a clinician** — and each ships one ingest
+reference view, a mechanically derived pose explicitly flagged as not a clinical view.
 
 The stub pack exists so the loader, the schema, and CI have something to run against before any real
 model exists. Its geometry and both of its "views" are synthetic and explicitly labelled as such; its

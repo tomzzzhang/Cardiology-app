@@ -20,6 +20,7 @@
     "validate:packs": "tsx scripts/validate-packs.ts",
     "check:provenance": "tsx scripts/check-provenance.ts",
     "check:base-path": "tsx scripts/check-base-path.ts",
+    "check:published-packs": "tsx scripts/check-published-packs.ts",
     "gen:stub-assets": "node scripts/make-stub-assets.mjs",
     "ingest": "conda run --no-capture-output -n cardiology-app python pipeline/ingest.py",
     "ingest:fetch": "conda run --no-capture-output -n cardiology-app python pipeline/fetch.py",
