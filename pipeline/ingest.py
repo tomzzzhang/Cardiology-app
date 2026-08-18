@@ -48,6 +48,8 @@ from anatomy import (  # noqa: E402
 )
 from meshlib import Surface, TetMesh, read_binary_stl, read_gltf_surfaces, read_vtk_tets, write_gltf  # noqa: E402
 from sources import SOURCES, Source  # noqa: E402
+from views import BUILDERS, SKIPPED, landmarks_from, structures_in_order  # noqa: E402
+
 
 REPO = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).resolve().parent / ".cache"
@@ -120,6 +122,11 @@ class Structure:
     #: tag by parsing it back out of a slug — which stopped working the moment
     #: the valve planes acquired real names.
     tag: int | None = None
+    #: Whether this structure has an anatomical NAME, as opposed to a generic
+    #: placeholder awaiting a clinical reading. Only named structures can appear
+    #: in a teaching readout: a sweep annotation that says "tagged region 19"
+    #: teaches nothing and pretends to more than the pack knows.
+    named: bool = True
 
 
 @dataclass
@@ -193,9 +200,9 @@ def split_rodero(source: Source, mesh: TetMesh, valves: ValveIdentification) -> 
         surface = tet_group_surface(mesh, selector)
         if surface.triangle_count == 0:
             continue
-        slug, label, stylized = named.get(
-            int(tag),
-            (f"tagged-region-{int(tag)}", f"Tagged region {int(tag)} (unnamed pending vetting)", False),
+        identified = named.get(int(tag))
+        slug, label, stylized = identified or (
+            f"tagged-region-{int(tag)}", f"Tagged region {int(tag)} (unnamed pending vetting)", False,
         )
         centroid = mesh.points[np.unique(mesh.tets[selector])].mean(axis=0)
         structures.append(Structure(
@@ -208,6 +215,7 @@ def split_rodero(source: Source, mesh: TetMesh, valves: ValveIdentification) -> 
             attenuation=0.45 if int(tag) <= 4 else 0.6,
             centroid=tuple(float(v) for v in centroid),
             tag=int(tag),
+            named=identified is not None,
         ))
     return structures
 
@@ -677,179 +685,80 @@ def reference_view(structures: list[Structure], bounds: tuple[np.ndarray, np.nda
     }
 
 
-def apical_four_chamber(
-    structures: list[Structure], frame: CardiacFrame, source: Source
-) -> dict:
+def clinical_views(structures: list[Structure], frame: CardiacFrame, source: Source) -> list[dict]:
     """
-    The first clinical view: apical four-chamber, `docs/view_canon.md` B1. DRAFT.
+    Every view this substrate can support, built from measured landmarks.
 
-    ## Why this view first, on this substrate
+    The identity, the pose and the sweep come from `pipeline/views.py`; the
+    provenance is assembled here so that every view carries the same shape of
+    claim, and so that the ONE thing that differs between them — how the pose
+    was derived — is the thing the block actually says.
 
-    The mesh is an adult population average with valve RINGS but no leaflets,
-    no papillary muscles, no coronaries and no chest wall. That rules out most
-    of the canon as a first view, and picks this one out:
-
-    * **It is the derived frame, rendered.** The probe sits at the apex and
-      looks along the long axis at the base — both of which are exactly what
-      `derive_cardiac_frame` measures. The view is not placed against the frame
-      by hand; it falls out of it.
-    * **Its teaching payload survives the missing leaflets.** Chamber sizes,
-      both septa, and the relationship of the two atrioventricular rings at the
-      crux. PLAX (C1) leans on mitral-aortic leaflet continuity and root
-      detail; PSAX (C2) at the papillary level has no papillary muscles to show.
-    * **It is the strongest test of the cut.** Align the free cutter with this
-      plane and the stencil caps reproduce the echo panel's cross-section, so a
-      disagreement between the two panels is visible rather than arguable.
-
-    ## What is NOT claimed
-
-    The pose is geometry derived from measured landmarks, not a reading of an
-    imaging protocol. Nobody clinical has looked at it. In particular: the mesh
-    has no chest wall, so the transducer stands off the epicardium in empty
-    space rather than sitting in an intercostal space; and the indicator clock
-    and marker side are the canon's values for B1 carried across unverified.
-    `structures_in_order` is left EMPTY — naming the structures a sweep crosses
-    is teaching content and a clinical reading, and this pipeline may not assert
-    it. Everything here is draft-flagged and must survive vetting before it
-    means anything.
+    `structures_in_order` is populated by MEASURING which structures each sweep
+    crosses and in what order it first reaches them. That is arithmetic over the
+    geometry, not a clinical reading of what a sweep is for, and the provenance
+    note says which of the two it is. The distinction matters: the canon's own
+    structure lists for these sweeps are a clinical claim this pipeline may not
+    assert, and nothing here consults them.
     """
-    apex = frame.rotation @ frame.apex
-    # Named, not numbered: which tag carries which ring is derived per mesh from
-    # face adjacency, so this view reads the identity rather than assuming it.
-    mitral = frame.rotation @ frame.ring("mitral")
-    tricuspid = frame.rotation @ frame.ring("tricuspid")
+    landmarks = landmarks_from(structures, frame)
+    views: list[dict] = []
 
-    def unit(vector: np.ndarray) -> np.ndarray:
-        return vector / np.linalg.norm(vector)
-
-    # THE defining property of this view: the imaging plane passes through the
-    # apex and both atrioventricular rings. So that plane is built first and
-    # everything else is derived inside it.
-    #
-    # Building the beam along the long axis instead and merely *using* this
-    # normal for the sweep — an earlier revision — produced a plane 12 degrees
-    # off, which missed both rings by about 17 mm. The pose looked entirely
-    # reasonable and was not a four-chamber view.
-    normal = unit(np.cross(mitral - apex, tricuspid - apex))
-    if normal[2] < 0:
-        normal = -normal
-
-    # The beam looks from the apex at the middle of the atrioventricular valve
-    # plane. Both endpoints lie in the plane above, so the beam does too.
-    target = (mitral + tricuspid) / 2.0
-    axis = unit(target - apex)
-
-    # Stand the transducer off outside the apical epicardium. Measured, not
-    # assumed: how far the model extends past the apex against the beam, plus a
-    # small gap for the transducer face.
-    everything = np.vstack([s.surface.vertices.astype(np.float64) for s in structures])
-    beyond = float(np.max((apex - everything) @ axis))
-    origin_v = apex - axis * (max(beyond, 0.0) + 8.0)
-    beam = unit(target - origin_v)
-
-    # Lateral completes the plane. Its sign points toward the patient's left —
-    # toward the mitral ring — so that rightward structures fall on the opposite
-    # side of the sector, per the canon's anatomically-correct orientation rule.
-    lateral = unit(np.cross(normal, beam))
-    if np.dot(lateral, mitral - tricuspid) < 0:
-        lateral = -lateral
-
-    # Depth: to the far side of the atria, which are the deepest structures in
-    # this view, plus a margin.
-    #
-    # Measured over the tissue this fan actually IMAGES — the slab about the
-    # imaging plane — not over every vertex in the model. Measuring over all of
-    # them lets a pulmonary-vein stub sitting well out of plane set the depth,
-    # which put 4 cm of empty sector under the heart and pushed the anatomy into
-    # the top of the frame.
-    half_angle = np.radians(80.0 / 2.0)
-    offsets = everything - origin_v
-    in_slab = np.abs(offsets @ normal) <= 12.0
-    imaged = offsets[in_slab] if in_slab.any() else offsets
-    reach = float(np.max(np.linalg.norm(imaged, axis=1)))
-    depth_cm = round(reach * 1.08 / 10.0, 2)
-
-    # The view has to actually contain what it is named for. Both rings, and the
-    # apex, must fall inside the sector this pose describes.
-    for label, point in (("mitral ring", mitral), ("tricuspid ring", tricuspid), ("apex", apex)):
-        offset = point - origin_v
-        elevation = abs(float(np.dot(offset, normal)))
-        in_plane = offset - np.dot(offset, normal) * normal
-        angle = abs(float(np.arctan2(np.dot(in_plane, lateral), np.dot(in_plane, beam))))
-        if elevation > 6.0 or angle > half_angle or np.linalg.norm(in_plane) > depth_cm * 10.0:
-            raise ValueError(
-                f"apical four-chamber pose does not contain the {label}: "
-                f"{elevation:.1f} mm off plane, {np.degrees(angle):.1f} deg off axis"
-            )
-
-    # Positive sweep tilts the plane ANTERIORLY. For a rotation about axis `a`,
-    # the beam moves toward `a x beam`; choosing `a = beam x normal` makes that
-    # product the anterior normal exactly, so the declared range reads the way
-    # the canon describes the sweep.
-    sweep_axis = unit(np.cross(beam, normal))
-
-    return {
-        "family": "B",
-        "view_id": "b1-apical-four-chamber",
-        "name": "Apical four-chamber (draft)",
-        "aliases": ["A4C", "apical 4C"],
-        "placement_landmark": (
-            "Cardiac apex, derived from this mesh: probe at the left-ventricular apex located by "
-            "the source's universal ventricular coordinate, looking along the measured long axis "
-            "at the valve plane. The model carries no chest wall, so the transducer stands off "
-            "the epicardium rather than sitting in an intercostal space."
-        ),
-        # docs/view_canon.md B1: indicator 3:00. Carried across unverified.
-        "indicator_clock": "3:00",
-        "probe": {
-            "origin": [float(v) for v in origin_v],
-            "beam_axis": [float(v) for v in beam],
-            "lateral_axis": [float(v) for v in lateral],
-            "fan": {
-                "angle_deg": 80.0,
-                "depth_cm": depth_cm,
-                "focus_cm": round(depth_cm * 0.55, 2),
+    for builder in BUILDERS:
+        identity, sector, sweep = builder(landmarks)
+        # Only NAMED structures can appear in a teaching readout. A scrubber
+        # annotation reading "tagged region 19" teaches nothing and claims more
+        # than the pack knows; the fourteen unnamed stubs are still crossed, and
+        # still rendered, they are just not something to call out.
+        sweep["structures_in_order"] = structures_in_order(
+            [s for s in structures if s.named], sector, sweep,
+        )
+        views.append({
+            "family": identity["family"],
+            "view_id": identity["view_id"],
+            "name": identity["name"],
+            "aliases": identity["aliases"],
+            "placement_landmark": identity["placement_landmark"],
+            "indicator_clock": identity["indicator_clock"],
+            "probe": {
+                "origin": [float(v) for v in sector.origin],
+                "beam_axis": [float(v) for v in sector.beam],
+                "lateral_axis": [float(v) for v in sector.lateral],
+                "fan": {
+                    "angle_deg": round(float(np.degrees(sector.half_angle * 2)), 1),
+                    "depth_cm": round(sector.depth_mm / 10.0, 2),
+                    "focus_cm": round(sector.depth_mm / 10.0 * 0.55, 2),
+                },
+                "display": identity["display"],
             },
-            # Family B renders vertex-down — the paediatric convention in
-            # docs/view_canon.md, unlike most adult labs.
-            "display": {"vertex": "down", "flip_lr": False, "marker_side": "right"},
-        },
-        "sweep": {
-            "mode": "tilt",
-            "axis": {
-                "direction": [float(v) for v in sweep_axis],
-                "origin": [float(v) for v in origin_v],
-            },
-            # Posterior (toward the coronary sinus) through the reference plane
-            # to anterior (toward the outflow tract, the "five-chamber").
-            "range": {"unit": "deg", "from": -18.0, "to": 22.0},
-            "interpolation": "slerp",
-            "structures_in_order": [],
-        },
-        "structures": [s.slug for s in structures],
-        "measurements": [],
-        "lesion_attachments": [],
-        "show_hide_preset": {"visible": [s.slug for s in structures], "hidden": []},
-        "echo_tuning": {},
-        "real_clip_slot": None,
-        "emphasis": None,
-        "provenance": provenance_block(
-            source,
-            note=(
-                "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame: "
-                "origin at the left-ventricular apex standing off the epicardium along the long "
-                "axis, beam toward the valve-plane centroid, imaging plane through the apex and "
-                "both atrioventricular ring centroids. Geometry only — not read from an imaging "
-                "protocol, not reviewed by a clinician, and not a claim that this is a reachable "
-                "window on a real patient. structures_in_order is deliberately empty because "
-                "naming the structures a sweep crosses is a clinical reading."
+            "sweep": sweep,
+            "structures": [s.slug for s in structures],
+            "measurements": [],
+            "lesion_attachments": [],
+            "show_hide_preset": {"visible": [s.slug for s in structures], "hidden": []},
+            "echo_tuning": {},
+            "real_clip_slot": None,
+            "emphasis": None,
+            "provenance": provenance_block(
+                source,
+                note=(
+                    "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. "
+                    + identity["derivation"]
+                    + " Geometry only — not read from an imaging protocol, not reviewed by a "
+                    "clinician, and not a claim that this is a reachable window on a real "
+                    "patient. sweep.structures_in_order is MEASURED: it lists the structures "
+                    "whose geometry the sector intersects, in the order the sweep first reaches "
+                    "them. It is not the canon's list of what a clinician would call out, which "
+                    "is a reading this pipeline may not assert."
+                ),
+                chain=[
+                    "pipeline/views.py (view derived from the measured cardiac frame)",
+                    f"docs/view_canon.md {identity['view_id'].split('-')[0].upper()} "
+                    "(family, indicator clock, display convention)",
+                ],
             ),
-            chain=[
-                "pipeline/ingest.py (view derived from the measured cardiac frame)",
-                "docs/view_canon.md B1 (family, indicator clock, display convention)",
-            ],
-        ),
-    }
+        })
+    return views
 
 
 def build_pack(
@@ -923,6 +832,11 @@ def build_pack(
                 "decimated for interactive display, exported to glTF, and voxelised to a labelled "
                 f"echo volume at {resolution}^3. No geometry was added, sculpted, or invented. "
                 + orientation_note
+                + (
+                    " Views docs/view_canon.md asks for that this substrate cannot support, and "
+                    "why: " + " ".join(f"{key}: {why}" for key, why in SKIPPED.items())
+                    if frame is not None else ""
+                )
                 + (f" {caveats}" if caveats else "")
             ),
             chain=[
@@ -990,8 +904,12 @@ def build_pack(
         # from, so the app opens on anatomy rather than on a pipeline artefact.
         # The reference pose stays behind it: it is mechanically generated and
         # says so, and it exercises a second sweep mode against a real pack.
+        # The derived clinical views lead where there is a frame to derive them
+        # from, so the app opens on anatomy rather than on a pipeline artefact.
+        # The reference pose stays behind them: it is mechanically generated and
+        # says so, and it exercises a third sweep mode against a real pack.
         "views": (
-            ([apical_four_chamber(structures, frame, source)] if frame is not None else [])
+            (clinical_views(structures, frame, source) if frame is not None else [])
             + [reference_view(structures, (low, high), source)]
         ),
         "display_flags": {

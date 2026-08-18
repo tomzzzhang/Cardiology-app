@@ -243,8 +243,36 @@ describe('the derived apical four-chamber view', () => {
     expect(view.sweep.range.from).toBeLessThan(view.sweep.range.to);
   });
 
-  it('claims no structure ordering, which is a clinical reading', () => {
-    expect(view.sweep.structures_in_order).toEqual([]);
+  it('lists the structures its sweep crosses, measured rather than read', () => {
+    /*
+     * This list was deliberately EMPTY until the views were authored, on the
+     * grounds that naming the structures a sweep crosses is a clinical reading.
+     * The distinction that unblocked it: naming them is a reading, MEASURING
+     * which ones the fan intersects is arithmetic. The pipeline walks the sweep
+     * and records which structures have geometry inside the sector, in the
+     * order it first reaches them; it never consults the canon's list of what a
+     * clinician would call out.
+     *
+     * So what is asserted here is that the list is a measurement — it contains
+     * only structures this pack actually declares, and only ones with real
+     * names, because a scrubber annotation reading "tagged region 19" teaches
+     * nothing and claims more than the pack knows.
+     */
+    const order: string[] = view.sweep.structures_in_order;
+    const declared = new Set(pack.meshes.structures.map((s: { id: string }) => s.id));
+
+    expect(order.length).toBeGreaterThan(0);
+    expect(new Set(order).size).toBe(order.length);
+    for (const id of order) {
+      expect(declared.has(id)).toBe(true);
+      expect(id.startsWith('tagged-region-')).toBe(false);
+    }
+
+    // The four chambers are what an apical four-chamber crosses first, before
+    // any tilt reaches the outflow tracts. Measured, and it comes out that way.
+    expect(order.slice(0, 4).sort()).toEqual(
+      ['la-myocardium', 'lv-myocardium', 'ra-myocardium', 'rv-myocardium'],
+    );
   });
 
   it('places its imaging plane through the apex and both AV valve rings', () => {

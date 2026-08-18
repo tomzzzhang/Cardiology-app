@@ -23,6 +23,29 @@ function requestedPackId(): string {
   return new URLSearchParams(window.location.search).get('pack') ?? DEFAULT_PACK_ID;
 }
 
+/**
+ * Which view the shell shows, as an index or a `view_id`.
+ *
+ * `?view=` exists for the same reason `?pack=` does: the content is in the pack
+ * and there is no way to reach it yet. The view rail is
+ * `contracts/view-rail-sweep-scrubber.md` and the real deep-link scheme
+ * (`?a=`/`?v=`/`?s=`) is `contracts/app-shell.md`, both later — but a view
+ * nobody can open is a view nobody can review, and every view in this pack is
+ * draft and needs reviewing. Out of range falls back to the first view rather
+ * than rendering nothing.
+ */
+function requestedViewIndex(pack: LoadedPack['pack']): number {
+  if (typeof window === 'undefined') return 0;
+  const requested = new URLSearchParams(window.location.search).get('view');
+  if (requested === null) return 0;
+
+  const byId = pack.views.findIndex((view) => view.view_id === requested);
+  if (byId >= 0) return byId;
+
+  const index = Number.parseInt(requested, 10);
+  return Number.isInteger(index) && index >= 0 && index < pack.views.length ? index : 0;
+}
+
 type PackState =
   | { status: 'loading' }
   | { status: 'ok'; loaded: LoadedPack }
@@ -69,12 +92,14 @@ export default function App() {
             pack={packState.loaded.pack}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
             scrub={scrub}
+            viewIndex={requestedViewIndex(packState.loaded.pack)}
             onScrubChange={setScrub}
           />
           <EchoPanel
             pack={packState.loaded.pack}
             volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
             scrub={scrub}
+            viewIndex={requestedViewIndex(packState.loaded.pack)}
             onScrubChange={setScrub}
           />
         </div>

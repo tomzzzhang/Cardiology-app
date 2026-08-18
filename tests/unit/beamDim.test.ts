@@ -22,7 +22,7 @@ import {
   DIM_SATURATION,
   dimmedColour,
 } from '../../src/viewer/beamDim.ts';
-import { PALETTE } from '../../src/viewer/PackViewer.tsx';
+import { PALETTE } from '../../src/viewer/palette.ts';
 
 type Rgb = [number, number, number];
 

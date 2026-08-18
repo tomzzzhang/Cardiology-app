@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-18 13:50 EDT
+**Last Updated:** 2026-08-18 14:05 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -255,7 +255,58 @@ stand out, luminance is too high.
 
 ---
 
-## 9. Tags 11–24 are still unnamed
+## 9. Three views authored, two deliberately not
+
+**Where.** The pack now carries four views. The shell still shows one at a time and there is no
+rail yet, so reach them by URL:
+
+- `?view=b1-apical-four-chamber` — the default
+- `?view=c1-parasternal-long-axis`
+- `?view=c2-parasternal-short-axis`
+- `?view=ingest-reference-pose` — the mechanical pipeline artefact, not a clinical view
+
+**What to look at.** For **C1**, the plane should run down the long axis of the left ventricle with
+the aortic root at one end and the mitral ring beside it — those two are fibrously continuous, and
+whether they read as continuous here is the single best check on the plane. The apex may be
+foreshortened or out of the sector; that is correct, and is why the apical window exists. For
+**C2**, scrub the whole track: the left ventricle should stay a ring in cross-section from base to
+apex, with the right ventricle a crescent on one side, and the ring should shrink toward the end.
+
+**Why A3 and A4 are missing.** They were asked for and are not here. The subcostal family is
+defined by the beam entering from *below the diaphragm* — that is what puts the atrial septum
+near-perpendicular to it, which is A3's entire teaching payload. "Below" is a **body** axis, and
+this mesh has no spine, diaphragm or chest wall; the three defensible proxies for body
+superior-inferior disagree by up to 46° on it. A guessed placement does not look guessed: it
+renders a plausible sector through the atria whose stated claim is false. A4's bicaval *plane* is
+derivable here, so **F1, the right parasternal bicaval, is the honest route to that content** —
+worth deciding whether to author it next.
+
+**Why C1 and C2 are allowed where A3 is not.** A parasternal probe sits *anterior* to the heart,
+and anterior is a derived cardiac axis with an independent check behind it — the pulmonary valve
+sits anterior to the aortic valve, and nothing in the frame's construction knows that. So the
+parasternal views are placed against a measured axis, not a guessed one.
+
+**`structures_in_order` is now populated, and the distinction matters.** It was empty on the
+grounds that naming what a sweep crosses is a clinical reading. Naming them is; *measuring* which
+structures the fan intersects is arithmetic. The pipeline walks each sweep and records which
+structures have geometry inside the sector, in the order it first reaches them, and it never
+consults the canon's list. Restricted to structures with real names — an annotation reading
+"tagged region 19" teaches nothing.
+
+**Worth checking that it reads as sensible.** B1's measured order comes out: four chambers, then
+the two AV rings, then the aortic wall and ring, then the pulmonary artery and ring. That is the
+canon's description of the anterior tilt reaching the outflow tracts — the "five-chamber" — arrived
+at by measurement rather than by being told. If it ever stops looking like that, something moved.
+
+**Still unverified.** Indicator clocks, `marker_side` and `flip_lr` are the canon's values carried
+across untested for all three views. Fan angles (80°, 70°, 70°) are chosen, not measured. C1's
+sweep is one monotonic track from the RV-inflow side to the RV-outflow side; the canon's protocol
+returns to the reference between them, which one slider cannot express — that is UI-3 in the
+planning folder.
+
+---
+
+## 10. Tags 11–24 are still unnamed
 
 **Where.** Anatomy panel: fourteen small grey structures around the atria — pulmonary vein stubs,
 caval stubs, the left atrial appendage.
