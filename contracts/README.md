@@ -1,6 +1,6 @@
 # Module contracts
 
-**Updated:** 2026-08-17
+**Updated:** 2026-08-18
 
 One page per engine module, from `docs/build_plan.md` ("Architecture: engine + content packs").
 They describe the interface and behaviour each module owes the rest of the system.

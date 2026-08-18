@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-17
+**Updated:** 2026-08-18
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -41,6 +41,8 @@ npm run dev
 | `npm run check:provenance` | Licence and attribution completeness |
 | `npm run check:base-path` | Build with a sentinel base path and assert the output is prefixed |
 | `npm run gen:stub-assets` | Regenerate the synthetic stub pack assets |
+| `npm run ingest` | Run the model ingest pipeline over a source — see [`pipeline/`](pipeline/) |
+| `npm run ingest:fetch` | Fetch and checksum-verify a raw source asset without ingesting it |
 
 ## Architecture
 

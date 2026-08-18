@@ -1,6 +1,6 @@
 # Claude Code — start here
 
-**Updated:** 2026-08-17
+**Updated:** 2026-08-18
 
 A pointer, not a spec.
 
