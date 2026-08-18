@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-18 13:15 EDT
+**Last Updated:** 2026-08-18 13:20 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -136,7 +136,29 @@ which is the part that had to be right first.
 
 ---
 
-## 5. Tags 11–24 are still unnamed
+## 5. The model turns all the way over now
+
+**Where.** Anatomy panel. Drag downward a long way — past where it used to stop — and keep going.
+
+**Why it was uncertain.** The camera's `up` was pinned to (0, 1, 0), which has no basis when the
+camera looks straight down and inverts past that, so pitch was clamped to ±1.5 radians. The clamp
+was a workaround for the degeneracy, and it also made the heart impossible to turn over — which a
+subcostal view needs, since that view is read from underneath.
+
+**How to judge it.** Turn the model fully upside down and confirm it never flips, tears or goes
+blank at the top and bottom of the orbit. Then check that a horizontal drag still turns the model
+the way your hand goes *while it is upside down* — that correction is deliberate, and without it
+the model fights the pointer for half the orbit.
+
+**Unchanged on purpose.** The pivot is still `C`, and the wheel without a modifier is still zoom.
+
+**Traded off.** There is no "up is up" stop any more, so it is possible to leave the model at an
+odd angle and lose your bearings. **Reset** returns it. Whether a soft detent near upright would be
+worth having is a judgement call for review.
+
+---
+
+## 6. Tags 11–24 are still unnamed
 
 **Where.** Anatomy panel: fourteen small grey structures around the atria — pulmonary vein stubs,
 caval stubs, the left atrial appendage.

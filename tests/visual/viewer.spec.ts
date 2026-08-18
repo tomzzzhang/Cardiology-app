@@ -157,6 +157,69 @@ test('renders the sector vertex-down, the paediatric default for family B', asyn
   expect(width!.top).toBeGreaterThan(width!.bottom * 1.5);
 });
 
+test('the orbit is not clamped at the poles', async ({ page }) => {
+  /*
+   * The model has to turn all the way over: a subcostal view is read from
+   * underneath, and comparing an apex-up display against an apex-down one means
+   * getting the model into both. Pitch used to be clamped to +-1.5 radians
+   * because the camera's `up` was pinned to (0, 1, 0), which has no basis
+   * looking straight down and inverts past it.
+   *
+   * A clamp is invisible to any single-frame check, so this drags in two equal
+   * stages and compares. Under the clamp the second stage would move the camera
+   * barely at all — it was already against the stop — and the two frames would
+   * be near-identical. It also asserts the far frame is not blank, which is
+   * what a degenerate `lookAt` at the pole produces.
+   */
+  const canvas = page.locator('.anatomy canvas');
+  await expect(canvas).toBeVisible();
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+
+  const snapshot = () => page.evaluate(() => {
+    const element = document.querySelector<HTMLCanvasElement>('.anatomy canvas');
+    if (!element) return null;
+    const scratch = document.createElement('canvas');
+    scratch.width = 48;
+    scratch.height = 48;
+    const context = scratch.getContext('2d');
+    if (!context) return null;
+    context.drawImage(element, 0, 0, 48, 48);
+    return [...context.getImageData(0, 0, 48, 48).data];
+  });
+
+  // Radians per pixel is 0.008, so 250 px is about 2 radians. Starting from the
+  // reset pose, ONE stage already carries pitch past where the old clamp stood,
+  // which is what makes the second stage decisive: unclamped it keeps turning,
+  // clamped it cannot move at all and the two frames are identical.
+  const dragBy = async (pixels: number) => {
+    const centre = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down();
+    for (let step = 1; step <= 10; step += 1) {
+      await page.mouse.move(centre.x, centre.y + (pixels * step) / 10);
+    }
+    await page.mouse.up();
+    // The viewer draws on demand via rAF; give it a frame to land.
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+  };
+
+  await dragBy(250);
+  const nearPole = await snapshot();
+  await dragBy(250);
+  const pastPole = await snapshot();
+
+  expect(nearPole).not.toBeNull();
+  expect(pastPole).not.toBeNull();
+
+  const differing = nearPole!.filter((value, index) => Math.abs(value - pastPole![index]) > 8);
+  expect(differing.length).toBeGreaterThan(nearPole!.length * 0.05);
+
+  // Not a blank frame: a degenerate camera at the pole renders nothing.
+  const lit = pastPole!.filter((_value, index) => index % 4 === 0 && pastPole![index] > 40);
+  expect(lit.length).toBeGreaterThan(20);
+});
+
 test('scrubbing the sweep changes the image', async ({ page }) => {
   await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,

@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-18 13:15 EDT
+**Updated:** 2026-08-18 13:20 EDT
 
 Turns a raw anatomical source into a content pack: a decimated glTF plus a labelled
 echo volume conforming to schema v0, with complete provenance.

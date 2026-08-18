@@ -26,6 +26,7 @@ import { frameAt, type ImagingFrame } from '../echo/probeFrame.ts';
 import { ProbeIndicator } from './wedge.ts';
 import { StencilCaps, type CapSource } from './caps.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
+import { orbitPose, wrapAngle, yawDirection } from './orbit.ts';
 import {
   clippingPlane,
   enclosingRadius,
@@ -184,13 +185,17 @@ export default function PackViewer({
     let yaw = 0.9;
     let pitch = 0.35;
 
+    /*
+     * The pose comes from `orbit.ts`, which derives the camera offset AND its
+     * `up` from one rotation. The previous revision positioned the camera from
+     * angles and pinned `up` to (0, 1, 0), which is undefined at the pole and
+     * inverted past it — so pitch had to be clamped to +-1.5 radians and the
+     * model could not be turned over. That clamp is gone.
+     */
     const applyCamera = () => {
-      camera.position.set(
-        pivot.x + radius * Math.cos(pitch) * Math.sin(yaw),
-        pivot.y + radius * Math.sin(pitch),
-        pivot.z + radius * Math.cos(pitch) * Math.cos(yaw),
-      );
-      camera.up.set(0, 1, 0);
+      const pose = orbitPose(yaw, pitch, radius);
+      camera.position.copy(pivot).add(pose.offset);
+      camera.up.copy(pose.up);
       camera.lookAt(pivot);
     };
 
@@ -265,9 +270,18 @@ export default function PackViewer({
     };
     const onPointerMove = (event: PointerEvent) => {
       if (!dragging) return;
-      yaw -= (event.clientX - lastX) * 0.008;
-      // Clamped so the camera cannot pass through the poles and flip `up`.
-      pitch = Math.max(-1.5, Math.min(1.5, pitch + (event.clientY - lastY) * 0.008));
+      /*
+       * Horizontal drag turns the model the same way on screen whichever way up
+       * it is. Once the camera passes a pole its `up` inverts, and a yaw delta
+       * that was "drag right, model turns right" becomes its own opposite — the
+       * model fights the pointer for the entire upside-down half of the orbit.
+       * Taking the sign from cos(pitch), which is exactly the term that flips,
+       * keeps the gesture meaning one thing.
+       */
+      yaw -= (event.clientX - lastX) * 0.008 * yawDirection(pitch);
+      // No clamp: the model turns all the way over. Wrapped only so the angle
+      // cannot drift without bound across a long session.
+      pitch = wrapAngle(pitch + (event.clientY - lastY) * 0.008);
       lastX = event.clientX;
       lastY = event.clientY;
       applyCamera();
