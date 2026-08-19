@@ -302,6 +302,16 @@ class GeometrySource:
     #: ships with the data, not from the filenames.
     select: Callable[[Path], list[tuple[Path, str]]] | None = None
 
+    #: Case-insensitive substrings marking a structure as BLOOD POOL.
+    #:
+    #: Matched against the display label. A blood-pool structure is a cast of
+    #: the lumen rather than tissue, and the viewer draws it translucent and
+    #: cool so a cast cannot be mistaken for a wall — which matters most at a
+    #: CUT, where a solid cavity cast and a solid wall otherwise present the
+    #: same opaque face. A declared pattern that matches nothing is an error,
+    #: not a no-op: it means the source's labels have moved.
+    blood_pool_match: tuple[str, ...] = ()
+
     #: Everything known to be wrong with this source, recorded in the pack
     #: rather than worked around. A model that looks bad should say so.
     known_problems: tuple[str, ...] = ()
@@ -456,6 +466,21 @@ BODYPARTS3D = GeometrySource(
         "37: D782-D785 (2009)."
     ),
     license_quote=BODYPARTS3D_LICENCE_QUOTE,
+    # Every one of these is a closed solid (Euler characteristic 2) filling the
+    # vessel or chamber outline: BodyParts3D models lumen as a CAST, not as a
+    # tube with a wall. Verified per element — ascending aorta 21.5 mL,
+    # pulmonary trunk 19.2 mL, superior vena cava 12.3 mL, the four chambers
+    # 51.9 to 117.0 mL. Unmarked they cut as solid grey plugs, which is what
+    # they are in the file and is not what a vessel is.
+    #
+    # The coronary and venous segments are casts too and are deliberately NOT
+    # marked: their cut faces are millimetric, and as opaque grey tubes over
+    # translucent chambers they are the most legible thing in this pack. That is
+    # a judgement about legibility, not about anatomy, and it is recorded here
+    # so it can be reversed in one line.
+    blood_pool_match=(
+        "cavity of", "ascending aorta", "pulmonary trunk", "superior vena cava",
+    ),
     known_problems=(
         "NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this "
         "is an Explore-only pack like every other geometry-only source.",
@@ -584,6 +609,7 @@ KIT_FOUR_CHAMBER = GeometrySource(
         "application to the NC red lines, and that constraint is not accepted for the "
         "published build — the same position already taken on the Visible Heart Labs pack."
     ),
+    blood_pool_match=("cavity",),
     known_problems=(
         "PERMANENTLY UNPUBLISHABLE. Non-commercial, confirmed. Kept for looking at, nothing "
         "more.",

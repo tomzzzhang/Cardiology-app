@@ -16,7 +16,7 @@
     "license_state": "non_commercial",
     "modified": {
       "flag": true,
-      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 183.2 source units; read as mm because 183.2 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 7 input surface(s) together, a single translation of (-11.7, 39.1, 10.8) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. LICENCE AS READ AT THE SOURCE: the Zenodo record 10526554 declares license id \"cc-by-nc-4.0\" (Creative Commons Attribution-NonCommercial 4.0 International), read from the deposit's own record on 2026-08-19. NON-COMMERCIAL: this pack can never ship. An NC pack binds the whole application to the NC red lines, and that constraint is not accepted for the published build \u2014 the same position already taken on the Visible Heart Labs pack. PERMANENTLY UNPUBLISHABLE. Non-commercial, confirmed. Kept for looking at, nothing more. THE PERICARDIUM ENCLOSES EVERYTHING. `outerPeri.stl` is a 183 mm shell of only 1,522 triangles wrapped round the whole heart, so the default view of this pack is a coarse faceted bag with the anatomy inside it. Turning the cutter on opens it. There is no per-structure show/hide control yet, so nothing else does. CONTACT SURFACES EXCLUDED. `master.stl` and `slave.stl` are the mechanics solver's contact pair, not anatomy: both are coincident with the epicardium at coarser resolution (identical extents and centre, 14,848 and 1,522 triangles against the epicardium's 19,816), so including them would z-fight with the anatomy for no anatomical gain. Excluded, and recorded here rather than silently dropped. CAVITIES ONLY, NO WALL THICKNESS. The chambers are blood-pool casts and there is one epicardium; there is no per-chamber myocardium, so wall thickness is not derivable by pairing them \u2014 the same defect that lost the Alberta pack the wave 1a comparison. VALVES ARE PLANES IN THE VOLUMETRIC MESH, NOT SURFACES HERE. LabelIDs.txt names mitral, tricuspid, aortic and pulmonary valve labels, and vein and caval orifices \u2014 all of them tags in M.vtu, none of them separate files in Surfaces.zip. This pack therefore carries no valves at all. ONE 33-YEAR-OLD MALE VOLUNTEER. Adult, and a single subject."
+      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 183.2 source units; read as mm because 183.2 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 7 input surface(s) together, a single translation of (-11.7, 39.1, 10.8) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. BLOOD POOL: Left ventricular cavity, Right ventricular cavity, Left atrial cavity, Right atrial cavity. These are casts of the lumen, not tissue, and the source names them so. The viewer draws them translucent and cool for the same reason it does on any cast-and-shell pack: at a cut, a solid cavity cast and a solid wall otherwise present the same opaque face. LICENCE AS READ AT THE SOURCE: the Zenodo record 10526554 declares license id \"cc-by-nc-4.0\" (Creative Commons Attribution-NonCommercial 4.0 International), read from the deposit's own record on 2026-08-19. NON-COMMERCIAL: this pack can never ship. An NC pack binds the whole application to the NC red lines, and that constraint is not accepted for the published build \u2014 the same position already taken on the Visible Heart Labs pack. PERMANENTLY UNPUBLISHABLE. Non-commercial, confirmed. Kept for looking at, nothing more. THE PERICARDIUM ENCLOSES EVERYTHING. `outerPeri.stl` is a 183 mm shell of only 1,522 triangles wrapped round the whole heart, so the default view of this pack is a coarse faceted bag with the anatomy inside it. Turning the cutter on opens it. There is no per-structure show/hide control yet, so nothing else does. CONTACT SURFACES EXCLUDED. `master.stl` and `slave.stl` are the mechanics solver's contact pair, not anatomy: both are coincident with the epicardium at coarser resolution (identical extents and centre, 14,848 and 1,522 triangles against the epicardium's 19,816), so including them would z-fight with the anatomy for no anatomical gain. Excluded, and recorded here rather than silently dropped. CAVITIES ONLY, NO WALL THICKNESS. The chambers are blood-pool casts and there is one epicardium; there is no per-chamber myocardium, so wall thickness is not derivable by pairing them \u2014 the same defect that lost the Alberta pack the wave 1a comparison. VALVES ARE PLANES IN THE VOLUMETRIC MESH, NOT SURFACES HERE. LabelIDs.txt names mitral, tricuspid, aortic and pulmonary valve labels, and vein and caval orifices \u2014 all of them tags in M.vtu, none of them separate files in Surfaces.zip. This pack therefore carries no valves at all. ONE 33-YEAR-OLD MALE VOLUNTEER. Adult, and a single subject."
     },
     "derivation_chain": [
       "https://zenodo.org/records/10526554",
@@ -45,7 +45,7 @@
         "mesh_node": "left-ventricular-cavity",
         "display_label": "Left ventricular cavity",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -53,7 +53,7 @@
         "mesh_node": "right-ventricular-cavity",
         "display_label": "Right ventricular cavity",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -61,7 +61,7 @@
         "mesh_node": "left-atrial-cavity",
         "display_label": "Left atrial cavity",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -69,7 +69,7 @@
         "mesh_node": "right-atrial-cavity",
         "display_label": "Right atrial cavity",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {

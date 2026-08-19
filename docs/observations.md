@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 08:20 EDT
+**Last Updated:** 2026-08-19 08:55 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -864,10 +864,10 @@ the rights holder's own page.
   right atrial wall. Welded, **all 86 parts are watertight, single-component and manifold**. The
   ingest now welds exactly coincident vertices, which moves no surface, and the cutter caps this
   pack properly.
-- **All 86 parts render in one grey.** The palette is keyed by the Rodero slugs, and everything else
-  falls to the unnamed grey. With 86 structures that is a wall of identical grey with no way to tell
-  a papillary muscle from a coronary branch except by shape. It is the single biggest thing standing
-  between this model and being genuinely useful to look at.
+- **82 of the 86 parts render in one grey.** The palette is keyed by the Rodero slugs, and everything
+  else falls to the unnamed grey. The four chamber cavities are now marked blood pool and render as
+  translucent blue (entry 31), which separates lumen from tissue and is a large improvement — but a
+  papillary muscle and a coronary branch are still the same grey as each other.
 - **One adult cadaver, fixed.** Nothing paediatric, and the leaflets are in one post-mortem
   configuration: they neither open nor close, and never will.
 - **No arch, no descending aorta, no IVC, no pulmonary veins.** Those elements run 96–335 mm down
@@ -1172,3 +1172,155 @@ components rendering as voids — was measured before the ingest welded vertices
 BodyParts3D numbers entry 29 corrects. **It has not been re-measured**, because that pack goes
 through `ingest.py`, which has always welded, so the number is probably real. Re-running it and
 checking is cheap and has not been done.
+
+---
+
+## 31. The cavity casts are solid, and the geometry ingest never said they were blood
+
+**Follow-up to the owner's "cavity still filled when cut", on BodyParts3D.**
+
+**Not a cap failure.** All 86 parts were re-measured after welding: every one watertight, every one
+single-component, **every one winding-consistent**. The stencil caps had nothing wrong with them.
+
+**The cavities are solid casts.** BodyParts3D models chambers as filled lumen solids — `cavity of
+left ventricle` is 97.9 mL, right ventricle 117.0 mL, left atrium 51.9 mL, right atrium 84.6 mL.
+Cutting one therefore produces a solid cut face, correctly, because there is a solid object there.
+With every structure rendering in the same grey, that face was indistinguishable from a wall's, so
+the cut read as a filled cavity.
+
+**What was missing was one boolean.** `Structure.blood_pool` has existed since schema v0 and drives
+the viewer's lumen colouring — translucent and cool, so a cast cannot be mistaken for a wall. The
+Rodero and Alberta packs set it. `pipeline/geometry.py` hardcoded `blood_pool: False` for every
+structure it emitted, so no geometry-only pack had ever set it.
+
+`GeometrySource.blood_pool_match` now carries case-insensitive substrings matched against the
+display label — `"cavity of"` for BodyParts3D, `"cavity"` for KIT — and a declared pattern that
+matches nothing is a hard error rather than a silent no-op, because it means the source's labels
+have moved. Four structures matched in each pack, and the pack records which by name.
+
+**And blood pool is NOT capped at the cut.** Marking the casts as lumen was necessary and not
+sufficient: capping them still painted a solid blue disc across the opening, and a chamber that
+reads as filled reads as filled whatever colour it is. It IS filled — in the file. It is not filled
+in a heart. So the stencil cap is withheld for blood-pool structures and the cut face is left open;
+the clip removes the near half of the cast and the learner looks straight into the chamber, through
+the translucent lumen shell, at the wall and the papillary muscles behind it. Tissue still caps,
+because tissue cut across really does present a face. Nothing else changes for these structures —
+they still draw, still ghost, still clip. The cap is the only thing withheld.
+
+**What it looks like now.** Uncut, the four chambers are translucent blue and **the papillary
+muscles and trabeculae are visible through them**, with the coronary tree standing grey against the
+blue. Cut, the chambers open: grey wall rims around a chamber you can see into. This is the largest
+single improvement to how the shelf looks so far, and it cost one flag and one `if`.
+
+**It changes nothing on the shipped pack.** `normal-rodero` carries no blood-pool structures at all —
+its myocardium is native volumetric tissue, which is why it won the wave 1a comparison. Only the
+cast-shaped packs are affected.
+
+**It did NOT fix KIT.** The same four cavities are now blood pool there, and you still cannot see
+them: the pericardium is the outermost opaque shell and its cut face is a solid disc across the
+whole model. Colour cannot solve that — only hiding the pericardium can.
+
+**This makes the per-structure show/hide control the clear top priority.** It was decision 2 in
+entry 25; it is now the only thing standing between two of the best packs and being properly
+usable, and it is a viewer-core control that does not collide with the view rail.
+
+**A related question the owner should decide.** `blood_pool` is currently inferred from a label
+substring declared per source. That is explicit and checked, but it is still the pipeline reading
+anatomy off a name. For BodyParts3D and KIT the sources name their casts unambiguously; a source
+that does not would need the flag set by hand, and there is no mechanism for that yet.
+
+---
+
+## 32. BodyParts3D models lumen as SOLID CASTS — including the great vessels
+
+**Follow-up to the owner's "why are these vessels solid filled? aorta and the other one?" and
+"same thing with blood around this valve — are you mistaking blood for solid mass?"**
+
+Both are the same finding, and the answer is yes: the pipeline was treating blood as tissue.
+
+**Measured, per element.** Euler characteristic 2 means a closed solid — a topological sphere, not
+a tube with a wall. Every one of these is a cast filling the outline:
+
+| Element | Label | Volume | Euler |
+| --- | --- | --- | --- |
+| FJ2423 | cavity of right ventricle | 117.0 mL | 2 |
+| FJ2422 | cavity of left ventricle | 97.9 mL | 2 |
+| FJ2424 | cavity of right atrium | 84.6 mL | 2 |
+| FJ2425 | cavity of left atrium | 51.9 mL | 2 |
+| FJ3413 | ascending aorta | **21.5 mL** | 2 |
+| FJ2966 | pulmonary trunk | **19.2 mL** | 2 |
+| FJ3645 | superior vena cava | **12.3 mL** | 2 |
+
+The three vessels are lumen casts exactly like the four chambers. Entry 31 marked only the
+chambers, because the pattern was `"cavity of"` and the vessels are not called that. Cut across,
+they presented solid grey plugs — which is what they are in the file and is not what a vessel is.
+The round grey mass the owner saw "around the valve" is the ascending aortic cast seen end-on at
+the root.
+
+They are marked blood pool now: translucent, and no stencil cap at the cut, so the aorta and the
+pulmonary trunk open into lumen you can see through.
+
+**The coronary and venous segments are casts too, and are deliberately not marked.** Their cut
+faces are millimetric, and as opaque grey tubes over translucent chambers they are the most
+legible thing in this pack. That is a judgement about legibility rather than about anatomy, it is
+written into `pipeline/sources.py` next to the pattern, and it is one line to reverse.
+
+---
+
+## 33. There is almost no ventricular muscle in the BodyParts3D heart
+
+**The owner's "why is there no muscle around the ventricles?" — the source genuinely does not have
+it.** Not a preprocessing loss; nothing was dropped.
+
+Volumes over the whole 86-part heart:
+
+| | Volume |
+| --- | --- |
+| Left atrial wall (FJ2438) | 40.5 mL |
+| Right atrial wall (FJ2439) | 27.6 mL |
+| **All four ventricular wall patches** (FJ2429, FJ2432, FJ2419, FJ2430) | **12.3 mL** |
+| Ventricular cavities (FJ2422 + FJ2423) | 215 mL |
+
+A real left ventricular myocardium is 100–150 mL. This atlas carries **12.3 mL of ventricular wall
+against 215 mL of ventricular cavity**, in four small patches that are each also labelled as a
+papillary muscle or a valve leaflet — the same many-to-many labelling entry 24 records. The atrial
+walls are properly modelled; the ventricular myocardium effectively is not.
+
+So the ventricles render as bare lumen casts with papillary muscles and trabeculae hanging inside
+them and nothing around them, and that is an accurate rendering of what the source contains.
+
+**This is decisive for one of the deferred tasks.** Grafting BodyParts3D onto the Rodero mesh was
+already narrowed to the six semilunar cusps by entry 24. This confirms it: there is no ventricular
+myocardium here to graft, and Rodero's — native volumetric tagged tissue — is exactly what
+BodyParts3D lacks. The two sources are complementary in the direction the graft was already
+pointing, and in no other.
+
+---
+
+## 34. Structures popped in and out under orbit. Near-opaque translucency was the cause.
+
+**The owner's "structures pop in and out of existence as I rotate". A real bug, now fixed.**
+
+Unnamed structures were drawn `transparent: true` at **0.95** opacity — a hint that they had not
+been identified anatomically. A `transparent` material goes into three.js's transparent pass, which
+sorts per OBJECT and never per triangle. With `DoubleSide` geometry that makes a mesh's own far
+surface blend over its near one in an order that flips as the camera turns, and makes neighbouring
+meshes swap draw order.
+
+On the Rodero pack, with fourteen unnamed structures among twenty-four, that was a shimmer nobody
+had reported. On BodyParts3D, where **all 86 are unnamed and none is in the palette**, it read as
+structures popping in and out of existence.
+
+**Now: translucent only where it means something.** Blood pool stays at 0.45, because seeing the
+wall through the lumen is the entire point of it and it is seven objects rather than seventy-nine.
+Everything else is opaque.
+
+**What that gives up.** The "we have not identified this" signal. It was five per cent of alpha and
+was never visible; the observation that introduced it had already raised it once because a lower
+value let the ghost show through. If that distinction needs drawing it needs drawing in something a
+viewer can actually see — a hue, a hatch, an outline — and that is a palette decision for the owner,
+not a reason to keep a rendering hazard.
+
+**Verified** by orbiting the pack through twelve steps and sampling the rendered silhouette at each:
+the covered-pixel count moves smoothly (4,362 → 4,902 → 4,126) with no discontinuity, where a
+vanishing structure would show as a step.

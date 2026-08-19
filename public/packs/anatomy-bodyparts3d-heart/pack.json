@@ -16,7 +16,7 @@
     "license_state": "confirmed",
     "modified": {
       "flag": true,
-      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 134.9 source units; read as mm because 134.9 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 86 input surface(s) together, a single translation of (-21.5, 123.3, -1242.4) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. LICENCE AS READ AT THE SOURCE: the rights holder's own licence page, https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html, read on 2026-08-19 and last updated there 2025/02/27, states: \"The license for this database is specified in the Creative Commons Attribution 4.0 International\", and grants explicitly that you may \"freely redistribute part or whole of the data from this database\" and \"freely create and distribute database and other derivative works based on part or whole of the data\", with the required attribution \"BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution 4.0 International\". CONTRADICTION, recorded rather than resolved: older mirrors of the same project state CC BY-SA 2.1 Japan. The reading taken here is the rights holder's CURRENT page, which is the more authoritative source and the more permissive grant; if that is wrong, this pack is a share-alike derivative and the licence state must be revisited. It is not published either way. NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this is an Explore-only pack like every other geometry-only source. SEMILUNAR CUSPS ARE COARSE. The aortic and pulmonary cusps are a few hundred triangles each and look faceted at any useful zoom. Not fixed here: smoothing them would be sculpting anatomy, which is a different task with a different licence consequence. ONE CADAVER, and an adult one. Nothing about this model is paediatric, and the leaflet geometry is a fixed post-mortem configuration, not a phase of a cardiac cycle: these leaflets neither open nor close. NAMES ARE DERIVED, not authored. Each part is named from the SMALLEST concept in the source's own partof_element_parts.txt that contains it. The eleven valve leaflets and cusps are additionally pinned by element id, and the ingest fails if the source stops listing any of them under its expected concept. THE ATRIOVENTRICULAR LEAFLETS ARE NOT THIN LEAFLETS. The source's concept map is many-to-many, and element FJ2432 is listed as the posterior mitral leaflet AND as the inferior wall of the left ventricle, the myocardium of that wall and myocardial zone 4. It measures 49 x 38 x 32 mm and carries 3,820 triangles, which is a wall segment rather than a leaflet; the anterior mitral element FJ2420 is 34 x 48 x 31 mm and likewise. Eight of the 86 parts have a tied smallest concept, and their labels carry both names rather than the pipeline picking one. The SEMILUNAR cusps are not ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles. EVERY SURFACE IS OPEN. All 86 parts carry boundary edges \u2014 8 on the right coronary trunk, 1,826 on the right atrial wall \u2014 and many split into dozens of connected components. Nothing is watertight, so the free cutter's stencil caps will speckle wherever a cut crosses an opening. No hole is filled: on a source like this, filling would fabricate the very surfaces a learner would be reading. NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the pulmonary arteries as part of the heart, and their elements run 96-335 mm down the body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are included, so the semilunar cusps have a vessel behind them; there is no arch, no descending aorta, no inferior vena cava and no pulmonary veins."
+      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 134.9 source units; read as mm because 134.9 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 86 input surface(s) together, a single translation of (-21.5, 123.3, -1242.4) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. BLOOD POOL: ascending aorta, cavity of left atrium, cavity of left ventricle, cavity of right atrium, cavity of right ventricle, pulmonary trunk, superior vena cava. These are casts of the lumen, not tissue, and the source names them so. The viewer draws them translucent and cool for the same reason it does on any cast-and-shell pack: at a cut, a solid cavity cast and a solid wall otherwise present the same opaque face. LICENCE AS READ AT THE SOURCE: the rights holder's own licence page, https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html, read on 2026-08-19 and last updated there 2025/02/27, states: \"The license for this database is specified in the Creative Commons Attribution 4.0 International\", and grants explicitly that you may \"freely redistribute part or whole of the data from this database\" and \"freely create and distribute database and other derivative works based on part or whole of the data\", with the required attribution \"BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution 4.0 International\". CONTRADICTION, recorded rather than resolved: older mirrors of the same project state CC BY-SA 2.1 Japan. The reading taken here is the rights holder's CURRENT page, which is the more authoritative source and the more permissive grant; if that is wrong, this pack is a share-alike derivative and the licence state must be revisited. It is not published either way. NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this is an Explore-only pack like every other geometry-only source. SEMILUNAR CUSPS ARE COARSE. The aortic and pulmonary cusps are a few hundred triangles each and look faceted at any useful zoom. Not fixed here: smoothing them would be sculpting anatomy, which is a different task with a different licence consequence. ONE CADAVER, and an adult one. Nothing about this model is paediatric, and the leaflet geometry is a fixed post-mortem configuration, not a phase of a cardiac cycle: these leaflets neither open nor close. NAMES ARE DERIVED, not authored. Each part is named from the SMALLEST concept in the source's own partof_element_parts.txt that contains it. The eleven valve leaflets and cusps are additionally pinned by element id, and the ingest fails if the source stops listing any of them under its expected concept. THE ATRIOVENTRICULAR LEAFLETS ARE NOT THIN LEAFLETS. The source's concept map is many-to-many, and element FJ2432 is listed as the posterior mitral leaflet AND as the inferior wall of the left ventricle, the myocardium of that wall and myocardial zone 4. It measures 49 x 38 x 32 mm and carries 3,820 triangles, which is a wall segment rather than a leaflet; the anterior mitral element FJ2420 is 34 x 48 x 31 mm and likewise. Eight of the 86 parts have a tied smallest concept, and their labels carry both names rather than the pipeline picking one. The SEMILUNAR cusps are not ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles. The OBJs duplicate a vertex per adjacent face along their seams. Unwelded they look open \u2014 1,826 boundary edges and 124 connected components on the right atrial wall \u2014 and they are not: welded, all 86 parts are watertight, single-component and manifold. The ingest welds exactly coincident vertices, which moves no surface. This is recorded because a reader measuring the raw OBJs will see the larger numbers. NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the pulmonary arteries as part of the heart, and their elements run 96-335 mm down the body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are included, so the semilunar cusps have a vessel behind them; there is no arch, no descending aorta, no inferior vena cava and no pulmonary veins."
     },
     "derivation_chain": [
       "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html",
@@ -109,7 +109,7 @@
         "mesh_node": "ascending-aorta",
         "display_label": "ascending aorta",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -117,7 +117,7 @@
         "mesh_node": "cavity-of-left-atrium",
         "display_label": "cavity of left atrium",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -125,7 +125,7 @@
         "mesh_node": "cavity-of-left-ventricle",
         "display_label": "cavity of left ventricle",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -133,7 +133,7 @@
         "mesh_node": "cavity-of-right-atrium",
         "display_label": "cavity of right atrium",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -141,7 +141,7 @@
         "mesh_node": "cavity-of-right-ventricle",
         "display_label": "cavity of right ventricle",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -581,7 +581,7 @@
         "mesh_node": "pulmonary-trunk",
         "display_label": "pulmonary trunk",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {
@@ -661,7 +661,7 @@
         "mesh_node": "superior-vena-cava",
         "display_label": "superior vena cava",
         "parent": null,
-        "blood_pool": false,
+        "blood_pool": true,
         "stylized": false
       },
       {

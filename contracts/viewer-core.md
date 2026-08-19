@@ -145,6 +145,30 @@ The unlock is paid for by labelling rather than by hiding: see `contracts/README
 withdrawn and what is restored. Nothing about it can write to `views[]`, and locking again returns
 the probe to `frameAt(probe, sweep, t)` exactly.
 
+## Blood pool is drawn, and is not capped
+
+`Structure.blood_pool` marks a cast of the lumen rather than tissue. Two rules follow, and the second
+one is not cosmetic.
+
+- **It renders translucent and cool**, so a cast-shaped pack cannot be mistaken for a wall-shaped one.
+- **It gets NO stencil cap at the cut plane.** A cast source models a chamber as a solid — BodyParts3D's
+  left ventricular cavity is 98 mL of geometry — so capping it paints a solid disc across the opening
+  and the chamber reads as filled. It is filled in the file and it is not filled in a heart. Leaving
+  the cut face open is the honest rendering: the clip removes the near half of the cast and the
+  learner looks into the chamber at the wall behind it. Tissue still caps, because tissue cut across
+  really does present a face.
+
+Nothing else about a blood-pool structure changes: it draws, it ghosts, it clips. The cap is the only
+thing withheld.
+
+**Blood pool is the ONLY thing drawn translucent.** A `transparent` material goes into three.js's
+transparent pass, which sorts per object and never per triangle; with `DoubleSide` geometry that
+makes a mesh's own far surface blend over its near one in an order that flips as the camera turns.
+Unnamed structures were once drawn at 0.95 opacity as an "unidentified" hint, and on a pack where
+every structure is unnamed that read as structures popping in and out of existence under orbit
+(`docs/observations.md` entry 34). Near-opaque translucency buys nothing a viewer can see and costs
+correct depth ordering: if a structure needs marking as unidentified, mark it in a hue or a hatch.
+
 ## The cine axis — keyframed geometry in Explore
 
 A pack may carry `meshes.keyframes`: N whole meshes plus a phase axis or a frame rate. The viewer

@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-19 08:20 EDT
+**Updated:** 2026-08-19 08:55 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -75,6 +75,13 @@ close is close enough, and a wrong one welds a real gap shut. On a keyframed sou
 computed once from frame 0 and applied to every frame, because `np.unique` sorts by coordinate and
 the coordinates are exactly what differs between frames — welding frames independently would destroy
 the vertex correspondence.
+
+It marks **blood pool** where the source names its casts as such: `GeometrySource.blood_pool_match`
+carries case-insensitive substrings matched against the display label, and a declared pattern that
+matches nothing is a hard error rather than a silent no-op. A blood-pool structure is a cast of the
+lumen rather than tissue and the viewer draws it translucent and cool, which matters most at a CUT —
+a solid cavity cast and a solid wall otherwise present the same opaque face. BodyParts3D models its
+chambers as filled solids of 52 to 117 mL, so without this the cut read as a filled cavity.
 
 Three things it deliberately does not do.
 

@@ -71,7 +71,7 @@ import { probeTravelPath, steppedT } from './probeControl.ts';
 import { hitRadiusPx, isCoarsePointer, revealFor, watchPointerClass } from './pointerClass.ts';
 import { projectToScreen, unitsPerPixel } from './screen.ts';
 import { cineIntervalMs, nextCineState } from './cine.ts';
-import { PALETTE, structureColour } from './palette.ts';
+import { structureColour } from './palette.ts';
 
 /**
  * What the cut plane is, stated on screen at all times.
@@ -1012,7 +1012,6 @@ export default function PackViewer({
           if (!(object instanceof THREE.Mesh)) return;
           byStructure.set(object.name, object);
           const isPool = bloodPool.has(object.name);
-          const named = PALETTE[object.name] !== undefined;
           const colour = structureColour(object.name, isPool);
           object.material = new THREE.MeshStandardMaterial({
             // Blood pool reads as lumen, not tissue: translucent and cool, so a
@@ -1020,17 +1019,31 @@ export default function PackViewer({
             color: colour,
             roughness: 0.55,
             metalness: 0.05,
-            transparent: isPool || !named,
             /*
-             * Named structures are opaque; the fourteen unnamed stubs are only
-             * SLIGHTLY translucent. The translucency is how the viewer says "we
-             * have not identified this" — see `docs/observations.md` on tags
-             * 11-24 — but it was low enough that the ghost of the removed half
-             * showed through the kept half, which blurred the one distinction
-             * the ghost exists to draw. Enough to read as unidentified, not
-             * enough to read as removed.
+             * TRANSLUCENT ONLY WHERE IT MEANS SOMETHING — blood pool, and
+             * nothing else.
+             *
+             * Unnamed structures used to be drawn at 0.95 opacity, as a hint
+             * that they had not been identified. That hint cost more than it
+             * was worth. A `transparent` material goes into three.js's
+             * transparent pass, which sorts per OBJECT and never per triangle;
+             * with `DoubleSide` geometry that makes a mesh's own far surface
+             * blend over its near one in an order that changes as the camera
+             * turns. On a pack of fourteen unnamed structures it was a
+             * shimmer. On BodyParts3D, where all 86 are unnamed, it read as
+             * structures popping in and out of existence under orbit.
+             *
+             * Five per cent of alpha was never visible anyway. If "we have not
+             * identified this" needs saying, it needs saying in something a
+             * viewer can actually see — a hue or a hatch — and that is a
+             * palette decision, not a reason to keep a rendering hazard.
+             *
+             * Blood pool stays genuinely translucent at 0.45, because seeing
+             * the wall through the lumen is the whole point of it, and it is a
+             * handful of objects rather than most of them.
              */
-            opacity: isPool ? 0.45 : named ? 1 : 0.95,
+            transparent: isPool,
+            opacity: isPool ? 0.45 : 1,
             side: THREE.DoubleSide,
           });
           dimUniforms.push(applyBeamDim(object.material));
@@ -1058,12 +1071,32 @@ export default function PackViewer({
           ghost.renderOrder = -1;
           ghosts.add(ghost);
           ghostFor.set(object.name, ghost);
-          capSources.push({
-            id: object.name,
-            geometry: object.geometry,
-            matrix: object.matrixWorld.clone(),
-            color: new THREE.Color(colour),
-          });
+          /*
+           * BLOOD POOL IS NOT CAPPED.
+           *
+           * A cast source models a chamber as a solid — BodyParts3D's left
+           * ventricular cavity is a 98 mL lump of geometry — so capping it at
+           * the cut plane paints a solid disc of "blood" across the opening and
+           * the chamber reads as filled. It is filled, in the file. It is not
+           * filled in a heart.
+           *
+           * Leaving the cut face open is the honest rendering: the clip removes
+           * the near half of the cast and the learner looks straight into the
+           * chamber, through the translucent lumen shell, at the wall and the
+           * papillary muscles behind it. Tissue still caps, because tissue cut
+           * across really does present a face.
+           *
+           * Nothing else changes for these structures — they still draw, still
+           * ghost, still clip. The cap is the only thing withheld.
+           */
+          if (!isPool) {
+            capSources.push({
+              id: object.name,
+              geometry: object.geometry,
+              matrix: object.matrixWorld.clone(),
+              color: new THREE.Color(colour),
+            });
+          }
         });
         scene.add(gltf.scene);
 

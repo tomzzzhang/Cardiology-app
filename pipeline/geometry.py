@@ -371,6 +371,12 @@ def slugify(name: str) -> str:
     return slug or "surface"
 
 
+def is_blood_pool(label: str, patterns: tuple[str, ...]) -> bool:
+    """Whether a structure is a cast of the lumen rather than tissue."""
+    lowered = label.lower()
+    return any(pattern.lower() in lowered for pattern in patterns)
+
+
 def explore_pack(
     source: GeometrySource,
     structures: list[tuple[str, str, Surface]],
@@ -402,6 +408,16 @@ def explore_pack(
         honesty.append(
             "UNLABELLED. The source divides into no named parts, so the pack carries one "
             "structure with a generic label rather than an invented anatomical one."
+        )
+    pools = [label for _, label, _ in structures if is_blood_pool(label, source.blood_pool_match)]
+    if pools:
+        honesty.append(
+            "BLOOD POOL: "
+            + ", ".join(pools)
+            + ". These are casts of the lumen, not tissue, and the source names them so. The "
+            "viewer draws them translucent and cool for the same reason it does on any "
+            "cast-and-shell pack: at a cut, a solid cavity cast and a solid wall otherwise "
+            "present the same opaque face."
         )
     if source.license_quote:
         honesty.append(f"LICENCE AS READ AT THE SOURCE: {source.license_quote}")
@@ -464,7 +480,7 @@ def explore_pack(
                     "mesh_node": slug,
                     "display_label": label,
                     "parent": None,
-                    "blood_pool": False,
+                    "blood_pool": is_blood_pool(label, source.blood_pool_match),
                     "stylized": False,
                 }
                 for slug, label, _ in structures
@@ -624,6 +640,18 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
         asset, size = _write_frame(assets, "model", [s for _, _, s in structures])
         sizes["model"] = size
         assert asset == "assets/model.gltf"
+
+    for pattern in source.blood_pool_match:
+        if not any(is_blood_pool(label, (pattern,)) for _, label, _ in structures):
+            raise SystemExit(
+                f"{source.key}: blood_pool_match {pattern!r} matches no structure label. "
+                "The source's labels have moved; fix the pattern rather than shipping a pack "
+                "whose lumen reads as tissue."
+            )
+    pooled = sum(1 for _, label, _ in structures
+                 if is_blood_pool(label, source.blood_pool_match))
+    if pooled:
+        notes.append(f"{pooled} structure(s) marked blood pool from the source's own labels")
 
     sizes["assets"] = sum(value for key, value in sizes.items() if key != "assets")
 
