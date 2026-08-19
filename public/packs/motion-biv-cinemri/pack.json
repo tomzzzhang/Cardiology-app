@@ -138,36 +138,36 @@
   "volumetric_data": {
     "geometry_report": {
       "biV-032": {
-        "vertices": 2268,
+        "vertices": 2214,
         "triangles": 4492,
         "boundary_edges": 0,
-        "nonmanifold_edges": 0,
+        "nonmanifold_edges": 10,
         "components": 11,
-        "watertight": 1
+        "watertight": 0
       },
       "biV-062": {
-        "vertices": 2256,
+        "vertices": 2225,
         "triangles": 4486,
         "boundary_edges": 0,
-        "nonmanifold_edges": 0,
+        "nonmanifold_edges": 8,
         "components": 7,
-        "watertight": 1
+        "watertight": 0
       },
       "biV-092": {
-        "vertices": 2179,
+        "vertices": 2123,
         "triangles": 4334,
         "boundary_edges": 0,
-        "nonmanifold_edges": 0,
+        "nonmanifold_edges": 45,
         "components": 6,
-        "watertight": 1
+        "watertight": 0
       },
       "biV-122": {
-        "vertices": 2138,
+        "vertices": 2133,
         "triangles": 4268,
         "boundary_edges": 0,
-        "nonmanifold_edges": 0,
+        "nonmanifold_edges": 1,
         "components": 2,
-        "watertight": 1
+        "watertight": 0
       },
       "biV-152": {
         "vertices": 2078,
@@ -178,12 +178,12 @@
         "watertight": 1
       },
       "biV-182": {
-        "vertices": 2050,
+        "vertices": 2045,
         "triangles": 4092,
         "boundary_edges": 0,
-        "nonmanifold_edges": 0,
+        "nonmanifold_edges": 1,
         "components": 2,
-        "watertight": 1
+        "watertight": 0
       },
       "biV-212": {
         "vertices": 1814,
@@ -202,20 +202,20 @@
         "watertight": 1
       },
       "biV-272": {
-        "vertices": 1747,
+        "vertices": 1738,
         "triangles": 3486,
         "boundary_edges": 0,
-        "nonmanifold_edges": 0,
+        "nonmanifold_edges": 1,
         "components": 2,
-        "watertight": 1
+        "watertight": 0
       },
       "biV-302": {
-        "vertices": 1712,
+        "vertices": 1703,
         "triangles": 3414,
         "boundary_edges": 0,
-        "nonmanifold_edges": 0,
+        "nonmanifold_edges": 1,
         "components": 3,
-        "watertight": 1
+        "watertight": 0
       }
     }
   }

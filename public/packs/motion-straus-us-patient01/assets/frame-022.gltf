@@ -3,7 +3,7 @@
   {
    "bufferView": 0,
    "componentType": 5126,
-   "count": 11370,
+   "count": 7536,
    "max": [
     38.89249801635742,
     55.61800003051758,
@@ -19,7 +19,7 @@
   {
    "bufferView": 1,
    "componentType": 5126,
-   "count": 11370,
+   "count": 7536,
    "type": "VEC3"
   },
   {
@@ -36,26 +36,26 @@
  "bufferViews": [
   {
    "buffer": 0,
-   "byteLength": 136440,
+   "byteLength": 90432,
    "byteOffset": 0,
    "target": 34962
   },
   {
    "buffer": 0,
-   "byteLength": 136440,
-   "byteOffset": 136440,
+   "byteLength": 90432,
+   "byteOffset": 90432,
    "target": 34962
   },
   {
    "buffer": 0,
    "byteLength": 180912,
-   "byteOffset": 272880,
+   "byteOffset": 180864,
    "target": 34963
   }
  ],
  "buffers": [
   {
-   "byteLength": 453792,
+   "byteLength": 361776,
    "uri": "frame-022.bin"
   }
  ],

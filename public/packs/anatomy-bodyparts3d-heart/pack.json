@@ -761,116 +761,116 @@
   "volumetric_data": {
     "geometry_report": {
       "FJ2727": {
-        "vertices": 627,
+        "vertices": 487,
         "triangles": 970,
-        "boundary_edges": 322,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 5,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2728": {
-        "vertices": 190,
+        "vertices": 143,
         "triangles": 282,
-        "boundary_edges": 104,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2729": {
-        "vertices": 156,
+        "vertices": 113,
         "triangles": 222,
-        "boundary_edges": 100,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2435": {
-        "vertices": 508,
+        "vertices": 462,
         "triangles": 920,
-        "boundary_edges": 92,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2420": {
-        "vertices": 4052,
+        "vertices": 3757,
         "triangles": 7558,
-        "boundary_edges": 676,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 28,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2421": {
-        "vertices": 4282,
+        "vertices": 4068,
         "triangles": 8160,
-        "boundary_edges": 480,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 19,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2419": {
-        "vertices": 580,
+        "vertices": 443,
         "triangles": 882,
-        "boundary_edges": 302,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 5,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2429": {
-        "vertices": 487,
+        "vertices": 392,
         "triangles": 780,
-        "boundary_edges": 196,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 8,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2418": {
-        "vertices": 532,
+        "vertices": 412,
         "triangles": 816,
-        "boundary_edges": 230,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 18,
-        "watertight": 0
+        "components": 2,
+        "watertight": 1
       },
       "FJ3413": {
-        "vertices": 229,
+        "vertices": 200,
         "triangles": 396,
-        "boundary_edges": 56,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2425": {
-        "vertices": 587,
+        "vertices": 534,
         "triangles": 1064,
-        "boundary_edges": 126,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2422": {
-        "vertices": 879,
+        "vertices": 863,
         "triangles": 1722,
-        "boundary_edges": 42,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
         "components": 1,
-        "watertight": 0
+        "watertight": 1
       },
       "FJ2424": {
-        "vertices": 1193,
+        "vertices": 1124,
         "triangles": 2244,
-        "boundary_edges": 146,
-        "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
-      },
-      "FJ2423": {
-        "vertices": 973,
-        "triangles": 1918,
-        "boundary_edges": 34,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
         "components": 1,
-        "watertight": 0
+        "watertight": 1
+      },
+      "FJ2423": {
+        "vertices": 961,
+        "triangles": 1918,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
       },
       "FJ2649": {
         "vertices": 692,
@@ -881,572 +881,572 @@
         "watertight": 1
       },
       "FJ2650": {
-        "vertices": 316,
+        "vertices": 200,
         "triangles": 396,
-        "boundary_edges": 250,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 8,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2651": {
-        "vertices": 395,
+        "vertices": 257,
         "triangles": 510,
-        "boundary_edges": 306,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2652": {
-        "vertices": 240,
+        "vertices": 156,
         "triangles": 308,
-        "boundary_edges": 182,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2653": {
-        "vertices": 232,
+        "vertices": 128,
         "triangles": 252,
-        "boundary_edges": 208,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 9,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2654": {
-        "vertices": 150,
+        "vertices": 88,
         "triangles": 172,
-        "boundary_edges": 116,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 9,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2643": {
-        "vertices": 269,
+        "vertices": 241,
         "triangles": 478,
-        "boundary_edges": 66,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2644": {
-        "vertices": 193,
+        "vertices": 155,
         "triangles": 306,
-        "boundary_edges": 104,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
         "components": 1,
-        "watertight": 0
+        "watertight": 1
       },
       "FJ2655": {
-        "vertices": 331,
+        "vertices": 314,
         "triangles": 624,
-        "boundary_edges": 34,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2633": {
-        "vertices": 318,
+        "vertices": 248,
         "triangles": 492,
-        "boundary_edges": 164,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2634": {
-        "vertices": 158,
+        "vertices": 100,
         "triangles": 196,
-        "boundary_edges": 126,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 2,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2635": {
-        "vertices": 495,
+        "vertices": 385,
         "triangles": 766,
-        "boundary_edges": 278,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2636": {
-        "vertices": 282,
+        "vertices": 212,
         "triangles": 420,
-        "boundary_edges": 162,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2637": {
-        "vertices": 144,
+        "vertices": 82,
         "triangles": 160,
-        "boundary_edges": 124,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2638": {
-        "vertices": 246,
+        "vertices": 147,
         "triangles": 290,
-        "boundary_edges": 202,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 7,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2639": {
-        "vertices": 122,
+        "vertices": 77,
         "triangles": 150,
-        "boundary_edges": 94,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2640": {
-        "vertices": 218,
+        "vertices": 132,
         "triangles": 260,
-        "boundary_edges": 182,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2642": {
-        "vertices": 525,
+        "vertices": 484,
         "triangles": 964,
-        "boundary_edges": 106,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
         "components": 1,
-        "watertight": 0
+        "watertight": 1
       },
       "FJ2648": {
-        "vertices": 203,
+        "vertices": 145,
         "triangles": 286,
-        "boundary_edges": 136,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2671": {
-        "vertices": 313,
+        "vertices": 241,
         "triangles": 478,
-        "boundary_edges": 164,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2673": {
-        "vertices": 243,
+        "vertices": 171,
         "triangles": 338,
-        "boundary_edges": 166,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 8,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2677": {
-        "vertices": 198,
+        "vertices": 128,
         "triangles": 252,
-        "boundary_edges": 148,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2714": {
-        "vertices": 482,
+        "vertices": 399,
         "triangles": 794,
-        "boundary_edges": 228,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2715": {
-        "vertices": 185,
+        "vertices": 111,
         "triangles": 218,
-        "boundary_edges": 156,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2716": {
-        "vertices": 188,
+        "vertices": 118,
         "triangles": 232,
-        "boundary_edges": 156,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2717": {
-        "vertices": 259,
+        "vertices": 172,
         "triangles": 340,
-        "boundary_edges": 192,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 7,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2718": {
-        "vertices": 139,
+        "vertices": 95,
         "triangles": 186,
-        "boundary_edges": 96,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 2,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2719": {
-        "vertices": 299,
+        "vertices": 192,
         "triangles": 380,
-        "boundary_edges": 226,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2720": {
-        "vertices": 233,
+        "vertices": 162,
         "triangles": 320,
-        "boundary_edges": 174,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 2,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2721": {
-        "vertices": 198,
+        "vertices": 130,
         "triangles": 256,
-        "boundary_edges": 154,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2722": {
-        "vertices": 244,
+        "vertices": 162,
         "triangles": 320,
-        "boundary_edges": 186,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2632": {
-        "vertices": 91,
+        "vertices": 56,
         "triangles": 108,
-        "boundary_edges": 66,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 5,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2645": {
-        "vertices": 224,
+        "vertices": 161,
         "triangles": 318,
-        "boundary_edges": 136,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2656": {
-        "vertices": 434,
+        "vertices": 415,
         "triangles": 826,
-        "boundary_edges": 36,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2430": {
-        "vertices": 484,
+        "vertices": 348,
         "triangles": 692,
-        "boundary_edges": 286,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 8,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2417": {
-        "vertices": 708,
+        "vertices": 638,
         "triangles": 1272,
-        "boundary_edges": 126,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 11,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2426": {
-        "vertices": 526,
+        "vertices": 459,
         "triangles": 914,
-        "boundary_edges": 122,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 11,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2667": {
-        "vertices": 267,
+        "vertices": 182,
         "triangles": 360,
-        "boundary_edges": 188,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 7,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2668": {
-        "vertices": 176,
+        "vertices": 110,
         "triangles": 216,
-        "boundary_edges": 138,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2672": {
-        "vertices": 447,
+        "vertices": 373,
         "triangles": 742,
-        "boundary_edges": 196,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2674": {
-        "vertices": 186,
+        "vertices": 144,
         "triangles": 284,
-        "boundary_edges": 96,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2675": {
-        "vertices": 148,
+        "vertices": 102,
         "triangles": 200,
-        "boundary_edges": 96,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2427": {
-        "vertices": 573,
+        "vertices": 500,
         "triangles": 996,
-        "boundary_edges": 136,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 9,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2692": {
-        "vertices": 608,
+        "vertices": 467,
         "triangles": 930,
-        "boundary_edges": 342,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 5,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2693": {
-        "vertices": 480,
+        "vertices": 385,
         "triangles": 766,
-        "boundary_edges": 246,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
         "components": 1,
-        "watertight": 0
+        "watertight": 1
       },
       "FJ2694": {
-        "vertices": 305,
+        "vertices": 214,
         "triangles": 424,
-        "boundary_edges": 206,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2695": {
-        "vertices": 163,
+        "vertices": 120,
         "triangles": 236,
-        "boundary_edges": 82,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 7,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2696": {
-        "vertices": 286,
+        "vertices": 170,
         "triangles": 336,
-        "boundary_edges": 236,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 11,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2697": {
-        "vertices": 188,
+        "vertices": 112,
         "triangles": 220,
-        "boundary_edges": 152,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2698": {
-        "vertices": 195,
+        "vertices": 102,
         "triangles": 200,
-        "boundary_edges": 184,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 8,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2699": {
-        "vertices": 126,
+        "vertices": 65,
         "triangles": 126,
-        "boundary_edges": 114,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 7,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2700": {
-        "vertices": 197,
+        "vertices": 142,
         "triangles": 280,
-        "boundary_edges": 118,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 5,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2432": {
-        "vertices": 2560,
+        "vertices": 1888,
         "triangles": 3820,
-        "boundary_edges": 1382,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 73,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2433": {
-        "vertices": 2729,
+        "vertices": 2449,
         "triangles": 4926,
-        "boundary_edges": 664,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 18,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2966": {
-        "vertices": 871,
+        "vertices": 653,
         "triangles": 1302,
-        "boundary_edges": 390,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 31,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2434": {
-        "vertices": 769,
+        "vertices": 689,
         "triangles": 1370,
-        "boundary_edges": 138,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 15,
-        "watertight": 0
+        "components": 2,
+        "watertight": 1
       },
       "FJ2670": {
-        "vertices": 280,
+        "vertices": 223,
         "triangles": 442,
-        "boundary_edges": 146,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 2,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2676": {
-        "vertices": 233,
+        "vertices": 154,
         "triangles": 304,
-        "boundary_edges": 166,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 6,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2431": {
-        "vertices": 215,
+        "vertices": 160,
         "triangles": 316,
-        "boundary_edges": 106,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 5,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2646": {
-        "vertices": 287,
+        "vertices": 237,
         "triangles": 470,
-        "boundary_edges": 118,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2436": {
-        "vertices": 2591,
+        "vertices": 2251,
         "triangles": 4526,
-        "boundary_edges": 784,
-        "nonmanifold_edges": 0,
-        "components": 27,
-        "watertight": 0
-      },
-      "FJ2437": {
-        "vertices": 539,
-        "triangles": 844,
-        "boundary_edges": 240,
-        "nonmanifold_edges": 0,
-        "components": 13,
-        "watertight": 0
-      },
-      "FJ2724": {
-        "vertices": 294,
-        "triangles": 570,
-        "boundary_edges": 28,
-        "nonmanifold_edges": 0,
-        "components": 1,
-        "watertight": 0
-      },
-      "FJ2731": {
-        "vertices": 454,
-        "triangles": 892,
-        "boundary_edges": 24,
-        "nonmanifold_edges": 0,
-        "components": 1,
-        "watertight": 0
-      },
-      "FJ3645": {
-        "vertices": 318,
-        "triangles": 598,
-        "boundary_edges": 48,
-        "nonmanifold_edges": 0,
-        "components": 1,
-        "watertight": 0
-      },
-      "FJ2641": {
-        "vertices": 322,
-        "triangles": 442,
-        "boundary_edges": 216,
-        "nonmanifold_edges": 0,
-        "components": 9,
-        "watertight": 0
-      },
-      "FJ2647": {
-        "vertices": 216,
-        "triangles": 306,
-        "boundary_edges": 130,
-        "nonmanifold_edges": 0,
-        "components": 4,
-        "watertight": 0
-      },
-      "FJ2631": {
-        "vertices": 1549,
-        "triangles": 3032,
-        "boundary_edges": 64,
-        "nonmanifold_edges": 0,
-        "components": 3,
-        "watertight": 0
-      },
-      "FJ2737": {
-        "vertices": 121,
-        "triangles": 204,
-        "boundary_edges": 34,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
         "components": 2,
-        "watertight": 0
+        "watertight": 1
       },
-      "FJ2723": {
-        "vertices": 2255,
-        "triangles": 4502,
-        "boundary_edges": 8,
+      "FJ2437": {
+        "vertices": 424,
+        "triangles": 844,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
         "components": 1,
-        "watertight": 0
+        "watertight": 1
+      },
+      "FJ2724": {
+        "vertices": 287,
+        "triangles": 570,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ2731": {
+        "vertices": 448,
+        "triangles": 892,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ3645": {
+        "vertices": 301,
+        "triangles": 598,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ2641": {
+        "vertices": 223,
+        "triangles": 442,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ2647": {
+        "vertices": 155,
+        "triangles": 306,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ2631": {
+        "vertices": 1518,
+        "triangles": 3032,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ2737": {
+        "vertices": 104,
+        "triangles": 204,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ2723": {
+        "vertices": 2253,
+        "triangles": 4502,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
       },
       "FJ2438": {
-        "vertices": 4284,
+        "vertices": 3766,
         "triangles": 7544,
-        "boundary_edges": 1102,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 32,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       },
       "FJ2439": {
-        "vertices": 9887,
+        "vertices": 8890,
         "triangles": 17784,
-        "boundary_edges": 1826,
+        "boundary_edges": 0,
         "nonmanifold_edges": 0,
-        "components": 124,
-        "watertight": 0
+        "components": 1,
+        "watertight": 1
       }
     }
   }

@@ -478,11 +478,11 @@ BODYPARTS3D = GeometrySource(
         "and likewise. Eight of the 86 parts have a tied smallest concept, and their labels "
         "carry both names rather than the pipeline picking one. The SEMILUNAR cusps are not "
         "ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles.",
-        "EVERY SURFACE IS OPEN. All 86 parts carry boundary edges — 8 on the right coronary "
-        "trunk, 1,826 on the right atrial wall — and many split into dozens of connected "
-        "components. Nothing is watertight, so the free cutter's stencil caps will speckle "
-        "wherever a cut crosses an opening. No hole is filled: on a source like this, filling "
-        "would fabricate the very surfaces a learner would be reading.",
+        "The OBJs duplicate a vertex per adjacent face along their seams. Unwelded they look "
+        "open — 1,826 boundary edges and 124 connected components on the right atrial wall — "
+        "and they are not: welded, all 86 parts are watertight, single-component and "
+        "manifold. The ingest welds exactly coincident vertices, which moves no surface. This "
+        "is recorded because a reader measuring the raw OBJs will see the larger numbers.",
         "NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the "
         "pulmonary arteries as part of the heart, and their elements run 96-335 mm down the "
         "body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are "

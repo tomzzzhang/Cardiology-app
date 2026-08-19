@@ -238,7 +238,7 @@
   "volumetric_data": {
     "geometry_report": {
       "usmesh00": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -246,7 +246,7 @@
         "watertight": 1
       },
       "usmesh01": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -254,7 +254,7 @@
         "watertight": 1
       },
       "usmesh02": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -262,7 +262,7 @@
         "watertight": 1
       },
       "usmesh03": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -270,7 +270,7 @@
         "watertight": 1
       },
       "usmesh04": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -278,7 +278,7 @@
         "watertight": 1
       },
       "usmesh05": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -286,7 +286,7 @@
         "watertight": 1
       },
       "usmesh06": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -294,7 +294,7 @@
         "watertight": 1
       },
       "usmesh07": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -302,7 +302,7 @@
         "watertight": 1
       },
       "usmesh08": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -310,7 +310,7 @@
         "watertight": 1
       },
       "usmesh09": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -318,7 +318,7 @@
         "watertight": 1
       },
       "usmesh10": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -326,7 +326,7 @@
         "watertight": 1
       },
       "usmesh11": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -334,7 +334,7 @@
         "watertight": 1
       },
       "usmesh12": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -342,7 +342,7 @@
         "watertight": 1
       },
       "usmesh13": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -350,7 +350,7 @@
         "watertight": 1
       },
       "usmesh14": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -358,7 +358,7 @@
         "watertight": 1
       },
       "usmesh15": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -366,7 +366,7 @@
         "watertight": 1
       },
       "usmesh16": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -374,7 +374,7 @@
         "watertight": 1
       },
       "usmesh17": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -382,7 +382,7 @@
         "watertight": 1
       },
       "usmesh18": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -390,7 +390,7 @@
         "watertight": 1
       },
       "usmesh19": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -398,7 +398,7 @@
         "watertight": 1
       },
       "usmesh20": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -406,7 +406,7 @@
         "watertight": 1
       },
       "usmesh21": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -414,7 +414,7 @@
         "watertight": 1
       },
       "usmesh22": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -422,7 +422,7 @@
         "watertight": 1
       },
       "usmesh23": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -430,7 +430,7 @@
         "watertight": 1
       },
       "usmesh24": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -438,7 +438,7 @@
         "watertight": 1
       },
       "usmesh25": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -446,7 +446,7 @@
         "watertight": 1
       },
       "usmesh26": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -454,7 +454,7 @@
         "watertight": 1
       },
       "usmesh27": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -462,7 +462,7 @@
         "watertight": 1
       },
       "usmesh28": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,
@@ -470,7 +470,7 @@
         "watertight": 1
       },
       "usmesh29": {
-        "vertices": 11370,
+        "vertices": 7536,
         "triangles": 15076,
         "boundary_edges": 0,
         "nonmanifold_edges": 0,

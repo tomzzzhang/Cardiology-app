@@ -116,6 +116,83 @@ def resolve_members(cache_dir: Path, patterns: tuple[str, ...]) -> list[Path]:
 
 
 # --------------------------------------------------------------------------- #
+# welding                                                                      #
+# --------------------------------------------------------------------------- #
+
+
+def weld(surface: Surface) -> tuple[Surface, np.ndarray]:
+    """
+    Drop unreferenced vertices and merge EXACTLY coincident ones.
+
+    Returns the welded surface and the map from old vertex index to new, so a
+    keyframed pack can weld every frame through one mapping.
+
+    Both halves are lossless. Dropping a vertex no face references removes
+    nothing that renders — a tetrahedral source hands over every point in the
+    volume and only its boundary is drawn, which was a third of the STRAUS
+    pack's bytes. Merging vertices whose float32 coordinates are BIT-IDENTICAL
+    moves no surface: the two vertices are the same point, written twice.
+
+    Exact equality, with no tolerance, deliberately. A tolerance would be a
+    judgement about how close is close enough, and a wrong one welds a real gap
+    shut. Everything this fixes is an exact duplicate anyway.
+
+    NOT welding was a real defect and it looked like bad source data. BodyParts3D
+    OBJs duplicate a vertex per adjacent face along their seams, so unwelded they
+    report 1,826 boundary edges and 124 connected components on a surface that is
+    actually closed and single-piece — and the free cutter's stencil caps, which
+    count front and back faces to decide what is inside, then paint solid over
+    the cavities instead of capping the cut. The pack looked like segmentation
+    debris. It was this function missing.
+    """
+    used = np.unique(surface.faces)
+    vertices = surface.vertices[used]
+    faces = np.searchsorted(used, surface.faces)
+    unique, inverse = np.unique(vertices, axis=0, return_inverse=True)
+
+    mapping = np.full(surface.vertex_count, -1, dtype=np.int64)
+    mapping[used] = inverse.reshape(-1)
+    return (
+        Surface(
+            name=surface.name,
+            vertices=np.ascontiguousarray(unique, dtype=np.float32),
+            faces=np.ascontiguousarray(inverse.reshape(-1)[faces], dtype=np.int32),
+        ),
+        mapping,
+    )
+
+
+def weld_frames(surfaces: list[Surface]) -> tuple[list[Surface], bool]:
+    """
+    Weld a keyframe sequence, and say whether vertex correspondence survived.
+
+    Correspondence means every frame shares one vertex ordering, so welding each
+    frame independently would destroy it: `np.unique` sorts by COORDINATE, and
+    the coordinates are exactly what differs between frames.
+
+    Where the frames share connectivity — identical face arrays, which is what a
+    deforming mesh has — one mapping derived from frame 0 is valid for all of
+    them, and applying it keeps the ordering identical by construction. Where
+    they do not, each frame is welded on its own and the caller is told the
+    claim no longer holds.
+    """
+    shared = all(np.array_equal(surfaces[0].faces, other.faces) for other in surfaces[1:])
+    if not shared:
+        return [weld(surface)[0] for surface in surfaces], False
+
+    welded_first, mapping = weld(surfaces[0])
+    welded = [welded_first]
+    for surface in surfaces[1:]:
+        kept = mapping >= 0
+        vertices = np.zeros((int(mapping.max()) + 1, 3), dtype=np.float32)
+        # Duplicates of one welded vertex hold the same coordinates in every
+        # frame, so writing them all and letting the last win is exact.
+        vertices[mapping[kept]] = surface.vertices[kept]
+        welded.append(Surface(name=surface.name, vertices=vertices,
+                              faces=welded_first.faces))
+    return welded, True
+
+# --------------------------------------------------------------------------- #
 # units and centring                                                           #
 # --------------------------------------------------------------------------- #
 
@@ -471,6 +548,23 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
             f"{source.key}: declared animated but only {len(surfaces)} file(s) matched"
         )
 
+    before = sum(surface.vertex_count for surface in surfaces)
+    if source.animated:
+        surfaces, correspondence_held = weld_frames(surfaces)
+    else:
+        surfaces = [weld(surface)[0] for surface in surfaces]
+        correspondence_held = False
+    after = sum(surface.vertex_count for surface in surfaces)
+    if after != before:
+        notes.append(
+            f"welded: {before:,} vertices -> {after:,}, dropping unreferenced points and "
+            "merging exact duplicates. No surface moved."
+        )
+    if source.animated and not correspondence_held:
+        notes.append(
+            "frames do not share connectivity, so each was welded on its own"
+        )
+
     placement = measure_placement(surfaces)
     surfaces = [placement.apply(surface) for surface in surfaces]
     notes.append(placement.note)
@@ -538,11 +632,14 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
     # independently destroys any correspondence they arrived with — and a pack
     # that kept claiming it would be telling a future deformation-field
     # derivation that it can do something it cannot.
-    correspondence = source.vertex_correspondence and not decimated
-    if source.vertex_correspondence and decimated:
+    correspondence = source.vertex_correspondence and correspondence_held and not decimated
+    if source.vertex_correspondence and not correspondence:
         notes.append(
-            "vertex_correspondence WITHDRAWN: frames were decimated independently, which "
-            "does not preserve vertex count or ordering"
+            "vertex_correspondence WITHDRAWN: "
+            + ("frames were decimated independently, which does not preserve vertex count "
+               "or ordering" if decimated
+               else "frames do not share connectivity, so one weld mapping does not apply "
+                    "to all of them")
         )
 
     pack = explore_pack(source, structures, placement, frames, measurements, correspondence)

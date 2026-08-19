@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 06:27 EDT
+**Last Updated:** 2026-08-19 08:14 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -858,13 +858,12 @@ the rights holder's own page.
 - **The semilunar cusps ARE real, and they are coarse.** Three aortic and three pulmonary cusps,
   15–24 mm across, 316 to 1,370 triangles each. Cusp-sized, cusp-shaped, and visibly faceted at any
   useful zoom. Not smoothed here — smoothing them would be sculpting anatomy.
-- **Every single surface is open, and the cut has no faces.** Boundary edges run from 8 on the right
-  coronary trunk to 1,826 on the right atrial wall; the right atrial wall alone splits into 124
-  connected components. Turn the cutter on and the model does not open into solid cut faces the way
-  Rodero does — it clips into hollow shells, because the stencil parity the caps depend on needs a
-  closed surface. **This is visible immediately and is the pack's worst practical defect.** No hole
-  is filled, deliberately: on a source like this, filling would fabricate the surfaces a learner
-  would then be reading.
+- ~~**Every single surface is open, and the cut has no faces.**~~ **WRONG, and the fault was in this
+  pipeline rather than in the source — see entry 29.** The OBJs duplicate a vertex per adjacent face
+  along their seams; unwelded they measure 1,826 boundary edges and 124 connected components on the
+  right atrial wall. Welded, **all 86 parts are watertight, single-component and manifold**. The
+  ingest now welds exactly coincident vertices, which moves no surface, and the cutter caps this
+  pack properly.
 - **All 86 parts render in one grey.** The palette is keyed by the Rodero slugs, and everything else
   falls to the unnamed grey. With 86 structures that is a wall of identical grey with no way to tell
   a papillary muscle from a coronary branch except by shape. It is the single biggest thing standing
@@ -875,9 +874,10 @@ the rights holder's own page.
   the body and would have tripled the model bounds, which the camera framing and the unit inference
   are both measured from. Excluded on that basis, and the pack says so.
 
-**Is it worth keeping?** Yes, clearly the best model on the shelf. It is the only source with
-separate cusps, separate papillary muscles, chamber cavities and a coronary tree, and it looks like
-a heart from the first frame without any cutting.
+**Is it worth keeping?** Yes, clearly the best model on the shelf, and more clearly than this entry
+first said. It is the only source with separate cusps, separate papillary muscles, chamber cavities
+and a coronary tree; it looks like a heart from the first frame without cutting; and every part of
+it is closed, so it cuts properly too.
 
 **Decisions for the owner.**
 
@@ -887,9 +887,8 @@ a heart from the first frame without any cutting.
    with the palette. Deriving a stable colour per structure id would make this pack legible and
    would change what "grey" means on the shipped one. That is a palette decision and the palette is
    yours.
-2. **Whether open surfaces should get caps at all.** The alternative to hollow clipping is filling
-   holes, which fabricates geometry. A third option — capping only the surfaces that are closed, and
-   saying which — has not been built.
+2. ~~**Whether open surfaces should get caps at all.**~~ Withdrawn for this pack, whose surfaces are
+   closed. Still live for CobivecoX, whose ventricles are genuinely truncated at the base.
 3. **The licence contradiction.** The rights holder's current page grants CC BY 4.0 with explicit
    redistribution and derivative rights, quoted in the pack. Older mirrors of the same project state
    CC BY-SA 2.1 Japan. If the older reading is right, anything derived from this is share-alike. The
@@ -972,8 +971,8 @@ to wave 1d, so it does not collide with the view rail.
 **Where.** Pick the STRAUS chip. Explore only, and Play.
 
 **What it is.** 30 frames of a biventricular myocardium from the Multimodality STRAUS synthetic
-database, patient01_healthy, ultrasound modality. 11,370 vertices and 15,076 boundary triangles per
-frame, **identical in count and ordering across all 30**, covering one whole cardiac cycle. 13.7 MB
+database, patient01_healthy, ultrasound modality. 7,536 vertices and 15,076 triangles per frame after
+welding, **identical in count and ordering across all 30**, covering one whole cardiac cycle. 10.9 MB
 derived — the largest pack in the repository.
 
 **What it gets right.**
@@ -1008,9 +1007,10 @@ derived — the largest pack in the repository.
 - **One undivided myocardium.** No chambers, no labels, no echo. And because it is the boundary of a
   myocardial *volume*, the surface is epicardium and endocardium as one closed shell — the
   endocardial surface is genuinely in there, tucked inside, and only the cutter reveals it.
-- **13.7 MB for a pack that does not ship.** It is inside the 15 MB per-pack budget and it is the
-  largest thing in the repository. Decimating would halve it and destroy the correspondence, so
-  there is no cheap saving here.
+- **10.9 MB for a pack that does not ship.** Inside the 15 MB per-pack budget and the largest thing
+  in the repository. It was 13.7 MB until welding dropped the volume-interior points no face
+  references — a third of every frame. Decimating would halve what is left and destroy the
+  correspondence, so there is no cheap saving beyond that.
 
 **Is it worth keeping?** Yes. It is the best moving asset by a wide margin and the only candidate for
 any future deformation-field work. The licence is the thing standing between it and usefulness, and
@@ -1076,3 +1076,71 @@ before the model is reached, and on a phone you scroll past the whole shelf to g
 Nothing is broken and nothing has been changed for it — this is the note that the threshold was
 predicted and has now been crossed. What it wants is probably a collapsed control that shows the
 current pack and opens the shelf on demand, with the two groups intact.
+
+---
+
+## 29. The geometry ingest was not welding vertices, and it made good models look broken
+
+**This entry exists because the owner looked at the shelf and said most of it was wrong. Three of
+the four complaints were right and one of them was a defect in this pipeline, not in the data.**
+
+**What was wrong.** `pipeline/geometry.py` read each surface and used it as it arrived. Several of
+these formats duplicate a vertex per adjacent face along seams — BodyParts3D OBJs do it everywhere —
+and a tetrahedral source hands over every point in the volume when only the boundary is drawn.
+Neither was being cleaned up.
+
+**What that did, measured.**
+
+| Source | Unwelded | Welded |
+| --- | --- | --- |
+| BodyParts3D right atrial wall | 1,826 boundary edges, 124 components, open | **0, 1 component, watertight** |
+| BodyParts3D posterior mitral element | 1,382 boundary edges, 73 components, open | **0, 1 component, watertight** |
+| BodyParts3D, all 86 parts | every one "open" | **every one watertight** |
+| STRAUS, per frame | 11,370 vertices | 7,536 — a third were unreferenced |
+
+The visible consequences, all of which the owner saw before anyone measured anything:
+
+- **The free cutter's stencil caps count front and back faces to decide what is inside.** An open
+  surface breaks that parity, so instead of capping the cut the quad painted solid over whole
+  regions — "in cut view the cavities are filled". The surfaces were never open.
+- **Observation 24 recorded 124 connected components as segmentation debris.** It was seam
+  duplication. That claim was wrong and is struck through above.
+- **The STRAUS pack was 13.7 MB**, a third of it points nothing draws.
+
+**The fix.** `weld()` drops unreferenced vertices and merges vertices whose float32 coordinates are
+bit-identical. Both are lossless — a vertex no face references renders nothing, and two vertices at
+the same coordinates are one point written twice. **Exact equality, no tolerance**, because a
+tolerance is a judgement about how close is close enough and a wrong one welds a real gap shut.
+
+For a keyframed pack the weld has to be done once and applied to every frame: `np.unique` sorts by
+coordinate, and the coordinates are exactly what differs between frames, so welding each frame
+independently would destroy the vertex correspondence STRAUS exists for. Where frames share
+connectivity the mapping from frame 0 is valid for all of them; where they do not, each is welded
+alone and the correspondence claim is withdrawn.
+
+**Why it was missed.** `ingest.py` has always welded, inside `repair()` — which also calls
+`fill_holes()`. The geometry path deliberately skips `repair()` because filling holes on a
+genuinely open source fabricates anatomy. That reasoning is right and the conclusion drawn from it
+was too broad: welding and hole-filling were dropped together when only hole-filling adds geometry.
+One is a measurement, the other is an invention.
+
+**What welding did NOT fix**, so these were real all along:
+
+- **`motion-biv-cinemri` still has 11 connected components** at end-diastole and 1 at end-systole,
+  and picks up non-manifold edges when welded. That debris is in the source.
+- **CobivecoX is genuinely open.** The ventricles are truncated at the base and an annulus is a
+  ring; welding changes nothing. Its cut faces will stay unreliable, and that is the source.
+- **KIT was already clean** — welding changed not one vertex.
+
+**What is still nothing to do with preprocessing**, and remains the honest answer to "why does the
+shelf look bad":
+
+1. **Everything renders in one grey** (entries 24, 25, 27). The palette is keyed to the Rodero
+   slugs. This is the biggest single thing left.
+2. **There is no per-structure show/hide** (entry 25). KIT's pericardium is an opaque bag; the
+   CobivecoX and STRAUS models nest an endocardial surface inside an epicardial one and nothing can
+   take the outer one off.
+3. **Explore's default camera framing is inherited, not designed.** Several packs open looking
+   straight into their own base, where the truncated ventricles and annuli read as craters in a
+   blob. That is what "Fallot and STRAUS are blobs with holes" is: a real opening, seen end-on,
+   with no colour to separate the surfaces nested inside it.

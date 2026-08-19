@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-19 06:27 EDT
+**Updated:** 2026-08-19 08:14 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -61,6 +61,21 @@ heart can plausibly span, and records the reasoning; centres on the model bounds
 unnamed structure where the source has no labels and one per file where it is a directory of
 parts; and writes one glTF per frame where the source moves.
 
+It **welds** every surface it reads: unreferenced vertices are dropped and exactly coincident ones
+merged. Both are lossless — a vertex no face references renders nothing, and two vertices at the
+same float32 coordinates are one point written twice — and skipping it was a real defect. Several
+of these formats duplicate a vertex per adjacent face along seams, so unwelded they measure open and
+multi-component when they are neither: all 86 BodyParts3D parts read as open with up to 124
+connected components, and welded every one of them is watertight. The free cutter's stencil caps
+depend on front/back face parity, so an apparently-open surface made the caps paint solid over whole
+cavities. See `docs/observations.md` entry 29.
+
+Welding uses **exact** float32 equality with no tolerance: a tolerance is a judgement about how
+close is close enough, and a wrong one welds a real gap shut. On a keyframed source the weld is
+computed once from frame 0 and applied to every frame, because `np.unique` sorts by coordinate and
+the coordinates are exactly what differs between frames — welding frames independently would destroy
+the vertex correspondence.
+
 Three things it deliberately does not do.
 
 - **It derives no anatomical frame and claims none.** No labels means no landmarks means no
@@ -69,7 +84,9 @@ Three things it deliberately does not do.
 - **It fills no holes.** `ingest.py` closes what decimation opens, because a tag-group
   boundary is closed by construction and a hole there is damage. A geometry-only surface may
   be genuinely open — a biventricular surface truncated at the valve plane is open on purpose
-  — so openness is measured and reported instead of repaired away.
+  — so openness is measured and reported instead of repaired away. Note the distinction from
+  welding above: merging duplicate vertices measures what is already there, filling a hole invents
+  something. Dropping both together was the mistake `docs/observations.md` entry 29 records.
 - **It centres every frame together, never each frame on itself.** Per-frame centring would
   subtract exactly the bulk translation that makes a beating heart beat.
 
