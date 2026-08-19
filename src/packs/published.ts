@@ -113,7 +113,14 @@ export const UNPUBLISHED_PACKS: Readonly<Record<string, NotPublished>> = {
       'CC BY 4.0, state "confirmed" — read from the Zenodo record\'s own licence field. ' +
       'Not published anyway: this build is for the owner\'s own use, nothing new ships, and ' +
       'the pack is undocumented supplementary data of unverified quality. It is here to be ' +
-      'LOOKED AT, which is the only claim made for it.',
+      'LOOKED AT, which is the only claim made for it. ' +
+      'WHY IT IS KEPT, since every visible criterion says delete it: it loses to STRAUS on ' +
+      'every technical axis — 10 frames against 30, no vertex correspondence, half a cycle, ' +
+      'and 11 components of segmentation debris — and anyone judging the two on quality would ' +
+      'drop this one and be right to. But STRAUS has NO LICENCE STATEMENT at its source at ' +
+      'all, and this is CC BY 4.0 confirmed, which makes it the only moving asset here that ' +
+      'could EVER ship. A worse model that may be published outranks a better one that may ' +
+      'not. Deleting it leaves the project with no motion it is allowed to show.',
   },
 };
 

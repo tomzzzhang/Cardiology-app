@@ -35,7 +35,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
-import { frameAt, imagingFrame, poseAt, type ImagingFrame } from '../echo/probeFrame.ts';
+import { frameAt, imagingFrame, poseAt, withApexFlip, type ImagingFrame } from '../echo/probeFrame.ts';
 import {
   NUDGE_DEG,
   STANDOFF_STEP_MM,
@@ -44,11 +44,14 @@ import {
   type ProbeAxis,
 } from './freeProbe.ts';
 import { ProbeIndicator } from './wedge.ts';
-import { StencilCaps, type CapSource } from './caps.ts';
+import { StencilCaps, capsAtCut, type CapSource } from './caps.ts';
+import { axisVector } from '../schema/packV0.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
 import {
   dragOrientation,
   echoOrientation,
+  levelled,
+  lockedDragOrientation,
   glideStep,
   orbitPose,
   orientationFromYawPitch,
@@ -140,6 +143,16 @@ interface PackViewerProps {
    * for the same reason the probe arrow is not drawn without `onScrubChange`.
    */
   onStructureClick?: (id: string | null) => void;
+  /**
+   * UI-6, for ONE purpose: so "Match echo" matches what the panel is showing.
+   *
+   * The toggle flips the echo panel and never the 3D camera. But "Match echo"
+   * is the control that reconciles the two, so it has to orient to the image on
+   * screen rather than to the one the pack authored — otherwise the one button
+   * whose job is agreement produces disagreement. Nothing else here reads it:
+   * the wedge, the cut plane and the default camera are untouched.
+   */
+  apexFlipped?: boolean;
 }
 
 /** Radians of plane rotation per pixel of handle drag. */
@@ -184,6 +197,8 @@ interface ViewerApi {
   setBeamDim: (strength: number) => void;
   setGhost: (on: boolean) => void;
   setPointerClass: (coarse: boolean) => void;
+  /** Echo mode only: hold the model's measured long axis vertical under orbit. */
+  setHorizonLock: (on: boolean) => void;
   /** Distance from a world point to the nearest model surface, in pack units. */
   clearanceMm: (point: readonly [number, number, number]) => number;
   /** Whether the cutter should be reversed for the cut to open toward the camera. */
@@ -200,7 +215,7 @@ interface ViewerApi {
 
 export default function PackViewer({
   pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
-  freePose = null, onScrubChange, onFreePoseChange, onStructureClick,
+  freePose = null, onScrubChange, onFreePoseChange, onStructureClick, apexFlipped = false,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   /*
@@ -229,6 +244,18 @@ export default function PackViewer({
   const [cutFlipped, setCutFlipped] = useState(false);
   /** UI-2: mark the imaged tissue by dimming what the beam misses. */
   const [beamDim, setBeamDim] = useState(true);
+  /**
+   * WHICH WAY IS UP, as an option rather than as the only behaviour.
+   *
+   * Echo mode only and OFF by default. Trackball orbit stays the default
+   * everywhere and the only option in Explore, where free inspection is the
+   * point and the turntable was removed because it could not reach every angle.
+   * In Echo, which way is up is diagnostic rather than cosmetic, so the lock is
+   * offered there — and it is the model's own long axis that is held vertical,
+   * not world up, because those are the same thing only while the heart happens
+   * to be upright.
+   */
+  const [horizonLock, setHorizonLock] = useState(false);
   /**
    * The cine axis: WHICH GEOMETRY is on screen, not where the probe is.
    *
@@ -432,6 +459,24 @@ export default function PackViewer({
     let cutActive = false;
 
     /* --- orbit state, pivoting on C -------------------------------------- */
+    /*
+     * The axis the horizon lock holds vertical: the model's own long axis, in
+     * WORLD space.
+     *
+     * It comes from the pack — `meshes.orientation.up`, which for a labelled
+     * substrate is the derived cardiac frame recorded in `meshes.anatomical_frame`
+     * and measured rather than declared — carried through `canonical_pose` the
+     * way the pivot is. World up would be the wrong axis: it is the same thing
+     * only while the heart happens to be upright, and holding the heart upright
+     * is the entire job.
+     */
+    const lockAxis = new THREE.Vector3(...axisVector(pack.meshes.orientation.up))
+      .applyEuler(new THREE.Euler(
+        ...(pack.meshes.canonical_pose.rotation_euler_xyz_deg.map(
+          (degrees) => (degrees * Math.PI) / 180,
+        ) as [number, number, number]),
+      ))
+      .normalize();
     let pivot = new THREE.Vector3();
     let radius = 400;
     /*
@@ -852,6 +897,7 @@ export default function PackViewer({
     };
 
     /* --- input ------------------------------------------------------------ */
+    let horizonLocked = false;
     let dragging = false;
     let lastX = 0;
     let lastY = 0;
@@ -1000,10 +1046,20 @@ export default function PackViewer({
           gesture.unitsPerPixel,
         ));
       } else {
-        // No clamp anywhere: the model turns all the way over. See `orbit.ts`.
-        orientation = dragOrientation(
-          orientation, event.clientX - lastX, event.clientY - lastY,
-        );
+        /*
+         * No clamp anywhere: the model turns all the way over. See `orbit.ts`.
+         * With the horizon LOCKED — Echo mode only, off by default — horizontal
+         * drag turns about the model's own long axis instead and the result is
+         * re-levelled, so the heart cannot accumulate roll while a trainee is
+         * being taught which way up it goes.
+         */
+        orientation = horizonLocked
+          ? lockedDragOrientation(
+            orientation, event.clientX - lastX, event.clientY - lastY, lockAxis,
+          )
+          : dragOrientation(
+            orientation, event.clientX - lastX, event.clientY - lastY,
+          );
         applyCamera();
       }
 
@@ -1208,7 +1264,7 @@ export default function PackViewer({
            * Nothing else changes for these structures — they still draw, still
            * ghost, still clip. The cap is the only thing withheld.
            */
-          if (!isPool) {
+          if (capsAtCut({ blood_pool: isPool })) {
             capSources.push({
               id: object.name,
               geometry: object.geometry,
@@ -1389,6 +1445,25 @@ export default function PackViewer({
         cut.flipped = next.flipped;
         applyCut();
         applyReveal(null, null);
+        schedule();
+      },
+      setHorizonLock: (on) => {
+        horizonLocked = on;
+        host.dataset.horizonLock = on ? 'on' : 'off';
+        /*
+         * Turning it ON levels what is already on screen rather than jumping to
+         * a canonical pose: the learner keeps looking at what they were looking
+         * at and the horizon comes straight under it. `levelled` moves the
+         * screen's up and never the view direction, which is what makes that
+         * true rather than merely close.
+         */
+        if (on) {
+          const level = levelled(orientation, lockAxis);
+          if (level) {
+            orientation = level;
+            applyCamera();
+          }
+        }
         schedule();
       },
       setPointerClass: (next) => {
@@ -1609,6 +1684,15 @@ export default function PackViewer({
   useEffect(() => {
     apiRef.current?.setGhost(ghostCutaway);
   }, [ghostCutaway, status]);
+
+  /*
+   * The lock is Echo's, so leaving Echo drops it rather than carrying a mode's
+   * behaviour into a mode that does not offer it. Explore's orbit is a
+   * trackball, always, and free inspection is the point there.
+   */
+  useEffect(() => {
+    apiRef.current?.setHorizonLock(mode === 'echo' && horizonLock);
+  }, [horizonLock, mode, status]);
 
   // Explore has no probe, so it has nothing to sync a cut plane to.
   useEffect(() => {
@@ -2160,6 +2244,31 @@ export default function PackViewer({
             </label>
           )}
 
+          {/*
+            * WHICH WAY IS UP. Echo only, off by default.
+            *
+            * Trackball orbit is the default everywhere and the only option in
+            * Explore, where free inspection is the point and the turntable was
+            * removed because it could not reach every angle. Here, which way is
+            * up is diagnostic rather than cosmetic, so holding the heart's own
+            * long axis vertical is offered — as an option, not as the
+            * behaviour, because the reason the turntable went is still true.
+            */}
+          {echoMode && (
+            <label
+              className="cutter__toggle"
+              title="Hold the heart's long axis vertical while orbiting"
+            >
+              <input
+                type="checkbox"
+                checked={horizonLock}
+                onChange={(event) => setHorizonLock(event.target.checked)}
+                data-testid="horizon-lock"
+              />
+              Level
+            </label>
+          )}
+
           <button
             type="button"
             onClick={() => setCutFlipped((value) => !value)}
@@ -2180,7 +2289,11 @@ export default function PackViewer({
             <button
               type="button"
               onClick={() => {
-                if (view) apiRef.current?.matchEchoOrientation(frameAt(view.probe, view.sweep, scrub));
+                if (view) {
+                  apiRef.current?.matchEchoOrientation(
+                    withApexFlip(frameAt(view.probe, view.sweep, scrub), apexFlipped),
+                  );
+                }
               }}
               title="Turn the model to face the echo's imaging plane. Camera only."
               data-testid="match-echo"

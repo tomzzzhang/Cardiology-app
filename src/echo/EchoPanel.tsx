@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
 import { describePack, resolveTuning } from './acoustics.ts';
 import { DEFAULT_POLAR, EchoRenderer, EchoRendererError, fetchVolume } from './EchoRenderer.ts';
-import { frameAt, imagingFrame } from './probeFrame.ts';
+import { frameAt, imagingFrame, withApexFlip } from './probeFrame.ts';
 
 interface EchoPanelProps {
   pack: Pack;
@@ -48,6 +48,16 @@ interface EchoPanelProps {
    * the one thing this must not do.
    */
   freePose?: ProbePose | null;
+  /**
+   * UI-6: show the apex the other way up.
+   *
+   * The PANEL only. The pack's authored `display.vertex` remains the default
+   * and this layers on top of it. Owned by the shell rather than by this
+   * component because "Match echo" has to orient the 3D camera to what the
+   * panel is actually SHOWING, and that is the one place both are known.
+   */
+  apexFlipped?: boolean;
+  onApexFlip?: (flipped: boolean) => void;
   /**
    * Whether that free pose has ACTUALLY left the view's track.
    *
@@ -90,6 +100,7 @@ type Status =
 
 export default function EchoPanel({
   pack, volumeUrl, viewIndex = 0, scrub, freePose = null, offTrack = false, onScrubChange,
+  apexFlipped = false, onApexFlip,
 }: EchoPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<EchoRenderer | null>(null);
@@ -168,7 +179,10 @@ export default function EchoPanel({
         canvas.height = height;
       }
       renderer.render(
-        freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
+        withApexFlip(
+          freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
+          apexFlipped,
+        ),
         tuning,
       );
       canvas.dataset.echoFrame = String(Number(canvas.dataset.echoFrame ?? '0') + 1);
@@ -178,7 +192,7 @@ export default function EchoPanel({
     const observer = new ResizeObserver(draw);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [scrub, status, tuning, view, freePose]);
+  }, [scrub, status, tuning, view, freePose, apexFlipped]);
 
   if (!view) return null;
 
@@ -222,6 +236,35 @@ export default function EchoPanel({
           </p>
         )}
       </div>
+
+      {/*
+        * UI-6, and it is the PANEL that flips.
+        *
+        * The pack's authored `display.vertex` is the default and stays it; this
+        * is a preference laid over it, and pressing it twice is the authored
+        * value back exactly. The 3D camera does not move: flipping the scene is
+        * more disorienting than helpful, and "Match echo" is the control that
+        * reconciles the two panels when a learner wants them to agree.
+        */}
+      {onApexFlip && (
+        <div className="echo__display">
+          <button
+            type="button"
+            className={apexFlipped ? 'echo__flip echo__flip--on' : 'echo__flip'}
+            aria-pressed={apexFlipped}
+            onClick={() => onApexFlip(!apexFlipped)}
+            data-testid="apex-flip"
+            title="Show the apex the other way up. The panel only — the model does not move."
+          >
+            Flip apex
+          </button>
+          <span className="echo__display-note">
+            {apexFlipped
+              ? 'flipped — the pack authors the other way up'
+              : 'as the pack authored it'}
+          </span>
+        </div>
+      )}
 
       {sweep && (
         <div className="echo__scrub">

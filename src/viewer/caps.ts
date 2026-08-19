@@ -34,6 +34,36 @@
  */
 import * as THREE from 'three';
 import { applyBeamDim } from './beamDim.ts';
+import type { Pack, Structure } from '../schema/packV0.ts';
+
+/**
+ * WHETHER A STRUCTURE'S CUT FACE IS CAPPED. Blood pool never is.
+ *
+ * A cast source models a chamber as a SOLID — BodyParts3D's left ventricular
+ * cavity is 98 mL of geometry — so capping it paints a solid disc across the
+ * opening and the chamber reads as filled. It is filled, in the file. It is not
+ * filled in a heart. Leaving the cut face open is the honest rendering: the clip
+ * removes the near half of the cast and the learner looks into the chamber at
+ * the wall behind it. Tissue still caps, because tissue cut across really does
+ * present a face.
+ *
+ * A function rather than an `if` at the call site because it is a geometry fact
+ * and geometry facts get unit tests: a solid disc across every chamber is not
+ * something to find by looking, which is exactly how it was found last time
+ * (`docs/observations.md` entry 31).
+ */
+export function capsAtCut(structure: Pick<Structure, 'blood_pool'>): boolean {
+  return !structure.blood_pool;
+}
+
+/** The structures whose cut faces a pack's caps will paint. */
+export function cappedStructureIds(pack: Pack): Set<string> {
+  return new Set(
+    pack.meshes.structures
+      .filter((structure) => structure.mesh_node !== null && capsAtCut(structure))
+      .map((structure) => structure.id),
+  );
+}
 
 /** One structure's contribution: its geometry, its world placement, its colour. */
 export interface CapSource {

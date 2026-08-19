@@ -540,6 +540,8 @@ def explore_pack(
             "cast-and-shell pack: at a cut, a solid cavity cast and a solid wall otherwise "
             "present the same opaque face."
         )
+    if source.kept_because:
+        honesty.append(source.kept_because)
     if source.license_quote:
         honesty.append(f"LICENCE AS READ AT THE SOURCE: {source.license_quote}")
     honesty.extend(source.known_problems)

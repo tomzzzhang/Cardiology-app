@@ -177,6 +177,11 @@ export type Provenance = z.infer<typeof Provenance>;
 export const Axis = z.enum(['+x', '-x', '+y', '-y', '+z', '-z']);
 export type Axis = z.infer<typeof Axis>;
 
+/** The unit vector one of the six signed axis names denotes, in MODEL space. */
+export function axisVector(axis: Axis): Vec3 {
+  return AXIS_VECTORS[axis];
+}
+
 const AXIS_VECTORS: Record<Axis, Vec3> = {
   '+x': [1, 0, 0],
   '-x': [-1, 0, 0],

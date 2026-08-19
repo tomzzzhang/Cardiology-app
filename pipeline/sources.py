@@ -341,6 +341,16 @@ class GeometrySource:
     #: with none produces a flat list, which is most of them.
     hierarchy: Callable[[Path], tuple[list[tuple[str, str | None]], dict[str, str]]] | None = None
 
+    #: Why this source is KEPT, where the reason is not visible in the pack.
+    #:
+    #: Most packs need none: they are here because they are good, or because a
+    #: comparison they lost has to stay reproducible. This exists for the case
+    #: where every criterion a reader can SEE says delete it and the actual
+    #: reason is somewhere else — a licence, a rights holder, a comparison the
+    #: pack is not part of. Without the sentence someone deletes it later on
+    #: quality grounds and is right to by everything in front of them.
+    kept_because: str = ""
+
     #: Everything known to be wrong with this source, recorded in the pack
     #: rather than worked around. A model that looks bad should say so.
     known_problems: tuple[str, ...] = ()
@@ -413,6 +423,19 @@ CARDIAC_MOTION = GeometrySource(
         "One undivided epicardial surface per frame, with no labels of any kind. There is no "
         "lumen cast in this source to mark: a surface with no inside modelled cannot be a cast "
         "of one, and the pack's single structure is tissue by construction."
+    ),
+    kept_because=(
+        "WHY THIS PACK IS KEPT, written down because every visible criterion says delete it. "
+        "It loses to STRAUS on every technical axis: 10 frames against 30, no vertex "
+        "correspondence against full correspondence, half a cycle against a whole one, and 11 "
+        "connected components of segmentation debris against a clean surface. Anyone judging the "
+        "two on quality would drop this one and be right to. "
+        "The reason to keep it is the one thing that is not a quality question: it is CC BY 4.0, "
+        "confirmed from the Zenodo record's own licence field, and STRAUS has NO LICENCE "
+        "STATEMENT AT ITS SOURCE at all. That makes this the only moving asset in the repository "
+        "that could ever ship. A worse model that may be published outranks a better one that may "
+        "not, and until someone writes to the STRAUS depositors and gets an answer, deleting this "
+        "leaves the project with no motion it is allowed to show."
     ),
     open_surfaces={
         "surface": (

@@ -8,8 +8,13 @@
  * keeps the wrong half or sits at the wrong depth. Nothing downstream can
  * notice, so the conversion is pinned here against the contract's own equation.
  */
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
+import { capsAtCut, cappedStructureIds } from '../../src/viewer/caps.ts';
+import { validatePack } from '../../src/schema/validate.ts';
 import {
   alignedToPlane,
   clippingPlane,
@@ -405,5 +410,78 @@ describe('alignedToPlane — the one permitted bridge', () => {
       new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 5, 0), PIVOT,
     );
     expect(Object.keys(copied).sort()).toEqual(['normal', 'offset']);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* A BLOOD-POOL STRUCTURE IS NEVER CAPPED AT THE CUT                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A unit test on the cap decision, not a visual one.
+ *
+ * A solid disc painted across every chamber is a GEOMETRY FACT — it follows from
+ * one boolean and one `if` — and the reason it went unnoticed for as long as it
+ * did is that nothing but a pair of eyes was ever asked. Colouring the cast
+ * translucent was necessary and not sufficient: a capped cast still paints a
+ * solid face across the opening, and a chamber that reads as filled reads as
+ * filled whatever colour it is (`docs/observations.md` entry 31).
+ */
+describe('blood pool is never capped at the cut', () => {
+  const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'packs');
+
+  function packOf(id: string) {
+    const result = validatePack(
+      JSON.parse(readFileSync(join(packsDir, id, 'pack.json'), 'utf8')),
+    );
+    if (!result.ok) throw new Error(`${id} does not validate`);
+    return result.pack;
+  }
+
+  it('caps tissue and withholds the cap from a cast', () => {
+    expect(capsAtCut({ blood_pool: false })).toBe(true);
+    expect(capsAtCut({ blood_pool: true })).toBe(false);
+  });
+
+  it('withholds it from every cast in every pack that has one', () => {
+    const withCasts = readdirSync(packsDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => ({ id: entry.name, pack: packOf(entry.name) }))
+      .filter(({ pack }) => pack.meshes.structures.some((structure) => structure.blood_pool));
+
+    // If this list ever empties, the test below is passing on nothing.
+    expect(withCasts.map(({ id }) => id).sort()).toEqual([
+      'anatomy-bodyparts3d-heart',
+      'normal-alberta-neonatal',
+      'normal-kit-four-chamber',
+      'stub',
+    ]);
+
+    for (const { id, pack } of withCasts) {
+      const capped = cappedStructureIds(pack);
+      for (const structure of pack.meshes.structures) {
+        if (structure.blood_pool) expect(capped.has(structure.id), `${id}/${structure.id}`).toBe(false);
+        else if (structure.mesh_node !== null) expect(capped.has(structure.id), `${id}/${structure.id}`).toBe(true);
+      }
+    }
+  });
+
+  /*
+   * BodyParts3D is the case that produced the finding: four chamber casts and
+   * three great-vessel casts, 98 mL and 117 mL of solid geometry, every one of
+   * which painted a disc across the cut.
+   */
+  it('leaves all seven BodyParts3D casts open, and caps the other 79', () => {
+    const pack = packOf('anatomy-bodyparts3d-heart');
+    const capped = cappedStructureIds(pack);
+    const casts = pack.meshes.structures.filter((structure) => structure.blood_pool);
+    expect(casts).toHaveLength(7);
+    expect(capped.size).toBe(86 - 7);
+  });
+
+  /* And the shipped pack has no casts at all, so nothing about it changes. */
+  it('caps every structure of the shipped pack, which has no casts', () => {
+    const pack = packOf('normal-rodero');
+    expect(cappedStructureIds(pack).size).toBe(24);
   });
 });

@@ -116,6 +116,25 @@ export function imagingFrame(probe: ProbePose): ImagingFrame {
 }
 
 /**
+ * UI-6: the apex up/down toggle, LAYERED ON TOP of the pack's authored default.
+ *
+ * *(Owner decision, 2026-08-19. It flips the ECHO PANEL only and never the 3D
+ * camera: flipping the scene is more disorienting than helpful, and "Match
+ * echo" already exists to reconcile the two panels.)*
+ *
+ * `probe.display.vertex` stays the default and is not replaced — the pack's
+ * authored value is a clinical convention, and the paediatric vertex-down
+ * default and the PLAX apex-left exception are content rather than preference
+ * (`contracts/view-rail-sweep-scrubber.md` rule 6). This inverts it for the
+ * learner looking at the panel, and inverting it twice is the authored value
+ * back, exactly.
+ */
+export function withApexFlip(frame: ImagingFrame, flipped: boolean): ImagingFrame {
+  if (!flipped) return frame;
+  return { ...frame, vertex: frame.vertex === 'down' ? 'up' : 'down' };
+}
+
+/**
  * Direction of the scanline at normalised lateral position `u` in [-1, 1],
  * where 0 is the centre of the fan.
  */

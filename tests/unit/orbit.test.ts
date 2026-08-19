@@ -22,6 +22,8 @@ import {
   echoOrientation,
   glideEasing,
   glideStep,
+  levelled,
+  lockedDragOrientation,
   orbitPose,
   orientationFromYawPitch,
   orientationLooking,
@@ -412,5 +414,104 @@ describe('wrapAngle', () => {
       expect(Math.cos(wrapAngle(angle))).toBeCloseTo(Math.cos(angle), 6);
       expect(Math.sin(wrapAngle(angle))).toBeCloseTo(Math.sin(angle), 6);
     }
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* the horizon lock — Echo only, off by default                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * ONE ANSWER ABOUT WHICH WAY IS UP.
+ *
+ * The trackball made every orientation reachable and gave up the level horizon
+ * (`docs/observations.md` entry 35). For a tool whose subject IS orientation
+ * that is arguably the wrong trade, so the lock comes back as an OPTION in Echo
+ * — where which way is up is diagnostic — and never as the behaviour, because
+ * the reason the turntable went is still true in Explore.
+ *
+ * What it holds vertical is the MODEL's long axis, not world up. Those are the
+ * same thing only while the heart happens to be upright, and holding the heart
+ * upright is the whole job.
+ */
+describe('the horizon lock', () => {
+  const axis = new THREE.Vector3(0, 1, 0);
+
+  /** Where `v` points after the camera's rotation, in the camera's own frame. */
+  function inCamera(orientation: THREE.Quaternion, v: THREE.Vector3): THREE.Vector3 {
+    return v.clone().applyQuaternion(orientation.clone().invert());
+  }
+
+  it('levels a rolled camera without moving where it looks', () => {
+    const rolled = new THREE.Quaternion()
+      .setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.7)
+      .multiply(orientationFromYawPitch(0.9, 0.35));
+    const before = new THREE.Vector3(0, 0, -1).applyQuaternion(rolled);
+
+    const level = levelled(rolled, axis)!;
+    expect(level).not.toBeNull();
+
+    const after = new THREE.Vector3(0, 0, -1).applyQuaternion(level);
+    expect(after.angleTo(before)).toBeLessThan(1e-6);
+
+    // The axis now projects onto the screen's up, with no sideways component.
+    const screen = inCamera(level, axis);
+    expect(Math.abs(screen.x)).toBeLessThan(1e-6);
+    expect(screen.y).toBeGreaterThan(0);
+  });
+
+  it('keeps the axis vertical through a long horizontal drag', () => {
+    let orientation = orientationFromYawPitch(0.9, 0.35);
+    for (let step = 0; step < 40; step += 1) {
+      orientation = lockedDragOrientation(orientation, 25, 0, axis);
+      const screen = inCamera(orientation, axis);
+      expect(Math.abs(screen.x)).toBeLessThan(1e-6);
+    }
+  });
+
+  it('keeps it vertical through a curved drag, which is where roll comes from', () => {
+    let orientation = orientationFromYawPitch(0.9, 0.35);
+    for (const [dx, dy] of [[30, 10], [20, -25], [-15, 30], [-30, -10], [25, 25]]) {
+      orientation = lockedDragOrientation(orientation, dx, dy, axis);
+      expect(Math.abs(inCamera(orientation, axis).x)).toBeLessThan(1e-6);
+    }
+  });
+
+  it('stops short of the pole rather than tumbling through it', () => {
+    let orientation = orientationFromYawPitch(0, 0);
+    for (let step = 0; step < 200; step += 1) {
+      orientation = lockedDragOrientation(orientation, 0, -30, axis);
+    }
+    // Still level, still looking at the model rather than down the axis.
+    const screen = inCamera(orientation, axis);
+    expect(Math.abs(screen.x)).toBeLessThan(1e-6);
+    expect(screen.y).toBeGreaterThan(0);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(orientation);
+    expect(Math.abs(forward.dot(axis))).toBeLessThan(0.999);
+  });
+
+  it('has nothing to level at the pole, and says so', () => {
+    const straightDown = orientationLooking(
+      new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, -1),
+    );
+    expect(levelled(straightDown, axis)).toBeNull();
+  });
+
+  /* Unlocked drag is unchanged: the trackball is still the default. */
+  it('is not what an unlocked drag does', () => {
+    const start = orientationFromYawPitch(0.9, 0.35);
+    const free = dragOrientation(dragOrientation(start, 40, 30), -40, 30);
+    expect(Math.abs(inCamera(free, axis).x)).toBeGreaterThan(1e-3);
+  });
+
+  /* And the axis is the MODEL's, not the world's. */
+  it('holds a tilted model axis vertical, which world up would not', () => {
+    const tilted = new THREE.Vector3(0.3, 0.9, 0.1).normalize();
+    let orientation = levelled(orientationFromYawPitch(0.9, 0.35), tilted)!;
+    for (let step = 0; step < 12; step += 1) {
+      orientation = lockedDragOrientation(orientation, 20, 8, tilted);
+    }
+    expect(Math.abs(inCamera(orientation, tilted).x)).toBeLessThan(1e-6);
+    expect(Math.abs(inCamera(orientation, new THREE.Vector3(0, 1, 0)).x)).toBeGreaterThan(1e-3);
   });
 });

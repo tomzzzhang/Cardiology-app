@@ -129,6 +129,75 @@ export function dragOrientation(
 }
 
 /**
+ * How close to the lock axis the camera may come before the horizon stops
+ * meaning anything.
+ *
+ * Looking straight down the model's long axis, "which way is up" has no answer:
+ * the axis projects to a point on screen and there is no direction to level to.
+ * The turntable's old fix was a hard pitch clamp, which is what made the heart
+ * impossible to turn over — but the lock is not for turning the heart over, it
+ * is for holding it the way a trainee is taught to read it, so a stop here
+ * costs nothing that this mode was offering. Three degrees, in the cosine.
+ */
+const LOCK_POLE_LIMIT = Math.cos((3 * Math.PI) / 180);
+
+/**
+ * Roll the camera so `axis` points up the screen, without moving the camera.
+ *
+ * The view direction is untouched: what changes is only the screen's up. That
+ * is what makes turning the lock ON a levelling rather than a jump — the
+ * learner keeps looking at what they were looking at, and the horizon comes
+ * straight.
+ *
+ * Returns `null` at the poles, where the axis has no screen direction to level
+ * to and there is nothing honest to return.
+ */
+export function levelled(
+  orientation: THREE.Quaternion, axis: THREE.Vector3,
+): THREE.Quaternion | null {
+  const forward = CAMERA_BACK.clone().applyQuaternion(orientation).negate();
+  const unit = axis.clone().normalize();
+  if (Math.abs(forward.dot(unit)) > LOCK_POLE_LIMIT) return null;
+  return orientationLooking(forward, unit);
+}
+
+/**
+ * One drag step with the HORIZON LOCKED to `axis`.
+ *
+ * Echo mode only, and off by default — `contracts/viewer-core.md`. In Explore
+ * the trackball is the only option, because free inspection is the point there
+ * and the turntable was removed precisely because it could not reach every
+ * angle (`docs/observations.md` entry 35). In Echo, which way is up is
+ * diagnostic rather than cosmetic, so it is offered.
+ *
+ * Horizontal drag turns about the MODEL's own long axis rather than about world
+ * up. Those are the same thing only while the model is upright, and the whole
+ * value of the lock is that it survives not being: the axis is the heart's, so
+ * the heart's long axis is what stays vertical.
+ *
+ * Vertical drag is about the camera's own right, as it is unlocked, and the
+ * result is re-levelled rather than trusted to stay level. Re-levelling is what
+ * makes the lock idempotent and self-correcting: it cannot accumulate roll over
+ * a long session, and a drag that would have crossed the pole simply does not
+ * take the vertical component.
+ */
+export function lockedDragOrientation(
+  orientation: THREE.Quaternion, dx: number, dy: number, axis: THREE.Vector3,
+): THREE.Quaternion {
+  const unit = axis.clone().normalize();
+  const yaw = new THREE.Quaternion().setFromAxisAngle(unit, -dx * DRAG_SPEED);
+  const pitch = new THREE.Quaternion().setFromAxisAngle(CAMERA_RIGHT, -dy * DRAG_SPEED);
+  // Yaw is a WORLD-space rotation and composes on the left; pitch is the
+  // camera's own and composes on the right, exactly as it does unlocked.
+  const turned = yaw.clone().multiply(orientation).multiply(pitch).normalize();
+  const level = levelled(turned, unit);
+  if (level !== null) return level;
+  // At the pole: keep the yaw, drop the pitch that would have crossed it.
+  const yawOnly = yaw.clone().multiply(orientation).normalize();
+  return levelled(yawOnly, unit) ?? orientation.clone();
+}
+
+/**
  * The orientation that looks along `forward` with `up` pointing up the screen.
  *
  * `up` is orthogonalised against `forward` rather than trusted, and the pair

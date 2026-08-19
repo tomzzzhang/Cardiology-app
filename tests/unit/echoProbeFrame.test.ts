@@ -3,8 +3,10 @@
  * from one probe pose. These tests pin that derivation, because a disagreement
  * between the two is exactly the failure `contracts/echo-renderer.md` forbids.
  */
+import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import type { ProbePose, Sweep } from '../../src/schema/packV0.ts';
+import { echoOrientation } from '../../src/viewer/orbit.ts';
 import {
   cross,
   dot,
@@ -15,6 +17,7 @@ import {
   rotateAbout,
   samplePoint,
   scanlineDirection,
+  withApexFlip,
   type Vec3,
 } from '../../src/echo/probeFrame.ts';
 
@@ -160,5 +163,70 @@ describe('poseAt', () => {
       expect(dot(first.normal, later.normal)).toBeGreaterThan(0);
       expect(length(cross(first.normal, later.normal))).toBeLessThan(1);
     }
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* UI-6: the apex toggle layers on the authored value, and replaces nothing    */
+/* -------------------------------------------------------------------------- */
+
+describe('the apex flip', () => {
+  const authored = (vertex: 'up' | 'down') => imagingFrame({
+    origin: [0, -80, 0],
+    beam_axis: [0, 1, 0],
+    lateral_axis: [1, 0, 0],
+    fan: { angle_deg: 80, depth_cm: 14, focus_cm: 8 },
+    display: { vertex, flip_lr: false, marker_side: 'right' },
+    indicator_clock: '3:00',
+  } as never);
+
+  it('leaves the pack alone when it is off', () => {
+    for (const vertex of ['up', 'down'] as const) {
+      expect(withApexFlip(authored(vertex), false).vertex).toBe(vertex);
+    }
+  });
+
+  it('inverts the authored value rather than setting one', () => {
+    expect(withApexFlip(authored('down'), true).vertex).toBe('up');
+    expect(withApexFlip(authored('up'), true).vertex).toBe('down');
+  });
+
+  /*
+   * The pack's value is the DEFAULT and stays it — the paediatric vertex-down
+   * convention and the PLAX apex-left exception are content, not preference
+   * (`contracts/view-rail-sweep-scrubber.md` rule 6). Flipping twice is the
+   * authored value back, exactly, which is what makes this a layer.
+   */
+  it('is its own inverse', () => {
+    for (const vertex of ['up', 'down'] as const) {
+      const twice = withApexFlip(withApexFlip(authored(vertex), true), true);
+      expect(twice.vertex).toBe(vertex);
+    }
+  });
+
+  it('changes nothing else about the frame', () => {
+    const before = authored('down');
+    const after = withApexFlip(before, true);
+    expect(after.beam).toEqual(before.beam);
+    expect(after.lateral).toEqual(before.lateral);
+    expect(after.normal).toEqual(before.normal);
+    expect(after.origin).toEqual(before.origin);
+    expect(after.flipLr).toBe(before.flipLr);
+    expect(after.markerSide).toBe(before.markerSide);
+    expect(after.depthMm).toBe(before.depthMm);
+  });
+
+  /*
+   * And it reaches the camera through exactly one door: "Match echo", whose job
+   * is to make the two panels agree. Orienting to the authored frame while the
+   * panel showed the flipped one would be the one control for agreement
+   * producing disagreement.
+   */
+  it('turns the match-echo camera over, and nothing else does', () => {
+    const frame = authored('down');
+    const matched = echoOrientation(withApexFlip(frame, true));
+    const unmatched = echoOrientation(frame);
+    const upOf = (q: typeof matched) => new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+    expect(upOf(matched).dot(upOf(unmatched))).toBeLessThan(-0.99);
   });
 });

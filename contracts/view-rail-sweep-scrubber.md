@@ -55,6 +55,16 @@ order by pack order.
    `pack.display_flags` decide orientation — including the pediatric vertex-down default, the PLAX
    apex-left exception, and the stored-but-off dextrocardia profile. Apex-up/apex-down is a user
    toggle layered on top of the authored default, not a replacement for it.
+
+   *(Implemented 2026-08-19, owner decision.)* The toggle flips **the echo panel only and never the
+   3D camera**: flipping the scene is more disorienting than helpful, and "Match echo" already
+   exists to reconcile the two panels. `withApexFlip` inverts `display.vertex` for the rendered
+   image and changes nothing else about the frame; applying it twice is the authored value back
+   exactly, which is what makes it a layer rather than a replacement. It reaches the camera through
+   exactly one door — "Match echo", whose job is to make the panels agree and which therefore has to
+   orient to the image on screen rather than to the one the pack authored. Settled together with the
+   horizon lock (`contracts/viewer-core.md`), because they are the same question about what "up"
+   means and answering them apart produces two controls that disagree.
 7. **Every view family ships at least one scrubbable sweep** (`docs/mvp_scope.md`, non-negotiable).
    A view without a sweep is valid in the schema; a *family* with no sweep anywhere is a content gap
    and should be visible as one.

@@ -997,3 +997,33 @@ body {
   color: #9aa3ad;
   font-size: 0.88rem;
 }
+
+/* --- which way is up ------------------------------------------------------ */
+
+.echo__display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.echo__flip {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #3a4450;
+  border-radius: 0.3rem;
+  background: #1b2129;
+  color: #cfd6dd;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.echo__flip--on {
+  border-color: #5b7fa8;
+  background: #1d2a38;
+  color: #e6ebf0;
+}
+
+.echo__display-note {
+  color: #9aa3ad;
+  font-size: 0.8rem;
+}

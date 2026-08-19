@@ -1195,6 +1195,64 @@ test('an isolate made in Explore does not follow the learner into Echo', async (
   await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
 });
 
+/*
+ * ONE ANSWER ABOUT WHICH WAY IS UP, and it is two controls that agree.
+ */
+test('the horizon lock is offered in Echo only, and defaults off', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(page.getByTestId('horizon-lock')).not.toBeChecked();
+  await expect(viewer).toHaveAttribute('data-horizon-lock', 'off');
+
+  await page.getByTestId('horizon-lock').check();
+  await expect(viewer).toHaveAttribute('data-horizon-lock', 'on');
+
+  /*
+   * Explore does not offer it at all. Free inspection is the point there and
+   * the turntable was removed because it could not reach every angle
+   * (`docs/observations.md` entry 35); the lock leaves with the mode rather
+   * than following a learner into one that does not offer it.
+   */
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('horizon-lock')).toHaveCount(0);
+  await expect(viewer).toHaveAttribute('data-horizon-lock', 'off');
+});
+
+test('the apex toggle flips the echo panel and never the model', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  const canvas = page.locator('.anatomy canvas');
+
+  /* The model's own pixels, before and after. They must not move. */
+  const anatomy = async () => canvas.evaluate((element) => {
+    const source = element as HTMLCanvasElement;
+    const scratch = document.createElement('canvas');
+    scratch.width = 48;
+    scratch.height = 48;
+    const context = scratch.getContext('2d')!;
+    context.drawImage(source, 0, 0, 48, 48);
+    return [...context.getImageData(0, 0, 48, 48).data].join(',');
+  });
+
+  const echoFrames = async () => Number(
+    await page.locator('[data-testid=echo-panel] canvas').getAttribute('data-echo-frame') ?? '0',
+  );
+
+  const before = await anatomy();
+  const framesBefore = await echoFrames();
+
+  await expect(page.getByTestId('apex-flip')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByTestId('apex-flip').click();
+  await expect(page.getByTestId('apex-flip')).toHaveAttribute('aria-pressed', 'true');
+
+  // The echo redrew; the anatomy did not move at all.
+  expect(await echoFrames()).toBeGreaterThan(framesBefore);
+  expect(await anatomy()).toBe(before);
+  await expect(viewer).toHaveAttribute('data-horizon-lock', 'off');
+
+  // Pressing it again is the pack's authored orientation back, exactly.
+  await page.getByTestId('apex-flip').click();
+  await expect(page.getByTestId('apex-flip')).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('app shell screenshot', async ({ page }, testInfo) => {
   const baseline = testInfo.snapshotPath('app-shell.png');
   const seeding = !['none', 'missing'].includes(testInfo.config.updateSnapshots);

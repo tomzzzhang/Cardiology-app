@@ -206,6 +206,12 @@ export default function App() {
    * about the probe.
    */
   const [visibility, setVisibility] = useState<Visibility>(SHOW_ALL);
+  /*
+   * UI-6: the apex toggle, held here because it flips the ECHO PANEL and
+   * "Match echo" — which lives in the anatomy panel — has to orient to what the
+   * echo panel is showing. This is the only place both are known.
+   */
+  const [apexFlipped, setApexFlipped] = useState(false);
   // A pack change resets it: the ids in an isolate belong to the old pack.
   useEffect(() => { setVisibility(SHOW_ALL); }, [packId]);
 
@@ -340,6 +346,7 @@ export default function App() {
             frameUrls={frameUrls}
             freePose={freePose}
             hidden={hiddenIds}
+            apexFlipped={apexFlipped}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
             /*
@@ -367,6 +374,8 @@ export default function App() {
               viewIndex={viewIndex}
               freePose={freePose}
               offTrack={offTrack}
+              apexFlipped={apexFlipped}
+              onApexFlip={setApexFlipped}
               onScrubChange={setScrub}
             />
           )}
