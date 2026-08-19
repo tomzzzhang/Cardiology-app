@@ -21,7 +21,13 @@ import type { ProbePose } from './schema/packV0.ts';
 import { poseAt } from './echo/probeFrame.ts';
 import { hasLeftTrack } from './viewer/freeProbe.ts';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
-import { DEFAULT_PACK_ID } from './packs/published.ts';
+import {
+  DEFAULT_PACK_ID,
+  LICENSE_STATE_LABEL,
+  cataloguedPacks,
+  isPublishedPack,
+  type CatalogueEntry,
+} from './packs/published.ts';
 import { SCHEMA_VERSION, isExploreOnly } from './schema/packV0.ts';
 
 /**
@@ -88,6 +94,14 @@ type PackState =
 
 export default function App() {
   const [packState, setPackState] = useState<PackState>({ status: 'loading' });
+  /**
+   * Which pack is on screen.
+   *
+   * State rather than a page reload: the viewer's scene effect already keys on
+   * the pack and its glTF URL, so switching rebuilds the scene and nothing
+   * else. `?pack=` is still the deep link, and is kept in step below.
+   */
+  const [packId, setPackId] = useState<string>(requestedPackId);
   /*
    * One scrub position for the whole screen. The wedge drawn on the anatomy and
    * the echo image are two renderings of the SAME sweep position, so the value
@@ -124,18 +138,27 @@ export default function App() {
     if (mode === 'explore') setFreePose(null);
   }, [mode]);
 
+  /*
+   * The URL follows the EFFECTIVE mode, not the requested one. An Explore-only
+   * pack refuses Echo, so leaving `?mode=echo` in the address bar would hand
+   * out a link to a screen this pack cannot produce.
+   */
+  const shownMode: ViewerMode =
+    packState.status === 'ok' && isExploreOnly(packState.loaded.pack) ? 'explore' : mode;
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
-    if (mode === 'echo') url.searchParams.delete('mode');
-    else url.searchParams.set('mode', mode);
+    if (shownMode === 'echo') url.searchParams.delete('mode');
+    else url.searchParams.set('mode', shownMode);
     window.history.replaceState(null, '', url);
-  }, [mode]);
+  }, [shownMode]);
 
   useEffect(() => {
     const controller = new AbortController();
+    setPackState({ status: 'loading' });
 
-    loadPackById(requestedPackId(), { signal: controller.signal })
+    loadPackById(packId, { signal: controller.signal })
       .then((loaded) => setPackState({ status: 'ok', loaded }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
@@ -146,7 +169,20 @@ export default function App() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [packId]);
+
+  /*
+   * The pack is written back into the URL the way the mode is, so the address
+   * bar is a link to what is on screen. The default pack leaves no param, so a
+   * plain link stays plain.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (packId === DEFAULT_PACK_ID) url.searchParams.delete('pack');
+    else url.searchParams.set('pack', packId);
+    window.history.replaceState(null, '', url);
+  }, [packId]);
 
   return (
     <main className="shell">
@@ -157,6 +193,8 @@ export default function App() {
           {SCHEMA_VERSION} (provisional).
         </p>
       </header>
+
+      <PackPicker packId={packId} onChoose={setPackId} />
 
       {packState.status === 'ok' && (() => {
         const pack = packState.loaded.pack;
@@ -173,7 +211,14 @@ export default function App() {
          * instead of on a half-built screen.
          */
         const exploreOnly = isExploreOnly(pack);
-        const effectiveMode: ViewerMode = exploreOnly ? 'explore' : mode;
+        const effectiveMode: ViewerMode = shownMode;
+        /*
+         * Keyframe URLs are resolved here rather than in the viewer, because
+         * resolving a pack-relative asset is the loader's business and
+         * `resolveAsset` needs the LoadedPack the shell is holding.
+         */
+        const frameUrls = pack.meshes.keyframes?.frames.map((frame) =>
+          resolveAsset(packState.loaded, frame.gltf));
         /*
          * Whether the probe has ACTUALLY left the track, not merely whether the
          * toggle is on. A learner can unlock the probe and never drag it, and
@@ -239,6 +284,7 @@ export default function App() {
             scrub={scrub}
             viewIndex={viewIndex}
             mode={effectiveMode}
+            frameUrls={frameUrls}
             freePose={freePose}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
@@ -319,5 +365,91 @@ export default function App() {
         patient, and is not for diagnostic use.
       </footer>
     </main>
+  );
+}
+
+/**
+ * The model picker.
+ *
+ * Grouped by what a pack IS — labelled and echo-capable against Explore-only
+ * geometry — because that distinction decides which modes are even available,
+ * and a learner who picks an Explore-only model and then finds Echo greyed out
+ * should have been able to see that coming from the picker.
+ *
+ * Every chip carries its licence state, and an unpublished pack says so in
+ * development. Nothing on this shelf ships, and the one thing worse than that
+ * would be not being able to tell which is which while looking at them.
+ */
+function PackPicker({ packId, onChoose }: {
+  packId: string;
+  onChoose: (id: string) => void;
+}) {
+  const entries = cataloguedPacks(import.meta.env.PROD);
+  if (entries.length < 2) return null;
+
+  const groups: [string, string, CatalogueEntry[]][] = [
+    [
+      'echo',
+      'Labelled — echo and explore',
+      entries.filter((entry) => entry.kind === 'echo'),
+    ],
+    [
+      'explore',
+      'Geometry only — explore',
+      entries.filter((entry) => entry.kind === 'explore'),
+    ],
+  ];
+
+  return (
+    <div className="picker" data-testid="pack-picker">
+      {groups.map(([key, heading, group]) => group.length === 0 ? null : (
+        <section className="picker__group" key={key} data-testid={`pack-group-${key}`}>
+          <h2 className="picker__heading">{heading}</h2>
+          <div className="picker__chips" role="radiogroup" aria-label={heading}>
+            {group.map((entry) => {
+              const unpublished = !isPublishedPack(entry.id);
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={entry.id === packId}
+                  className={
+                    entry.id === packId ? 'picker__chip picker__chip--on' : 'picker__chip'
+                  }
+                  onClick={() => onChoose(entry.id)}
+                  title={entry.summary}
+                  data-testid={`pack-chip-${entry.id}`}
+                >
+                  <span className="picker__name">
+                    {entry.displayName}
+                    {entry.moving && <span className="picker__moving"> · moves</span>}
+                  </span>
+                  <span className="picker__tags">
+                    <span
+                      className={
+                        entry.licenseState === 'confirmed'
+                          ? 'picker__tag'
+                          : 'picker__tag picker__tag--warn'
+                      }
+                    >
+                      {LICENSE_STATE_LABEL[entry.licenseState]}
+                    </span>
+                    {unpublished && (
+                      <span
+                        className="picker__tag picker__tag--unpublished"
+                        data-testid={`pack-unpublished-${entry.id}`}
+                      >
+                        not published
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }

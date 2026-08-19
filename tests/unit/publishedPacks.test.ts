@@ -17,6 +17,9 @@ import {
   UNVERIFIED_ORIENTATION_NOTE,
   isPublishedPack,
   unpublishedReason,
+  LICENSE_STATE_LABEL,
+  PACK_CATALOGUE,
+  cataloguedPacks,
 } from '../../src/packs/published.ts';
 import { LICENSE_STATES, mayBePublished, type LicenseState } from '../../src/schema/packV0.ts';
 
@@ -149,6 +152,63 @@ describe('the licence state gates publication (schema v0.1)', () => {
         unpublishedReason(packId) !== undefined
         || !mayBePublished(pack.provenance.license_state as LicenseState);
       expect(reasoned, `${packId} is unpublished with no recorded reason`).toBe(true);
+    }
+  });
+});
+
+describe('the model picker catalogue', () => {
+  /*
+   * The catalogue is duplicated data: it restates, in TypeScript, facts that
+   * live in each pack.json. It is duplicated on purpose — a manifest generated
+   * from `public/` would still list the packs the build prunes, so the picker
+   * would offer links that 404 on the deployed site — and duplicated data
+   * drifts, so every field is checked against the pack it describes.
+   */
+  function packOnDisk(packId: string): any {
+    return JSON.parse(readFileSync(join(packsDir, packId, 'pack.json'), 'utf8'));
+  }
+
+  it('lists every pack in the repository, and nothing that is not there', () => {
+    expect(PACK_CATALOGUE.map((entry) => entry.id).sort()).toEqual(packIdsInRepo());
+  });
+
+  it('carries each pack own display name rather than one of its own', () => {
+    for (const entry of PACK_CATALOGUE) {
+      expect(entry.displayName, entry.id).toBe(packOnDisk(entry.id).meta.display_name);
+    }
+  });
+
+  it('describes each pack kind the way the pack itself does', () => {
+    // The picker groups by this, and the grouping is a promise about which
+    // modes will be available. Getting it wrong would put an Explore-only pack
+    // under a heading that says Echo works.
+    for (const entry of PACK_CATALOGUE) {
+      const pack = packOnDisk(entry.id);
+      const exploreOnly = pack.echo_volume === undefined;
+      expect(entry.kind, entry.id).toBe(exploreOnly ? 'explore' : 'echo');
+      expect(entry.moving, entry.id).toBe(pack.meshes.keyframes !== undefined);
+    }
+  });
+
+  it('shows each pack real licence state on the chip', () => {
+    for (const entry of PACK_CATALOGUE) {
+      expect(entry.licenseState, entry.id).toBe(packOnDisk(entry.id).provenance.license_state);
+    }
+  });
+
+  it('offers only published packs in a production build', () => {
+    const production = cataloguedPacks(true);
+    expect(production.every((entry) => isPublishedPack(entry.id))).toBe(true);
+    expect(production.map((entry) => entry.id).sort()).toEqual([...PUBLISHED_PACK_IDS].sort());
+  });
+
+  it('offers everything in development, because looking at them is the point', () => {
+    expect(cataloguedPacks(false)).toEqual(PACK_CATALOGUE);
+  });
+
+  it('names every licence state, so no chip can render an empty tag', () => {
+    for (const state of LICENSE_STATES) {
+      expect(LICENSE_STATE_LABEL[state].length).toBeGreaterThan(0);
     }
   });
 });

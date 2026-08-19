@@ -145,6 +145,31 @@ The unlock is paid for by labelling rather than by hiding: see `contracts/README
 withdrawn and what is restored. Nothing about it can write to `views[]`, and locking again returns
 the probe to `frameAt(probe, sweep, t)` exactly.
 
+## The cine axis — keyframed geometry in Explore
+
+A pack may carry `meshes.keyframes`: N whole meshes plus a phase axis or a frame rate. The viewer
+plays them in **Explore only**, with a play/pause and a frame scrub.
+
+- **It is not the sweep, and it does not share the sweep's control.** The sweep moves one probe over
+  one static heart. The cine moves the heart and has no probe in it. One slider meaning both would
+  change meaning under the learner as they switched modes.
+- **Playback bounces unless the pack says its frames meet end to end.** `keyframes.loop` is a pack
+  field, not an assumption: half a cycle played on a loop shows the heart snapping from end-systole
+  back to end-diastole, a motion no heart makes, presented as though it had been recorded.
+- **Frames swap geometry and nothing else.** Materials, ghosts, stencil caps and the camera framing
+  all stay frame 0's, so the heart does not re-frame in the viewport for reasons that have nothing to
+  do with the heart. Swapping a frame reaches three places for each structure — the mesh, its ghost,
+  and its cap — because all three hold their own reference to the geometry they share.
+- **Frames load behind a standing scene.** Frame 0 is `meshes.gltf` and is built, framed and
+  interactive first; the cine control comes alive only when the rest have arrived. A frame that
+  fails to load leaves a static model rather than a broken one.
+- **The rate is not a physiological claim.** Where the pack states no `fps`, playback runs at a
+  legibility default and the control says the source stated no rate.
+
+Motion in the ECHO renderer is deliberately not this. `src/echo/shaders/scanPass.ts` is O(depth²)
+per scanline and says a restructure comes first; a moving echo is a separate task with a real
+performance design in front of it.
+
 ## The direction data flows
 
 **Probe → cutter, never the reverse.** The Echo plane mode reads the imaging frame the wedge and the

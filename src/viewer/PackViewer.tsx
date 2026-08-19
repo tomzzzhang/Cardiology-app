@@ -70,6 +70,7 @@ import { CutPlaneGizmo, HANDLE_IDS, handleDirection, type HandleId } from './pla
 import { probeTravelPath, steppedT } from './probeControl.ts';
 import { hitRadiusPx, isCoarsePointer, revealFor, watchPointerClass } from './pointerClass.ts';
 import { projectToScreen, unitsPerPixel } from './screen.ts';
+import { cineIntervalMs, nextCineState } from './cine.ts';
 import { PALETTE, structureColour } from './palette.ts';
 
 /**
@@ -103,6 +104,14 @@ interface PackViewerProps {
    * plus a hidden rotation would let the two panels disagree about where the
    * probe is.
    */
+  /**
+   * Every keyframe's glTF URL, in order, when the pack carries motion.
+   *
+   * Frame 0 is `gltfUrl` — the schema requires it — so the scene is built from
+   * `gltfUrl` exactly as it always was and the remaining frames are loaded
+   * behind it. A pack with no motion passes nothing and pays nothing.
+   */
+  frameUrls?: readonly string[];
   freePose?: ProbePose | null;
   /**
    * The one path the probe control pad's fan buttons write through — the same
@@ -153,6 +162,8 @@ interface ViewerApi {
   /** Whether the cutter should be reversed for the cut to open toward the camera. */
   cutShouldFaceCamera: () => boolean;
   setMode: (mode: ViewerMode) => void;
+  /** Show one keyframe. Ignored until every frame has loaded. */
+  setCineFrame: (index: number) => void;
   /** Returns the depth the slider should now show, in the new mode's terms. */
   setCutterMode: (mode: CutterMode) => number;
   resetCamera: () => void;
@@ -161,7 +172,7 @@ interface ViewerApi {
 }
 
 export default function PackViewer({
-  pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo',
+  pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
   freePose = null, onScrubChange, onFreePoseChange,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -184,6 +195,20 @@ export default function PackViewer({
   const [cutFlipped, setCutFlipped] = useState(false);
   /** UI-2: mark the imaged tissue by dimming what the beam misses. */
   const [beamDim, setBeamDim] = useState(true);
+  /**
+   * The cine axis: WHICH GEOMETRY is on screen, not where the probe is.
+   *
+   * A different axis from the sweep scrubber, and deliberately a different
+   * control. The sweep moves one probe over one static heart; the cine moves
+   * the heart itself and has nothing to do with any probe. Sharing a slider
+   * between them would make one number mean two things, and would break the
+   * moment a pack has both. Explore has no sweep, so in this build the two
+   * never appear together — which is why the collision does not have to be
+   * designed away yet.
+   */
+  const [cineFrame, setCineFrame] = useState(0);
+  const [cinePlaying, setCinePlaying] = useState(false);
+  const [cineReady, setCineReady] = useState(false);
   /**
    * Whether the half the cutter removes is drawn back as a ghost.
    *
@@ -271,6 +296,23 @@ export default function PackViewer({
     let disposed = false;
 
     const byStructure = new Map<string, THREE.Object3D>();
+    /**
+     * The ghost drawn for each structure, by structure id.
+     *
+     * A ghost SHARES its structure's `BufferGeometry` — that is the whole point
+     * of it costing a draw call rather than a second copy of the mesh — but it
+     * holds its own reference to it. Swapping a keyframe therefore has to reach
+     * three places for one structure: the mesh, the ghost, and the stencil cap.
+     */
+    const ghostFor = new Map<string, THREE.Mesh>();
+    /**
+     * Geometry per keyframe, by structure id. Index 0 is the scene as built.
+     *
+     * Whole meshes, because the pack carries whole meshes: the schema has no
+     * deformation field, since the source it was built for has no vertex
+     * correspondence between frames to express one against.
+     */
+    const cineGeometry: Map<string, THREE.BufferGeometry>[] = [];
     const dimUniforms: ReturnType<typeof applyBeamDim>[] = [];
     let probe: ProbeIndicator | null = null;
     let caps: StencilCaps | null = null;
@@ -1015,6 +1057,7 @@ export default function PackViewer({
           ghost.matrix.copy(object.matrixWorld);
           ghost.renderOrder = -1;
           ghosts.add(ghost);
+          ghostFor.set(object.name, ghost);
           capSources.push({
             id: object.name,
             geometry: object.geometry,
@@ -1068,6 +1111,46 @@ export default function PackViewer({
 
         loaded = true;
         syncProbeObjects();
+
+        /*
+         * The remaining keyframes, loaded BEHIND the standing scene.
+         *
+         * Frame 0 is already built, framed and interactive; the rest arrive
+         * afterwards and only then does the cine control come alive. Loading
+         * them first would hold the viewer black for the whole set, and the
+         * first frame alone is a perfectly good static model in the meantime.
+         *
+         * Only geometry is taken from them. Materials, ghosts, caps and the
+         * camera framing all stay frame 0's, so playback swaps the surfaces and
+         * changes nothing else — in particular the camera does not re-frame per
+         * frame, which would make the heart pulse in the viewport for reasons
+         * that have nothing to do with the heart.
+         */
+        cineGeometry.push(new Map([...byStructure].flatMap(([id, object]) =>
+          object instanceof THREE.Mesh ? [[id, object.geometry] as const] : [])));
+        const rest = (frameUrls ?? []).slice(1);
+        if (rest.length > 0) {
+          const loader = new GLTFLoader();
+          Promise.all(rest.map((url) => loader.loadAsync(url)))
+            .then((frames) => {
+              if (controller.signal.aborted || disposed) return;
+              for (const frame of frames) {
+                const geometry = new Map<string, THREE.BufferGeometry>();
+                frame.scene.traverse((object) => {
+                  if (object instanceof THREE.Mesh) geometry.set(object.name, object.geometry);
+                });
+                cineGeometry.push(geometry);
+              }
+              host.dataset.cineFrames = String(cineGeometry.length);
+              setCineReady(true);
+            })
+            .catch(() => {
+              // A missing frame leaves the pack a static model rather than a
+              // broken one. `validate:packs` checks every frame file exists, so
+              // reaching here means a transport failure, not a bad pack.
+              host.dataset.cineFrames = 'failed';
+            });
+        }
         applyCut();
         applyCamera();
         resize();
@@ -1215,6 +1298,18 @@ export default function PackViewer({
        * cutter's `{N, s}` and the vetted `views[]` are both untouched.
        */
       matchEchoOrientation: (frame) => glideTo(echoOrientation(frame)),
+      setCineFrame: (index) => {
+        const geometry = cineGeometry[index];
+        if (!geometry) return;
+        for (const [id, replacement] of geometry) {
+          const object = byStructure.get(id);
+          if (object instanceof THREE.Mesh) object.geometry = replacement;
+          const ghost = ghostFor.get(id);
+          if (ghost) ghost.geometry = replacement;
+          caps?.setGeometry(id, replacement);
+        }
+        schedule();
+      },
     };
     onCutOffset = (value) => setCutOffset(value);
 
@@ -1238,6 +1333,15 @@ export default function PackViewer({
       probe?.dispose();
       caps?.dispose();
       gizmo?.dispose();
+      /*
+       * Keyframe geometry is NOT reached by the scene walk below: only one
+       * frame is attached to a mesh at a time, so the other nine would leak.
+       * Frame 0's entry is shared with the scene and disposing it twice is
+       * harmless — `dispose()` on an already-disposed geometry is a no-op.
+       */
+      for (const frame of cineGeometry) {
+        for (const geometry of frame.values()) geometry.dispose();
+      }
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
@@ -1257,6 +1361,52 @@ export default function PackViewer({
     // mode switch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gltfUrl, pack, viewIndex]);
+
+  /*
+   * The cine axis.
+   *
+   * `cineDirection` is a ref rather than state because it is not something the
+   * screen shows: playback bouncing off the end of a half-cycle is a fact about
+   * the next tick, and rendering on it would re-render every frame for nothing.
+   */
+  const cineDirection = useRef<1 | -1>(1);
+  const keyframes = pack.meshes.keyframes;
+  /** The cine is Explore's. Echo has a probe and a sweep, and this is neither. */
+  const cineAvailable = keyframes !== undefined && mode === 'explore';
+  const cineCount = keyframes?.frames.length ?? 0;
+
+  // A new pack starts at rest on its first frame. Carrying a frame index across
+  // packs would land on a frame the next pack may not have.
+  useEffect(() => {
+    setCineFrame(0);
+    setCinePlaying(false);
+    setCineReady(false);
+    cineDirection.current = 1;
+  }, [gltfUrl]);
+
+  useEffect(() => {
+    apiRef.current?.setCineFrame(cineFrame);
+  }, [cineFrame, cineReady, status]);
+
+  // Playing stops when the control is not on screen, so leaving Explore does
+  // not leave a clock running against a viewer nobody is looking at.
+  useEffect(() => {
+    if (!cineAvailable) setCinePlaying(false);
+  }, [cineAvailable]);
+
+  useEffect(() => {
+    if (!cinePlaying || !cineReady || cineCount < 2) return;
+    const loop = keyframes?.loop ?? false;
+    const timer = window.setInterval(() => {
+      setCineFrame((current) => {
+        const next = nextCineState({ frame: current, direction: cineDirection.current },
+          cineCount, loop);
+        cineDirection.current = next.direction;
+        return next.frame;
+      });
+    }, cineIntervalMs(keyframes?.fps));
+    return () => window.clearInterval(timer);
+  }, [cinePlaying, cineReady, cineCount, keyframes]);
 
   /*
    * The probe follows the scrubber — or the free pose, when there is one. Same
@@ -1889,6 +2039,71 @@ export default function PackViewer({
             Reset
           </button>
         </div>
+
+        {/*
+          * The cine row: a SEPARATE control from the sweep scrubber, on a
+          * separate axis.
+          *
+          * The scrubber moves a probe over a static heart. This moves the heart
+          * and has no probe in it. Sharing one slider between them would make
+          * one number mean two different things, and the meaning would change
+          * under the learner as they switched modes.
+          */}
+        {cineAvailable && cineCount > 1 && (
+          <div className="cine" data-testid="cine-controls">
+            <button
+              type="button"
+              onClick={() => setCinePlaying((playing) => !playing)}
+              disabled={!cineReady}
+              title={
+                cineReady
+                  ? keyframes?.loop
+                    ? 'Play the cycle on a loop'
+                    : 'Play back and forth — these frames are half a cycle, so a loop '
+                      + 'would snap the heart open at the end'
+                  : 'Loading the remaining frames'
+              }
+              data-testid="cine-play"
+            >
+              {cinePlaying ? 'Pause' : 'Play'}
+            </button>
+
+            <label className="cine__scrub">
+              <span className="cine__label">Frame</span>
+              <input
+                type="range"
+                min={0}
+                max={cineCount - 1}
+                step={1}
+                value={cineFrame}
+                disabled={!cineReady}
+                onChange={(event) => {
+                  setCinePlaying(false);
+                  setCineFrame(Number(event.target.value));
+                }}
+                aria-label="Cardiac phase — which geometry frame is shown"
+                data-testid="cine-scrub"
+              />
+            </label>
+
+            <output className="cine__readout" data-testid="cine-readout">
+              {cineReady
+                ? `${cineFrame + 1}/${cineCount} · ${keyframes?.frames[cineFrame]?.label ?? ''}`
+                : `loading ${cineCount} frames…`}
+            </output>
+
+            {/*
+              * What the motion is and is not, on screen rather than in a
+              * tooltip. A learner watching a heart move will read it as a
+              * recording of a beat unless told otherwise, and this one is half
+              * a beat with no stated rate.
+              */}
+            <span className="cine__note">
+              {keyframes?.coverage}
+              {keyframes?.fps === undefined && ' · no rate stated by the source'}
+            </span>
+          </div>
+        )}
         </>
       )}
     </div>

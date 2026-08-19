@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { PUBLISHED_PACK_IDS, UNPUBLISHED_PACKS } from '../../src/packs/published.ts';
 
 /**
  * Wave 0 visual-regression seed.
@@ -901,17 +902,21 @@ test('the cut renders solid caps, not a hollow shell', async ({ page }) => {
   await expect.poll(exactPaletteHits, { timeout: 15_000 }).toBe(0);
 });
 
-test('a rejected pack is not reachable in the production build', async ({ page }) => {
+test('no unpublished pack is reachable in the production build', async ({ page }) => {
   // The visual suite runs against a real production build, so this is the only
-  // check that exercises the shipped artefact. Both rejected packs are licence
-  // blocked; the requirement is that their FILES are absent, not merely that
-  // the shell declines to show them.
-  for (const packId of ['normal-alberta-neonatal', 'normal-vhl-heart0102']) {
+  // check that exercises the shipped artefact. The requirement is that these
+  // packs' FILES are absent, not merely that the shell declines to show them —
+  // the repository is public and the deployed site is public, and those are two
+  // separate promises.
+  //
+  // The list comes from `published.ts` rather than being spelled out here, so a
+  // pack added to the shelf is covered by this test the moment it is added.
+  for (const packId of Object.keys(UNPUBLISHED_PACKS)) {
     const response = await page.request.get(`/packs/${packId}/pack.json`);
     expect(response.status(), `${packId} pack.json must not be served`).toBe(404);
 
-    const asset = await page.request.get(`/packs/${packId}/assets/echo-volume.raw`);
-    expect(asset.status(), `${packId} assets must not be served`).toBe(404);
+    const directory = await page.request.get(`/packs/${packId}/assets/model.gltf`);
+    expect(directory.status(), `${packId} assets must not be served`).toBe(404);
   }
 
   // And a deep link to one fails visibly rather than rendering a blank screen.
@@ -920,6 +925,41 @@ test('a rejected pack is not reachable in the production build', async ({ page }
     timeout: 15_000,
   });
   await expect(page.getByTestId('pack-error')).toContainText('not published');
+});
+
+test('the picker offers exactly what the build ships', async ({ page }) => {
+  /*
+   * The picker is the one place a learner sees what models exist, so in a
+   * production build it must not advertise a pack the build pruned — that would
+   * be a chip that 404s. In development it offers everything, which is the
+   * whole point of keeping unpublished packs; that half is unit-tested, because
+   * this suite only ever sees the production artefact.
+   */
+  const picker = page.getByTestId('pack-picker');
+  await expect(picker).toBeVisible();
+
+  for (const packId of PUBLISHED_PACK_IDS) {
+    await expect(page.getByTestId(`pack-chip-${packId}`)).toHaveCount(1);
+  }
+  for (const packId of Object.keys(UNPUBLISHED_PACKS)) {
+    await expect(page.getByTestId(`pack-chip-${packId}`)).toHaveCount(0);
+  }
+
+  // Nothing on the deployed site is unpublished, so no chip may say it is.
+  await expect(picker.locator('.picker__tag--unpublished')).toHaveCount(0);
+
+  // Every chip states its licence state. A chip with no licence state is the
+  // failure `check:provenance` exists to prevent, shown to a learner.
+  const chips = picker.locator('.picker__chip');
+  const tags = picker.locator('.picker__tag');
+  expect(await tags.count()).toBe(await chips.count());
+
+  // Switching pack does not reload the page, and the URL follows.
+  await page.getByTestId('pack-chip-stub').click();
+  await expect(page.getByTestId('pack-status')).toContainText('Synthetic stub pack', {
+    timeout: 15_000,
+  });
+  expect(new URL(page.url()).searchParams.get('pack')).toBe('stub');
 });
 
 test('no console errors on load', async ({ page }) => {

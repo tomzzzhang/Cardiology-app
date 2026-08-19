@@ -168,6 +168,21 @@ export class StencilCaps {
     this.quad.matrixWorld.copy(this.quad.matrix);
   }
 
+  /**
+   * Point a structure's cap at a different geometry — one keyframe to the next.
+   *
+   * The cap meshes hold their own reference to the source geometry, so a pack
+   * that swaps geometry for playback has to swap it here too. Missing this is
+   * silent and looks like a renderer bug: the surfaces move and the cut faces
+   * stay behind on the first frame's cross-section.
+   */
+  setGeometry(id: string, geometry: THREE.BufferGeometry): void {
+    const entry = this.entries.find((candidate) => candidate.id === id);
+    if (!entry) return;
+    entry.back.geometry = geometry;
+    entry.front.geometry = geometry;
+  }
+
   /** Hide a structure's cap alongside the structure itself. */
   setVisible(id: string, visible: boolean): void {
     const entry = this.entries.find((candidate) => candidate.id === id);

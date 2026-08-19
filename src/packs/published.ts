@@ -25,6 +25,8 @@
  * is a second line that fails loudly and early; it is not the mechanism.
  */
 
+import type { LicenseState } from '../schema/packV0.ts';
+
 /** Packs copied into `dist/` and reachable on the deployed site. */
 export const PUBLISHED_PACK_IDS = ['stub', 'normal-rodero'] as const;
 
@@ -99,3 +101,110 @@ export function isPublishedPack(packId: string): boolean {
 export function unpublishedReason(packId: string): NotPublished | undefined {
   return UNPUBLISHED_PACKS[packId];
 }
+
+/* -------------------------------------------------------------------------- */
+/* the catalogue — what the picker offers                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What a pack IS, which decides which modes it can even offer.
+ *
+ * Not a licence state and not a publication state: a pack can be confirmed,
+ * published and still Explore-only. This is the shape of the content.
+ */
+export type PackKind =
+  /** Labelled, with an echo volume and views. Echo and Explore both work. */
+  | 'echo'
+  /** Geometry only. Explore works; Echo is refused, visibly. */
+  | 'explore';
+
+export interface CatalogueEntry {
+  id: string;
+  /** `meta.display_name`, so the picker does not invent its own names. */
+  displayName: string;
+  kind: PackKind;
+  licenseState: LicenseState;
+  /** Whether the pack carries keyframed geometry the cine control can play. */
+  moving: boolean;
+  /** One short line on what this pack is, for the chip's title. */
+  summary: string;
+}
+
+/**
+ * Every pack in the repository, for the model picker.
+ *
+ * It lives here, beside the publication rule, rather than in a manifest
+ * generated from the packs, for one reason: a manifest built from `public/`
+ * would still list the packs the build prunes, so the picker would offer links
+ * that 404 on the deployed site. Reading the catalogue from the same module
+ * that decides publication means the picker cannot offer what the build will
+ * not ship.
+ *
+ * It is DUPLICATED data, and duplicated data drifts, so
+ * `tests/unit/publishedPacks.test.ts` checks every field of every entry against
+ * the pack.json actually on disk — the id, the display name, the kind, the
+ * licence state and whether it moves. A catalogue that disagrees with a pack
+ * fails the build rather than misdescribing a model in the picker.
+ */
+export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
+  {
+    id: 'normal-rodero',
+    displayName: 'Normal heart — Rodero/CEMRG average four-chamber',
+    kind: 'echo',
+    licenseState: 'confirmed',
+    moving: false,
+    summary: 'The selected substrate. 24 labelled structures, four derived views.',
+  },
+  {
+    id: 'stub',
+    displayName: 'Synthetic stub pack',
+    kind: 'echo',
+    licenseState: 'confirmed',
+    moving: false,
+    summary: 'Synthetic engine fixture. Two nested boxes — not anatomy.',
+  },
+  {
+    id: 'normal-alberta-neonatal',
+    displayName: 'Normal Neonatal Heart — 3D Heart Project',
+    kind: 'echo',
+    licenseState: 'unconfirmed',
+    moving: false,
+    summary: 'Wave 1a reject. Blood pool and myocardium interpenetrate.',
+  },
+  {
+    id: 'normal-vhl-heart0102',
+    displayName: 'Healthy Pediatric Heart — Visible Heart Labs Heart0102',
+    kind: 'echo',
+    licenseState: 'non_commercial',
+    moving: false,
+    summary: 'Wave 1a reject. One undivided tissue body, 1,026 components.',
+  },
+  {
+    id: 'motion-biv-cinemri',
+    displayName: 'Cardiac Motion — biventricular surfaces from cine-MRI',
+    kind: 'explore',
+    licenseState: 'confirmed',
+    moving: true,
+    summary: 'Ten cine-MRI frames, end-diastole to end-systole. Unlabelled.',
+  },
+];
+
+/**
+ * What the picker should offer here.
+ *
+ * In a production build that is the published packs and nothing else — the rest
+ * are not in `dist/` at all, so offering them would offer a 404. In development
+ * it is everything, because the whole point of keeping unpublished packs is
+ * being able to look at them.
+ */
+export function cataloguedPacks(production: boolean): readonly CatalogueEntry[] {
+  return production ? PACK_CATALOGUE.filter((entry) => isPublishedPack(entry.id)) : PACK_CATALOGUE;
+}
+
+/** Human wording for a licence state, for the chip. */
+export const LICENSE_STATE_LABEL: Readonly<Record<LicenseState, string>> = {
+  confirmed: 'licence confirmed',
+  non_commercial: 'non-commercial',
+  unconfirmed: 'licence unconfirmed',
+  permission_pending: 'permission pending',
+};

@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-19 05:25 EDT
+**Updated:** 2026-08-19 05:44 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -16,8 +16,18 @@ probe pose the wedge is built from. Three clinical views are authored and draft-
 by `?view=`; two were deliberately refused, and the pack says why. There is no view rail yet —
 that, and the annotated sweep scrubber, are the next objective (wave 1d).
 
-Everything is **draft and unvetted**. Schema v0 is provisional, clinical review is deferred until
-the build is substantially complete, and no view carries a clinical claim.
+A **model picker** now offers every pack in the repository, grouped by what a pack is: labelled and
+echo-capable, or Explore-only geometry. Explore-only packs are new in schema v0.1, which made
+`echo_volume` optional so that unlabelled and moving geometry could be carried at all. The first
+such pack **moves** — ten cine-MRI biventricular frames with a play/pause and a frame scrub in
+Explore. Motion is not wired into the echo renderer and that is deliberate; see
+[`contracts/viewer-core.md`](contracts/viewer-core.md).
+
+Everything is **draft and unvetted**. Schema v0.1 is provisional, clinical review is deferred until
+the build is substantially complete, and no view carries a clinical claim. **Nothing new is
+published**: every pack added to the shelf is on the unpublished list and absent from the deployed
+build, and any pack whose licence state is not `confirmed` is kept off it by CI rather than by
+anyone remembering to.
 
 ## Read first
 
@@ -59,9 +69,11 @@ engine hardcodes lesion names or counts; adding a lesion means authoring a pack.
 src/schema/     content-pack schema v0.1 (provisional) and its validator
 src/packs/      pack-loader — the only place JSON becomes a typed pack
 src/viewer/     viewer-core: orbit, the free cutter and its handles, stencil caps,
-                the probe indicator and its control pad, the beam-dim highlight
+                the probe indicator and its control pad, the beam-dim highlight,
+                the cine axis for keyframed geometry
 src/echo/       echo-renderer: probe frame, the three shader passes, the echo panel
-pipeline/       Python model ingest — split, label, decimate, voxelise, author views
+pipeline/       Python model ingest — split, label, decimate, voxelise, author views,
+                and a geometry-only path for unlabelled sources
 shared/         the few constants the pipeline and the viewer both have to agree on
 public/packs/   shipped packs, one directory each
 scripts/        pack validation, provenance check, base-path check, stub asset generation
@@ -108,7 +120,7 @@ scheme (`?a=`/`?v=`/`?s=`) is wave 2. What is wired today:
 | --- | --- |
 | `?mode=explore` | Open in Explore — the heart model alone, no probe and no echo panel. Echo is the default. |
 | `?view=<view_id>` | Select a view by id or index, until the view rail exists. |
-| `?pack=<pack_id>` | Select a pack. Used by the visual suite to hold the synthetic stub. |
+| `?pack=<pack_id>` | Select a pack. Written back as the model picker is used. |
 | `?freeze=1` | Stop animation, for reproducible frames. |
 | `?polar=<scale>` | Scale the echo renderer's internal polar working resolution. A measurement control. |
 

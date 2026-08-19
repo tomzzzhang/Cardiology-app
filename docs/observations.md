@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 05:25 EDT
+**Last Updated:** 2026-08-19 05:44 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -675,3 +675,147 @@ the measured spread and well below what the failure mode would produce.
 
 **Nothing was retuned.** The tuning constants are the owner's and stand. This entry records that a
 suspected dependence was looked for and is not there.
+
+---
+
+## 20. The model picker, and what a chip is telling you
+
+**Where.** The top of the screen, above the Echo / Explore modes.
+
+**What to look at.** Two groups, and the grouping is the point. **Labelled — echo and explore** are
+packs with a labelled volume and views; **Geometry only — explore** are packs with meshes and
+nothing else. That distinction decides which modes are even available, so it decides the grouping
+rather than being mentioned inside it.
+
+Every chip carries a licence-state tag, and in development an unpublished pack carries a red **not
+published** tag as well. Right now that is three of five packs, and the two that do ship are the
+synthetic stub and Rodero. Nothing new ships in this build, by rule.
+
+**Why it was uncertain.** UI-4 deferred the picker until there was a fourth pack to pick. There are
+now five, and packs 4 and 5 differ from the first three in kind rather than in quality — one of them
+cannot enter Echo mode at all. A flat list would have made that difference visible only after
+choosing.
+
+**How to judge it.** Pick the Cardiac Motion chip. Echo should grey out *and say why* before you
+have a chance to wonder whether the app is broken. Pick Rodero again and Echo should come back with
+the view intact. The address bar should follow both times, and neither should reload the page.
+
+**Judgement calls.**
+
+- **The catalogue is duplicated data.** It restates each pack's display name, kind and licence state
+  in TypeScript. That is on purpose: a manifest generated from `public/packs/` would still list the
+  packs the production build prunes, so the picker would offer chips that 404 on the deployed site.
+  The duplication is checked field by field against the packs on disk in
+  `tests/unit/publishedPacks.test.ts` — and it has already caught one drift, a display name that had
+  changed in the pack and not in the catalogue.
+- **Rejected packs are offered, not hidden.** In development. They are evidence, and evidence you
+  cannot open is not evidence. The red tag is what stops them being mistaken for shipped content.
+- **Five chips already crowd the top of a phone screen.** At ten this needs to become something
+  else — a select, or a grouped drawer. It is not there yet.
+
+---
+
+## 21. The cine control: half a cycle, bouncing, at a rate nobody stated
+
+**Where.** Explore mode, under the cutter row, on a pack that carries motion. Today that is
+`motion-biv-cinemri` only.
+
+**What to look at.** Press **Play**. Ten frames of a biventricular surface run from end-diastole to
+end-systole and back. Watch the *scrub*: it should travel to the end and turn round, never wrap.
+
+**Why it was uncertain.** This is the first moving geometry in the repository, and the source covers
+half a cycle. Looping it would show the heart snapping from fully contracted back to fully relaxed
+in one frame — a motion no heart makes, presented as though the source had recorded it. The pack
+records `loop: false` and the playback bounces because of it; a whole-cycle pack would wrap.
+
+**How to judge it.** Two things, both by eye. First, does it read as a heart contracting, or as ten
+unrelated meshes flickering? Second, does the *camera* stay still? The framing is deliberately taken
+from frame 0 and never recomputed, because re-framing per frame would make the heart pulse in the
+viewport for reasons that have nothing to do with the heart.
+
+**Judgement calls.**
+
+- **The rate is invented, and says so.** The deposit states no frame rate, so playback runs at 8 fps
+  because that is legible, and the control prints "no rate stated by the source" next to it. If it
+  looks too fast or too slow, that is a display choice and not a fact about the heart.
+- **A different axis from the sweep, and deliberately a different control.** The sweep moves one
+  probe over a static heart; this moves the heart and has no probe in it. Explore has no sweep, so
+  the two never appear together yet. How a two-axis time model should work when sweep position and
+  cardiac phase both exist is an open owner decision and has deliberately not been designed away.
+- **The cut plane follows the motion.** Turn the cutter on and play: the cut faces re-cut each frame
+  rather than staying behind on frame 1's cross-section. Worth checking, because getting it wrong
+  looks like a renderer bug rather than a missed reference.
+- **The frames load behind the first one.** The model is interactive immediately and Play is
+  disabled for the moment it takes the other nine to arrive. On a fast connection this is invisible.
+
+---
+
+## 22. `motion-biv-cinemri` — how it actually looks. Blunt: like a bean.
+
+**Where.** Pick the Cardiac Motion chip. Explore is the only mode it has.
+
+**What it is.** Ten cine-MRI biventricular segmentations, Zenodo 10548682, CC BY 4.0 confirmed from
+the record's own licence field. One unnamed closed surface per frame, 3,400–4,500 triangles each,
+about 120 mm across. 1.0 MB derived, all ten frames.
+
+**What it gets right.** It moves, and the motion is recognisable: the whole body shortens and
+narrows toward end-systole, and the apex draws up. That is more than any other model in this
+repository does, and it is the entire reason it is here. The scale is right and it needed no
+guessing — 119.7 mm across is a heart in millimetres and nothing else.
+
+**What is wrong with it, which is most of it.**
+
+- **It is an epicardial blob.** One outer surface, no chambers, no septum, no valve plane, nothing
+  inside. From the outside it reads as a smooth two-lobed bean, and the two lobes are the only
+  anatomy visible without cutting. Cut it open and there is nothing in there — it is a shell, not a
+  wall, so a cut face is a closed ring of nothing.
+- **It has debris.** Frame 1 carries **11 connected components** and there are visibly wrong dark
+  triangles on the surface — small inverted or degenerate facets that read as punctures. They come
+  and go across the cycle (11 components at end-diastole, 1 at frames 7 and 8, 3 at the last), so
+  playback flickers small dark specks on and off. That is segmentation debris in the source, not a
+  rendering fault, and it is not fixed here.
+- **The surfaces are coarse and lumpy.** Roughly 2,000 vertices over a whole biventricular surface
+  is far below what the shape deserves; the smooth shading hides it until the silhouette, which is
+  visibly faceted.
+- **No labels, so no echo, no colour, no show/hide.** It renders in the unnamed-structure grey.
+- **No vertex correspondence.** 2,268 vertices in the first frame, 1,712 in the last. Nothing can be
+  tracked through the motion, no strain, no displacement, and no deformation field is derivable.
+  This is the fact that shaped the schema.
+- **Undocumented.** Two sentences of description, no subject metadata, no segmentation protocol, no
+  accuracy statement.
+
+**Is it worth keeping?** Yes, and only for one reason: it is the first thing in this repository that
+moves, and watching a ventricle contract teaches something a still model cannot. As anatomy it is
+the weakest asset here — worse than the VHL tissue body, which at least has interior surfaces.
+Nobody should learn chamber anatomy from it.
+
+**Decision for the owner.** Whether a moving blob earns a place in a teaching tool once better
+static models are on the shelf, or whether it stays purely as the thing that proved the motion path
+works.
+
+---
+
+## 23. What the Playwright suite does NOT cover, and why
+
+**Where.** Nowhere on screen — this is a gap, recorded so it is not mistaken for coverage.
+
+The visual suite runs against a real **production build**, deliberately: it is the only check that
+exercises the artefact that actually deploys, and `tests/static-server.mjs` serves `dist/` alone so
+a pruned pack 404s the way Pages would.
+
+The consequence is that **no unpublished pack exists during the visual suite**. So these are not
+covered end to end by Playwright:
+
+- the Echo-mode refusal on an EXPLORE-ONLY pack, and its on-screen reason;
+- the cine control, its playback, and the cut following the motion;
+- the picker's development behaviour — the unpublished tags and the rejected-pack chips.
+
+What covers them instead: the schema invariants and the publication rule are unit-tested; the
+playback rule (`nextCineState`) is unit-tested including the bounce; the catalogue is checked field
+by field against the packs on disk; and the production half of the picker IS asserted in Playwright,
+including that no chip says "not published" on the deployed site. The rest was checked by hand in a
+browser, which is what the owner does anyway.
+
+Closing this properly means a second Playwright project served from `npm run dev`. That is a real
+piece of work — a second web server, a second base path, and a decision about whether an unpublished
+pack should be screenshotted at all — and it is not in this task.

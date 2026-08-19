@@ -1,9 +1,9 @@
 # Contract: app shell
 
 **Owns:** `src/App.tsx`, `src/main.tsx`, `src/styles.css`, `index.html`, `vite.config.ts`
-**Status:** partial. Echo and Explore modes, deep-link params, the responsive two-panel stage and
-the undismissible non-diagnostic notice are built. The view rail, the provenance strip and the full
-`?a=`/`?v=`/`?s=` scheme are wave 2.
+**Status:** partial. Echo and Explore modes, the model picker, deep-link params, the responsive
+two-panel stage and the undismissible non-diagnostic notice are built. The view rail, the provenance
+strip and the full `?a=`/`?v=`/`?s=` scheme are wave 2.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (7), "Repo and hosting"; `docs/mvp_scope.md` "Design direction (core screen)".
 
 ## Responsibility
@@ -40,6 +40,10 @@ Query params, no SPA-routing hacks — the site is static and served from a subp
 Wired today, pending that scheme: `?mode=explore` (Echo is the default), `?view=<view_id|index>`,
 `?pack=<pack_id>`, `?freeze=1`, and `?polar=<scale>` — the last two developer controls, the latter
 for measuring whether the echo depends on the renderer's internal sampling.
+
+`?mode=` is written back from the **effective** mode rather than the requested one. An EXPLORE-ONLY
+pack refuses Echo, so leaving `?mode=echo` in the address bar would hand out a link to a screen that
+pack cannot produce.
 
 - Params are read on load and written back as the user navigates. `replaceState`, not `pushState`:
   a mode toggle is not a navigation, and filling the back button with it would make Back mean
@@ -80,13 +84,28 @@ for measuring whether the echo depends on the renderer's internal sampling.
 5. **No user-uploaded or arbitrary patient images, ever.** Curated content only — this is the
    regulatory line in `docs/mvp_scope.md` and the shell is where an upload affordance would most
    plausibly creep in.
+6. **The picker groups by what a pack IS, not by how good it is.** Labelled and echo-capable against
+   Explore-only geometry, because that distinction decides which modes are even available. Someone
+   who picks an Explore-only model and then finds Echo greyed out should have been able to see that
+   coming from the picker.
+7. **A pack that will not ship says so where it is chosen.** Every chip carries its licence state,
+   and in development an unpublished pack is marked unpublished. The deployed build offers only
+   published packs — offering a pruned pack would be offering a 404 — and the catalogue that feeds
+   the picker is read from the same module that decides publication, so the two cannot disagree.
+8. **A mode the pack cannot support is refused, visibly, with the reason.** An EXPLORE-ONLY pack
+   disables Echo and states why beside the control, and `?mode=echo` on such a pack lands in
+   Explore. A pressable, inert control is worse than one that is visibly unavailable.
 
 ## What is actually in the repo now
 
-Echo and Explore modes with a visible toggle; `?mode=`, `?view=`, `?pack=`, `?freeze=1` and
-`?polar=` read on load, with `?mode=` written back; the anatomy viewer beside the echo panel on a
+Echo and Explore modes with a visible toggle; the model picker, grouped by pack kind, with licence
+state and publication state on each chip; `?mode=`, `?view=`, `?pack=`, `?freeze=1` and `?polar=`
+read on load, with `?mode=` and `?pack=` written back; the anatomy viewer beside the echo panel on a
 wide viewport and stacked on a phone; the pack-status panel; and the non-diagnostic notice in the
 footer, present in both modes and not behind a toggle.
+
+Switching pack is state, not a page load: the viewer's scene effect already keys on the pack and its
+glTF URL, so choosing a chip rebuilds the scene and nothing else.
 
 Not built: the view family rail, the pinned expandable provenance strip, the full
 `?a=`/`?v=`/`?s=` scheme, and the normal-vs-lesion synced-camera toggle.
