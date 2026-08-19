@@ -1,0 +1,1453 @@
+{
+  "meta": {
+    "id": "anatomy-bodyparts3d-heart",
+    "display_name": "BodyParts3D heart \u2014 separately modelled valve leaflets and cusps",
+    "anatomy": "Adult heart, 83 separately modelled parts",
+    "canonical_variant": "Single adult Japanese male cadaver, the BodyParts3D whole-body reference model; the heart concept FMA7088 and its parts",
+    "pack_version": "0.1.0",
+    "schema_version": "0.1"
+  },
+  "provenance": {
+    "creator": "The Database Center for Life Science (DBCLS), Research Organization of Information and Systems",
+    "source": "BodyParts3D 4.0, partof_BP3D_4.0_obj_99.zip and partof_element_parts.txt, LSDB Archive",
+    "source_url": "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "license_state": "confirmed",
+    "modified": {
+      "flag": true,
+      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 134.9 source units; read as mm because 134.9 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 86 input surface(s) together, a single translation of (-21.5, 123.3, -1242.4) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. LICENCE AS READ AT THE SOURCE: the rights holder's own licence page, https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html, read on 2026-08-19 and last updated there 2025/02/27, states: \"The license for this database is specified in the Creative Commons Attribution 4.0 International\", and grants explicitly that you may \"freely redistribute part or whole of the data from this database\" and \"freely create and distribute database and other derivative works based on part or whole of the data\", with the required attribution \"BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution 4.0 International\". CONTRADICTION, recorded rather than resolved: older mirrors of the same project state CC BY-SA 2.1 Japan. The reading taken here is the rights holder's CURRENT page, which is the more authoritative source and the more permissive grant; if that is wrong, this pack is a share-alike derivative and the licence state must be revisited. It is not published either way. NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this is an Explore-only pack like every other geometry-only source. SEMILUNAR CUSPS ARE COARSE. The aortic and pulmonary cusps are a few hundred triangles each and look faceted at any useful zoom. Not fixed here: smoothing them would be sculpting anatomy, which is a different task with a different licence consequence. ONE CADAVER, and an adult one. Nothing about this model is paediatric, and the leaflet geometry is a fixed post-mortem configuration, not a phase of a cardiac cycle: these leaflets neither open nor close. NAMES ARE DERIVED, not authored. Each part is named from the SMALLEST concept in the source's own partof_element_parts.txt that contains it. The eleven valve leaflets and cusps are additionally pinned by element id, and the ingest fails if the source stops listing any of them under its expected concept. THE ATRIOVENTRICULAR LEAFLETS ARE NOT THIN LEAFLETS. The source's concept map is many-to-many, and element FJ2432 is listed as the posterior mitral leaflet AND as the inferior wall of the left ventricle, the myocardium of that wall and myocardial zone 4. It measures 49 x 38 x 32 mm and carries 3,820 triangles, which is a wall segment rather than a leaflet; the anterior mitral element FJ2420 is 34 x 48 x 31 mm and likewise. Eight of the 86 parts have a tied smallest concept, and their labels carry both names rather than the pipeline picking one. The SEMILUNAR cusps are not ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles. EVERY SURFACE IS OPEN. All 86 parts carry boundary edges \u2014 8 on the right coronary trunk, 1,826 on the right atrial wall \u2014 and many split into dozens of connected components. Nothing is watertight, so the free cutter's stencil caps will speckle wherever a cut crosses an opening. No hole is filled: on a source like this, filling would fabricate the very surfaces a learner would be reading. NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the pulmonary arteries as part of the heart, and their elements run 96-335 mm down the body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are included, so the semilunar cusps have a vessel behind them; there is no arch, no descending aorta, no inferior vena cava and no pulmonary veins."
+    },
+    "derivation_chain": [
+      "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html",
+      "pipeline/fetch.py (checksum-recorded acquisition)",
+      "pipeline/geometry.py (read, unit-normalise, centre, decimate, export)"
+    ],
+    "vetted": {
+      "status": "draft",
+      "vetters": [],
+      "last_reviewed": null
+    }
+  },
+  "meshes": {
+    "gltf": "assets/model.gltf",
+    "structures": [
+      {
+        "id": "anterior-cardiac-venous-tree-right-marginal-vein-fj2727",
+        "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2727",
+        "display_label": "anterior cardiac venous tree / right marginal vein (FJ2727)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-cardiac-venous-tree-right-marginal-vein-fj2728",
+        "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2728",
+        "display_label": "anterior cardiac venous tree / right marginal vein (FJ2728)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-cardiac-venous-tree-right-marginal-vein-fj2729",
+        "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2729",
+        "display_label": "anterior cardiac venous tree / right marginal vein (FJ2729)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-cusp-of-aortic-valve",
+        "mesh_node": "anterior-cusp-of-aortic-valve",
+        "display_label": "anterior cusp of aortic valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-leaflet-of-mitral-valve",
+        "mesh_node": "anterior-leaflet-of-mitral-valve",
+        "display_label": "anterior leaflet of mitral valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-leaflet-of-tricuspid-valve",
+        "mesh_node": "anterior-leaflet-of-tricuspid-valve",
+        "display_label": "anterior leaflet of tricuspid valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-papillary-muscle-of-right-ventricle-anterior-wall-of-right-ventricle",
+        "mesh_node": "anterior-papillary-muscle-of-right-ventricle-anterior-wall-of-right-ventricle",
+        "display_label": "anterior papillary muscle of right ventricle / anterior wall of right ventricle",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-wall-of-left-ventricle-lateral-papillary-muscle-of-left-ventricle-6",
+        "mesh_node": "anterior-wall-of-left-ventricle-lateral-papillary-muscle-of-left-ventricle-6",
+        "display_label": "anterior wall of left ventricle / lateral papillary muscle of left ventricle +6",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterolateral-head-of-lateral-papillary-muscle-of-left-ventricle-myocardial-zone-12",
+        "mesh_node": "anterolateral-head-of-lateral-papillary-muscle-of-left-ventricle-myocardial-zone-12",
+        "display_label": "anterolateral head of lateral papillary muscle of left ventricle / myocardial zone 12",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "ascending-aorta",
+        "mesh_node": "ascending-aorta",
+        "display_label": "ascending aorta",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "cavity-of-left-atrium",
+        "mesh_node": "cavity-of-left-atrium",
+        "display_label": "cavity of left atrium",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "cavity-of-left-ventricle",
+        "mesh_node": "cavity-of-left-ventricle",
+        "display_label": "cavity of left ventricle",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "cavity-of-right-atrium",
+        "mesh_node": "cavity-of-right-atrium",
+        "display_label": "cavity of right atrium",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "cavity-of-right-ventricle",
+        "mesh_node": "cavity-of-right-ventricle",
+        "display_label": "cavity of right ventricle",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "circumflex-branch-of-left-coronary-artery-fj2649",
+        "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2649",
+        "display_label": "circumflex branch of left coronary artery (FJ2649)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "circumflex-branch-of-left-coronary-artery-fj2650",
+        "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2650",
+        "display_label": "circumflex branch of left coronary artery (FJ2650)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "circumflex-branch-of-left-coronary-artery-fj2651",
+        "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2651",
+        "display_label": "circumflex branch of left coronary artery (FJ2651)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "circumflex-branch-of-left-coronary-artery-fj2652",
+        "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2652",
+        "display_label": "circumflex branch of left coronary artery (FJ2652)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "circumflex-branch-of-left-coronary-artery-fj2653",
+        "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2653",
+        "display_label": "circumflex branch of left coronary artery (FJ2653)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "circumflex-branch-of-left-coronary-artery-fj2654",
+        "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2654",
+        "display_label": "circumflex branch of left coronary artery (FJ2654)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2643",
+        "mesh_node": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2643",
+        "display_label": "conus branch of anterior interventricular branch of left coronary artery (FJ2643)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2644",
+        "mesh_node": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2644",
+        "display_label": "conus branch of anterior interventricular branch of left coronary artery (FJ2644)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "coronary-sinus",
+        "mesh_node": "coronary-sinus",
+        "display_label": "coronary sinus",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2633",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2633",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2633)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2634",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2634",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2634)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2635",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2635",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2635)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2636",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2636",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2636)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2637",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2637",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2637)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2638",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2638",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2638)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2639",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2639",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2639)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2640",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2640",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2640)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2642",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2642",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2642)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2648",
+        "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2648",
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2648)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2671",
+        "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2671",
+        "display_label": "first anterior ventricular branch of right coronary artery (FJ2671)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2673",
+        "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2673",
+        "display_label": "first anterior ventricular branch of right coronary artery (FJ2673)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2677",
+        "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2677",
+        "display_label": "first anterior ventricular branch of right coronary artery (FJ2677)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2714",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2714",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2714)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2715",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2715",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2715)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2716",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2716",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2716)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2717",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2717",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2717)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2718",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2718",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2718)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2719",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2719",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2719)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2720",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2720",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2720)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2721",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2721",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2721)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2722",
+        "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2722",
+        "display_label": "first posterior ventricular branch of right coronary artery (FJ2722)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2632",
+        "mesh_node": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2632",
+        "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery (FJ2632)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2645",
+        "mesh_node": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2645",
+        "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery (FJ2645)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "great-cardiac-vein",
+        "mesh_node": "great-cardiac-vein",
+        "display_label": "great cardiac vein",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "inferior-wall-of-right-ventricle-posterior-papillary-muscle-of-right-ventricle",
+        "mesh_node": "inferior-wall-of-right-ventricle-posterior-papillary-muscle-of-right-ventricle",
+        "display_label": "inferior wall of right ventricle / posterior papillary muscle of right ventricle",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "left-anterior-cusp-of-pulmonary-valve",
+        "mesh_node": "left-anterior-cusp-of-pulmonary-valve",
+        "display_label": "left anterior cusp of pulmonary valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "left-posterior-cusp-of-aortic-valve",
+        "mesh_node": "left-posterior-cusp-of-aortic-valve",
+        "display_label": "left posterior cusp of aortic valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "marginal-branch-of-right-coronary-artery-fj2667",
+        "mesh_node": "marginal-branch-of-right-coronary-artery-fj2667",
+        "display_label": "marginal branch of right coronary artery (FJ2667)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "marginal-branch-of-right-coronary-artery-fj2668",
+        "mesh_node": "marginal-branch-of-right-coronary-artery-fj2668",
+        "display_label": "marginal branch of right coronary artery (FJ2668)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "marginal-branch-of-right-coronary-artery-fj2672",
+        "mesh_node": "marginal-branch-of-right-coronary-artery-fj2672",
+        "display_label": "marginal branch of right coronary artery (FJ2672)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "marginal-branch-of-right-coronary-artery-fj2674",
+        "mesh_node": "marginal-branch-of-right-coronary-artery-fj2674",
+        "display_label": "marginal branch of right coronary artery (FJ2674)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "marginal-branch-of-right-coronary-artery-fj2675",
+        "mesh_node": "marginal-branch-of-right-coronary-artery-fj2675",
+        "display_label": "marginal branch of right coronary artery (FJ2675)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-cusp-of-pulmonary-valve",
+        "mesh_node": "posterior-cusp-of-pulmonary-valve",
+        "display_label": "posterior cusp of pulmonary valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2692",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2692",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2692)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2693",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2693",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2693)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2694",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2694",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2694)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2695",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2695",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2695)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2696",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2696",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2696)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2697",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2697",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2697)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2698",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2698",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2698)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2699",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2699",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2699)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2700",
+        "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2700",
+        "display_label": "posterior interventricular branch of right coronary artery (FJ2700)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-leaflet-of-mitral-valve-inferior-wall-of-left-ventricle-2",
+        "mesh_node": "posterior-leaflet-of-mitral-valve-inferior-wall-of-left-ventricle-2",
+        "display_label": "posterior leaflet of mitral valve / inferior wall of left ventricle +2",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-leaflet-of-tricuspid-valve",
+        "mesh_node": "posterior-leaflet-of-tricuspid-valve",
+        "display_label": "posterior leaflet of tricuspid valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "pulmonary-trunk",
+        "mesh_node": "pulmonary-trunk",
+        "display_label": "pulmonary trunk",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-anterior-cusp-of-pulmonary-valve",
+        "mesh_node": "right-anterior-cusp-of-pulmonary-valve",
+        "display_label": "right anterior cusp of pulmonary valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-conus-artery-fj2670",
+        "mesh_node": "right-conus-artery-fj2670",
+        "display_label": "right conus artery (FJ2670)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-conus-artery-fj2676",
+        "mesh_node": "right-conus-artery-fj2676",
+        "display_label": "right conus artery (FJ2676)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-posterior-cusp-of-aortic-valve",
+        "mesh_node": "right-posterior-cusp-of-aortic-valve",
+        "display_label": "right posterior cusp of aortic valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "second-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "mesh_node": "second-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "display_label": "second right anterior branch of anterior interventricular branch of left coronary artery",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "septal-leaflet-of-tricuspid-valve",
+        "mesh_node": "septal-leaflet-of-tricuspid-valve",
+        "display_label": "septal leaflet of tricuspid valve",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "septal-papillary-muscle-of-right-ventricle",
+        "mesh_node": "septal-papillary-muscle-of-right-ventricle",
+        "display_label": "septal papillary muscle of right ventricle",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "small-cardiac-vein-fj2724",
+        "mesh_node": "small-cardiac-vein-fj2724",
+        "display_label": "small cardiac vein (FJ2724)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "small-cardiac-vein-fj2731",
+        "mesh_node": "small-cardiac-vein-fj2731",
+        "display_label": "small cardiac vein (FJ2731)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "superior-vena-cava",
+        "mesh_node": "superior-vena-cava",
+        "display_label": "superior vena cava",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2641",
+        "mesh_node": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2641",
+        "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery (FJ2641)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2647",
+        "mesh_node": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2647",
+        "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery (FJ2647)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "trunk-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "mesh_node": "trunk-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "display_label": "trunk of anterior interventricular branch of left coronary artery",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "trunk-of-left-coronary-artery",
+        "mesh_node": "trunk-of-left-coronary-artery",
+        "display_label": "trunk of left coronary artery",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "trunk-of-right-coronary-artery",
+        "mesh_node": "trunk-of-right-coronary-artery",
+        "display_label": "trunk of right coronary artery",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "wall-of-left-atrium",
+        "mesh_node": "wall-of-left-atrium",
+        "display_label": "wall of left atrium",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "wall-of-right-atrium",
+        "mesh_node": "wall-of-right-atrium",
+        "display_label": "wall of right atrium",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      }
+    ],
+    "canonical_pose": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler_xyz_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0
+    },
+    "units": "mm",
+    "orientation": {
+      "up": "+y",
+      "anterior": "+z",
+      "patient_left": "+x",
+      "handedness": "right"
+    }
+  },
+  "interaction": {
+    "pivot": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "views": [],
+  "display_flags": {
+    "pediatric_vertex_convention": true,
+    "plax_apex_left_exception": true,
+    "dextrocardia_indicator_profile": {
+      "enabled": false,
+      "profile": null
+    }
+  },
+  "volumetric_data": {
+    "geometry_report": {
+      "FJ2727": {
+        "vertices": 627,
+        "triangles": 970,
+        "boundary_edges": 322,
+        "nonmanifold_edges": 0,
+        "components": 5,
+        "watertight": 0
+      },
+      "FJ2728": {
+        "vertices": 190,
+        "triangles": 282,
+        "boundary_edges": 104,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2729": {
+        "vertices": 156,
+        "triangles": 222,
+        "boundary_edges": 100,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2435": {
+        "vertices": 508,
+        "triangles": 920,
+        "boundary_edges": 92,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2420": {
+        "vertices": 4052,
+        "triangles": 7558,
+        "boundary_edges": 676,
+        "nonmanifold_edges": 0,
+        "components": 28,
+        "watertight": 0
+      },
+      "FJ2421": {
+        "vertices": 4282,
+        "triangles": 8160,
+        "boundary_edges": 480,
+        "nonmanifold_edges": 0,
+        "components": 19,
+        "watertight": 0
+      },
+      "FJ2419": {
+        "vertices": 580,
+        "triangles": 882,
+        "boundary_edges": 302,
+        "nonmanifold_edges": 0,
+        "components": 5,
+        "watertight": 0
+      },
+      "FJ2429": {
+        "vertices": 487,
+        "triangles": 780,
+        "boundary_edges": 196,
+        "nonmanifold_edges": 0,
+        "components": 8,
+        "watertight": 0
+      },
+      "FJ2418": {
+        "vertices": 532,
+        "triangles": 816,
+        "boundary_edges": 230,
+        "nonmanifold_edges": 0,
+        "components": 18,
+        "watertight": 0
+      },
+      "FJ3413": {
+        "vertices": 229,
+        "triangles": 396,
+        "boundary_edges": 56,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2425": {
+        "vertices": 587,
+        "triangles": 1064,
+        "boundary_edges": 126,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2422": {
+        "vertices": 879,
+        "triangles": 1722,
+        "boundary_edges": 42,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2424": {
+        "vertices": 1193,
+        "triangles": 2244,
+        "boundary_edges": 146,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2423": {
+        "vertices": 973,
+        "triangles": 1918,
+        "boundary_edges": 34,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2649": {
+        "vertices": 692,
+        "triangles": 1380,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "FJ2650": {
+        "vertices": 316,
+        "triangles": 396,
+        "boundary_edges": 250,
+        "nonmanifold_edges": 0,
+        "components": 8,
+        "watertight": 0
+      },
+      "FJ2651": {
+        "vertices": 395,
+        "triangles": 510,
+        "boundary_edges": 306,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2652": {
+        "vertices": 240,
+        "triangles": 308,
+        "boundary_edges": 182,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2653": {
+        "vertices": 232,
+        "triangles": 252,
+        "boundary_edges": 208,
+        "nonmanifold_edges": 0,
+        "components": 9,
+        "watertight": 0
+      },
+      "FJ2654": {
+        "vertices": 150,
+        "triangles": 172,
+        "boundary_edges": 116,
+        "nonmanifold_edges": 0,
+        "components": 9,
+        "watertight": 0
+      },
+      "FJ2643": {
+        "vertices": 269,
+        "triangles": 478,
+        "boundary_edges": 66,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2644": {
+        "vertices": 193,
+        "triangles": 306,
+        "boundary_edges": 104,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2655": {
+        "vertices": 331,
+        "triangles": 624,
+        "boundary_edges": 34,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2633": {
+        "vertices": 318,
+        "triangles": 492,
+        "boundary_edges": 164,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2634": {
+        "vertices": 158,
+        "triangles": 196,
+        "boundary_edges": 126,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 0
+      },
+      "FJ2635": {
+        "vertices": 495,
+        "triangles": 766,
+        "boundary_edges": 278,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2636": {
+        "vertices": 282,
+        "triangles": 420,
+        "boundary_edges": 162,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2637": {
+        "vertices": 144,
+        "triangles": 160,
+        "boundary_edges": 124,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2638": {
+        "vertices": 246,
+        "triangles": 290,
+        "boundary_edges": 202,
+        "nonmanifold_edges": 0,
+        "components": 7,
+        "watertight": 0
+      },
+      "FJ2639": {
+        "vertices": 122,
+        "triangles": 150,
+        "boundary_edges": 94,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2640": {
+        "vertices": 218,
+        "triangles": 260,
+        "boundary_edges": 182,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2642": {
+        "vertices": 525,
+        "triangles": 964,
+        "boundary_edges": 106,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2648": {
+        "vertices": 203,
+        "triangles": 286,
+        "boundary_edges": 136,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2671": {
+        "vertices": 313,
+        "triangles": 478,
+        "boundary_edges": 164,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2673": {
+        "vertices": 243,
+        "triangles": 338,
+        "boundary_edges": 166,
+        "nonmanifold_edges": 0,
+        "components": 8,
+        "watertight": 0
+      },
+      "FJ2677": {
+        "vertices": 198,
+        "triangles": 252,
+        "boundary_edges": 148,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2714": {
+        "vertices": 482,
+        "triangles": 794,
+        "boundary_edges": 228,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2715": {
+        "vertices": 185,
+        "triangles": 218,
+        "boundary_edges": 156,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2716": {
+        "vertices": 188,
+        "triangles": 232,
+        "boundary_edges": 156,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2717": {
+        "vertices": 259,
+        "triangles": 340,
+        "boundary_edges": 192,
+        "nonmanifold_edges": 0,
+        "components": 7,
+        "watertight": 0
+      },
+      "FJ2718": {
+        "vertices": 139,
+        "triangles": 186,
+        "boundary_edges": 96,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 0
+      },
+      "FJ2719": {
+        "vertices": 299,
+        "triangles": 380,
+        "boundary_edges": 226,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2720": {
+        "vertices": 233,
+        "triangles": 320,
+        "boundary_edges": 174,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 0
+      },
+      "FJ2721": {
+        "vertices": 198,
+        "triangles": 256,
+        "boundary_edges": 154,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2722": {
+        "vertices": 244,
+        "triangles": 320,
+        "boundary_edges": 186,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2632": {
+        "vertices": 91,
+        "triangles": 108,
+        "boundary_edges": 66,
+        "nonmanifold_edges": 0,
+        "components": 5,
+        "watertight": 0
+      },
+      "FJ2645": {
+        "vertices": 224,
+        "triangles": 318,
+        "boundary_edges": 136,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2656": {
+        "vertices": 434,
+        "triangles": 826,
+        "boundary_edges": 36,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2430": {
+        "vertices": 484,
+        "triangles": 692,
+        "boundary_edges": 286,
+        "nonmanifold_edges": 0,
+        "components": 8,
+        "watertight": 0
+      },
+      "FJ2417": {
+        "vertices": 708,
+        "triangles": 1272,
+        "boundary_edges": 126,
+        "nonmanifold_edges": 0,
+        "components": 11,
+        "watertight": 0
+      },
+      "FJ2426": {
+        "vertices": 526,
+        "triangles": 914,
+        "boundary_edges": 122,
+        "nonmanifold_edges": 0,
+        "components": 11,
+        "watertight": 0
+      },
+      "FJ2667": {
+        "vertices": 267,
+        "triangles": 360,
+        "boundary_edges": 188,
+        "nonmanifold_edges": 0,
+        "components": 7,
+        "watertight": 0
+      },
+      "FJ2668": {
+        "vertices": 176,
+        "triangles": 216,
+        "boundary_edges": 138,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2672": {
+        "vertices": 447,
+        "triangles": 742,
+        "boundary_edges": 196,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2674": {
+        "vertices": 186,
+        "triangles": 284,
+        "boundary_edges": 96,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2675": {
+        "vertices": 148,
+        "triangles": 200,
+        "boundary_edges": 96,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2427": {
+        "vertices": 573,
+        "triangles": 996,
+        "boundary_edges": 136,
+        "nonmanifold_edges": 0,
+        "components": 9,
+        "watertight": 0
+      },
+      "FJ2692": {
+        "vertices": 608,
+        "triangles": 930,
+        "boundary_edges": 342,
+        "nonmanifold_edges": 0,
+        "components": 5,
+        "watertight": 0
+      },
+      "FJ2693": {
+        "vertices": 480,
+        "triangles": 766,
+        "boundary_edges": 246,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2694": {
+        "vertices": 305,
+        "triangles": 424,
+        "boundary_edges": 206,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2695": {
+        "vertices": 163,
+        "triangles": 236,
+        "boundary_edges": 82,
+        "nonmanifold_edges": 0,
+        "components": 7,
+        "watertight": 0
+      },
+      "FJ2696": {
+        "vertices": 286,
+        "triangles": 336,
+        "boundary_edges": 236,
+        "nonmanifold_edges": 0,
+        "components": 11,
+        "watertight": 0
+      },
+      "FJ2697": {
+        "vertices": 188,
+        "triangles": 220,
+        "boundary_edges": 152,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2698": {
+        "vertices": 195,
+        "triangles": 200,
+        "boundary_edges": 184,
+        "nonmanifold_edges": 0,
+        "components": 8,
+        "watertight": 0
+      },
+      "FJ2699": {
+        "vertices": 126,
+        "triangles": 126,
+        "boundary_edges": 114,
+        "nonmanifold_edges": 0,
+        "components": 7,
+        "watertight": 0
+      },
+      "FJ2700": {
+        "vertices": 197,
+        "triangles": 280,
+        "boundary_edges": 118,
+        "nonmanifold_edges": 0,
+        "components": 5,
+        "watertight": 0
+      },
+      "FJ2432": {
+        "vertices": 2560,
+        "triangles": 3820,
+        "boundary_edges": 1382,
+        "nonmanifold_edges": 0,
+        "components": 73,
+        "watertight": 0
+      },
+      "FJ2433": {
+        "vertices": 2729,
+        "triangles": 4926,
+        "boundary_edges": 664,
+        "nonmanifold_edges": 0,
+        "components": 18,
+        "watertight": 0
+      },
+      "FJ2966": {
+        "vertices": 871,
+        "triangles": 1302,
+        "boundary_edges": 390,
+        "nonmanifold_edges": 0,
+        "components": 31,
+        "watertight": 0
+      },
+      "FJ2434": {
+        "vertices": 769,
+        "triangles": 1370,
+        "boundary_edges": 138,
+        "nonmanifold_edges": 0,
+        "components": 15,
+        "watertight": 0
+      },
+      "FJ2670": {
+        "vertices": 280,
+        "triangles": 442,
+        "boundary_edges": 146,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 0
+      },
+      "FJ2676": {
+        "vertices": 233,
+        "triangles": 304,
+        "boundary_edges": 166,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 0
+      },
+      "FJ2431": {
+        "vertices": 215,
+        "triangles": 316,
+        "boundary_edges": 106,
+        "nonmanifold_edges": 0,
+        "components": 5,
+        "watertight": 0
+      },
+      "FJ2646": {
+        "vertices": 287,
+        "triangles": 470,
+        "boundary_edges": 118,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2436": {
+        "vertices": 2591,
+        "triangles": 4526,
+        "boundary_edges": 784,
+        "nonmanifold_edges": 0,
+        "components": 27,
+        "watertight": 0
+      },
+      "FJ2437": {
+        "vertices": 539,
+        "triangles": 844,
+        "boundary_edges": 240,
+        "nonmanifold_edges": 0,
+        "components": 13,
+        "watertight": 0
+      },
+      "FJ2724": {
+        "vertices": 294,
+        "triangles": 570,
+        "boundary_edges": 28,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2731": {
+        "vertices": 454,
+        "triangles": 892,
+        "boundary_edges": 24,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ3645": {
+        "vertices": 318,
+        "triangles": 598,
+        "boundary_edges": 48,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2641": {
+        "vertices": 322,
+        "triangles": 442,
+        "boundary_edges": 216,
+        "nonmanifold_edges": 0,
+        "components": 9,
+        "watertight": 0
+      },
+      "FJ2647": {
+        "vertices": 216,
+        "triangles": 306,
+        "boundary_edges": 130,
+        "nonmanifold_edges": 0,
+        "components": 4,
+        "watertight": 0
+      },
+      "FJ2631": {
+        "vertices": 1549,
+        "triangles": 3032,
+        "boundary_edges": 64,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 0
+      },
+      "FJ2737": {
+        "vertices": 121,
+        "triangles": 204,
+        "boundary_edges": 34,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 0
+      },
+      "FJ2723": {
+        "vertices": 2255,
+        "triangles": 4502,
+        "boundary_edges": 8,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "FJ2438": {
+        "vertices": 4284,
+        "triangles": 7544,
+        "boundary_edges": 1102,
+        "nonmanifold_edges": 0,
+        "components": 32,
+        "watertight": 0
+      },
+      "FJ2439": {
+        "vertices": 9887,
+        "triangles": 17784,
+        "boundary_edges": 1826,
+        "nonmanifold_edges": 0,
+        "components": 124,
+        "watertight": 0
+      }
+    }
+  }
+}

@@ -21,6 +21,7 @@ A pack is one of two kinds, and the distinction decides which modes it can even 
 | `normal-alberta-neonatal/` | echo | Normal neonatal heart, 3D Heart Project. Blood pool plus a separate myocardium. | CC BY 4.0 (contested) | unconfirmed | **no** |
 | `normal-vhl-heart0102/` | echo | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 | non_commercial | **no** |
 | `motion-biv-cinemri/` | explore | **Moving.** Ten biventricular cine-MRI segmentations, end-diastole to end-systole. Unlabelled. | CC BY 4.0 | confirmed | **no** |
+| `anatomy-bodyparts3d-heart/` | explore | 86 separately modelled parts: valve leaflets and cusps, papillary muscles, chamber walls and cavities, coronaries. | CC BY 4.0 | confirmed | **no** |
 
 ## Licence state, and what it decides
 
@@ -70,6 +71,7 @@ is made by *looking*, with the verdict written into `docs/observations.md`. None
 | Pack | Why it is here | What is wrong with it |
 | --- | --- | --- |
 | `motion-biv-cinemri/` | It **moves** — ten whole-mesh frames on a normalised phase axis, the first moving geometry in the repository. | No vertex correspondence between frames (2268 vertices in the first, 1712 in the last), so no deformation field is derivable. Half a cycle only, so playback bounces rather than loops. No labels, so no echo. Undocumented supplementary data of unverified quality. |
+| `anatomy-bodyparts3d-heart/` | It carries **separate valve leaflets and cusps**, which no other available model does, plus papillary muscles and chamber cavities as distinct meshes. | Every surface is open — 8 to 1,826 boundary edges each — so the cutter's stencil caps do not close. The atrioventricular "leaflets" are wall-sized regions, not thin leaflets; the semilunar cusps are genuine but coarse. One adult cadaver, fixed post-mortem, so nothing here opens or closes. Licence reading contradicted by older mirrors. |
 
 ## What reaches the deployed site
 

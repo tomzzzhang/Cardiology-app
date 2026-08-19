@@ -45,6 +45,8 @@ from pathlib import Path
 
 import numpy as np
 import trimesh
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 
 import fast_simplification
 
@@ -217,9 +219,41 @@ def measure(surface: Surface) -> dict[str, int]:
         "triangles": surface.triangle_count,
         "boundary_edges": int(np.count_nonzero(counts == 1)),
         "nonmanifold_edges": int(np.count_nonzero(counts > 2)),
-        "components": int(len(mesh.split(only_watertight=False))),
+        "components": component_count(surface),
         "watertight": int(bool(mesh.is_watertight)),
     }
+
+
+def component_count(surface: Surface) -> int:
+    """
+    Connected components, counted over the face-adjacency graph.
+
+    Not `trimesh.split`: that pulls in networkx, which this environment does not
+    carry, and it FILLS HOLES on each piece as a side effect of deciding whether
+    the piece is watertight. Measuring a surface must not modify it — this
+    pipeline's whole claim is that it adds nothing — so the count is computed
+    directly from the edges instead.
+
+    Faces are the nodes and a shared edge is a link, which matches what a viewer
+    actually renders as one piece: two shells touching at a single vertex are two
+    pieces to the eye and two pieces here.
+    """
+    faces = surface.faces.astype(np.int64)
+    edges = np.sort(
+        np.concatenate([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]]), axis=1
+    )
+    owner = np.tile(np.arange(len(faces)), 3)
+    order = np.lexsort((edges[:, 1], edges[:, 0]))
+    edges, owner = edges[order], owner[order]
+
+    # Consecutive equal edges belong to faces that share that edge.
+    same = np.all(edges[1:] == edges[:-1], axis=1)
+    links = np.flatnonzero(same)
+    graph = coo_matrix(
+        (np.ones(len(links)), (owner[links], owner[links + 1])),
+        shape=(len(faces), len(faces)),
+    )
+    return int(connected_components(graph, directed=False)[0])
 
 
 def decimate_to(surfaces: list[Surface], budget: int) -> list[str]:
@@ -412,8 +446,21 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
     from fetch import acquire_files
 
     cache_dir = acquire_files(source)
-    paths = resolve_members(cache_dir, source.members)
+    # A source either globs its members by name or brings its own selection.
+    # BodyParts3D needs the second: which of its 1,258 files are the heart, and
+    # what each is called, are both derived from a table that ships with the
+    # data. See `pipeline/bodyparts3d.py`.
+    chosen = source.select(cache_dir) if source.select else None
+    paths = [path for path, _ in chosen] if chosen else resolve_members(cache_dir, source.members)
+    labels = dict(source.part_labels)
+    if chosen:
+        labels.update({path.stem: label for path, label in chosen})
     notes: list[str] = []
+    if chosen:
+        notes.append(
+            f"{len(chosen)} part(s) selected and named from the source's own concept map, "
+            "not from their filenames"
+        )
 
     surfaces = [read_surface(path) for path in paths]
     if source.animated and len(surfaces) < 2:
@@ -458,12 +505,17 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
         notes.extend(decimate_to(surfaces, TRIANGLE_BUDGET))
         seen: set[str] = set()
         for path, surface in zip(paths, surfaces):
-            slug = slugify(path.stem)
+            # The id comes from the LABEL where the source gave one, so a pack's
+            # structure list reads as anatomy rather than as the source's opaque
+            # element numbering. The filename is the fallback, which is what an
+            # unnamed folder of parts has.
+            label = labels.get(path.stem, path.stem)
+            slug = slugify(label)
             while slug in seen:
                 slug = f"{slug}-2"
             seen.add(slug)
             surface.name = slug
-            structures.append((slug, source.part_labels.get(path.stem, path.stem), surface))
+            structures.append((slug, label, surface))
         asset, size = _write_frame(assets, "model", [s for _, _, s in structures])
         sizes["model"] = size
         assert asset == "assets/model.gltf"

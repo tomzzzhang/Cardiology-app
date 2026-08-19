@@ -78,6 +78,14 @@ export const UNPUBLISHED_PACKS: Readonly<Record<string, NotPublished>> = {
       'CC BY-NC 4.0. Not published: a non-commercial pack binds the whole application to the ' +
       'non-commercial red lines, and that constraint is not accepted for the published build.',
   },
+  'anatomy-bodyparts3d-heart': {
+    licence:
+      'CC BY 4.0, state "confirmed" — read from the rights holder\'s own licence page, which ' +
+      'grants redistribution and derivative works explicitly. A CONTRADICTION is recorded in ' +
+      'the pack rather than resolved: older mirrors of the same project state CC BY-SA 2.1 ' +
+      'Japan, and if that reading is the right one this pack is a share-alike derivative. Not ' +
+      'published either way, so the contradiction costs nothing until it has to be settled.',
+  },
   'motion-biv-cinemri': {
     licence:
       'CC BY 4.0, state "confirmed" — read from the Zenodo record\'s own licence field. ' +
@@ -178,6 +186,14 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
     licenseState: 'non_commercial',
     moving: false,
     summary: 'Wave 1a reject. One undivided tissue body, 1,026 components.',
+  },
+  {
+    id: 'anatomy-bodyparts3d-heart',
+    displayName: 'BodyParts3D heart — separately modelled valve leaflets and cusps',
+    kind: 'explore',
+    licenseState: 'confirmed',
+    moving: false,
+    summary: '86 separate parts: leaflets, cusps, papillary muscles, coronaries.',
   },
   {
     id: 'motion-biv-cinemri',

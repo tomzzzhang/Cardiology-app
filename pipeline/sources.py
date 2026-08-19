@@ -24,7 +24,11 @@ them:
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
+
+from bodyparts3d import select_heart
 
 
 @dataclass(frozen=True)
@@ -290,6 +294,14 @@ class GeometrySource:
     #: reading is preserved rather than trusted to still be there later.
     license_quote: str
 
+    #: Source-specific selection, where globbing filenames cannot express it.
+    #:
+    #: Given the unpacked cache directory, returns ordered (path, display label)
+    #: pairs. BodyParts3D needs this: which of its 1,258 OBJ files are the heart,
+    #: and what each one is called, are both answers derived from a table that
+    #: ships with the data, not from the filenames.
+    select: Callable[[Path], list[tuple[Path, str]]] | None = None
+
     #: Everything known to be wrong with this source, recorded in the pack
     #: rather than worked around. A model that looks bad should say so.
     known_problems: tuple[str, ...] = ()
@@ -376,4 +388,112 @@ CARDIAC_MOTION = GeometrySource(
     ],
 )
 
-GEOMETRY_SOURCES = {s.key: s for s in (CARDIAC_MOTION,)}
+
+BODYPARTS3D_LICENCE_QUOTE = (
+    "the rights holder's own licence page, "
+    "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html, read on 2026-08-19 and last "
+    "updated there 2025/02/27, states: \"The license for this database is specified in the "
+    "Creative Commons Attribution 4.0 International\", and grants explicitly that you may "
+    "\"freely redistribute part or whole of the data from this database\" and \"freely create "
+    "and distribute database and other derivative works based on part or whole of the data\", "
+    "with the required attribution \"BodyParts3D, (c) The Database Center for Life Science "
+    "licensed under CC Attribution 4.0 International\". "
+    "CONTRADICTION, recorded rather than resolved: older mirrors of the same project state "
+    "CC BY-SA 2.1 Japan. The reading taken here is the rights holder's CURRENT page, which is "
+    "the more authoritative source and the more permissive grant; if that is wrong, this pack "
+    "is a share-alike derivative and the licence state must be revisited. It is not published "
+    "either way."
+)
+
+BODYPARTS3D = GeometrySource(
+    key="bodyparts3d",
+    pack_id="anatomy-bodyparts3d-heart",
+    display_name="BodyParts3D heart — separately modelled valve leaflets and cusps",
+    anatomy="Adult heart, 83 separately modelled parts",
+    canonical_variant=(
+        "Single adult Japanese male cadaver, the BodyParts3D whole-body reference model; "
+        "the heart concept FMA7088 and its parts"
+    ),
+    files=(
+        RemoteFile(
+            url="https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/"
+                "partof_BP3D_4.0_obj_99.zip",
+            name="partof_BP3D_4.0_obj_99.zip",
+            md5=None,
+            size_bytes=64888505,
+            unpack=True,
+        ),
+        RemoteFile(
+            url="https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/"
+                "partof_element_parts.txt",
+            name="partof_element_parts.txt",
+            md5=None,
+            size_bytes=None,
+        ),
+    ),
+    members=(),
+    select=select_heart,
+    animated=False,
+    fps=None,
+    loop=False,
+    vertex_correspondence=False,
+    coverage="",
+    structure_label="",
+    part_labels={},
+    creator="The Database Center for Life Science (DBCLS), Research Organization of Information and Systems",
+    source_text=(
+        "BodyParts3D 4.0, partof_BP3D_4.0_obj_99.zip and partof_element_parts.txt, "
+        "LSDB Archive"
+    ),
+    source_url="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html",
+    license="CC-BY-4.0",
+    license_url="https://creativecommons.org/licenses/by/4.0/",
+    license_state="confirmed",
+    citation=(
+        "BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution "
+        "4.0 International. Mitsuhashi N, Fujieda K, Tamura T, Kawamoto S, Takagi T, Okubo K. "
+        "BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Research "
+        "37: D782-D785 (2009)."
+    ),
+    license_quote=BODYPARTS3D_LICENCE_QUOTE,
+    known_problems=(
+        "NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this "
+        "is an Explore-only pack like every other geometry-only source.",
+        "SEMILUNAR CUSPS ARE COARSE. The aortic and pulmonary cusps are a few hundred "
+        "triangles each and look faceted at any useful zoom. Not fixed here: smoothing them "
+        "would be sculpting anatomy, which is a different task with a different licence "
+        "consequence.",
+        "ONE CADAVER, and an adult one. Nothing about this model is paediatric, and the "
+        "leaflet geometry is a fixed post-mortem configuration, not a phase of a cardiac "
+        "cycle: these leaflets neither open nor close.",
+        "NAMES ARE DERIVED, not authored. Each part is named from the SMALLEST concept in "
+        "the source's own partof_element_parts.txt that contains it. The eleven valve "
+        "leaflets and cusps are additionally pinned by element id, and the ingest fails if "
+        "the source stops listing any of them under its expected concept.",
+        "THE ATRIOVENTRICULAR LEAFLETS ARE NOT THIN LEAFLETS. The source's concept map is "
+        "many-to-many, and element FJ2432 is listed as the posterior mitral leaflet AND as "
+        "the inferior wall of the left ventricle, the myocardium of that wall and myocardial "
+        "zone 4. It measures 49 x 38 x 32 mm and carries 3,820 triangles, which is a wall "
+        "segment rather than a leaflet; the anterior mitral element FJ2420 is 34 x 48 x 31 mm "
+        "and likewise. Eight of the 86 parts have a tied smallest concept, and their labels "
+        "carry both names rather than the pipeline picking one. The SEMILUNAR cusps are not "
+        "ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles.",
+        "EVERY SURFACE IS OPEN. All 86 parts carry boundary edges — 8 on the right coronary "
+        "trunk, 1,826 on the right atrial wall — and many split into dozens of connected "
+        "components. Nothing is watertight, so the free cutter's stencil caps will speckle "
+        "wherever a cut crosses an opening. No hole is filled: on a source like this, filling "
+        "would fabricate the very surfaces a learner would be reading.",
+        "NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the "
+        "pulmonary arteries as part of the heart, and their elements run 96-335 mm down the "
+        "body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are "
+        "included, so the semilunar cusps have a vessel behind them; there is no arch, no "
+        "descending aorta, no inferior vena cava and no pulmonary veins.",
+    ),
+    notes=[
+        "The whole-body archive is about 62 MB and is never committed; only the heart's parts "
+        "are derived into the pack.",
+        "Fetched from the download page's own links; the direct path 302s.",
+    ],
+)
+
+GEOMETRY_SOURCES = {s.key: s for s in (CARDIAC_MOTION, BODYPARTS3D)}

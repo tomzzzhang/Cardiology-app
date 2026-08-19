@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-19 05:44 EDT
+**Updated:** 2026-08-19 05:57 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.

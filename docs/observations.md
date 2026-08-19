@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 05:44 EDT
+**Last Updated:** 2026-08-19 05:57 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -819,3 +819,83 @@ browser, which is what the owner does anyway.
 Closing this properly means a second Playwright project served from `npm run dev`. That is a real
 piece of work — a second web server, a second base path, and a decision about whether an unpublished
 pack should be screenshotted at all — and it is not in this task.
+
+---
+
+## 24. `anatomy-bodyparts3d-heart` — the best-looking model here, and its leaflets are not leaflets
+
+**Where.** Pick the BodyParts3D chip. Explore only.
+
+**What it is.** 86 separately modelled parts from BodyParts3D 4.0 — the 83 elements the source's own
+concept map lists under "heart", plus three single-element vessel stubs (ascending aorta, pulmonary
+trunk, superior vena cava) added so the semilunar cusps have something to sit in. 105,098 triangles,
+2.8 MB derived from a 62 MB whole-body archive that is never committed. CC BY 4.0, confirmed from
+the rights holder's own page.
+
+**What it gets right, and it is a lot.**
+
+- **It reads immediately as a heart.** Ventricles, atria, a great-vessel stub, and — the striking
+  part — the **coronary tree traced over the surface** in fine separate branches, plus the great
+  cardiac vein and the coronary sinus. Nothing else in the repository has coronaries at all.
+- **Chambers exist as cavity AND wall, as separate meshes.** `cavity of left ventricle` is its own
+  solid, next to the wall segments. That is exactly the cast-and-shell pairing the Alberta pack was
+  rejected for failing to provide.
+- **Papillary muscles are separate meshes.** Anterior and septal of the right ventricle, the
+  anterolateral head of the left lateral muscle.
+- **The names are derived from the source, not invented.** Each part is named from the smallest
+  concept in `partof_element_parts.txt` that contains it, and the eleven valve elements are pinned
+  by id with the ingest failing if the source stops listing them under the expected concept.
+
+**What is wrong with it.**
+
+- **The atrioventricular "leaflets" are not leaflets.** This is the finding that matters most,
+  because it contradicts what this pack was fetched for. Element `FJ2432` is listed by the source as
+  the posterior mitral leaflet — and also as the inferior wall of the left ventricle, the myocardium
+  of that wall, and myocardial zone 4. It measures **49 × 38 × 32 mm** with 3,820 triangles. That is
+  a wall segment. `FJ2420`, the anterior mitral element, is 34 × 48 × 31 mm — a leaflet is not 48 mm
+  tall. The source's concept map is many-to-many and these meshes stand for every concept they are
+  part of. Their labels now carry both names rather than the pipeline picking one.
+- **The semilunar cusps ARE real, and they are coarse.** Three aortic and three pulmonary cusps,
+  15–24 mm across, 316 to 1,370 triangles each. Cusp-sized, cusp-shaped, and visibly faceted at any
+  useful zoom. Not smoothed here — smoothing them would be sculpting anatomy.
+- **Every single surface is open, and the cut has no faces.** Boundary edges run from 8 on the right
+  coronary trunk to 1,826 on the right atrial wall; the right atrial wall alone splits into 124
+  connected components. Turn the cutter on and the model does not open into solid cut faces the way
+  Rodero does — it clips into hollow shells, because the stencil parity the caps depend on needs a
+  closed surface. **This is visible immediately and is the pack's worst practical defect.** No hole
+  is filled, deliberately: on a source like this, filling would fabricate the surfaces a learner
+  would then be reading.
+- **All 86 parts render in one grey.** The palette is keyed by the Rodero slugs, and everything else
+  falls to the unnamed grey. With 86 structures that is a wall of identical grey with no way to tell
+  a papillary muscle from a coronary branch except by shape. It is the single biggest thing standing
+  between this model and being genuinely useful to look at.
+- **One adult cadaver, fixed.** Nothing paediatric, and the leaflets are in one post-mortem
+  configuration: they neither open nor close, and never will.
+- **No arch, no descending aorta, no IVC, no pulmonary veins.** Those elements run 96–335 mm down
+  the body and would have tripled the model bounds, which the camera framing and the unit inference
+  are both measured from. Excluded on that basis, and the pack says so.
+
+**Is it worth keeping?** Yes, clearly the best model on the shelf. It is the only source with
+separate cusps, separate papillary muscles, chamber cavities and a coronary tree, and it looks like
+a heart from the first frame without any cutting.
+
+**Decisions for the owner.**
+
+1. **Colouring 86 unnamed structures.** The current rule is that a structure outside `PALETTE` is
+   grey and slightly translucent, and that translucency is a deliberate signal on the Rodero pack —
+   "we have not identified this". Here every structure IS identified; it just does not share slugs
+   with the palette. Deriving a stable colour per structure id would make this pack legible and
+   would change what "grey" means on the shipped one. That is a palette decision and the palette is
+   yours.
+2. **Whether open surfaces should get caps at all.** The alternative to hollow clipping is filling
+   holes, which fabricates geometry. A third option — capping only the surfaces that are closed, and
+   saying which — has not been built.
+3. **The licence contradiction.** The rights holder's current page grants CC BY 4.0 with explicit
+   redistribution and derivative rights, quoted in the pack. Older mirrors of the same project state
+   CC BY-SA 2.1 Japan. If the older reading is right, anything derived from this is share-alike. The
+   pack does not ship either way, so nothing turns on it yet.
+
+**What was NOT done, deliberately.** Grafting these leaflets onto the Rodero mesh. The four valve
+rings are the registration targets when that happens, and it is a task of its own. Given the finding
+above, only the six semilunar cusps are plausible graft candidates; the atrioventricular elements
+are wall segments and would bring a second left ventricle with them.
