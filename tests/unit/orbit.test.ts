@@ -125,6 +125,37 @@ describe('dragOrientation', () => {
     expect(forwardOf(further).angleTo(forwardOf(past))).toBeGreaterThan(1.5);
   });
 
+  it('carries the near face of the model the way the pointer goes', () => {
+    /*
+     * The vertical sense, stated as what the learner sees rather than as a sign
+     * in a quaternion. Take the point of the model directly facing the camera —
+     * the front — and drag UP: it has to end up higher on screen. The opposite
+     * sign makes the near surface run away from the pointer, which reads as the
+     * model being pushed rather than turned, and is easy to reintroduce because
+     * both signs produce a perfectly smooth orbit.
+     *
+     * "Higher on screen" is measured against the camera's own up, since the
+     * camera can be rolled and world Y is not the screen's vertical.
+     */
+    for (const pitch of [0, 0.5, -0.9]) {
+      for (const yaw of [0, 1.1, -2.2]) {
+        const before = orientationFromYawPitch(yaw, pitch);
+        // The model point nearest the camera, on the unit sphere about `C`.
+        const front = orbitPose(before, 300).offset.clone().normalize();
+        // It starts on the screen's vertical centre, by construction.
+        expect(front.dot(orbitPose(before, 300).up)).toBeCloseTo(0, 9);
+
+        // Where that same point sits after the drag, against the NEW screen up.
+        const heightAfter = (dy: number) =>
+          front.dot(orbitPose(dragOrientation(before, 0, dy), 300).up);
+
+        // Negative dy is a drag UP: pointer coordinates grow downward.
+        expect(heightAfter(-40)).toBeGreaterThan(0);
+        expect(heightAfter(40)).toBeLessThan(0);
+      }
+    }
+  });
+
   it('keeps horizontal drag meaning one thing after the model turns over', () => {
     /*
      * Past a pole the camera's up inverts and a world-Y rotation reads

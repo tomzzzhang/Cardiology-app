@@ -7,7 +7,7 @@
  * specified in `contracts/app-shell.md` and built later.
  */
 import { useEffect, useState } from 'react';
-import PackViewer from './viewer/PackViewer.tsx';
+import PackViewer, { type ViewerMode } from './viewer/PackViewer.tsx';
 import EchoPanel from './echo/EchoPanel.tsx';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
 import { DEFAULT_PACK_ID } from './packs/published.ts';
@@ -46,6 +46,25 @@ function requestedViewIndex(pack: LoadedPack['pack']): number {
   return Number.isInteger(index) && index >= 0 && index < pack.views.length ? index : 0;
 }
 
+/**
+ * Which top-level mode the shell is in.
+ *
+ * **Echo** is the default with no param, so the open-link-to-an-oriented-view
+ * path is unchanged for someone arriving cold. **Explore** drops the probe
+ * entirely and leaves the learner a heart model to orbit, cut and inspect —
+ * a first-class mode, not a tool: the app is a free heart-model explorer as
+ * well as an echo trainer.
+ *
+ * It is a deep-link param so an Explore link is shareable, which is the whole
+ * point of the params existing (`contracts/app-shell.md`, "Deep links").
+ */
+function requestedMode(): ViewerMode {
+  if (typeof window === 'undefined') return 'echo';
+  return new URLSearchParams(window.location.search).get('mode') === 'explore'
+    ? 'explore'
+    : 'echo';
+}
+
 type PackState =
   | { status: 'loading' }
   | { status: 'ok'; loaded: LoadedPack }
@@ -59,6 +78,21 @@ export default function App() {
    * lives here rather than inside either panel.
    */
   const [scrub, setScrub] = useState(0.5);
+  const [mode, setMode] = useState<ViewerMode>(requestedMode);
+
+  /*
+   * The mode is written back into the URL as it changes, so the address bar is
+   * always a link to what is on screen. `replaceState` rather than `pushState`:
+   * a mode toggle is not a navigation, and filling the back button with it
+   * would make Back mean something different here than everywhere else.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (mode === 'echo') url.searchParams.delete('mode');
+    else url.searchParams.set('mode', mode);
+    window.history.replaceState(null, '', url);
+  }, [mode]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -87,22 +121,60 @@ export default function App() {
       </header>
 
       {packState.status === 'ok' && (
-        <div className="stage">
+        <>
+        {/*
+          * The two top-level modes, named and always visible.
+          *
+          * Explore is not a hidden power-user route: the app is a free
+          * heart-model explorer as well as an echo trainer, and a mode nobody
+          * can find is a mode nobody has.
+          */}
+        <div className="modes" role="radiogroup" aria-label="What this screen is" data-testid="viewer-mode">
+          {([
+            ['echo', 'Echo', 'Anatomy beside the simulated echo, on one vetted probe pose'],
+            ['explore', 'Explore', 'The heart model on its own — orbit, cut and inspect. No probe.'],
+          ] as [ViewerMode, string, string][]).map(([value, label, hint]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={mode === value}
+              className={mode === value ? 'modes__button modes__button--on' : 'modes__button'}
+              onClick={() => setMode(value)}
+              title={hint}
+              data-testid={`mode-${value}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className={mode === 'explore' ? 'stage stage--solo' : 'stage'}>
           <PackViewer
             pack={packState.loaded.pack}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
             scrub={scrub}
             viewIndex={requestedViewIndex(packState.loaded.pack)}
+            mode={mode}
             onScrubChange={setScrub}
           />
-          <EchoPanel
-            pack={packState.loaded.pack}
-            volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
-            scrub={scrub}
-            viewIndex={requestedViewIndex(packState.loaded.pack)}
-            onScrubChange={setScrub}
-          />
+          {/*
+            * Explore has no echo panel, and therefore no probe, no tilt arrow,
+            * no beam-dim control and no "Match echo". The non-diagnostic notice
+            * in the footer stays in BOTH modes: it is not behind a toggle
+            * (`contracts/app-shell.md` rule 4).
+            */}
+          {mode === 'echo' && (
+            <EchoPanel
+              pack={packState.loaded.pack}
+              volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
+              scrub={scrub}
+              viewIndex={requestedViewIndex(packState.loaded.pack)}
+              onScrubChange={setScrub}
+            />
+          )}
         </div>
+        </>
       )}
 
       <section className="panel" data-testid="pack-status" data-status={packState.status}>

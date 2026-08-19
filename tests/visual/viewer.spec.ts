@@ -158,6 +158,10 @@ test('renders the sector vertex-down, the paediatric default for family B', asyn
 });
 
 test('the orbit is not clamped at the poles', async ({ page }) => {
+  // Two long drags, each forcing many full redraws of a 24-structure scene with
+  // a stencil cap pass per structure. Under headless software GL that exceeds
+  // the default budget when the suite runs several workers at once.
+  test.slow();
   /*
    * The model has to turn all the way over: a subcostal view is read from
    * underneath, and comparing an apex-up display against an apex-down one means
@@ -286,37 +290,94 @@ test('"Match echo" turns the model to the echo plane, and moves nothing else', a
   expect(await page.getByTestId('cut-readout').textContent()).toBe(cutBefore);
 });
 
-test('a drag moves the selected target and nothing else', async ({ page }) => {
-  // Three drags, each forcing several full redraws of a 24-structure scene with
-  // a stencil cap pass per structure. Under headless software GL that is slow
-  // enough to exceed the default budget when the suite runs at full width.
-  test.slow();
-  /*
-   * `contracts/viewer-core.md`: "The active target is always visible and is
-   * exactly one of heart/camera, free cut, or echo view. A drag must never
-   * silently manipulate a different object."
-   *
-   * The second sentence is the one worth testing, and it is a NEGATIVE claim,
-   * so it is tested by dragging with each target selected and checking what did
-   * NOT move. The camera has no readout, so the model image stands in for it.
-   */
-  const canvas = page.locator('.anatomy canvas');
-  const box = await canvas.boundingBox();
+/* --------------------------------------------------------------------------
+   Direct manipulation: what a drag moves is what is under the pointer
+   -------------------------------------------------------------------------- */
+
+/**
+ * The affordances publish their own screen positions on the viewer's host
+ * element. That is a deliberate test seam: "the handles and the tilt arrow are
+ * present and hittable under a coarse pointer" is a gate, and a gate that can
+ * only be checked by guessing pixel coordinates is not a gate. These are the
+ * same numbers the hit test uses, so dragging to them exercises the real
+ * dispatch rather than a parallel one.
+ */
+async function handlePositions(page: import('@playwright/test').Page) {
+  const raw = await page.getByTestId('anatomy-viewer').getAttribute('data-cut-handles');
+  return raw === null ? [] : (JSON.parse(raw) as { id: string; x: number; y: number }[]);
+}
+
+/**
+ * The positions are published on the next drawn frame, and the viewer draws on
+ * demand — so a read straight after a click can land before the frame that
+ * would have answered it. Polled rather than slept on: under headless software
+ * GL a redraw of this scene is hundreds of milliseconds and any fixed wait is
+ * either flaky or wasteful.
+ */
+async function waitForHandles(page: import('@playwright/test').Page) {
+  await expect
+    .poll(async () => (await handlePositions(page)).length, { timeout: 15_000 })
+    .toBe(4);
+  return handlePositions(page);
+}
+
+async function arrowPosition(page: import('@playwright/test').Page) {
+  const raw = await page.getByTestId('anatomy-viewer').getAttribute('data-tilt-arrow');
+  return raw === null ? null : (JSON.parse(raw) as { x: number; y: number });
+}
+
+async function panelOrigin(page: import('@playwright/test').Page) {
+  const box = await page.locator('.anatomy canvas').boundingBox();
   expect(box).not.toBeNull();
+  return box!;
+}
 
-  const drag = async (pixels: number) => {
-    const centre = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
-    await page.mouse.move(centre.x, centre.y);
-    await page.mouse.down();
-    for (let step = 1; step <= 4; step += 1) {
-      await page.mouse.move(centre.x + (pixels * step) / 4, centre.y + (pixels * step) / 8);
-    }
-    await page.mouse.up();
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
-  };
+async function dragFrom(
+  page: import('@playwright/test').Page, from: { x: number; y: number }, dx: number, dy: number,
+) {
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 6; step += 1) {
+    await page.mouse.move(from.x + (dx * step) / 6, from.y + (dy * step) / 6);
+  }
+  await page.mouse.up();
+  // The viewer draws on demand via rAF; give it a frame to land.
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+}
 
-  const anatomy = () => page.evaluate(() => {
-    const element = document.querySelector<HTMLCanvasElement>('.anatomy canvas');
+/**
+ * A point in the panel that is not on any affordance.
+ *
+ * Picked by measuring rather than assumed, because the cut rectangle is
+ * deliberately larger than the model — a sheet of glass passed through the
+ * heart — so its handles can sit anywhere along the panel's edges depending on
+ * how the plane is turned.
+ */
+async function emptySpot(page: import('@playwright/test').Page) {
+  const box = await panelOrigin(page);
+  const handles = await handlePositions(page);
+  const arrow = await arrowPosition(page);
+  const avoid = [...handles, ...(arrow ? [arrow] : [])];
+  const candidates = [
+    { x: box.width * 0.5, y: box.height * 0.5 },
+    { x: box.width * 0.12, y: box.height * 0.12 },
+    { x: box.width * 0.88, y: box.height * 0.12 },
+    { x: box.width * 0.12, y: box.height * 0.88 },
+    { x: box.width * 0.88, y: box.height * 0.88 },
+    { x: box.width * 0.5, y: box.height * 0.12 },
+    { x: box.width * 0.12, y: box.height * 0.5 },
+  ];
+  const clearance = (point: { x: number; y: number }) =>
+    avoid.reduce((least, item) => Math.min(least, Math.hypot(item.x - point.x, item.y - point.y)),
+      Infinity);
+  const best = candidates.reduce((a, b) => (clearance(a) >= clearance(b) ? a : b));
+  expect(clearance(best), 'somewhere in the panel is not an affordance').toBeGreaterThan(45);
+  return { x: box.x + best.x, y: box.y + best.y };
+}
+
+function sampleCanvas(page: import('@playwright/test').Page, selector: string) {
+  return page.evaluate((query) => {
+    const element = document.querySelector<HTMLCanvasElement>(query);
     const scratch = document.createElement('canvas');
     scratch.width = 40;
     scratch.height = 40;
@@ -324,66 +385,276 @@ test('a drag moves the selected target and nothing else', async ({ page }) => {
     if (!element || !context) return null;
     context.drawImage(element, 0, 0, 40, 40);
     return [...context.getImageData(0, 0, 40, 40).data];
-  });
-  const changed = (a: number[], b: number[]) =>
-    a.filter((value, index) => Math.abs(value - b[index]) > 8).length;
+  }, selector);
+}
 
-  // Heart: the model turns, the sweep does not.
-  await page.getByTestId('target-camera').click();
-  const beforeCamera = await anatomy();
+const changed = (a: number[], b: number[]) =>
+  a.filter((value, index) => Math.abs(value - b[index]) > 8).length;
+
+test('a drag moves what is under the pointer, and nothing else', async ({ page }) => {
+  // Several drags, each forcing full redraws of a 24-structure scene with a
+  // stencil cap pass per structure. Under headless software GL that is slow
+  // enough to exceed the default budget when the suite runs at full width.
+  test.slow();
+  /*
+   * The interaction model this replaced was explicit target selection: a
+   * radiogroup naming heart / cut / echo, read by the drag. It is gone. What a
+   * drag moves is now decided POSITIONALLY, by what is under the pointer, and
+   * the negative claim — that a drag does not silently move anything else — is
+   * the part worth testing.
+   */
+  await expect(page.getByTestId('drag-target')).toHaveCount(0);
+
+  // Handles exist only in Free mode: in Echo plane the cutter is not the
+  // learner's to move, and the handles are neither drawn nor hittable.
+  await page.getByTestId('cutter-mode-free').click();
+  const handles = await waitForHandles(page);
+
+  const box = await panelOrigin(page);
   const scrubBefore = await page.getByTestId('echo-scrub').inputValue();
-  await drag(140);
-  expect(changed(beforeCamera!, (await anatomy())!)).toBeGreaterThan(beforeCamera!.length * 0.05);
-  expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
-
-  // Echo view: the sweep moves. Its only permitted motion, and the same value
-  // the scrubber slider owns — one `t`, two controls.
-  await page.getByTestId('target-echo').click();
-  await drag(150);
-  expect(Number(await page.getByTestId('echo-scrub').inputValue()))
-    .toBeGreaterThan(Number(scrubBefore));
-
-  // Free cut: the plane turns while its depth `s` stays exactly where it was.
-  await page.getByTestId('target-cut').click();
   const depthBefore = await page.getByTestId('cut-readout').textContent();
-  const beforeCut = await anatomy();
-  await drag(150);
+
+  // A handle: the plane turns while its depth `s` stays exactly where it was.
+  const beforeCut = await sampleCanvas(page, '.anatomy canvas');
+  await dragFrom(page, { x: box.x + handles[0].x, y: box.y + handles[0].y }, 120, 60);
   expect(await page.getByTestId('cut-readout').textContent()).toBe(depthBefore);
-  expect(changed(beforeCut!, (await anatomy())!)).toBeGreaterThan(beforeCut!.length * 0.02);
+  expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
+  expect(changed(beforeCut!, (await sampleCanvas(page, '.anatomy canvas'))!))
+    .toBeGreaterThan(beforeCut!.length * 0.02);
+
+  // Empty panel: the camera turns, and nothing else does.
+  const empty = await emptySpot(page);
+  const beforeCamera = await sampleCanvas(page, '.anatomy canvas');
+  const depthBeforeOrbit = await page.getByTestId('cut-readout').textContent();
+  await dragFrom(page, empty, 140, 70);
+  expect(changed(beforeCamera!, (await sampleCanvas(page, '.anatomy canvas'))!))
+    .toBeGreaterThan(beforeCamera!.length * 0.05);
+  expect(await page.getByTestId('cut-readout').textContent()).toBe(depthBeforeOrbit);
+  expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
 });
 
-test('the align bridge copies one way, and the copy is retracted by free movement', async ({ page }) => {
+test('the tilt arrow scrubs the sweep, and writes nothing else', async ({ page }) => {
+  test.slow();
   /*
-   * `contracts/README.md`: "Align free cut to echo view copies the selected
-   * echo plane into the free cutter. Subsequent free movement breaks the
-   * association and never modifies the saved view."
+   * The arrow replaced the "Echo view" drag target. It is an INPUT, not a new
+   * owner of the sweep: it writes `t` through the same path the slider writes
+   * through, so the wedge and the echo image still advance from one clock, and
+   * the pose it produces is `frameAt(probe, sweep, t)` by construction — pinned
+   * as arithmetic in tests/unit/tiltArrow.test.ts.
    *
-   * So: the copy lands, the association is stated in words, and moving the
-   * cutter afterwards retracts the statement while the view carries on
-   * unchanged.
+   * What this adds is the end-to-end half: the drag really reaches the sweep,
+   * and the vetted view is identical before and after.
    */
-  await expect(page.getByTestId('align-state')).toContainText('not aligned');
+  await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
 
+  const arrow = await arrowPosition(page);
+  expect(arrow, 'the default view has a sweep, so it has an arrow').not.toBeNull();
+
+  const box = await panelOrigin(page);
   const viewName = await page.locator('.echo__header h2').textContent();
-  await page.getByTestId('align-cut').click();
-  await expect(page.getByTestId('align-state')).toContainText(viewName!.trim());
+  const scrubBefore = Number(await page.getByTestId('echo-scrub').inputValue());
+  const depthBefore = await page.getByTestId('cut-readout').textContent();
 
-  // The vetted view is untouched by the copy: same name, same sweep position,
-  // same draft flag. There is no code path that could change them, and this is
-  // the assertion that says so out loud.
+  // A drag long enough to move `t` well clear of where it started, in both
+  // directions, so the test cannot pass on the tangent's sign by luck.
+  await dragFrom(page, { x: box.x + arrow!.x, y: box.y + arrow!.y }, 200, 0);
+  const after = Number(await page.getByTestId('echo-scrub').inputValue());
+  await dragFrom(page, { x: box.x + arrow!.x, y: box.y + arrow!.y }, -200, 0);
+  const back = Number(await page.getByTestId('echo-scrub').inputValue());
+  expect(Math.abs(after - scrubBefore) + Math.abs(back - after)).toBeGreaterThan(0.05);
+
+  // `t` is hard-clamped: no wrap, no rubber band, at either end.
+  for (const pixels of [3000, -3000]) {
+    await dragFrom(page, { x: box.x + arrow!.x, y: box.y + arrow!.y }, pixels, 0);
+    const t = Number(await page.getByTestId('echo-scrub').inputValue());
+    expect(t).toBeGreaterThanOrEqual(0);
+    expect(t).toBeLessThanOrEqual(1);
+  }
+
+  // The vetted view is untouched: same name, same draft flag, and the cutter
+  // did not move either. Nothing a learner can do writes to `views[]`.
   await expect(page.locator('.echo__header h2')).toHaveText(viewName!);
   await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
+  expect(await page.getByTestId('cut-readout').textContent()).toBe(depthBefore);
+});
 
-  // Move the cutter freely; the claim is retracted.
-  await page.getByTestId('target-cut').click();
-  const box = await page.locator('.anatomy canvas').boundingBox();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box!.x + box!.width / 2 + 90, box!.y + box!.height / 2 + 40);
-  await page.mouse.up();
+test('the echo-synced cutter follows the sweep, and the view is identical after', async ({ page }) => {
+  test.slow();
+  /*
+   * The one-shot "Align cut to echo view" bridge is gone; the cutter has a
+   * named MODE instead. `contracts/README.md` still holds: data flows
+   * probe -> cutter and never the reverse, so the whole point of this test is
+   * the negative half — the view's name, its sweep value and its draft flag are
+   * identical before and after every kind of cutter interaction there now is.
+   */
+  await expect(page.getByTestId('cutter-mode-echo')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('cutter-mode-state')).toContainText('imaging plane');
+  // Echo-synced: the plane is not the learner's, so there is nothing to grab.
+  expect(await handlePositions(page)).toHaveLength(0);
 
-  await expect(page.getByTestId('align-state')).toContainText('not aligned');
+  const viewName = await page.locator('.echo__header h2').textContent();
+  const sweepBefore = await page.getByTestId('echo-scrub').inputValue();
+
+  // Following, not aligned once: scrubbing moves the cut plane with the sweep.
+  const beforeScrub = await sampleCanvas(page, '.anatomy canvas');
+  await page.getByTestId('echo-scrub').fill('0.05');
+  await page.waitForTimeout(500);
+  expect(changed(beforeScrub!, (await sampleCanvas(page, '.anatomy canvas'))!))
+    .toBeGreaterThan(beforeScrub!.length * 0.02);
+  await page.getByTestId('echo-scrub').fill(sweepBefore);
+  await page.waitForTimeout(500);
+
+  /*
+   * In this mode the cut IS the imaging plane, so there is no depth to choose
+   * and the slider is disabled — DISABLED rather than removed, so the control
+   * the learner will look for is where they left it and its state says why it
+   * does nothing. The readout names the plane instead of a number.
+   */
+  await expect(page.getByTestId('cut-offset')).toBeDisabled();
+  await expect(page.getByTestId('cut-readout')).toContainText('on echo plane');
+
+  // The Cut checkbox stays live in both modes: turning the cut off to see the
+  // whole heart WITH the fan on it is a thing worth being able to do.
+  await expect(page.getByTestId('cut-enabled')).toBeEnabled();
+
+  /*
+   * Switching to Free ADOPTS the current plane rather than jumping to some
+   * other one, so the cut through the anatomy is unchanged; what appears is the
+   * rectangle and its handles, because the plane is now a separate object the
+   * learner can take hold of. In Echo plane the rectangle is not drawn at all —
+   * the wedge already shows where that plane is, and a second outline on it
+   * would say there are two objects there.
+   */
+  await page.getByTestId('cutter-mode-free').click();
+  expect(await waitForHandles(page)).toHaveLength(4);
+  await expect(page.getByTestId('cutter-mode-state')).toContainText('Free cut');
+  await expect(page.getByTestId('cut-offset')).toBeEnabled();
+  await expect(page.getByTestId('cut-readout')).not.toContainText('on echo plane');
+
+  // The echo panel does NOT blank in Free mode. The mode name carries the
+  // distinction; blanking on every stray drag would be hostile now that the
+  // plane is directly draggable.
+  await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready');
+  await expect(page.getByTestId('echo-canvas')).toBeVisible();
+
+  // And through all of it, the vetted view is untouched.
   await expect(page.locator('.echo__header h2')).toHaveText(viewName!);
+  await expect(page.getByTestId('echo-scrub')).toHaveValue(sweepBefore);
+  await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
+});
+
+test('the affordances are present and hittable under a coarse pointer', async ({ page }, testInfo) => {
+  test.slow();
+  /*
+   * The gate. A coarse pointer has no hover, so a proximity-revealed handle is
+   * simply an invisible control: the first contact a finger makes with the
+   * screen is already the press. Both pointer classes are asserted here — the
+   * suite runs a desktop project and a phone project — because the interesting
+   * failure is the two diverging.
+   */
+  const expected = testInfo.project.name === 'phone-portrait' ? 'coarse' : 'fine';
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-pointer-class', expected);
+
+  await page.getByTestId('cutter-mode-free').click();
+  const handles = await waitForHandles(page);
+  expect(handles).toHaveLength(4);
+  expect(await arrowPosition(page)).not.toBeNull();
+
+  // Hittable, not merely published: a drag that starts on one really turns the
+  // plane, and really does not move its depth.
+  const box = await panelOrigin(page);
+  const depthBefore = await page.getByTestId('cut-readout').textContent();
+  const before = await sampleCanvas(page, '.anatomy canvas');
+  await dragFrom(page, { x: box.x + handles[0].x, y: box.y + handles[0].y }, 110, 55);
+  expect(changed(before!, (await sampleCanvas(page, '.anatomy canvas'))!))
+    .toBeGreaterThan(before!.length * 0.02);
+  expect(await page.getByTestId('cut-readout').textContent()).toBe(depthBefore);
+});
+
+test('the wheel zooms without a modifier, in every mode', async ({ page }) => {
+  test.slow();
+  /*
+   * "A wheel that sometimes does something else is a bug, not a mode." So this
+   * checks the wheel in both cutter modes and in both top-level modes, rather
+   * than once in the default configuration where a regression would hide.
+   */
+  const box = await panelOrigin(page);
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+  const wheelChangesTheView = async (label: string) => {
+    const before = await sampleCanvas(page, '.anatomy canvas');
+    const depth = await page.getByTestId('cut-readout').textContent();
+    await page.mouse.move(centre.x, centre.y);
+    // Several notches: one step is deliberately small, because a wheel that
+    // crosses the whole useful range of distances in three notches cannot be
+    // used to look at something slightly closer.
+    for (let notch = 0; notch < 6; notch += 1) await page.mouse.wheel(0, -120);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    expect(changed(before!, (await sampleCanvas(page, '.anatomy canvas'))!), label)
+      .toBeGreaterThan(before!.length * 0.02);
+    // Zoom, not depth: the modifier-free wheel must never move the cutter.
+    expect(await page.getByTestId('cut-readout').textContent(), label).toBe(depth);
+  };
+
+  await wheelChangesTheView('echo mode, cutter synced');
+  await page.getByTestId('cutter-mode-free').click();
+  await wheelChangesTheView('echo mode, cutter free');
+
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-viewer-mode', 'explore');
+  await wheelChangesTheView('explore mode');
+});
+
+/* --------------------------------------------------------------------------
+   Explore: the app is a heart-model explorer as well as an echo trainer
+   -------------------------------------------------------------------------- */
+
+test('Explore drops the probe entirely, and keeps the notice', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
+  // Everything that belongs to the probe is absent, not merely hidden.
+  await expect(page.getByTestId('echo-panel')).toHaveCount(0);
+  await expect(page.getByTestId('match-echo')).toHaveCount(0);
+  await expect(page.getByTestId('beam-dim')).toHaveCount(0);
+  await expect(page.getByTestId('anatomy-viewer')).not.toHaveAttribute('data-tilt-arrow', /.*/);
+
+  // There is no probe to sync to, so the cutter is forced free — and says so.
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-cutter-mode', 'free');
+  await expect(page.getByTestId('cutter-mode-state')).toContainText('Explore');
+  await expect(page.getByTestId('cutter-mode-echo')).toHaveCount(0);
+
+  // The non-diagnostic notice is NOT behind a mode. `contracts/app-shell.md`
+  // rule 4: simulated labelling and the notice are always present.
+  await expect(page.locator('.shell__footer')).toContainText('not for diagnostic use');
+
+  // The cutter still works here — this is the mode for inspecting the model.
+  await page.getByTestId('cut-enabled').check();
+  expect(await waitForHandles(page)).toHaveLength(4);
+});
+
+test('Echo is the default on a cold link, and the mode round-trips through the URL', async ({ page }) => {
+  /*
+   * `contracts/app-shell.md`: a link encodes what is on screen. Explore is a
+   * first-class mode, so an Explore link has to be shareable — and the default
+   * with no param has to stay Echo, so the open-link-to-an-oriented-view path
+   * is unchanged for someone arriving cold.
+   */
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-viewer-mode', 'echo');
+  await expect(page.getByTestId('echo-panel')).toHaveCount(1);
+  expect(new URL(page.url()).searchParams.get('mode')).toBeNull();
+
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-viewer-mode', 'explore');
+  expect(new URL(page.url()).searchParams.get('mode')).toBe('explore');
+
+  await page.getByTestId('mode-echo').click();
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-viewer-mode', 'echo');
+  expect(new URL(page.url()).searchParams.get('mode')).toBeNull();
 });
 
 test('scrubbing the sweep changes the image', async ({ page }) => {
@@ -466,6 +737,9 @@ test('the wedge and the echo move together on one scrub value', async ({ page })
 test('the cut renders solid caps, not a hollow shell', async ({ page }) => {
   await expect(page.getByTestId('cut-enabled')).toBeChecked();
   await page.getByTestId('beam-dim').uncheck();
+  // The depth slider is only live in Free mode; in Echo plane the cut IS the
+  // imaging plane and there is no depth to choose.
+  await page.getByTestId('cutter-mode-free').click();
 
   const exactPaletteHits = async () =>
     page.evaluate(() => {

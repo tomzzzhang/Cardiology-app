@@ -79,7 +79,50 @@ export function planeAnchor(state: CutPlaneState, pivot: THREE.Vector3): THREE.V
 }
 
 /**
- * Turn `N` by a screen drag, holding `s` fixed.
+ * An orthonormal in-plane basis for the cut, given a preferred long axis.
+ *
+ * The mathematical cutter is `{N, s}` and has no in-plane orientation at all.
+ * The RECTANGLE drawn on it does, and that orientation is information rather
+ * than decoration: in echo-synced mode the long edge is aligned to the sector's
+ * lateral axis, so the rectangle reads as the same slice the echo panel shows
+ * rather than as a differently-rotated one on the same plane.
+ *
+ * `preferred` is projected onto the plane rather than trusted, and a preference
+ * that is parallel to `N` — which is what carrying an in-plane axis through a
+ * large rotation eventually produces — falls back to any perpendicular rather
+ * than to a zero-length basis.
+ */
+export function planeBasis(
+  normal: THREE.Vector3, preferred?: THREE.Vector3,
+): { u: THREE.Vector3; v: THREE.Vector3 } {
+  const n = normal.clone().normalize();
+  const u = (preferred ?? new THREE.Vector3(1, 0, 0)).clone();
+  u.addScaledVector(n, -u.dot(n));
+  if (u.lengthSq() < 1e-8) {
+    // Any perpendicular will do; pick the one furthest from `n` so the cross
+    // product below is well conditioned.
+    const axis = Math.abs(n.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    u.copy(axis).addScaledVector(n, -axis.dot(n));
+  }
+  u.normalize();
+  return { u, v: n.clone().cross(u).normalize() };
+}
+
+/**
+ * How face-on the plane has to be before the handle stops having a screen
+ * direction to move in.
+ *
+ * A handle can only move perpendicular to the plane, so its on-screen velocity
+ * is the projection of `N`. When the plane faces the camera that projection is
+ * nothing: the handle genuinely cannot move on screen, and no mapping can make
+ * it follow the pointer. Below this the gesture falls back to tipping the edge
+ * the way a picture frame tips, which is the only reading left.
+ */
+const FACE_ON_FLOOR = 0.1;
+const FACE_ON_CEILING = 0.3;
+
+/**
+ * Tip `N` by dragging one edge handle, holding `s` fixed.
  *
  * `contracts/viewer-core.md`: "Default free rotation holds `s` constant while
  * rotating `N` around the heart. A gesture FREEZES ITS PIVOT for the duration
@@ -97,30 +140,78 @@ export function planeAnchor(state: CutPlaneState, pivot: THREE.Vector3): THREE.V
  *   pointer got there — the same gesture at different sampling rates lands
  *   somewhere different — and makes dragging back to the start not return.
  *
- * The screen axes come from the camera, so the plane turns the way the hand
- * moves: dragging right swings the normal right, dragging down tips it down.
+ * **The grabbed handle follows the pointer.** A handle at `R * handleDir` moves
+ * to `R(cos t * handleDir - sin t * N)` as the plane turns about
+ * `a = N x handleDir`, so its velocity at the start of the gesture is `-R * N`:
+ * whatever direction it is drawn in, the only way it can move is out of the
+ * plane. So the drag is measured along the SCREEN PROJECTION OF `N`, not along
+ * the handle's own direction, and the handle tracks the hand. Measuring along
+ * the handle's direction instead makes opposite handles behave identically and
+ * makes the dot move against the pointer — which is what an earlier revision
+ * did.
+ *
+ * Which handle was grabbed still decides the AXIS: the `u` pair tips the plane
+ * about `v` and the `v` pair about `u`, and opposite handles of a pair tip it in
+ * opposite senses, because pulling the near edge forward and pushing the far
+ * edge forward are different motions of the same plate.
  */
-export function rotatedNormal(
+export function tiltedNormal(
   startNormal: THREE.Vector3,
+  handleDir: THREE.Vector3,
   cameraRight: THREE.Vector3,
   cameraUp: THREE.Vector3,
   totalDx: number,
   totalDy: number,
   radiansPerPixel: number,
 ): THREE.Vector3 {
+  const n = startNormal.clone().normalize();
+  const dir = handleDir.clone();
+  dir.addScaledVector(n, -dir.dot(n));
+  if (dir.lengthSq() < 1e-8) return n;
+  dir.normalize();
+
+  const right = cameraRight.clone().normalize();
+  const up = cameraUp.clone().normalize();
+
   /*
-   * Signs chosen so the plane follows the hand rather than the camera. Dragging
-   * the CAMERA right turns the model right because the camera moves the other
-   * way; here the object itself is being turned, so the rotation is in the same
-   * sense as the drag: right swings the normal right, down tips it down.
+   * The handle's screen velocity for a positive angle is the projection of
+   * `-N`. Screen `y` grows DOWNWARD while `cameraUp` grows upward, so the
+   * camera-frame `y` component is negated to become a pixel direction.
    */
-  const yaw = new THREE.Quaternion().setFromAxisAngle(
-    cameraUp.clone().normalize(), totalDx * radiansPerPixel,
-  );
-  const pitch = new THREE.Quaternion().setFromAxisAngle(
-    cameraRight.clone().normalize(), totalDy * radiansPerPixel,
-  );
-  return startNormal.clone().applyQuaternion(pitch).applyQuaternion(yaw).normalize();
+  const velocityX = -n.dot(right);
+  const velocityY = n.dot(up);
+  const velocity = Math.hypot(velocityX, velocityY);
+
+  let angle = 0;
+  if (velocity > FACE_ON_FLOOR) {
+    angle = ((totalDx * velocityX + totalDy * velocityY) / velocity) * radiansPerPixel;
+  }
+
+  if (velocity < FACE_ON_CEILING) {
+    /*
+     * Nearly face-on: the handle has almost no screen direction to move in, so
+     * the only reading left is the picture frame one — push an edge inward and
+     * it tips away from you. Blended in rather than switched to, so a gesture
+     * that crosses the threshold does not jump.
+     */
+    const screenX = dir.dot(right);
+    const screenY = dir.dot(up);
+    const screenLength = Math.hypot(screenX, screenY);
+    if (screenLength > 1e-6) {
+      const framed = -((totalDx * screenX + -totalDy * screenY) / screenLength) * radiansPerPixel;
+      const blend = Math.max(
+        0, Math.min(1, (velocity - FACE_ON_FLOOR) / (FACE_ON_CEILING - FACE_ON_FLOOR)),
+      );
+      angle = angle * blend + framed * (1 - blend);
+    }
+  }
+
+  // `a = N x dir` has `dN/dt = dir` and moves the handle toward `-N`, which is
+  // why the angle above is the drag along `-N`'s screen direction, unnegated.
+  const axis = n.clone().cross(dir).normalize();
+  return n
+    .applyQuaternion(new THREE.Quaternion().setFromAxisAngle(axis, angle))
+    .normalize();
 }
 
 /**

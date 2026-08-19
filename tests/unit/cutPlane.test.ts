@@ -16,7 +16,8 @@ import {
   enclosingRadius,
   initialCutPlane,
   planeAnchor,
-  rotatedNormal,
+  planeBasis,
+  tiltedNormal,
 } from '../../src/viewer/cutPlane.ts';
 
 const PIVOT = new THREE.Vector3(3, -2, 7);
@@ -119,20 +120,76 @@ describe('enclosingRadius', () => {
   });
 });
 
-describe('rotatedNormal', () => {
+describe('planeBasis — the rectangle\'s in-plane orientation', () => {
+  it('returns an orthonormal, right-handed basis for the plane', () => {
+    const normal = new THREE.Vector3(1, -2, 3).normalize();
+    const { u, v } = planeBasis(normal, new THREE.Vector3(0, 1, 0));
+    expect(u.length()).toBeCloseTo(1, 9);
+    expect(v.length()).toBeCloseTo(1, 9);
+    expect(u.dot(normal)).toBeCloseTo(0, 9);
+    expect(v.dot(normal)).toBeCloseTo(0, 9);
+    expect(u.dot(v)).toBeCloseTo(0, 9);
+    // u x v = N, which is what makes the rectangle's basis a rotation rather
+    // than a reflection — a mirrored gizmo would put its handles on the wrong
+    // sides of the plane.
+    expect(u.clone().cross(v).distanceTo(normal)).toBeCloseTo(0, 9);
+  });
+
+  it('keeps the preferred long axis when it already lies in the plane', () => {
+    /*
+     * This is the whole point of the rectangle over a disk: in echo-synced mode
+     * the long edge is the sector's lateral axis, so the rectangle reads as the
+     * same slice the echo panel shows rather than an arbitrarily rolled one.
+     */
+    const normal = new THREE.Vector3(0, 0, 1);
+    const lateral = new THREE.Vector3(0.6, 0.8, 0);
+    expect(planeBasis(normal, lateral).u.distanceTo(lateral)).toBeCloseTo(0, 9);
+  });
+
+  it('projects a preference that is not in the plane rather than trusting it', () => {
+    const normal = new THREE.Vector3(0, 0, 1);
+    const { u } = planeBasis(normal, new THREE.Vector3(1, 0, 5));
+    expect(u.distanceTo(new THREE.Vector3(1, 0, 0))).toBeCloseTo(0, 9);
+  });
+
+  it('falls back rather than degenerating when the preference is parallel to N', () => {
+    // Carrying an in-plane axis through a large rotation eventually produces
+    // exactly this, and a zero-length basis would render a rectangle of NaNs.
+    const normal = new THREE.Vector3(0, 0, 1);
+    const { u, v } = planeBasis(normal, new THREE.Vector3(0, 0, -3));
+    expect(u.length()).toBeCloseTo(1, 9);
+    expect(Number.isFinite(v.x + v.y + v.z)).toBe(true);
+    expect(u.dot(normal)).toBeCloseTo(0, 9);
+  });
+});
+
+describe('tiltedNormal — dragging one edge handle', () => {
   const RIGHT = new THREE.Vector3(1, 0, 0);
   const UP = new THREE.Vector3(0, 1, 0);
-  const START = new THREE.Vector3(0, 0, 1);
   const RATE = 0.006;
+
+  /*
+   * A plane seen EDGE-ON: its normal lies across the screen, so a handle on it
+   * has a real screen direction to move in and the "follows the pointer" rule
+   * is the one in force. The face-on case is degenerate by construction — a
+   * handle can only move perpendicular to its plane — and is covered on its own
+   * below.
+   */
+  const EDGE_ON = new THREE.Vector3(1, 0, 0);
+  /** The `v+` handle on that plane: drawn upward on screen. */
+  const TOP = new THREE.Vector3(0, 1, 0);
+  /** The `u+` handle on that plane: drawn into the screen. */
+  const AWAY = new THREE.Vector3(0, 0, -1);
 
   it('keeps the normal a unit vector', () => {
     for (const [dx, dy] of [[0, 0], [300, 0], [0, -240], [180, 260], [-900, 700]]) {
-      expect(rotatedNormal(START, RIGHT, UP, dx, dy, RATE).length()).toBeCloseTo(1, 9);
+      expect(tiltedNormal(EDGE_ON, TOP, RIGHT, UP, dx, dy, RATE).length()).toBeCloseTo(1, 9);
     }
   });
 
   it('does nothing for a gesture that has not moved', () => {
-    expect(rotatedNormal(START, RIGHT, UP, 0, 0, RATE).distanceTo(START)).toBeCloseTo(0, 9);
+    expect(tiltedNormal(EDGE_ON, TOP, RIGHT, UP, 0, 0, RATE).distanceTo(EDGE_ON))
+      .toBeCloseTo(0, 9);
   });
 
   it('depends only on where the drag ended, not on how it got there', () => {
@@ -142,25 +199,100 @@ describe('rotatedNormal', () => {
      * rate — the same gesture lands somewhere different on a slow machine — and
      * dragging back to the start does not return the plane to the start.
      */
-    const direct = rotatedNormal(START, RIGHT, UP, 120, 80, RATE);
-    // The same total offset, as it would arrive over many pointer samples.
-    let live = START.clone();
+    const direct = tiltedNormal(EDGE_ON, TOP, RIGHT, UP, 120, 80, RATE);
+    let stepped = EDGE_ON.clone();
     for (let step = 1; step <= 40; step += 1) {
-      live = rotatedNormal(START, RIGHT, UP, (120 * step) / 40, (80 * step) / 40, RATE);
+      stepped = tiltedNormal(EDGE_ON, TOP, RIGHT, UP, (120 * step) / 40, (80 * step) / 40, RATE);
     }
-    expect(live.distanceTo(direct)).toBeCloseTo(0, 9);
-
-    // And returning the pointer to where it started returns the plane.
-    expect(rotatedNormal(START, RIGHT, UP, 0, 0, RATE).distanceTo(START)).toBeCloseTo(0, 9);
+    expect(stepped.distanceTo(direct)).toBeCloseTo(0, 9);
+    expect(tiltedNormal(EDGE_ON, TOP, RIGHT, UP, 0, 0, RATE).distanceTo(EDGE_ON))
+      .toBeCloseTo(0, 9);
   });
 
-  it('turns the plane the way the hand moves', () => {
-    // Dragging right swings the normal toward screen-right; dragging down tips
-    // it toward screen-down. Any other pairing reads as the plane fighting you.
-    expect(rotatedNormal(START, RIGHT, UP, 200, 0, RATE).dot(RIGHT)).toBeGreaterThan(0);
-    expect(rotatedNormal(START, RIGHT, UP, -200, 0, RATE).dot(RIGHT)).toBeLessThan(0);
-    expect(rotatedNormal(START, RIGHT, UP, 0, 200, RATE).dot(UP)).toBeLessThan(0);
-    expect(rotatedNormal(START, RIGHT, UP, 0, -200, RATE).dot(UP)).toBeGreaterThan(0);
+  it('moves the grabbed handle the way the pointer moved', () => {
+    /*
+     * THE rule. A handle at `R * dir` can only move perpendicular to the plane,
+     * so its screen velocity is the projection of `-N`. Here `N` is `+x`, so a
+     * positive angle carries the handle to screen-LEFT, and dragging left must
+     * therefore be what produces a positive angle.
+     *
+     * Checked by displacing the handle rather than by inspecting the normal,
+     * because "the dot follows my mouse" is a claim about the dot.
+     */
+    const handleAfter = (dx: number, dy: number, dir: THREE.Vector3) => {
+      const turned = tiltedNormal(EDGE_ON, dir, RIGHT, UP, dx, dy, RATE);
+      // The handle rides the plane: rotate its direction by the same rotation.
+      const axis = EDGE_ON.clone().cross(dir).normalize();
+      const angle = EDGE_ON.angleTo(turned) * (turned.dot(dir) >= 0 ? 1 : -1);
+      const moved = dir.clone().applyQuaternion(
+        new THREE.Quaternion().setFromAxisAngle(axis, angle),
+      );
+      // Camera-frame screen delta, with y measured downward.
+      return { x: moved.dot(RIGHT) - dir.dot(RIGHT), y: -(moved.dot(UP) - dir.dot(UP)) };
+    };
+
+    // Drag left: the handle goes left.
+    expect(handleAfter(-160, 0, TOP).x).toBeLessThan(0);
+    // Drag right: the handle goes right.
+    expect(handleAfter(160, 0, TOP).x).toBeGreaterThan(0);
+    // And the handle on the other in-plane axis follows the same pointer the
+    // same way — it is the same perpendicular motion, about a different axis.
+    expect(handleAfter(-160, 0, AWAY).x).toBeLessThan(0);
+  });
+
+  it('gives an edge pair two opposite controls, not one doubled', () => {
+    /*
+     * Pulling the near edge forward and pushing the far edge forward are
+     * different motions of the same plate, so opposite handles must tip the
+     * plane in opposite senses. An earlier revision measured the drag along the
+     * handle's own direction, which made them identical and made the dot move
+     * against the pointer.
+     */
+    const plus = tiltedNormal(EDGE_ON, TOP, RIGHT, UP, 160, 0, RATE);
+    const minus = tiltedNormal(EDGE_ON, TOP.clone().negate(), RIGHT, UP, 160, 0, RATE);
+    expect(plus.dot(TOP)).toBeLessThan(0);
+    expect(minus.dot(TOP)).toBeGreaterThan(0);
+    /*
+     * Both handles still travel the SAME way on screen — a handle's velocity is
+     * the projection of `-N` whichever edge it sits on — which is exactly why
+     * the two rotations come out opposite: dragging the top edge right and
+     * dragging the bottom edge right tip the plate against each other.
+     */
+  });
+
+  it('reads only the drag component along the direction the handle can move', () => {
+    // `N` is `+x` here, so the handle moves horizontally on screen and a purely
+    // vertical drag is not a tilt of it.
+    expect(tiltedNormal(EDGE_ON, TOP, RIGHT, UP, 0, 250, RATE).distanceTo(EDGE_ON))
+      .toBeCloseTo(0, 9);
+  });
+
+  it('still turns a plane that is face-on, where the handle cannot move on screen', () => {
+    /*
+     * Degenerate by construction: with `N` pointing at the camera the handle's
+     * only available motion is toward or away from the viewer, which is almost
+     * no screen motion at all. The gesture falls back to tipping the edge the
+     * way a picture frame tips — push an edge inward and it goes away — because
+     * a dead control is worse than an arbitrary-but-consistent one.
+     */
+    const faceOn = new THREE.Vector3(0, 0, 1);
+    const turned = tiltedNormal(faceOn, TOP, RIGHT, UP, 0, 200, RATE);
+    expect(turned.length()).toBeCloseTo(1, 9);
+    // Dragging the top edge DOWN tips `N` up, i.e. carries that edge away.
+    expect(turned.dot(TOP)).toBeGreaterThan(0);
+  });
+
+  it('is a no-op for a handle direction that is not in the plane at all', () => {
+    const result = tiltedNormal(EDGE_ON, EDGE_ON.clone(), RIGHT, UP, 300, 300, RATE);
+    expect(result.distanceTo(EDGE_ON)).toBeCloseTo(0, 9);
+  });
+
+  it('turns the plane about an in-plane axis, so the tilt has no roll in it', () => {
+    // The handle's own direction and the normal stay in one plane through the
+    // gesture: a tilt that also rolled would turn the rectangle under the hand.
+    const turned = tiltedNormal(EDGE_ON, TOP, RIGHT, UP, 220, 0, RATE);
+    const perpendicular = EDGE_ON.clone().cross(TOP).normalize();
+    expect(turned.dot(perpendicular)).toBeCloseTo(0, 9);
   });
 
   it('leaves `s` alone, which is the caller keeping the plane on its pivot', () => {
@@ -169,8 +301,8 @@ describe('rotatedNormal', () => {
      * a normal and nothing else, so `s` cannot change, so the plane turns about
      * `C` rather than walking through the heart as it turns.
      */
-    const turned = rotatedNormal(START, RIGHT, UP, 150, -90, RATE);
-    const before = planeAnchor({ normal: START, offset: 12, flipped: false }, PIVOT);
+    const turned = tiltedNormal(EDGE_ON, TOP, RIGHT, UP, 150, -90, RATE);
+    const before = planeAnchor({ normal: EDGE_ON, offset: 12, flipped: false }, PIVOT);
     const after = planeAnchor({ normal: turned, offset: 12, flipped: false }, PIVOT);
     expect(before.distanceTo(PIVOT)).toBeCloseTo(12, 9);
     expect(after.distanceTo(PIVOT)).toBeCloseTo(12, 9);

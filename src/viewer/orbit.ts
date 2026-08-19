@@ -77,6 +77,12 @@ export function orientationFromYawPitch(yaw: number, pitch: number): THREE.Quate
  * camera's own right, which is the axis that stays horizontal on screen
  * whatever the model has been rolled to.
  *
+ * The vertical SENSE is the one the hand is on: dragging up carries the face of
+ * the model nearest the camera upward, which means the camera itself drops and
+ * the model is seen more from below. The opposite sign makes the near surface
+ * run away from the pointer, which reads as the model being pushed rather than
+ * turned.
+ *
  * The horizontal sign follows the camera's up. Once the camera has passed a
  * pole its up inverts and a world-Y rotation reads backwards on screen, so
  * without this the model fights the pointer for the whole upside-down half of
@@ -89,7 +95,7 @@ export function dragOrientation(
 
   // World-space yaw composes on the left; local pitch composes on the right.
   const yaw = new THREE.Quaternion().setFromAxisAngle(WORLD_UP, -dx * DRAG_SPEED * upright);
-  const pitch = new THREE.Quaternion().setFromAxisAngle(CAMERA_RIGHT, dy * DRAG_SPEED);
+  const pitch = new THREE.Quaternion().setFromAxisAngle(CAMERA_RIGHT, -dy * DRAG_SPEED);
   return yaw.multiply(orientation.clone().multiply(pitch)).normalize();
 }
 

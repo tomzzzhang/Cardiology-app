@@ -6,17 +6,30 @@
  * along the free anatomical cutter `{N, s}` with solid stencil caps, and draws
  * the probe from the same `ImagingFrame` the echo panel rasterises.
  *
- * What is deliberately NOT here, because `contracts/viewer-core.md` specifies
- * more than this slice delivers and a half-built control is worse than none:
- * explicit target selection between heart/cut/echo, the plane ROTATION gizmos,
- * and the "align free cut to echo view" bridge. The cutter's depth control ships
- * here because caps without a way to move the plane teach nothing; its rotation
- * and the selection model are the next unit.
+ * **Interaction is direct and positional, not modal.** There is no target
+ * selector. What a drag moves is decided by what is under the pointer: a cut
+ * handle tips the plane, the probe's arrow scrubs the sweep, anywhere else
+ * orbits the camera. The affordances are visible objects in the scene, so the
+ * learner reads the answer off the picture instead of setting a mode first.
+ * This supersedes the explicit heart/cut/echo selection the contract asked for
+ * before anything had been used; `contracts/viewer-core.md` now describes what
+ * is here.
+ *
+ * The cutter has two named modes rather than a one-shot align action:
+ * **Echo plane**, where it continuously follows the selected view's imaging
+ * plane as the sweep scrubs and the depth slider slides it along that plane's
+ * own normal, and **Free**, where it is the learner's. Switching to Free adopts
+ * the current plane, so the transition is continuous.
+ *
+ * What flows where has not changed and is not a UI question: data goes
+ * probe -> cutter and never back. The cutter cannot write `views[]`, the arrow
+ * writes only `t`, and every reachable probe pose is `frameAt(probe, sweep, t)`
+ * for some `t` in [0, 1].
  *
  * Orbit is implemented here rather than pulled from `OrbitControls` so the
- * pivot is unambiguously `C` and the wheel's meaning stays fixed: the contract
- * says wheel without a modifier ALWAYS zooms, and the cutter's modifier-wheel
- * depth control below has to coexist with that.
+ * pivot is unambiguously `C` and the wheel's meaning stays fixed: wheel without
+ * a modifier ALWAYS zooms, in every mode, and the cutter's modifier-wheel depth
+ * control below has to coexist with that.
  */
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -40,11 +53,35 @@ import {
   enclosingRadius,
   initialCutPlane,
   planeAnchor,
-  rotatedNormal,
+  planeBasis,
+  tiltedNormal,
   type CutPlaneState,
 } from './cutPlane.ts';
-import { PlaneHandle } from './planeHandle.ts';
+import { CutPlaneGizmo, HANDLE_IDS, handleDirection, type HandleId } from './planeHandle.ts';
+import {
+  TiltArrow,
+  nearestOnPath,
+  pathScreenLength,
+  scrubbedT,
+  sweepPath,
+} from './tiltArrow.ts';
+import { hitRadiusPx, isCoarsePointer, revealFor, watchPointerClass } from './pointerClass.ts';
+import { projectToScreen, unitsPerPixel } from './screen.ts';
 import { PALETTE, structureColour } from './palette.ts';
+
+/**
+ * What the cut plane is, stated on screen at all times.
+ *
+ * `echo` is not an alignment that decays — it is a live relationship, held as
+ * the sweep scrubs. `free` claims no relationship to the view at all. The
+ * distinction is carried by the name being on screen continuously, which beats
+ * teaching it by blanking the echo panel: the plane is directly draggable now,
+ * and blanking on every stray drag would be hostile.
+ */
+export type CutterMode = 'echo' | 'free';
+
+/** Top-level mode. Echo is the default; Explore has no probe at all. */
+export type ViewerMode = 'echo' | 'explore';
 
 interface PackViewerProps {
   pack: Pack;
@@ -53,39 +90,36 @@ interface PackViewerProps {
   scrub: number;
   viewIndex?: number;
   hidden?: ReadonlySet<string>;
+  /** Echo mode shows the probe; Explore has none, so the cutter is always free. */
+  mode?: ViewerMode;
   /**
-   * Lets the echo-view target scrub. Optional: without it that target still
-   * selects, and says that it cannot be moved from here — which is the truth
-   * under `contracts/viewer-core.md`, where a vetted wedge is driven only by
-   * the view rail and the sweep scrubber.
+   * The one path the tilt arrow writes through — the same one the sweep slider
+   * uses. Without it the arrow is not drawn, because an affordance that cannot
+   * move anything is worse than no affordance.
    */
   onScrubChange?: (scrub: number) => void;
 }
 
-/**
- * What a drag moves. Exactly one, always visible.
- *
- * `contracts/viewer-core.md`: "The active target is always visible and is
- * exactly one of heart/camera, free cut, or echo view. A drag must never
- * silently manipulate a different object."
- */
-export type DragTarget = 'camera' | 'cut' | 'echo';
+/** Radians of plane rotation per pixel of handle drag. */
+const HANDLE_RADIANS_PER_PIXEL = 0.006;
 
 interface ViewerApi {
   setFrame: (frame: ImagingFrame) => void;
   setHidden: (hidden: ReadonlySet<string>) => void;
   setCut: (cut: { enabled: boolean; offset: number; flipped: boolean }) => void;
-  setTarget: (target: DragTarget) => void;
   setBeamDim: (strength: number) => void;
+  setGhost: (on: boolean) => void;
+  setPointerClass: (coarse: boolean) => void;
+  setMode: (mode: ViewerMode) => void;
+  /** Returns the depth the slider should now show, in the new mode's terms. */
+  setCutterMode: (mode: CutterMode) => number;
   resetCamera: () => void;
   matchEchoOrientation: (frame: ImagingFrame) => void;
-  /** The one permitted bridge. Returns the copied `s` for the slider. */
-  alignCutToEchoPlane: (frame: ImagingFrame) => number;
   resetCutPlane: () => void;
 }
 
 export default function PackViewer({
-  pack, gltfUrl, scrub, viewIndex = 0, hidden, onScrubChange,
+  pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', onScrubChange,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
@@ -93,24 +127,36 @@ export default function PackViewer({
 
   const seeded = pack.interaction?.free_cut;
   const [cutEnabled, setCutEnabled] = useState(seeded !== undefined);
+  /**
+   * The depth slider's value.
+   *
+   * Its meaning follows the cutter mode, and the readout says which: in Free it
+   * is `s`, the signed distance from the pivot `C`; in Echo plane it is the
+   * distance from the view's imaging plane along that plane's own normal, so
+   * zero is coincident with the echo. Switching modes converts the number so
+   * the PLANE does not move — the transition is continuous in the thing the
+   * learner is looking at, not in the digits.
+   */
   const [cutOffset, setCutOffset] = useState(seeded?.offset ?? 0);
   const [cutFlipped, setCutFlipped] = useState(false);
   /** UI-2: mark the imaged tissue by dimming what the beam misses. */
   const [beamDim, setBeamDim] = useState(true);
+  /**
+   * Whether the half the cutter removes is drawn back as a ghost.
+   *
+   * Off by default: the point of the cut is to see inside, and a ghost is
+   * another thing between the eye and the cut face. On, it puts the removed
+   * half back as a faint translucent shell, so the section can be read against
+   * the whole heart it came out of.
+   */
+  const [ghostCutaway, setGhostCutaway] = useState(false);
   /** Slider bound, from model bounds; 0 until the model reports its size. */
   const [cutLimit, setCutLimit] = useState(0);
-  /** What a drag moves. Always exactly one, and always on screen. */
-  const [target, setTarget] = useState<DragTarget>('camera');
-  /*
-   * Which vetted view the free cutter was last aligned TO, or null.
-   *
-   * This is a note about provenance, not a link. `contracts/README.md`: the
-   * bridge is one-way and copy-only, and "subsequent free movement breaks the
-   * association and never modifies the saved view". So the only thing stored is
-   * the name, and the only thing that happens when the association breaks is
-   * that the name stops being shown — nothing anywhere is written back.
-   */
-  const [alignedTo, setAlignedTo] = useState<string | null>(null);
+  /** Explore has no probe to sync to, so the cutter is forced free there. */
+  const [cutterMode, setCutterModeState] = useState<CutterMode>(
+    mode === 'explore' ? 'free' : 'echo',
+  );
+  const [coarsePointer, setCoarsePointer] = useState(isCoarsePointer);
 
   const onScrubRef = useRef(onScrubChange);
   onScrubRef.current = onScrubChange;
@@ -177,15 +223,56 @@ export default function PackViewer({
     const byStructure = new Map<string, THREE.Object3D>();
     const dimUniforms: ReturnType<typeof applyBeamDim>[] = [];
     let probe: ProbeIndicator | null = null;
+    let arrow: TiltArrow | null = null;
     let caps: StencilCaps | null = null;
-    let handle: PlaneHandle | null = null;
+    let gizmo: CutPlaneGizmo | null = null;
+    /** The half the cutter removes, put back as a faint shell. */
+    const ghosts = new THREE.Group();
+    let ghostOn = false;
+    scene.add(ghosts);
     let bounds = new THREE.Box3();
     /** Enclosing radius about `C`: frames the camera and bounds the slider. */
     let reach = 0;
+    /**
+     * What the camera actually has to fit, which is not the same thing.
+     *
+     * `reach` is the model. In echo mode the probe sits OUTSIDE the model — on
+     * the chest wall, by construction — and its scrub arrow sits further out
+     * still, and both travel as the sweep runs. Framing on the model alone
+     * leaves the transducer clipped at the panel edge and the arrow off the
+     * panel entirely, which makes a control the learner cannot reach.
+     */
+    let framedReach = 0;
     let framed = false;
+    let loaded = false;
+
+    /* --- modes ------------------------------------------------------------ */
+    let viewerMode: ViewerMode = mode;
+    let cutter: CutterMode = mode === 'explore' ? 'free' : 'echo';
+    let coarse = isCoarsePointer();
+    /** The beam dim the learner asked for; Explore forces it off without losing it. */
+    let beamStrength = 1;
+    /** The frame the probe, the highlight and the echo-synced cutter share. */
+    let currentFrame: ImagingFrame | null = null;
 
     /* --- the free anatomical cutter --------------------------------------- */
     const cut: CutPlaneState = initialCutPlane(pack.interaction?.free_cut);
+    /**
+     * The slider's value, in the current mode's terms. Mirrors React state; the
+     * plane's actual `s` is derived from it in `applyCut`.
+     */
+    let depth = pack.interaction?.free_cut?.offset ?? 0;
+    /**
+     * The rectangle's long-edge direction.
+     *
+     * Not part of the cutter's mathematics — `{N, s}` has no in-plane
+     * orientation — but part of what the rectangle MEANS: in echo-synced mode
+     * it is the sector's lateral axis, so the rectangle reads as the same slice
+     * the echo panel shows. Free mode carries whatever it last held, which is
+     * what makes the switch out of echo mode continuous.
+     */
+    const inPlaneU = new THREE.Vector3(1, 0, 0);
+    let basis = { u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 1, 0) };
     /*
      * ONE plane object, mutated in place. Materials hold a reference to this
      * array, so replacing the plane would mean walking every material on every
@@ -194,6 +281,14 @@ export default function PackViewer({
      * `s`" requirement made structural rather than maintained by hand.
      */
     const planes: THREE.Plane[] = [new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)];
+    /**
+     * The same plane, reversed: the half the cutter took away.
+     *
+     * Mutated in place beside `planes` for the same reason — the ghost
+     * materials hold a reference to this array, so the next draw simply sees
+     * the new value instead of every material being walked on every tick.
+     */
+    const ghostPlanes: THREE.Plane[] = [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0)];
     let cutActive = false;
 
     /* --- orbit state, pivoting on C -------------------------------------- */
@@ -260,10 +355,204 @@ export default function PackViewer({
      * slider, so the two controls agree on how big the model is.
      */
     const framingRadius = () => {
-      if (reach === 0) return radius;
+      const fit = framedReach || reach;
+      if (fit === 0) return radius;
       const vertical = (camera.fov * Math.PI) / 180;
       const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * camera.aspect);
-      return (reach / Math.sin(Math.min(vertical, horizontal) / 2)) * 1.05;
+      return (fit / Math.sin(Math.min(vertical, horizontal) / 2)) * 1.05;
+    };
+
+    /**
+     * Recompute what the camera has to fit.
+     *
+     * The probe's whole travel, not its pose at the current `t`: the framing is
+     * set once and must not re-zoom as the sweep scrubs, which would make the
+     * heart breathe under the scrubber.
+     */
+    const measureFraming = () => {
+      framedReach = reach;
+      if (viewerMode !== 'echo') return;
+      const view = pack.views[viewIndex];
+      if (!view) return;
+      for (const point of sweepPath(view.probe, view.sweep)) {
+        framedReach = Math.max(framedReach, new THREE.Vector3(...point).distanceTo(pivot));
+      }
+      /*
+       * Capped, and the cap is the interesting part. A probe sits on the chest
+       * wall, so fitting its whole travel exactly would pull the camera back
+       * far enough to shrink the heart to a third of the panel — and the heart
+       * is what the learner came to look at. This buys back enough room for the
+       * transducer and the near end of its arrow while the anatomy stays the
+       * subject; the far end of the arrow can reach the panel edge, and Reset
+       * is the way back. Logged in `docs/observations.md`.
+       */
+      framedReach = Math.min(framedReach, reach * 1.3);
+    };
+
+    /* --- screen-space affordances ----------------------------------------- */
+
+    /** Where each live handle is on the panel, in CSS pixels. */
+    const handleScreenPositions = (): { id: HandleId; x: number; y: number }[] => {
+      const width = host.clientWidth;
+      const height = host.clientHeight;
+      if (!gizmo || !gizmo.handlesEnabled || !cutActive || width === 0) return [];
+      const out: { id: HandleId; x: number; y: number }[] = [];
+      for (const id of HANDLE_IDS) {
+        const world = gizmo.handlePositions.get(id);
+        if (!world) continue;
+        const point = projectToScreen(world, camera, width, height);
+        if (point.inFront) out.push({ id, x: point.x, y: point.y });
+      }
+      return out;
+    };
+
+    /** The tilt arrow's path, projected to the panel. Empty when there is none. */
+    const arrowScreenPath = (): { x: number; y: number }[] => {
+      const width = host.clientWidth;
+      const height = host.clientHeight;
+      if (!arrow || width === 0) return [];
+      const out: { x: number; y: number }[] = [];
+      for (const world of arrow.path) {
+        const point = projectToScreen(world, camera, width, height);
+        if (point.inFront) out.push({ x: point.x, y: point.y });
+      }
+      return out;
+    };
+
+    /**
+     * Keep the handles and the arrow the size of their own hit targets.
+     *
+     * Both are drawn in world space and grabbed in screen space, so the two
+     * numbers have to be derived from one: a handle that draws smaller than it
+     * grabs swallows drags meant for the camera, and one that draws larger
+     * misses when aimed at.
+     */
+    const rescaleAffordances = () => {
+      const height = host.clientHeight;
+      if (height === 0) return;
+      const grab = hitRadiusPx(coarse);
+      if (gizmo) {
+        const anchor = planeAnchor(cut, pivot);
+        gizmo.setScreenScale(unitsPerPixel(camera, camera.position.distanceTo(anchor), height), grab);
+      }
+      if (arrow && arrow.path.length > 0) {
+        const mid = arrow.path[Math.floor(arrow.path.length / 2)];
+        arrow.setScreenScale(unitsPerPixel(camera, camera.position.distanceTo(mid), height), grab);
+      }
+    };
+
+    /**
+     * Reveal the affordances for a pointer at `(x, y)` in panel pixels, or at
+     * `null` for "the pointer is not here".
+     *
+     * The fine/coarse rule is `pointerClass.revealFor` and lives there; this
+     * only measures distances and hands them over. On a coarse pointer every
+     * distance resolves to full opacity, which is why a finger never has to
+     * find an invisible control.
+     */
+    const applyReveal = (x: number | null, y: number | null) => {
+      rescaleAffordances();
+      const reveal = new Map<HandleId, number>();
+      let hovered: HandleId | null = null;
+      let nearest = Infinity;
+      const grab = hitRadiusPx(coarse);
+
+      for (const handle of handleScreenPositions()) {
+        const distance = x === null || y === null
+          ? Infinity
+          : Math.hypot(handle.x - x, handle.y - y);
+        reveal.set(handle.id, revealFor(distance, coarse));
+        if (distance <= grab && distance < nearest) {
+          nearest = distance;
+          hovered = handle.id;
+        }
+      }
+      gizmo?.setHandleReveal(reveal, hovered);
+
+      if (arrow) {
+        const path = arrowScreenPath();
+        const hit = x === null || y === null ? null : nearestOnPath(path, x, y);
+        // A handle under the pointer wins: it is drawn on top and it is the
+        // smaller target, so the arrow must not steal a drag aimed at one.
+        const distance = hovered !== null || hit === null ? Infinity : hit.distancePx;
+        arrow.setReveal(revealFor(distance, coarse), scrubRef.current);
+      }
+      schedule();
+    };
+
+    /**
+     * What the pointer is over, in the order a drag resolves it.
+     *
+     * Hit-tested at pointerdown rather than read off a hover state, because a
+     * coarse pointer has no hover: the first contact a finger makes with the
+     * screen is already the press.
+     */
+    const hitTest = (x: number, y: number):
+      | { kind: 'handle'; id: HandleId }
+      | { kind: 'arrow'; tangent: { x: number; y: number }; tPerPixel: number }
+      | null => {
+      const grab = hitRadiusPx(coarse);
+      let best: HandleId | null = null;
+      let bestDistance = grab;
+      for (const handle of handleScreenPositions()) {
+        const distance = Math.hypot(handle.x - x, handle.y - y);
+        if (distance <= bestDistance) {
+          bestDistance = distance;
+          best = handle.id;
+        }
+      }
+      if (best !== null) return { kind: 'handle', id: best };
+
+      if (arrow) {
+        const path = arrowScreenPath();
+        const hit = nearestOnPath(path, x, y);
+        if (hit && hit.distancePx <= grab) {
+          // The LOCAL rate of the track: how much `t` a pixel of drag along the
+          // drawn window is worth. Taken from the window rather than the whole
+          // sweep so the feel does not change as it is clipped short at an end.
+          const screenLength = pathScreenLength(path);
+          return {
+            kind: 'arrow',
+            tangent: hit.tangent,
+            tPerPixel: screenLength > 1 ? arrow.windowExtent / screenLength : 0,
+          };
+        }
+      }
+      return null;
+    };
+
+    /*
+     * Where the affordances are, published on the host element.
+     *
+     * A test seam, and a deliberate one: "the handles and the tilt arrow are
+     * present and hittable under a coarse pointer" is a gate, and a gate that
+     * can only be checked by guessing at pixel coordinates is not a gate. These
+     * are the same numbers the hit test uses, so a test that drags to them
+     * exercises the real dispatch rather than a parallel one.
+     */
+    const publishAffordances = (): void => {
+      host.dataset.pointerClass = coarse ? 'coarse' : 'fine';
+      host.dataset.cutterMode = cutter;
+      host.dataset.viewerMode = viewerMode;
+      const handles = handleScreenPositions();
+      if (handles.length > 0) {
+        host.dataset.cutHandles = JSON.stringify(
+          handles.map((handle) => ({
+            id: handle.id, x: Math.round(handle.x), y: Math.round(handle.y),
+          })),
+        );
+      } else {
+        delete host.dataset.cutHandles;
+      }
+      const path = arrowScreenPath();
+      if (arrow && path.length > 1) {
+        const mid = path[Math.floor(path.length / 2)];
+        host.dataset.tiltArrow = JSON.stringify({
+          x: Math.round(mid.x), y: Math.round(mid.y),
+        });
+      } else {
+        delete host.dataset.tiltArrow;
+      }
     };
 
     const draw = () => {
@@ -275,6 +564,7 @@ export default function PackViewer({
         caps.render(renderer, camera);
         renderer.autoClear = true;
       }
+      publishAffordances();
     };
 
     /*
@@ -293,23 +583,52 @@ export default function PackViewer({
       });
     };
 
-    /*
-     * The association with a vetted view is a claim, and free movement retracts
-     * it. Nothing is written back — there is nothing to write back to — the
-     * label simply stops being shown. Guarded by a local flag so a drag does
-     * not push React state on every pointer sample.
+    /**
+     * Push the cutter's state into the clipping plane, the caps and the gizmo.
+     *
+     * The mode decides where `s` comes from, and this is the only place it does:
+     *
+     * * **Echo plane** — `N` is the view's imaging-plane normal and the
+     *   rectangle's long edge is the sector's lateral axis, both refreshed on
+     *   every frame the sweep produces, so the cutter FOLLOWS rather than having
+     *   been aligned once. The slider then slides the cut along that plane's own
+     *   normal, which is a real thing a learner wants and is not a reason to
+     *   leave the mode.
+     * * **Free** — `s` is the slider, straight through, and `N` is whatever the
+     *   handles last made it.
      */
-    let aligned = false;
-    const breakAlignment = () => {
-      if (!aligned) return;
-      aligned = false;
-      setAlignedTo(null);
-    };
-
     const applyCut = () => {
+      if (cutter === 'echo' && currentFrame) {
+        const copied = alignedToPlane(
+          new THREE.Vector3(...currentFrame.normal),
+          new THREE.Vector3(...currentFrame.origin),
+          pivot,
+        );
+        cut.normal.copy(copied.normal);
+        cut.offset = copied.offset + depth;
+        inPlaneU.set(...currentFrame.lateral);
+      } else {
+        cut.offset = depth;
+      }
+
       planes[0].copy(clippingPlane(cut, pivot));
+      // The ghost is the other half-space of the same plane.
+      ghostPlanes[0].copy(planes[0]).negate();
+      ghosts.visible = cutActive && ghostOn;
       caps?.setPlane(planeAnchor(cut, pivot), cut.normal);
-      handle?.update(planeAnchor(cut, pivot), cut.normal, cut.flipped);
+      if (gizmo) {
+        gizmo.handlesEnabled = cutter === 'free';
+        basis = gizmo.update(planeAnchor(cut, pivot), cut.normal, inPlaneU, cut.flipped);
+        inPlaneU.copy(basis.u);
+        /*
+         * Echo-synced: the rectangle is not drawn at all. The wedge already
+         * shows where that plane is, and a second outline on the same plane
+         * says there are two objects there when the whole claim of the mode is
+         * that the cut IS the echo's plane. It comes back in Free mode, where
+         * the plane is a separate object again and has to be grabbable.
+         */
+        gizmo.visible = cutActive && cutter === 'free';
+      }
       if (caps) caps.enabled = cutActive;
       for (const object of byStructure.values()) {
         if (!(object instanceof THREE.Mesh)) continue;
@@ -324,38 +643,86 @@ export default function PackViewer({
       }
     };
 
+    /** The probe and its arrow exist only in echo mode, and only with a sweep. */
+    const syncProbeObjects = () => {
+      const view = pack.views[viewIndex];
+      const wanted = viewerMode === 'echo' && view !== undefined && loaded;
+
+      if (!wanted) {
+        if (probe) {
+          scene.remove(probe.object);
+          probe.dispose();
+          probe = null;
+        }
+        if (arrow) {
+          scene.remove(arrow.object);
+          arrow.dispose();
+          arrow = null;
+        }
+        return;
+      }
+
+      if (!probe && currentFrame) {
+        probe = new ProbeIndicator(currentFrame);
+        scene.add(probe.object);
+      }
+      /*
+       * No sweep, no arrow. A view whose probe pose is a single point has
+       * nothing for the arrow to scrub, and drawing a control that cannot move
+       * anything is worse than drawing none.
+       *
+       * Likewise no `onScrubChange`: the arrow's whole contract is that it
+       * writes `t` through the same path the slider does, so without that path
+       * it must not appear.
+       */
+      if (!arrow && view?.sweep && onScrubRef.current) {
+        arrow = new TiltArrow(view.probe, view.sweep);
+        scene.add(arrow.object);
+      }
+    };
+
     /* --- input ------------------------------------------------------------ */
-    /*
-     * One drag, three possible subjects, and the subject is never inferred.
-     * `contracts/viewer-core.md`: "A drag must never silently manipulate a
-     * different object." So the gesture reads `dragTarget`, which the learner
-     * sets explicitly and can see, and nothing here guesses from what is under
-     * the pointer.
-     */
-    let dragTarget: DragTarget = 'camera';
     let dragging = false;
     let lastX = 0;
     let lastY = 0;
 
-    /*
-     * The state a rotation gesture freezes at pointerdown.
+    /**
+     * The state a gesture freezes at pointerdown.
      *
-     * The contract requires the pivot to be frozen for the duration so the
-     * plane cannot drift from a continuously recomputed one. The START NORMAL
-     * is frozen for a related reason: the rotation is applied to it from the
-     * drag's total offset, so the same gesture lands in the same place whatever
-     * rate the pointer was sampled at, and dragging back to where you started
-     * returns the plane to where it started. Accumulating small rotations onto
-     * the live normal does neither.
+     * A rotation gesture freezes its pivot so the plane cannot drift from a
+     * continuously recomputed one, and it freezes the START NORMAL for a
+     * related reason: the rotation is applied to it from the drag's TOTAL
+     * offset, so the same gesture lands in the same place whatever rate the
+     * pointer was sampled at, and dragging back to where you started returns
+     * the plane. The arrow freezes `t` and its screen tangent for exactly the
+     * same reason.
      */
-    let gesture: {
-      normal: THREE.Vector3;
-      right: THREE.Vector3;
-      up: THREE.Vector3;
-      scrub: number;
-      startX: number;
-      startY: number;
-    } | null = null;
+    let gesture:
+      | {
+          kind: 'handle';
+          normal: THREE.Vector3;
+          direction: THREE.Vector3;
+          right: THREE.Vector3;
+          up: THREE.Vector3;
+          startX: number;
+          startY: number;
+        }
+      | {
+          kind: 'arrow';
+          startT: number;
+          tangent: { x: number; y: number };
+          tPerPixel: number;
+          startX: number;
+          startY: number;
+        }
+      | { kind: 'camera' }
+      | null = null;
+
+    /** Pointer position in panel pixels. */
+    const localPoint = (event: PointerEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    };
 
     const onPointerDown = (event: PointerEvent) => {
       dragging = true;
@@ -364,45 +731,79 @@ export default function PackViewer({
       delete host.dataset.cameraGlide;
       lastX = event.clientX;
       lastY = event.clientY;
-      gesture = {
-        normal: cut.normal.clone(),
-        right: new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion),
-        up: new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion),
-        scrub: scrubRef.current,
-        startX: event.clientX,
-        startY: event.clientY,
-      };
+
+      const local = localPoint(event);
+      const hit = hitTest(local.x, local.y);
+
+      if (hit?.kind === 'handle') {
+        gesture = {
+          kind: 'handle',
+          normal: cut.normal.clone(),
+          direction: handleDirection(hit.id, basis.u, basis.v),
+          right: new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion),
+          up: new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion),
+          startX: event.clientX,
+          startY: event.clientY,
+        };
+        // Hold the grabbed handle lit for the whole drag, so the object being
+        // moved stays identified while the pointer wanders off it.
+        gizmo?.setHandleReveal(
+          new Map(HANDLE_IDS.map((id) => [id, id === hit.id ? 1 : 0.35])), hit.id,
+        );
+      } else if (hit?.kind === 'arrow') {
+        gesture = {
+          kind: 'arrow',
+          startT: scrubRef.current,
+          tangent: hit.tangent,
+          tPerPixel: hit.tPerPixel,
+          startX: event.clientX,
+          startY: event.clientY,
+        };
+      } else {
+        gesture = { kind: 'camera' };
+      }
+
       renderer.domElement.setPointerCapture(event.pointerId);
+      schedule();
     };
 
     const onPointerMove = (event: PointerEvent) => {
-      if (!dragging || !gesture) return;
-      const totalX = event.clientX - gesture.startX;
-      const totalY = event.clientY - gesture.startY;
+      if (!dragging || !gesture) {
+        const local = localPoint(event);
+        applyReveal(local.x, local.y);
+        return;
+      }
 
-      if (dragTarget === 'cut') {
+      if (gesture.kind === 'handle') {
         /*
-         * Turn `N` about the frozen pivot, holding `s`. The cut only moves when
-         * the cutter is the selected target — never as a side effect of
-         * orbiting, which is the whole point of having a target.
+         * Tip `N` about the frozen pivot, holding `s`. Only reachable in Free
+         * mode, because the handles are neither drawn nor hittable when the
+         * cutter is following the echo plane.
          */
-        cut.normal.copy(rotatedNormal(
-          gesture.normal, gesture.right, gesture.up, totalX, totalY, 0.006,
+        cut.normal.copy(tiltedNormal(
+          gesture.normal,
+          gesture.direction,
+          gesture.right,
+          gesture.up,
+          event.clientX - gesture.startX,
+          event.clientY - gesture.startY,
+          HANDLE_RADIANS_PER_PIXEL,
         ));
         applyCut();
-        // Free movement breaks the association with the vetted view. It does
-        // not touch the view; it stops CLAIMING to be it.
-        breakAlignment();
-      } else if (dragTarget === 'echo') {
+      } else if (gesture.kind === 'arrow') {
         /*
-         * The only motion a vetted wedge is allowed in learner mode is along
-         * its own sweep, so that is the only thing this drag can do. It writes
-         * the same scrub value the slider owns — one value, two controls — and
-         * it cannot reposition the probe, because there is no code path from
-         * here to `views[].probe`.
+         * The arrow writes `t` and nothing else, through the same callback the
+         * sweep slider writes through. It cannot reposition the probe: there is
+         * no code path from here to `views[].probe`, and the pose that results
+         * is `frameAt(probe, sweep, t)` by construction.
          */
-        const next = Math.min(1, Math.max(0, gesture.scrub + totalX / 400));
-        onScrubRef.current?.(next);
+        onScrubRef.current?.(scrubbedT(
+          gesture.startT,
+          gesture.tangent,
+          event.clientX - gesture.startX,
+          event.clientY - gesture.startY,
+          gesture.tPerPixel,
+        ));
       } else {
         // No clamp anywhere: the model turns all the way over. See `orbit.ts`.
         orientation = dragOrientation(
@@ -422,24 +823,36 @@ export default function PackViewer({
       if (renderer.domElement.hasPointerCapture(event.pointerId)) {
         renderer.domElement.releasePointerCapture(event.pointerId);
       }
+      const local = localPoint(event);
+      applyReveal(local.x, local.y);
     };
+
+    const onPointerLeave = () => {
+      if (dragging) return;
+      applyReveal(null, null);
+    };
+
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       /*
-       * Wheel WITHOUT a modifier always zooms — contracts/viewer-core.md, no
-       * exceptions. Shift-wheel translates the cutter along `N`, and only when
-       * the cutter is actually on; otherwise the modifier falls through to zoom
-       * rather than silently doing nothing.
+       * Wheel WITHOUT a modifier always zooms — in every mode, no exceptions.
+       * Shift-wheel translates the cutter along `N`, and only when the cutter
+       * is actually on; otherwise the modifier falls through to zoom rather
+       * than silently doing nothing.
        */
       if (event.shiftKey && cutActive) {
         const step = reach * 0.02;
-        onCutOffset(Math.max(-reach, Math.min(reach, cut.offset - Math.sign(event.deltaY) * step)));
-        // Moving the cutter freely retracts any claim to be a vetted plane.
-        breakAlignment();
+        onCutOffset(Math.max(-reach, Math.min(reach, depth - Math.sign(event.deltaY) * step)));
         return;
       }
-      radius = Math.max(40, Math.min(3000, radius * (1 + Math.sign(event.deltaY) * 0.1)));
+      /*
+       * Zoom step per notch. Deliberately small: a wheel that crosses the whole
+       * useful range of distances in three notches is a wheel that cannot be
+       * used to look at something slightly closer.
+       */
+      radius = Math.max(40, Math.min(3000, radius * (1 + Math.sign(event.deltaY) * 0.04)));
       applyCamera();
+      applyReveal(null, null);
       schedule();
     };
 
@@ -455,6 +868,7 @@ export default function PackViewer({
     element.addEventListener('pointermove', onPointerMove);
     element.addEventListener('pointerup', onPointerUp);
     element.addEventListener('pointercancel', onPointerUp);
+    element.addEventListener('pointerleave', onPointerLeave);
     element.addEventListener('wheel', onWheel, { passive: false });
 
     const resize = () => {
@@ -469,6 +883,7 @@ export default function PackViewer({
         framed = true;
         applyCamera();
       }
+      rescaleAffordances();
       draw();
     };
     const observer = new ResizeObserver(resize);
@@ -510,6 +925,29 @@ export default function PackViewer({
             side: THREE.DoubleSide,
           });
           dimUniforms.push(applyBeamDim(object.material));
+          /*
+           * The removed half, as a ghost. It shares the SAME geometry — a
+           * second Mesh over one BufferGeometry costs a draw call, not a second
+           * copy of 180k vertices — and carries the reversed clipping plane, so
+           * the two halves are exactly complementary by construction rather
+           * than by two numbers being kept in agreement.
+           *
+           * `depthWrite: false` because a ghost must not hide the cut face
+           * behind it; unlit because a faintly shaded shell reads as tissue,
+           * and this is a hint about what was taken away.
+           */
+          const ghost = new THREE.Mesh(object.geometry, new THREE.MeshBasicMaterial({
+            color: colour,
+            transparent: true,
+            opacity: 0.07,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+            clippingPlanes: ghostPlanes,
+          }));
+          ghost.matrixAutoUpdate = false;
+          ghost.matrix.copy(object.matrixWorld);
+          ghost.renderOrder = -1;
+          ghosts.add(ghost);
           capSources.push({
             id: object.name,
             geometry: object.geometry,
@@ -533,6 +971,7 @@ export default function PackViewer({
               .applyMatrix4(gltf.scene.matrixWorld)
           : centre;
         reach = enclosingRadius(gltf.scene, pivot);
+        measureFraming();
         radius = framingRadius();
 
         // The cap quad only has to cover the model's cross-section from any
@@ -543,24 +982,27 @@ export default function PackViewer({
         caps.setClippingPlanes(planes);
         dimUniforms.push(caps.beamUniforms);
 
-        // The cutter, drawn as something you can see yourself grabbing. Shown
-        // only while it is the selected target, which makes the selection
-        // legible without a mode banner.
-        handle = new PlaneHandle(reach);
-        scene.add(handle.object);
+        // The cutter, drawn as the rectangle a cross-section actually is, with
+        // the four edge handles that turn it.
+        gizmo = new CutPlaneGizmo(reach);
+        scene.add(gizmo.object);
+        // Seed the long edge from the pack's own plane so the first frame is
+        // not an arbitrary roll.
+        inPlaneU.copy(planeBasis(cut.normal).u);
 
         const view = pack.views[viewIndex];
         if (view) {
-          const frame = frameAt(view.probe, view.sweep, scrubRef.current);
-          probe = new ProbeIndicator(frame);
-          scene.add(probe.object);
-          for (const uniforms of dimUniforms) setBeamFrame(uniforms, frame);
+          currentFrame = frameAt(view.probe, view.sweep, scrubRef.current);
+          for (const uniforms of dimUniforms) setBeamFrame(uniforms, currentFrame);
         }
 
+        loaded = true;
+        syncProbeObjects();
         setCutLimit(reach);
         applyCut();
         applyCamera();
         resize();
+        applyReveal(null, null);
         host.dataset.viewerReady = 'true';
         setStatus('ready');
       },
@@ -574,60 +1016,95 @@ export default function PackViewer({
 
     apiRef.current = {
       setFrame: (frame) => {
+        currentFrame = frame;
         probe?.update(frame);
         // One frame drives the probe geometry AND the highlight, for the same
         // reason the wedge and the echo share it: they cannot be allowed to
         // disagree about where the beam is.
         for (const uniforms of dimUniforms) setBeamFrame(uniforms, frame);
+        // Echo-synced: the cutter FOLLOWS, so it moves with every frame rather
+        // than having been aligned once.
+        if (cutter === 'echo') applyCut();
+        // The heads dim at the ends of the sweep, so they follow `t`.
+        arrow?.refresh(scrubRef.current);
         schedule();
       },
       setHidden: (next) => {
+        let index = 0;
         for (const [id, object] of byStructure) {
           object.visible = !next.has(id);
           caps?.setVisible(id, !next.has(id));
+          const ghost = ghosts.children[index];
+          if (ghost) ghost.visible = !next.has(id);
+          index += 1;
         }
         schedule();
       },
       setCut: (next) => {
         cutActive = next.enabled;
-        cut.offset = next.offset;
+        depth = next.offset;
         cut.flipped = next.flipped;
-        if (handle) handle.visible = dragTarget === 'cut' && cutActive;
         applyCut();
+        applyReveal(null, null);
         schedule();
       },
-      setTarget: (next) => {
-        dragTarget = next;
-        if (handle) handle.visible = next === 'cut' && cutActive;
+      setPointerClass: (next) => {
+        coarse = next;
+        applyReveal(null, null);
+      },
+      setMode: (next) => {
+        const wasFramedFor = framedReach;
+        viewerMode = next;
+        measureFraming();
+        // Explore has no probe, so it can hold the model closer. Re-frame only
+        // when the thing to fit actually changed.
+        if (framed && framedReach !== wasFramedFor) {
+          radius = framingRadius();
+          applyCamera();
+        }
+        if (next === 'explore') cutter = 'free';
+        // Explore has no beam, so nothing is marked as outside one — and the
+        // learner's own choice is kept, not overwritten, so it returns with the
+        // mode.
+        const strength = next === 'explore' ? 0 : beamStrength;
+        for (const uniforms of dimUniforms) uniforms.uBeamDim.value = strength;
+        syncProbeObjects();
+        applyCut();
+        applyReveal(null, null);
         schedule();
       },
       /*
-       * THE ONE PERMITTED BRIDGE, and it runs in one direction only.
+       * Switching modes moves the NUMBER, never the plane.
        *
-       * Geometry is read out of the ImagingFrame and written into the cutter.
-       * There is no path back: this function cannot see `views[]`, the pack, or
-       * anything that could be saved, and it returns `s` purely so the slider
-       * and readout can follow the value they are views of.
+       * Echo -> Free adopts the plane the learner is looking at, expressed as
+       * `s` from the pivot, so the rectangle does not jump at the moment it
+       * becomes draggable. Free -> Echo re-acquires the view's plane, and the
+       * depth resets to zero because zero is now "coincident with the echo".
        */
-      alignCutToEchoPlane: (frame) => {
-        const copied = alignedToPlane(
-          new THREE.Vector3(...frame.normal), new THREE.Vector3(...frame.origin), pivot,
-        );
-        cut.normal.copy(copied.normal);
-        cut.offset = copied.offset;
-        aligned = true;
+      setCutterMode: (next) => {
+        if (next === cutter) return depth;
+        depth = next === 'free' ? cut.offset : 0;
+        cutter = next;
         applyCut();
+        applyReveal(null, null);
         schedule();
-        return copied.offset;
+        return depth;
       },
       resetCutPlane: () => {
         cut.normal.copy(initialCutPlane(pack.interaction?.free_cut).normal);
-        breakAlignment();
+        inPlaneU.copy(planeBasis(cut.normal).u);
         applyCut();
         schedule();
       },
+      setGhost: (on) => {
+        ghostOn = on;
+        ghosts.visible = cutActive && ghostOn;
+        schedule();
+      },
       setBeamDim: (strength) => {
-        for (const uniforms of dimUniforms) uniforms.uBeamDim.value = strength;
+        beamStrength = strength;
+        const value = viewerMode === 'explore' ? 0 : strength;
+        for (const uniforms of dimUniforms) uniforms.uBeamDim.value = value;
         schedule();
       },
       resetCamera: () => {
@@ -654,10 +1131,17 @@ export default function PackViewer({
       element.removeEventListener('pointermove', onPointerMove);
       element.removeEventListener('pointerup', onPointerUp);
       element.removeEventListener('pointercancel', onPointerUp);
+      element.removeEventListener('pointerleave', onPointerLeave);
       element.removeEventListener('wheel', onWheel);
+      // Ghost geometry is SHARED with the anatomy mesh, which the scene walk
+      // below disposes. Only the materials belong to the ghosts.
+      for (const ghost of ghosts.children) {
+        if (ghost instanceof THREE.Mesh) (ghost.material as THREE.Material).dispose();
+      }
       probe?.dispose();
+      arrow?.dispose();
       caps?.dispose();
-      handle?.dispose();
+      gizmo?.dispose();
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
@@ -670,7 +1154,13 @@ export default function PackViewer({
       renderer.domElement.remove();
       delete host.dataset.viewerReady;
       delete host.dataset.cameraGlide;
+      delete host.dataset.cutHandles;
+      delete host.dataset.tiltArrow;
     };
+    // `mode` is read once here to seed the scene and is applied thereafter
+    // through `setMode`; listing it would reload a five-megabyte glTF on a
+    // mode switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gltfUrl, pack, viewIndex]);
 
   // The probe follows the scrubber: same frame the echo renders, by construction.
@@ -693,8 +1183,38 @@ export default function PackViewer({
   }, [beamDim, status]);
 
   useEffect(() => {
-    apiRef.current?.setTarget(target);
-  }, [target, status]);
+    apiRef.current?.setGhost(ghostCutaway);
+  }, [ghostCutaway, status]);
+
+  // Explore has no probe, so it has nothing to sync a cut plane to.
+  useEffect(() => {
+    apiRef.current?.setMode(mode);
+    if (mode === 'explore') setCutterModeState('free');
+  }, [mode, status]);
+
+  useEffect(() => {
+    apiRef.current?.setPointerClass(coarsePointer);
+  }, [coarsePointer, status]);
+
+  // The pointer class really does change under a running page.
+  useEffect(() => watchPointerClass(setCoarsePointer), []);
+
+  const view = pack.views[viewIndex];
+  const echoMode = mode === 'echo';
+  /**
+   * In Echo plane mode the cut IS the imaging plane, so there is no depth to
+   * choose: the slider is disabled rather than removed, so the control the
+   * learner will look for is where they left it and its state says why it does
+   * nothing. The Cut checkbox stays live in both modes — turning the cut off to
+   * see the whole heart WITH the echo fan on it is a thing worth doing.
+   */
+  const depthLocked = echoMode && cutterMode === 'echo';
+
+  const chooseCutterMode = (next: CutterMode) => {
+    const adopted = apiRef.current?.setCutterMode(next);
+    setCutterModeState(next);
+    if (adopted !== undefined) setCutOffset(adopted);
+  };
 
   return (
     <div className="anatomy-panel">
@@ -717,30 +1237,49 @@ export default function PackViewer({
       {status === 'ready' && (
         <>
         {/*
-          * The active target, always on screen and always exactly one.
-          * `contracts/viewer-core.md` requires both — a drag must never
-          * silently manipulate a different object, and the only way a learner
-          * can know which object a drag will move is to be shown it.
+          * What the cut plane IS, named on screen at all times.
+          *
+          * This replaces both the drag-target selector and the one-shot align
+          * button. There is no state a learner has to have set before a drag
+          * does what they meant — the handles say what is grabbable — and the
+          * relationship to the view is a live mode rather than a claim that
+          * silently decays the first time the plane is nudged.
           */}
-        <div className="targets" role="radiogroup" aria-label="What dragging moves" data-testid="drag-target">
-          {([
-            ['camera', 'Heart', 'Drag turns the model'],
-            ['cut', 'Cut', 'Drag turns the cut plane, holding its depth'],
-            ['echo', 'Echo view', 'Drag scrubs the sweep — the only motion a vetted view has'],
-          ] as [DragTarget, string, string][]).map(([value, label, hint]) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={target === value}
-              className={target === value ? 'targets__button targets__button--on' : 'targets__button'}
-              onClick={() => setTarget(value)}
-              title={hint}
-              data-testid={`target-${value}`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="cutter-mode" data-testid="cutter-mode">
+          {echoMode ? (
+            <div role="radiogroup" aria-label="What the cut plane follows" className="cutter-mode__group">
+              {([
+                ['echo', 'Echo plane', "Follows this view's imaging plane as the sweep scrubs"],
+                ['free', 'Free', 'Yours to turn. Claims no relationship to the view'],
+              ] as [CutterMode, string, string][]).map(([value, label, hint]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={cutterMode === value}
+                  className={
+                    cutterMode === value
+                      ? 'cutter-mode__button cutter-mode__button--on'
+                      : 'cutter-mode__button'
+                  }
+                  onClick={() => chooseCutterMode(value)}
+                  title={hint}
+                  data-testid={`cutter-mode-${value}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="cutter-mode__button cutter-mode__button--on">Free</span>
+          )}
+          <span className="cutter-mode__state" data-testid="cutter-mode-state">
+            {!echoMode
+              ? 'Explore — no probe, so the cut is always free'
+              : cutterMode === 'echo'
+                ? "Cut follows the view's imaging plane. Depth slides along that plane's normal."
+                : 'Free cut — the plane is yours, and claims no relationship to the view.'}
+          </span>
         </div>
 
         <div className="cutter" data-testid="cutter-controls">
@@ -761,26 +1300,50 @@ export default function PackViewer({
             max={cutLimit}
             step={cutLimit / 400 || 0.1}
             value={cutOffset}
-            disabled={!cutEnabled}
+            disabled={!cutEnabled || depthLocked}
             onChange={(event) => setCutOffset(Number(event.target.value))}
             aria-label="Cut depth along the plane normal"
+            title={
+              depthLocked
+                ? 'The cut is the echo plane in this mode. Switch to Free to move it.'
+                : undefined
+            }
             data-testid="cut-offset"
           />
 
-          {/* The readout is the same `s` the slider and shift-wheel write. */}
+          {/* The readout is the same value the slider and shift-wheel write. */}
           <output className="cutter__readout" data-testid="cut-readout">
-            {cutOffset.toFixed(1)} {pack.meshes.units}
+            {depthLocked ? 'on echo plane' : `${cutOffset.toFixed(1)} ${pack.meshes.units}`}
           </output>
 
+          {/*
+            * The removed half, put back as a faint shell. A toggle rather than
+            * always-on: the point of a cut is to see inside it, and a ghost is
+            * one more thing between the eye and the cut face — but read against
+            * the whole heart it came out of, a section says more.
+            */}
           <label className="cutter__toggle">
             <input
               type="checkbox"
-              checked={beamDim}
-              onChange={(event) => setBeamDim(event.target.checked)}
-              data-testid="beam-dim"
+              checked={ghostCutaway}
+              onChange={(event) => setGhostCutaway(event.target.checked)}
+              disabled={!cutEnabled}
+              data-testid="ghost-cutaway"
             />
-            Beam
+            Ghost
           </label>
+
+          {echoMode && (
+            <label className="cutter__toggle">
+              <input
+                type="checkbox"
+                checked={beamDim}
+                onChange={(event) => setBeamDim(event.target.checked)}
+                data-testid="beam-dim"
+              />
+              Beam
+            </label>
+          )}
 
           <button
             type="button"
@@ -798,22 +1361,23 @@ export default function PackViewer({
             * written to at all. `contracts/README.md`: the two objects may
             * coincide visually and never merge.
             */}
-          <button
-            type="button"
-            onClick={() => {
-              const view = pack.views[viewIndex];
-              if (view) apiRef.current?.matchEchoOrientation(frameAt(view.probe, view.sweep, scrub));
-            }}
-            title="Turn the model to face the echo's imaging plane. Camera only."
-            data-testid="match-echo"
-          >
-            Match echo
-          </button>
+          {echoMode && (
+            <button
+              type="button"
+              onClick={() => {
+                if (view) apiRef.current?.matchEchoOrientation(frameAt(view.probe, view.sweep, scrub));
+              }}
+              title="Turn the model to face the echo's imaging plane. Camera only."
+              data-testid="match-echo"
+            >
+              Match echo
+            </button>
+          )}
 
           <button
             type="button"
             onClick={() => {
-              setCutOffset(pack.interaction?.free_cut?.offset ?? 0);
+              setCutOffset(cutterMode === 'echo' ? 0 : (pack.interaction?.free_cut?.offset ?? 0));
               setCutFlipped(false);
               apiRef.current?.resetCutPlane();
               apiRef.current?.resetCamera();
@@ -822,40 +1386,6 @@ export default function PackViewer({
           >
             Reset
           </button>
-        </div>
-
-        <div className="bridge" data-testid="align-bridge">
-          {/*
-            * One-way and copy-only. It reads the selected view's plane into the
-            * free cutter; it can never write in the other direction, and moving
-            * the cutter afterwards retracts the label rather than editing the
-            * view. `contracts/README.md`.
-            */}
-          <button
-            type="button"
-            disabled={!cutEnabled}
-            onClick={() => {
-              const view = pack.views[viewIndex];
-              if (!view) return;
-              const copied = apiRef.current?.alignCutToEchoPlane(
-                frameAt(view.probe, view.sweep, scrub),
-              );
-              if (copied !== undefined) {
-                setCutOffset(copied);
-                setCutFlipped(false);
-                setAlignedTo(view.name);
-              }
-            }}
-            title="Copy this view's imaging plane into the free cutter. One-way: the view is never modified."
-            data-testid="align-cut"
-          >
-            Align cut to echo view
-          </button>
-          <span className="bridge__state" data-testid="align-state">
-            {alignedTo === null
-              ? 'Free cut — not aligned to any view'
-              : `Copied from ${alignedTo}. Moving the cut breaks the link; the view is unchanged.`}
-          </span>
         </div>
         </>
       )}
