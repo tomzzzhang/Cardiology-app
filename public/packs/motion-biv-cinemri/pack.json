@@ -38,6 +38,17 @@
         "display_label": "Biventricular surface (source carries no labels)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Biventricular surface (source carries no labels)' matches none of (no cast patterns). One undivided epicardial surface per frame, with no labels of any kind. There is no lumen cast in this source to mark: a surface with no inside modelled cannot be a cast of one, and the pack's single structure is tissue by construction."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 11,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 10,
+          "declared_reason": "Frame 0 is 11 connected components joined across 10 non-manifold edges and is not closed. This is genuine debris in an undocumented segmentation rather than a preprocessing artefact: welding changed neither the component count nor the edges. It is why this pack cuts badly, and it is the price of the only moving asset here whose licence is confirmed."
+        },
         "stylized": false
       }
     ],

@@ -38,6 +38,10 @@
         "display_label": "Myocardial tissue (undivided)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "a single undivided STL with no groups, no tags and no labels. There is nothing in this source to match against, and it models no cavity as an object \u2014 the interior endocardial surfaces are part of the same tissue body \u2014 so the one structure is tissue, decided here rather than left to fall through as false."
+        },
         "stylized": false
       }
     ],

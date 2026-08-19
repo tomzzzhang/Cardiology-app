@@ -16,7 +16,7 @@
     "license_state": "confirmed",
     "modified": {
       "flag": true,
-      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 134.9 source units; read as mm because 134.9 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 86 input surface(s) together, a single translation of (-21.5, 123.3, -1242.4) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. BLOOD POOL: ascending aorta, cavity of left atrium, cavity of left ventricle, cavity of right atrium, cavity of right ventricle, pulmonary trunk, superior vena cava. These are casts of the lumen, not tissue, and the source names them so. The viewer draws them translucent and cool for the same reason it does on any cast-and-shell pack: at a cut, a solid cavity cast and a solid wall otherwise present the same opaque face. LICENCE AS READ AT THE SOURCE: the rights holder's own licence page, https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html, read on 2026-08-19 and last updated there 2025/02/27, states: \"The license for this database is specified in the Creative Commons Attribution 4.0 International\", and grants explicitly that you may \"freely redistribute part or whole of the data from this database\" and \"freely create and distribute database and other derivative works based on part or whole of the data\", with the required attribution \"BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution 4.0 International\". CONTRADICTION, recorded rather than resolved: older mirrors of the same project state CC BY-SA 2.1 Japan. The reading taken here is the rights holder's CURRENT page, which is the more authoritative source and the more permissive grant; if that is wrong, this pack is a share-alike derivative and the licence state must be revisited. It is not published either way. NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this is an Explore-only pack like every other geometry-only source. SEMILUNAR CUSPS ARE COARSE. The aortic and pulmonary cusps are a few hundred triangles each and look faceted at any useful zoom. Not fixed here: smoothing them would be sculpting anatomy, which is a different task with a different licence consequence. NO VENTRICULAR MYOCARDIUM. The source's own concepts resolve `myocardium of left ventricle` to 12.1 mL over three elements \u2014 the anterolateral papillary head and two wall patches \u2014 against a 97.9 mL cavity, and `myocardium of right ventricle` to 7.7 mL against 117.0 mL. There is no interventricular septum concept at all. The ATRIAL walls are properly modelled at 40.5 and 27.6 mL. Checked across the whole atlas: every concept naming ventricular myocardium or wall resolves to elements already in this pack, so nothing was excluded. This pack cannot show wall thickness, hypertrophy or a septal defect, because it has no ventricular wall to show them in. ONE CADAVER, and an adult one. Nothing about this model is paediatric, and the leaflet geometry is a fixed post-mortem configuration, not a phase of a cardiac cycle: these leaflets neither open nor close. NAMES ARE DERIVED, not authored. Each part is named from the SMALLEST concept in the source's own partof_element_parts.txt that contains it. The eleven valve leaflets and cusps are additionally pinned by element id, and the ingest fails if the source stops listing any of them under its expected concept. THE ATRIOVENTRICULAR LEAFLETS ARE NOT THIN LEAFLETS. The source's concept map is many-to-many, and element FJ2432 is listed as the posterior mitral leaflet AND as the inferior wall of the left ventricle, the myocardium of that wall and myocardial zone 4. It measures 49 x 38 x 32 mm and carries 3,820 triangles, which is a wall segment rather than a leaflet; the anterior mitral element FJ2420 is 34 x 48 x 31 mm and likewise. Eight of the 86 parts have a tied smallest concept, and their labels carry both names rather than the pipeline picking one. The SEMILUNAR cusps are not ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles. The OBJs duplicate a vertex per adjacent face along their seams. Unwelded they look open \u2014 1,826 boundary edges and 124 connected components on the right atrial wall \u2014 and they are not: welded, all 86 parts are watertight, single-component and manifold. The ingest welds exactly coincident vertices, which moves no surface. This is recorded because a reader measuring the raw OBJs will see the larger numbers. NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the pulmonary arteries as part of the heart, and their elements run 96-335 mm down the body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are included, so the semilunar cusps have a vessel behind them; there is no arch, no descending aorta, no inferior vena cava and no pulmonary veins."
+      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 134.9 source units; read as mm because 134.9 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 86 input surface(s) together, a single translation of (-21.5, 123.3, -1242.4) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. BLOOD POOL: ascending aorta, cavity of left atrium, cavity of left ventricle, cavity of right atrium, cavity of right ventricle, pulmonary trunk, superior vena cava. These are casts of the lumen, not tissue, and the source names them so. The viewer draws them translucent and cool for the same reason it does on any cast-and-shell pack: at a cut, a solid cavity cast and a solid wall otherwise present the same opaque face. LICENCE AS READ AT THE SOURCE: the rights holder's own licence page, https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html, read on 2026-08-19 and last updated there 2025/02/27, states: \"The license for this database is specified in the Creative Commons Attribution 4.0 International\", and grants explicitly that you may \"freely redistribute part or whole of the data from this database\" and \"freely create and distribute database and other derivative works based on part or whole of the data\", with the required attribution \"BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution 4.0 International\". CONTRADICTION, recorded rather than resolved: older mirrors of the same project state CC BY-SA 2.1 Japan. The reading taken here is the rights holder's CURRENT page, which is the more authoritative source and the more permissive grant; if that is wrong, this pack is a share-alike derivative and the licence state must be revisited. It is not published either way. NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this is an Explore-only pack like every other geometry-only source. SEMILUNAR CUSPS ARE COARSE. The aortic and pulmonary cusps are a few hundred triangles each and look faceted at any useful zoom. Not fixed here: smoothing them would be sculpting anatomy, which is a different task with a different licence consequence. NO VENTRICULAR MYOCARDIUM. The source's own concepts resolve `myocardium of left ventricle` to 12.1 mL over three elements \u2014 the anterolateral papillary head and two wall patches \u2014 against a 97.9 mL cavity, and `myocardium of right ventricle` to 7.7 mL against 117.0 mL. There is no interventricular septum concept at all. The ATRIAL walls are properly modelled at 40.5 and 27.6 mL. Checked across the whole atlas: every concept naming ventricular myocardium or wall resolves to elements already in this pack, so nothing was excluded. This pack cannot show wall thickness, hypertrophy or a septal defect, because it has no ventricular wall to show them in. ONE CADAVER, and an adult one. Nothing about this model is paediatric, and the leaflet geometry is a fixed post-mortem configuration, not a phase of a cardiac cycle: these leaflets neither open nor close. NAMES ARE DERIVED, not authored. Each part is named from the SMALLEST concept in the source's own partof_element_parts.txt that contains it. The eleven valve leaflets and cusps are additionally pinned by element id, and the ingest fails if the source stops listing any of them under its expected concept. THE ATRIOVENTRICULAR LEAFLETS ARE NOT THIN LEAFLETS. The source's concept map is many-to-many, and element FJ2432 is listed as the posterior mitral leaflet AND as the inferior wall of the left ventricle, the myocardium of that wall and myocardial zone 4. It measures 49 x 38 x 32 mm and carries 3,820 triangles, which is a wall segment rather than a leaflet; the anterior mitral element FJ2420 is 34 x 48 x 31 mm and likewise. Eight of the 86 parts have a tied smallest concept, and their labels carry both names rather than the pipeline picking one. The SEMILUNAR cusps are not ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles. The OBJs duplicate a vertex per adjacent face along their seams. Unwelded they look open \u2014 1,826 boundary edges and 124 connected components on the right atrial wall \u2014 and they are not: welded, all 86 parts are watertight and manifold, and 83 of the 86 are a single connected component. The ingest welds exactly coincident vertices, which moves no surface. This is recorded because a reader measuring the raw OBJs will see the larger numbers. THREE parts really are two closed shells each and are declared individually in `open_surfaces`; an earlier reading of this pack said all 86 were single-component, and the per-structure measurement is what corrected it. NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the pulmonary arteries as part of the heart, and their elements run 96-335 mm down the body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are included, so the semilunar cusps have a vessel behind them; there is no arch, no descending aorta, no inferior vena cava and no pulmonary veins."
     },
     "derivation_chain": [
       "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html",
@@ -33,75 +33,430 @@
     "gltf": "assets/model.gltf",
     "structures": [
       {
+        "id": "anterior-cardiac-venous-tree",
+        "mesh_node": null,
+        "display_label": "anterior cardiac venous tree",
+        "parent": "right-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-interventricular-branch-of-left-coronary-artery",
+        "mesh_node": null,
+        "display_label": "anterior interventricular branch of left coronary artery",
+        "parent": "left-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "anterior-wall-of-left-ventricle",
+        "mesh_node": null,
+        "display_label": "anterior wall of left ventricle",
+        "parent": "free-wall-of-left-ventricle",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "aortic-valve",
+        "mesh_node": null,
+        "display_label": "aortic valve",
+        "parent": "outflow-part-of-left-ventricle",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "circumflex-branch-of-left-coronary-artery",
+        "mesh_node": null,
+        "display_label": "circumflex branch of left coronary artery",
+        "parent": "left-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "mesh_node": null,
+        "display_label": "conus branch of anterior interventricular branch of left coronary artery",
+        "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "mesh_node": null,
+        "display_label": "diagonal branch of anterior descending branch of left coronary artery",
+        "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "fibrous-ring-of-mitral-valve",
+        "mesh_node": null,
+        "display_label": "fibrous ring of mitral valve",
+        "parent": "mitral-valve",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-anterior-ventricular-branch-of-right-coronary-artery",
+        "mesh_node": null,
+        "display_label": "first anterior ventricular branch of right coronary artery",
+        "parent": "right-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "mesh_node": null,
+        "display_label": "first posterior ventricular branch of right coronary artery",
+        "parent": "right-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "mesh_node": null,
+        "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery",
+        "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "free-wall-of-left-ventricle",
+        "mesh_node": null,
+        "display_label": "free wall of left ventricle",
+        "parent": "wall-of-left-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "free-wall-of-right-ventricle",
+        "mesh_node": null,
+        "display_label": "free wall of right ventricle",
+        "parent": "wall-of-right-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "inflow-part-of-left-ventricle",
+        "mesh_node": null,
+        "display_label": "inflow part of left ventricle",
+        "parent": "left-ventricle",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "left-atrium",
+        "mesh_node": null,
+        "display_label": "left atrium",
+        "parent": "left-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "left-coronary-artery",
+        "mesh_node": null,
+        "display_label": "left coronary artery",
+        "parent": "left-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "left-side-of-heart",
+        "mesh_node": null,
+        "display_label": "left side of heart",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "left-ventricle",
+        "mesh_node": null,
+        "display_label": "left ventricle",
+        "parent": "left-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "marginal-branch-of-right-coronary-artery",
+        "mesh_node": null,
+        "display_label": "marginal branch of right coronary artery",
+        "parent": "right-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "mitral-valve",
+        "mesh_node": null,
+        "display_label": "mitral valve",
+        "parent": "inflow-part-of-left-ventricle",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "outflow-part-of-left-ventricle",
+        "mesh_node": null,
+        "display_label": "outflow part of left ventricle",
+        "parent": "left-ventricle",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "outflow-part-of-right-atrium",
+        "mesh_node": null,
+        "display_label": "outflow part of right atrium",
+        "parent": "right-atrium",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "outflow-part-of-right-ventricle",
+        "mesh_node": null,
+        "display_label": "outflow part of right ventricle",
+        "parent": "right-ventricle",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "posterior-interventricular-branch-of-right-coronary-artery",
+        "mesh_node": null,
+        "display_label": "posterior interventricular branch of right coronary artery",
+        "parent": "right-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-atrium",
+        "mesh_node": null,
+        "display_label": "right atrium",
+        "parent": "right-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-conus-artery",
+        "mesh_node": null,
+        "display_label": "right conus artery",
+        "parent": "right-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-coronary-artery",
+        "mesh_node": null,
+        "display_label": "right coronary artery",
+        "parent": "right-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-side-of-heart",
+        "mesh_node": null,
+        "display_label": "right side of heart",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-ventricle",
+        "mesh_node": null,
+        "display_label": "right ventricle",
+        "parent": "right-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "small-cardiac-vein",
+        "mesh_node": null,
+        "display_label": "small cardiac vein",
+        "parent": "right-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "mesh_node": null,
+        "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery",
+        "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "wall-of-left-side-of-heart",
+        "mesh_node": null,
+        "display_label": "wall of left side of heart",
+        "parent": "left-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "wall-of-right-side-of-heart",
+        "mesh_node": null,
+        "display_label": "wall of right side of heart",
+        "parent": "right-side-of-heart",
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
         "id": "anterior-cardiac-venous-tree-right-marginal-vein-fj2727",
         "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2727",
         "display_label": "anterior cardiac venous tree / right marginal vein (FJ2727)",
-        "parent": null,
+        "parent": "anterior-cardiac-venous-tree",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior cardiac venous tree / right marginal vein (FJ2727)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterior-cardiac-venous-tree-right-marginal-vein-fj2728",
         "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2728",
         "display_label": "anterior cardiac venous tree / right marginal vein (FJ2728)",
-        "parent": null,
+        "parent": "anterior-cardiac-venous-tree",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior cardiac venous tree / right marginal vein (FJ2728)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterior-cardiac-venous-tree-right-marginal-vein-fj2729",
         "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2729",
         "display_label": "anterior cardiac venous tree / right marginal vein (FJ2729)",
-        "parent": null,
+        "parent": "anterior-cardiac-venous-tree",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior cardiac venous tree / right marginal vein (FJ2729)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterior-cusp-of-aortic-valve",
         "mesh_node": "anterior-cusp-of-aortic-valve",
         "display_label": "anterior cusp of aortic valve",
-        "parent": null,
+        "parent": "aortic-valve",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior cusp of aortic valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterior-leaflet-of-mitral-valve",
         "mesh_node": "anterior-leaflet-of-mitral-valve",
         "display_label": "anterior leaflet of mitral valve",
-        "parent": null,
+        "parent": "fibrous-ring-of-mitral-valve",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior leaflet of mitral valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterior-leaflet-of-tricuspid-valve",
         "mesh_node": "anterior-leaflet-of-tricuspid-valve",
         "display_label": "anterior leaflet of tricuspid valve",
-        "parent": null,
+        "parent": "outflow-part-of-right-atrium",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior leaflet of tricuspid valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterior-papillary-muscle-of-right-ventricle-anterior-wall-of-right-ventricle",
         "mesh_node": "anterior-papillary-muscle-of-right-ventricle-anterior-wall-of-right-ventricle",
         "display_label": "anterior papillary muscle of right ventricle / anterior wall of right ventricle",
-        "parent": null,
+        "parent": "free-wall-of-right-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior papillary muscle of right ventricle / anterior wall of right ventricle' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterior-wall-of-left-ventricle-lateral-papillary-muscle-of-left-ventricle-6",
         "mesh_node": "anterior-wall-of-left-ventricle-lateral-papillary-muscle-of-left-ventricle-6",
         "display_label": "anterior wall of left ventricle / lateral papillary muscle of left ventricle +6",
-        "parent": null,
+        "parent": "anterior-wall-of-left-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterior wall of left ventricle / lateral papillary muscle of left ventricle +6' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "anterolateral-head-of-lateral-papillary-muscle-of-left-ventricle-myocardial-zone-12",
         "mesh_node": "anterolateral-head-of-lateral-papillary-muscle-of-left-ventricle-myocardial-zone-12",
         "display_label": "anterolateral head of lateral papillary muscle of left ventricle / myocardial zone 12",
-        "parent": null,
+        "parent": "anterior-wall-of-left-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'anterolateral head of lateral papillary muscle of left ventricle / myocardial zone 12' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 2,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "declared_reason": "Two closed shells rather than one. The source models this element as two disconnected watertight pieces; welding merges seams and cannot join surfaces that never touched, and joining them would be inventing a bridge."
+        },
         "stylized": false
       },
       {
@@ -110,102 +465,232 @@
         "display_label": "ascending aorta",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'ascending aorta' contains 'ascending aorta', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "cavity-of-left-atrium",
         "mesh_node": "cavity-of-left-atrium",
         "display_label": "cavity of left atrium",
-        "parent": null,
+        "parent": "left-atrium",
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'cavity of left atrium' contains 'cavity of', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "cavity-of-left-ventricle",
         "mesh_node": "cavity-of-left-ventricle",
         "display_label": "cavity of left ventricle",
-        "parent": null,
+        "parent": "left-ventricle",
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'cavity of left ventricle' contains 'cavity of', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "cavity-of-right-atrium",
         "mesh_node": "cavity-of-right-atrium",
         "display_label": "cavity of right atrium",
-        "parent": null,
+        "parent": "right-atrium",
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'cavity of right atrium' contains 'cavity of', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "cavity-of-right-ventricle",
         "mesh_node": "cavity-of-right-ventricle",
         "display_label": "cavity of right ventricle",
-        "parent": null,
+        "parent": "right-ventricle",
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'cavity of right ventricle' contains 'cavity of', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "circumflex-branch-of-left-coronary-artery-fj2649",
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2649",
         "display_label": "circumflex branch of left coronary artery (FJ2649)",
-        "parent": null,
+        "parent": "circumflex-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'circumflex branch of left coronary artery (FJ2649)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "circumflex-branch-of-left-coronary-artery-fj2650",
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2650",
         "display_label": "circumflex branch of left coronary artery (FJ2650)",
-        "parent": null,
+        "parent": "circumflex-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'circumflex branch of left coronary artery (FJ2650)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "circumflex-branch-of-left-coronary-artery-fj2651",
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2651",
         "display_label": "circumflex branch of left coronary artery (FJ2651)",
-        "parent": null,
+        "parent": "circumflex-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'circumflex branch of left coronary artery (FJ2651)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "circumflex-branch-of-left-coronary-artery-fj2652",
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2652",
         "display_label": "circumflex branch of left coronary artery (FJ2652)",
-        "parent": null,
+        "parent": "circumflex-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'circumflex branch of left coronary artery (FJ2652)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "circumflex-branch-of-left-coronary-artery-fj2653",
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2653",
         "display_label": "circumflex branch of left coronary artery (FJ2653)",
-        "parent": null,
+        "parent": "circumflex-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'circumflex branch of left coronary artery (FJ2653)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "circumflex-branch-of-left-coronary-artery-fj2654",
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2654",
         "display_label": "circumflex branch of left coronary artery (FJ2654)",
-        "parent": null,
+        "parent": "circumflex-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'circumflex branch of left coronary artery (FJ2654)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2643",
         "mesh_node": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2643",
         "display_label": "conus branch of anterior interventricular branch of left coronary artery (FJ2643)",
-        "parent": null,
+        "parent": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'conus branch of anterior interventricular branch of left coronary artery (FJ2643)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2644",
         "mesh_node": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2644",
         "display_label": "conus branch of anterior interventricular branch of left coronary artery (FJ2644)",
-        "parent": null,
+        "parent": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'conus branch of anterior interventricular branch of left coronary artery (FJ2644)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -214,366 +699,826 @@
         "display_label": "coronary sinus",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'coronary sinus' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2633",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2633",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2633)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2633)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2634",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2634",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2634)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2634)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2635",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2635",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2635)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2635)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2636",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2636",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2636)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2636)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2637",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2637",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2637)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2637)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2638",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2638",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2638)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2638)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2639",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2639",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2639)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2639)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2640",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2640",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2640)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2640)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2642",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2642",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2642)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2642)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2648",
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2648",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2648)",
-        "parent": null,
+        "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'diagonal branch of anterior descending branch of left coronary artery (FJ2648)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2671",
         "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2671",
         "display_label": "first anterior ventricular branch of right coronary artery (FJ2671)",
-        "parent": null,
+        "parent": "first-anterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first anterior ventricular branch of right coronary artery (FJ2671)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2673",
         "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2673",
         "display_label": "first anterior ventricular branch of right coronary artery (FJ2673)",
-        "parent": null,
+        "parent": "first-anterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first anterior ventricular branch of right coronary artery (FJ2673)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2677",
         "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2677",
         "display_label": "first anterior ventricular branch of right coronary artery (FJ2677)",
-        "parent": null,
+        "parent": "first-anterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first anterior ventricular branch of right coronary artery (FJ2677)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2714",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2714",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2714)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2714)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2715",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2715",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2715)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2715)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2716",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2716",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2716)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2716)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2717",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2717",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2717)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2717)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2718",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2718",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2718)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2718)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2719",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2719",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2719)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2719)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2720",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2720",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2720)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2720)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2721",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2721",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2721)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2721)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2722",
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2722",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2722)",
-        "parent": null,
+        "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first posterior ventricular branch of right coronary artery (FJ2722)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2632",
         "mesh_node": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2632",
         "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery (FJ2632)",
-        "parent": null,
+        "parent": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first right anterior branch of anterior interventricular branch of left coronary artery (FJ2632)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2645",
         "mesh_node": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2645",
         "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery (FJ2645)",
-        "parent": null,
+        "parent": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'first right anterior branch of anterior interventricular branch of left coronary artery (FJ2645)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "great-cardiac-vein",
         "mesh_node": "great-cardiac-vein",
         "display_label": "great cardiac vein",
-        "parent": null,
+        "parent": "left-side-of-heart",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'great cardiac vein' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "inferior-wall-of-right-ventricle-posterior-papillary-muscle-of-right-ventricle",
         "mesh_node": "inferior-wall-of-right-ventricle-posterior-papillary-muscle-of-right-ventricle",
         "display_label": "inferior wall of right ventricle / posterior papillary muscle of right ventricle",
-        "parent": null,
+        "parent": "free-wall-of-right-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'inferior wall of right ventricle / posterior papillary muscle of right ventricle' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "left-anterior-cusp-of-pulmonary-valve",
         "mesh_node": "left-anterior-cusp-of-pulmonary-valve",
         "display_label": "left anterior cusp of pulmonary valve",
-        "parent": null,
+        "parent": "outflow-part-of-right-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'left anterior cusp of pulmonary valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "left-posterior-cusp-of-aortic-valve",
         "mesh_node": "left-posterior-cusp-of-aortic-valve",
         "display_label": "left posterior cusp of aortic valve",
-        "parent": null,
+        "parent": "aortic-valve",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'left posterior cusp of aortic valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "marginal-branch-of-right-coronary-artery-fj2667",
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2667",
         "display_label": "marginal branch of right coronary artery (FJ2667)",
-        "parent": null,
+        "parent": "marginal-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'marginal branch of right coronary artery (FJ2667)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "marginal-branch-of-right-coronary-artery-fj2668",
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2668",
         "display_label": "marginal branch of right coronary artery (FJ2668)",
-        "parent": null,
+        "parent": "marginal-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'marginal branch of right coronary artery (FJ2668)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "marginal-branch-of-right-coronary-artery-fj2672",
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2672",
         "display_label": "marginal branch of right coronary artery (FJ2672)",
-        "parent": null,
+        "parent": "marginal-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'marginal branch of right coronary artery (FJ2672)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "marginal-branch-of-right-coronary-artery-fj2674",
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2674",
         "display_label": "marginal branch of right coronary artery (FJ2674)",
-        "parent": null,
+        "parent": "marginal-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'marginal branch of right coronary artery (FJ2674)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "marginal-branch-of-right-coronary-artery-fj2675",
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2675",
         "display_label": "marginal branch of right coronary artery (FJ2675)",
-        "parent": null,
+        "parent": "marginal-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'marginal branch of right coronary artery (FJ2675)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-cusp-of-pulmonary-valve",
         "mesh_node": "posterior-cusp-of-pulmonary-valve",
         "display_label": "posterior cusp of pulmonary valve",
-        "parent": null,
+        "parent": "outflow-part-of-right-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior cusp of pulmonary valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2692",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2692",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2692)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2692)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2693",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2693",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2693)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2693)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2694",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2694",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2694)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2694)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2695",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2695",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2695)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2695)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2696",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2696",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2696)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2696)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2697",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2697",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2697)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2697)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2698",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2698",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2698)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2698)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2699",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2699",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2699)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2699)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-interventricular-branch-of-right-coronary-artery-fj2700",
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2700",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2700)",
-        "parent": null,
+        "parent": "posterior-interventricular-branch-of-right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior interventricular branch of right coronary artery (FJ2700)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-leaflet-of-mitral-valve-inferior-wall-of-left-ventricle-2",
         "mesh_node": "posterior-leaflet-of-mitral-valve-inferior-wall-of-left-ventricle-2",
         "display_label": "posterior leaflet of mitral valve / inferior wall of left ventricle +2",
-        "parent": null,
+        "parent": "free-wall-of-left-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior leaflet of mitral valve / inferior wall of left ventricle +2' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "posterior-leaflet-of-tricuspid-valve",
         "mesh_node": "posterior-leaflet-of-tricuspid-valve",
         "display_label": "posterior leaflet of tricuspid valve",
-        "parent": null,
+        "parent": "outflow-part-of-right-atrium",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'posterior leaflet of tricuspid valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -582,78 +1527,180 @@
         "display_label": "pulmonary trunk",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'pulmonary trunk' contains 'pulmonary trunk', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "right-anterior-cusp-of-pulmonary-valve",
         "mesh_node": "right-anterior-cusp-of-pulmonary-valve",
         "display_label": "right anterior cusp of pulmonary valve",
-        "parent": null,
+        "parent": "outflow-part-of-right-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'right anterior cusp of pulmonary valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 2,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "declared_reason": "Two closed shells rather than one, in the source. Nothing is broken about either shell \u2014 both are watertight and manifold \u2014 but the cusp is not one connected piece and isolating it shows two."
+        },
         "stylized": false
       },
       {
         "id": "right-conus-artery-fj2670",
         "mesh_node": "right-conus-artery-fj2670",
         "display_label": "right conus artery (FJ2670)",
-        "parent": null,
+        "parent": "right-conus-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'right conus artery (FJ2670)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "right-conus-artery-fj2676",
         "mesh_node": "right-conus-artery-fj2676",
         "display_label": "right conus artery (FJ2676)",
-        "parent": null,
+        "parent": "right-conus-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'right conus artery (FJ2676)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "right-posterior-cusp-of-aortic-valve",
         "mesh_node": "right-posterior-cusp-of-aortic-valve",
         "display_label": "right posterior cusp of aortic valve",
-        "parent": null,
+        "parent": "aortic-valve",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'right posterior cusp of aortic valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "second-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "mesh_node": "second-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "display_label": "second right anterior branch of anterior interventricular branch of left coronary artery",
-        "parent": null,
+        "parent": "anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'second right anterior branch of anterior interventricular branch of left coronary artery' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "septal-leaflet-of-tricuspid-valve",
         "mesh_node": "septal-leaflet-of-tricuspid-valve",
         "display_label": "septal leaflet of tricuspid valve",
-        "parent": null,
+        "parent": "outflow-part-of-right-atrium",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'septal leaflet of tricuspid valve' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 2,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "declared_reason": "Two closed shells rather than one, in the source. See the note on the pulmonary cusp: the pieces are individually clean and are not joined."
+        },
         "stylized": false
       },
       {
         "id": "septal-papillary-muscle-of-right-ventricle",
         "mesh_node": "septal-papillary-muscle-of-right-ventricle",
         "display_label": "septal papillary muscle of right ventricle",
-        "parent": null,
+        "parent": "free-wall-of-right-ventricle",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'septal papillary muscle of right ventricle' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "small-cardiac-vein-fj2724",
         "mesh_node": "small-cardiac-vein-fj2724",
         "display_label": "small cardiac vein (FJ2724)",
-        "parent": null,
+        "parent": "small-cardiac-vein",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'small cardiac vein (FJ2724)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "small-cardiac-vein-fj2731",
         "mesh_node": "small-cardiac-vein-fj2731",
         "display_label": "small cardiac vein (FJ2731)",
-        "parent": null,
+        "parent": "small-cardiac-vein",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'small cardiac vein (FJ2731)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -662,62 +1709,142 @@
         "display_label": "superior vena cava",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'superior vena cava' contains 'superior vena cava', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2641",
         "mesh_node": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2641",
         "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery (FJ2641)",
-        "parent": null,
+        "parent": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'third right anterior branch of anterior interventricular branch of left coronary artery (FJ2641)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2647",
         "mesh_node": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2647",
         "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery (FJ2647)",
-        "parent": null,
+        "parent": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'third right anterior branch of anterior interventricular branch of left coronary artery (FJ2647)' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "trunk-of-anterior-interventricular-branch-of-left-coronary-artery",
         "mesh_node": "trunk-of-anterior-interventricular-branch-of-left-coronary-artery",
         "display_label": "trunk of anterior interventricular branch of left coronary artery",
-        "parent": null,
+        "parent": "anterior-interventricular-branch-of-left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'trunk of anterior interventricular branch of left coronary artery' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "trunk-of-left-coronary-artery",
         "mesh_node": "trunk-of-left-coronary-artery",
         "display_label": "trunk of left coronary artery",
-        "parent": null,
+        "parent": "left-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'trunk of left coronary artery' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "trunk-of-right-coronary-artery",
         "mesh_node": "trunk-of-right-coronary-artery",
         "display_label": "trunk of right coronary artery",
-        "parent": null,
+        "parent": "right-coronary-artery",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'trunk of right coronary artery' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "wall-of-left-atrium",
         "mesh_node": "wall-of-left-atrium",
         "display_label": "wall of left atrium",
-        "parent": null,
+        "parent": "wall-of-left-side-of-heart",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'wall of left atrium' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
         "id": "wall-of-right-atrium",
         "mesh_node": "wall-of-right-atrium",
         "display_label": "wall of right atrium",
-        "parent": null,
+        "parent": "wall-of-right-side-of-heart",
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'wall of right atrium' matches none of 'cavity of', 'ascending aorta', 'pulmonary trunk', 'superior vena cava'. BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, all with Euler characteristic 2 \u2014 closed solids rather than tubes. Everything else in the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. The four patterns above are matched against the source's own labels and each must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       }
     ],

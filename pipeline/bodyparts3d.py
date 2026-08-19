@@ -242,3 +242,110 @@ def ambiguous_names(cache_dir: Path) -> dict[str, list[str]]:
         for element in sorted(heart)
         if len(candidates.get(element, [])) > 1
     }
+
+
+def hierarchy(cache_dir: Path) -> tuple[list[tuple[str, str | None]], dict[str, str]]:
+    """
+    The heart's own part-of tree, derived from the source's concept map.
+
+    Returns `(groups, of_element)`: the group concepts as `(name, parent name)`
+    in a stable order, and the element id -> group name mapping.
+
+    **The tree is the SOURCE's, not this pipeline's.** `partof_element_parts.txt`
+    is a concept-to-element table, and every relationship below is read out of
+    it by set containment rather than written down here. Nothing in this file
+    names a chamber, a vessel or a valve: hardcoding a taxonomy would freeze one
+    draft of anatomy into the build, which is the same reason the view families
+    are not enumerated in engine code.
+
+    Three rules, and each exists for a reason the data forced.
+
+    * **A group is a concept whose WHOLE element set lies inside the heart.**
+      Restricting concepts to their heart elements and comparing those instead
+      makes "systemic arterial system" a superset of "left side of heart", and
+      the tree comes out rooted in the abdomen. A group has to be a part of the
+      heart, not a body system that happens to cross it.
+    * **A group holds at least two elements**, because a group of one is an
+      extra click that shows you what you already had, **and fewer than all of
+      them**: the selection concepts are how the pack was chosen and are not a
+      division within it.
+    * **A concept's parent is its smallest strict superset**, and an element's
+      group is the smallest concept containing it. Ties break on the name, which
+      is arbitrary but deterministic and recorded rather than left to dictionary
+      order.
+
+    What this yields on BodyParts3D is the coronary tree in its own shape —
+    ten diagonal branches under the anterior interventricular branch, under the
+    left coronary artery, under the left side of the heart — which is the case
+    the feature exists for. The three vessel stubs of `EXTRA_CONCEPTS` end up in
+    no group at all, correctly: the source does not consider them part of the
+    heart, and this module adds them anyway for a stated reason of its own.
+    """
+    rows = read_element_map(next(iter(cache_dir.rglob(ELEMENT_MAP))))
+    elements_of: dict[str, set[str]] = collections.defaultdict(set)
+    name_of: dict[str, str] = {}
+    for concept, name, element in rows:
+        elements_of[concept].add(element)
+        name_of[concept] = name
+
+    selection = {HEART_CONCEPT, *EXTRA_CONCEPTS}
+    heart = {element for concept in selection for element in elements_of[concept]}
+    candidates = {
+        concept: elements
+        for concept, elements in elements_of.items()
+        if concept not in selection and elements <= heart and 2 <= len(elements) < len(heart)
+    }
+
+    # Concepts that cover exactly the same elements are the same group said two
+    # ways — "cardiac vein" and "venous tree of heart" over one set of three.
+    # Keeping both would put an empty pass-through node in the list.
+    by_extent: dict[frozenset[str], list[str]] = collections.defaultdict(list)
+    for concept, elements in candidates.items():
+        by_extent[frozenset(elements)].append(concept)
+    candidates = {
+        min(concepts, key=lambda c: name_of[c]): set(extent)
+        for extent, concepts in by_extent.items()
+    }
+
+    def rank(concept: str) -> tuple[int, str]:
+        return len(candidates[concept]), name_of[concept]
+
+    parent: dict[str, str | None] = {}
+    for concept, elements in candidates.items():
+        supersets = [other for other in candidates if elements < candidates[other]]
+        parent[concept] = min(supersets, key=rank) if supersets else None
+
+    of_element: dict[str, str] = {}
+    for concept, elements in candidates.items():
+        for element in elements:
+            held = of_element.get(element)
+            if held is None or rank(concept) < rank(held):
+                of_element[element] = concept
+
+    # A concept can end up holding nothing: `inflow part of right ventricle`
+    # covers six elements and every one of them sits in a smaller concept, with
+    # no group between. Keeping it would put a row in the list that expands into
+    # nothing. Dropped iteratively, because dropping a node can empty its parent.
+    held = collections.Counter(of_element.values())
+    kept = set(candidates)
+    while True:
+        with_children = {parent[c] for c in kept if parent[c] in kept}
+        empty = {c for c in kept if not held[c] and c not in with_children}
+        if not empty:
+            break
+        kept -= empty
+
+    def nearest_kept(concept: str | None) -> str | None:
+        while concept is not None and concept not in kept:
+            concept = parent[concept]
+        return concept
+
+    groups = sorted(
+        ((name_of[c], name_of[p] if (p := nearest_kept(parent[c])) else None) for c in kept),
+        key=lambda pair: pair[0],
+    )
+    return groups, {
+        element: name_of[nearest_kept(concept)]
+        for element, concept in of_element.items()
+        if nearest_kept(concept) is not None
+    }

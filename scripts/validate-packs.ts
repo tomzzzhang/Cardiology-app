@@ -59,7 +59,10 @@ for (const found of packs) {
     }
   }
 
-  const meshNodes = pack.meshes.structures.map((structure) => structure.mesh_node);
+  // Groups carry no geometry, so they reference no glTF node and are skipped.
+  const meshNodes = pack.meshes.structures
+    .map((structure) => structure.mesh_node)
+    .filter((node): node is string => node !== null);
   const gltf = checkGltfReferences(join(found.dir, pack.meshes.gltf), meshNodes);
   failures.push(...gltf.failures.map((failure) => `${label}: ${failure}`));
   notes.push(...gltf.skipped.map((skip) => `${label}: ${skip}`));
@@ -108,7 +111,9 @@ for (const found of packs) {
     // R13: the volume and the mesh have to describe the same heart in the same
     // orientation. Every check above is satisfied by a permuted volume.
     const meshNodeOf = new Map(
-      pack.meshes.structures.map((structure) => [structure.id, structure.mesh_node]),
+      pack.meshes.structures
+        .filter((structure) => structure.mesh_node !== null)
+        .map((structure) => [structure.id, structure.mesh_node as string]),
     );
     const registration = checkVolumeRegistration(
       join(found.dir, pack.meshes.gltf),

@@ -377,9 +377,129 @@ def is_blood_pool(label: str, patterns: tuple[str, ...]) -> bool:
     return any(pattern.lower() in lowered for pattern in patterns)
 
 
+def blood_pool_decision(label: str, source: GeometrySource) -> tuple[bool, dict]:
+    """
+    The blood-pool flag AND the basis it was decided on, for one label.
+
+    Never a default. `pipeline/geometry.py` used to write `blood_pool: False`
+    for every structure it emitted, so no geometry-only pack had ever set the
+    flag and four solid chamber casts rendered as tissue — and nothing in the
+    pack could tell that apart from a pipeline that had looked and said no.
+    Returning the reasoning with the answer is what closes that.
+    """
+    matched = [
+        pattern for pattern in source.blood_pool_match
+        if pattern.lower() in label.lower()
+    ]
+    if matched:
+        return True, {
+            "basis": "label_match",
+            "evidence": (
+                f"the source's own label {label!r} contains "
+                + ", ".join(repr(pattern) for pattern in matched)
+                + ", declared for this source as marking a cast of the lumen"
+            ),
+        }
+    return False, {
+        "basis": "label_no_match",
+        "evidence": (
+            f"the source's own label {label!r} matches none of "
+            + (", ".join(repr(p) for p in source.blood_pool_match) or "(no cast patterns)")
+            + ". " + source.blood_pool_basis
+        ),
+    }
+
+
+def topology_block(measured: dict[str, int], slug: str, source: GeometrySource) -> dict:
+    """
+    One structure's measured topology, with its declaration where it needs one.
+
+    The pipeline REFUSES to write a pack whose surfaces are unclean and
+    undeclared, and equally one carrying a declaration for a surface that
+    measures clean. Both directions matter: the first ships a defect nobody
+    stated, and the second leaves an excuse lying around for a defect that has
+    gone, ready to wave through the next one.
+    """
+    block = {
+        "watertight": bool(measured["watertight"]),
+        "components": measured["components"],
+        "boundary_edges": measured["boundary_edges"],
+        "nonmanifold_edges": measured["nonmanifold_edges"],
+    }
+    clean = (
+        block["watertight"]
+        and block["components"] == 1
+        and block["boundary_edges"] == 0
+        and block["nonmanifold_edges"] == 0
+    )
+    declared = source.open_surfaces.get(slug)
+    if not clean and declared is None:
+        raise SystemExit(
+            f"{source.key}: {slug!r} is not manifold, closed and single-component "
+            f"(watertight {block['watertight']}, {block['components']} component(s), "
+            f"{block['boundary_edges']} boundary and {block['nonmanifold_edges']} non-manifold "
+            "edge(s)) and the source declares no reason. Declare it in "
+            "GeometrySource.open_surfaces, with what is actually wrong with it, or fix it."
+        )
+    if clean and declared is not None:
+        raise SystemExit(
+            f"{source.key}: {slug!r} declares a reason for being unclean and measures clean. "
+            "Remove the declaration: one that outlives its defect is how the next real one "
+            "gets waved through."
+        )
+    if declared is not None:
+        block["declared_reason"] = declared
+    return block
+
+
+def group_structures(
+    source: GeometrySource,
+    cache_dir: Path,
+    stems: list[str],
+    taken: set[str],
+) -> tuple[list[dict], dict[str, str]]:
+    """
+    The pack's group nodes, and which group each input file belongs to.
+
+    A group is a structure with no mesh: a name in the hierarchy over its
+    children. GROUPING COMES FROM THE PACK. This function asks the source for
+    its own tree and slugifies it; it knows no anatomy, names no chamber, and a
+    source with no `hierarchy` produces no groups at all and a flat list, which
+    is every source here but one.
+    """
+    if source.hierarchy is None:
+        return [], {}
+    groups, of_stem = source.hierarchy(cache_dir)
+
+    slug_of: dict[str, str] = {}
+    for name, _ in groups:
+        slug = slugify(name)
+        while slug in taken or slug in slug_of.values():
+            slug = f"{slug}-group"
+        slug_of[name] = slug
+
+    entries = [
+        {
+            "id": slug_of[name],
+            "mesh_node": None,
+            "display_label": name,
+            "parent": slug_of[parent] if parent else None,
+            "blood_pool": False,
+            "stylized": False,
+        }
+        for name, parent in groups
+    ]
+    parent_of_stem = {
+        stem: slug_of[name] for stem, name in of_stem.items()
+        if stem in set(stems) and name in slug_of
+    }
+    return entries, parent_of_stem
+
+
 def explore_pack(
     source: GeometrySource,
     structures: list[tuple[str, str, Surface]],
+    entries: list[dict],
     placement: Placement,
     frames: list[tuple[str, str]],
     measurements: dict[str, dict[str, int]],
@@ -474,17 +594,7 @@ def explore_pack(
         },
         "meshes": {
             "gltf": "assets/model.gltf",
-            "structures": [
-                {
-                    "id": slug,
-                    "mesh_node": slug,
-                    "display_label": label,
-                    "parent": None,
-                    "blood_pool": is_blood_pool(label, source.blood_pool_match),
-                    "stylized": False,
-                }
-                for slug, label, _ in structures
-            ],
+            "structures": entries,
             "canonical_pose": {
                 "position": [0.0, 0.0, 0.0],
                 "rotation_euler_xyz_deg": [0.0, 0.0, 0.0],
@@ -589,11 +699,13 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
     assets = out_dir / "assets"
     assets.mkdir(parents=True, exist_ok=True)
 
-    measurements = {path.stem: measure(surface) for path, surface in zip(paths, surfaces)}
     sizes: dict[str, int] = {}
     decimated = False
     frames: list[tuple[str, str]] = []
     structures: list[tuple[str, str, Surface]] = []
+    #: Structure slug -> the input file it came from, so the measurement of a
+    #: surface and the structure that carries it cannot drift apart.
+    stem_of: dict[str, str] = {}
 
     if source.animated:
         # One moving structure, and the frames are its geometry over time. Each
@@ -619,6 +731,7 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
             frames.append((asset, path.stem))
             if index == 0:
                 structures = [(slug, label, single[0])]
+                stem_of[slug] = path.stem
     else:
         # A directory of parts: one structure per input file, named from the
         # file. The source's own filenames are the only naming evidence there
@@ -637,9 +750,18 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
             seen.add(slug)
             surface.name = slug
             structures.append((slug, label, surface))
+            stem_of[slug] = path.stem
         asset, size = _write_frame(assets, "model", [s for _, _, s in structures])
         sizes["model"] = size
         assert asset == "assets/model.gltf"
+
+    # MEASURED AFTER DECIMATION, because that is the mesh the pack ships.
+    # Simplification is data-dependent and can split a thin structure into two
+    # shells or open one, so measuring the surface as read would report the
+    # topology of a mesh nobody ever sees. Nothing in the current registry
+    # decimates, which is exactly when to move a measurement: the numbers do
+    # not change and the guarantee does.
+    measurements = {path.stem: measure(surface) for path, surface in zip(paths, surfaces)}
 
     for pattern in source.blood_pool_match:
         if not any(is_blood_pool(label, (pattern,)) for _, label, _ in structures):
@@ -670,7 +792,38 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
                     "to all of them")
         )
 
-    pack = explore_pack(source, structures, placement, frames, measurements, correspondence)
+    # Groups first, because a parent read before its children reads as a tree.
+    slugs = {slug for slug, _, _ in structures}
+    groups, group_of_stem = group_structures(source, cache_dir, list(stem_of.values()), slugs)
+    entries: list[dict] = list(groups)
+    for slug, label, _ in structures:
+        stem = stem_of[slug]
+        pool, decision = blood_pool_decision(label, source)
+        entries.append({
+            "id": slug,
+            "mesh_node": slug,
+            "display_label": label,
+            "parent": group_of_stem.get(stem),
+            "blood_pool": pool,
+            "blood_pool_decision": decision,
+            "topology": topology_block(measurements[stem], slug, source),
+            "stylized": False,
+        })
+    stale = set(source.open_surfaces) - slugs
+    if stale:
+        raise SystemExit(
+            f"{source.key}: open_surfaces declares {sorted(stale)}, which this pack does not "
+            "contain. A declaration naming nothing is a declaration nobody is checking."
+        )
+    if groups:
+        notes.append(
+            f"{len(groups)} group(s) derived from the source's own concept map, over "
+            f"{len(group_of_stem)} of {len(structures)} structures"
+        )
+
+    pack = explore_pack(
+        source, structures, entries, placement, frames, measurements, correspondence,
+    )
     (out_dir / "pack.json").write_text(json.dumps(pack, indent=2) + "\n")
     sizes["pack_json"] = len((out_dir / "pack.json").read_bytes())
 

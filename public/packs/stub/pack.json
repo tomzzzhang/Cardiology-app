@@ -36,6 +36,10 @@
         "display_label": "Stub shell",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "Fixture, authored rather than derived. The outer box is declared tissue so this pack exercises both sides of the blood-pool rule with two structures."
+        },
         "stylized": true
       },
       {
@@ -44,6 +48,10 @@
         "display_label": "Stub core",
         "parent": "stub-shell",
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "Fixture, authored rather than derived. The inner box is declared lumen so the viewer's translucent, uncapped blood-pool path is pinned by the one pack whose contents this repository fixes."
+        },
         "stylized": true
       }
     ],

@@ -38,6 +38,10 @@
         "display_label": "Left ventricular myocardium",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 1. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -46,6 +50,10 @@
         "display_label": "Right ventricular myocardium",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 2. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -54,6 +62,10 @@
         "display_label": "Right atrial myocardium",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 4. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -62,6 +74,10 @@
         "display_label": "Left atrial myocardium",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 3. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -70,6 +86,10 @@
         "display_label": "Aortic wall",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 5. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -78,6 +98,10 @@
         "display_label": "Pulmonary artery wall",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 6. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -86,6 +110,10 @@
         "display_label": "Tricuspid valve ring",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 8. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -94,6 +122,10 @@
         "display_label": "Aortic valve ring",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 9. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -102,6 +134,10 @@
         "display_label": "Mitral valve ring",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 7. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -110,6 +146,10 @@
         "display_label": "Pulmonary valve ring",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 10. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -118,6 +158,10 @@
         "display_label": "Tagged region 18 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 18. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -126,6 +170,10 @@
         "display_label": "Tagged region 16 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 16. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -134,6 +182,10 @@
         "display_label": "Tagged region 11 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 11. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -142,6 +194,10 @@
         "display_label": "Tagged region 17 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 17. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -150,6 +206,10 @@
         "display_label": "Tagged region 23 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 23. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -158,6 +218,10 @@
         "display_label": "Tagged region 24 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 24. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -166,6 +230,10 @@
         "display_label": "Tagged region 21 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 21. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -174,6 +242,10 @@
         "display_label": "Tagged region 19 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 19. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -182,6 +254,10 @@
         "display_label": "Tagged region 22 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 22. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -190,6 +266,10 @@
         "display_label": "Tagged region 15 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 15. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -198,6 +278,10 @@
         "display_label": "Tagged region 20 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 20. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -206,6 +290,10 @@
         "display_label": "Tagged region 14 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 14. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -214,6 +302,10 @@
         "display_label": "Tagged region 12 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 12. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       },
       {
@@ -222,6 +314,10 @@
         "display_label": "Tagged region 13 (unnamed pending vetting)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "source_tag",
+          "evidence": "the source's own per-element tissue tag 13. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+        },
         "stylized": false
       }
     ],
@@ -598,19 +694,19 @@
       "indicator_clock": "3:00",
       "probe": {
         "origin": [
-          0.10541580868494355,
+          0.1054158086849426,
           -79.87412567548702,
           12.86589048118901
         ],
         "beam_axis": [
-          -0.038920567236751344,
-          0.977145367392417,
-          -0.20897875592870138
+          -0.03892056723675134,
+          0.9771453673924172,
+          -0.2089787559287014
         ],
         "lateral_axis": [
           0.9992134710353209,
-          0.03964763107826945,
-          -0.0007103882230686532
+          0.039647631078269435,
+          -0.0007103882230686514
         ],
         "fan": {
           "angle_deg": 80.0,
@@ -628,11 +724,11 @@
         "axis": {
           "direction": [
             0.9992134710353209,
-            0.03964763107826945,
-            -0.0007103882230686532
+            0.039647631078269435,
+            -0.0007103882230686514
           ],
           "origin": [
-            0.10541580868494355,
+            0.1054158086849426,
             -79.87412567548702,
             12.86589048118901
           ]
@@ -759,9 +855,9 @@
           -0.761452730556768
         ],
         "lateral_axis": [
-          0.0651765069350061,
+          0.06517650693500611,
           0.9978737510044801,
-          -2.775557561562892e-17
+          -1.387778780781446e-17
         ],
         "fan": {
           "angle_deg": 70.0,
@@ -778,9 +874,9 @@
         "mode": "tilt",
         "axis": {
           "direction": [
-            -0.0651765069350061,
+            -0.06517650693500611,
             -0.9978737510044801,
-            2.775557561562892e-17
+            1.387778780781446e-17
           ],
           "origin": [
             -33.36292056688886,
@@ -901,18 +997,18 @@
       "indicator_clock": "2:00",
       "probe": {
         "origin": [
-          -0.3546993509519441,
+          -0.354699350951943,
           22.20965766588477,
           67.9155387878418
         ],
         "beam_axis": [
-          2.100093521801519e-34,
+          -2.100093521801519e-34,
           -2.0494357866503254e-17,
           -1.0
         ],
         "lateral_axis": [
           1.0,
-          1.0247178933251627e-17,
+          -1.0247178933251627e-17,
           0.0
         ],
         "fan": {
@@ -930,7 +1026,7 @@
         "mode": "translate",
         "axis": {
           "direction": [
-            1.0247178933251627e-17,
+            -1.0247178933251627e-17,
             -1.0,
             2.0494357866503254e-17
           ]

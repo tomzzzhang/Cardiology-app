@@ -38,6 +38,16 @@
         "display_label": "Epicardium",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Epicardium' matches none of 'cavity'. The KIT model is a cavity-and-shell decomposition and names its casts: the four chamber surfaces are blood-pool casts, and the epicardium, the great-vessel trunks and the pericardium are tissue or an interface. The `cavity` pattern is matched against the source's own labels and must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -46,6 +56,16 @@
         "display_label": "Left ventricular cavity",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'Left ventricular cavity' contains 'cavity', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -54,6 +74,16 @@
         "display_label": "Right ventricular cavity",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'Right ventricular cavity' contains 'cavity', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -62,6 +92,16 @@
         "display_label": "Left atrial cavity",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'Left atrial cavity' contains 'cavity', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -70,6 +110,16 @@
         "display_label": "Right atrial cavity",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the source's own label 'Right atrial cavity' contains 'cavity', declared for this source as marking a cast of the lumen"
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       },
       {
@@ -78,6 +128,17 @@
         "display_label": "Great-vessel trunks, outer surface",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Great-vessel trunks, outer surface' matches none of 'cavity'. The KIT model is a cavity-and-shell decomposition and names its casts: the four chamber surfaces are blood-pool casts, and the epicardium, the great-vessel trunks and the pericardium are tissue or an interface. The `cavity` pattern is matched against the source's own labels and must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 8,
+          "boundary_edges": 96,
+          "nonmanifold_edges": 0,
+          "declared_reason": "`outerTrunks.stl` is a 164-triangle sketch of the great-vessel stumps, open at both ends and in 8 pieces with 96 boundary edges. It is the one unclean surface in an otherwise exemplary source, whose other six are watertight, manifold and single-component. Closing it would fabricate vessel ends the source never cut."
+        },
         "stylized": false
       },
       {
@@ -86,6 +147,16 @@
         "display_label": "Pericardium, outer surface",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Pericardium, outer surface' matches none of 'cavity'. The KIT model is a cavity-and-shell decomposition and names its casts: the four chamber surfaces are blood-pool casts, and the epicardium, the great-vessel trunks and the pericardium are tissue or an interface. The `cavity` pattern is matched against the source's own labels and must match something or the ingest fails."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       }
     ],

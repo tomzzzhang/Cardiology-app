@@ -28,7 +28,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from bodyparts3d import select_heart
+from bodyparts3d import hierarchy as bodyparts3d_hierarchy, select_heart
 
 
 @dataclass(frozen=True)
@@ -312,6 +312,35 @@ class GeometrySource:
     #: not a no-op: it means the source's labels have moved.
     blood_pool_match: tuple[str, ...] = ()
 
+    #: How this source's NON-matching labels were determined to be tissue.
+    #:
+    #: Required, and required even where `blood_pool_match` is empty, because a
+    #: source with no patterns is the case that went wrong: `geometry.py` wrote
+    #: `blood_pool: False` for every structure it emitted and no geometry-only
+    #: pack had ever set the flag, so BodyParts3D's four solid chamber casts
+    #: rendered as tissue. A boolean cannot tell a decision from a default. One
+    #: sentence here is what turns "false" into "determined to be tissue, thus".
+    blood_pool_basis: str = ""
+
+    #: Structures that are NOT manifold, closed and single-component, and why.
+    #:
+    #: Keyed by the pack's structure slug. A surface that is not clean caps
+    #: wrongly at the free cutter and can read as several objects, so the pack
+    #: has to say so — and the ingest FAILS on a surface that is unclean and
+    #: undeclared, and equally on a declaration for a surface that measures
+    #: clean, because a declaration that outlives its defect is how a real
+    #: problem later gets waved through.
+    open_surfaces: dict[str, str] = field(default_factory=dict)
+
+    #: Source-specific hierarchy, where the source carries one.
+    #:
+    #: Given the unpacked cache directory, returns `(groups, of_element)`: the
+    #: group names as `(name, parent name)` and the input file stem -> group
+    #: name mapping. Grouping comes from the PACK and never from the engine, so
+    #: whatever tree a source declares is the tree the viewer renders; a source
+    #: with none produces a flat list, which is most of them.
+    hierarchy: Callable[[Path], tuple[list[tuple[str, str | None]], dict[str, str]]] | None = None
+
     #: Everything known to be wrong with this source, recorded in the pack
     #: rather than worked around. A model that looks bad should say so.
     known_problems: tuple[str, ...] = ()
@@ -380,6 +409,20 @@ CARDIAC_MOTION = GeometrySource(
         "(Creative Commons Attribution 4.0 International), read from the deposit's own "
         "record on 2026-08-19"
     ),
+    blood_pool_basis=(
+        "One undivided epicardial surface per frame, with no labels of any kind. There is no "
+        "lumen cast in this source to mark: a surface with no inside modelled cannot be a cast "
+        "of one, and the pack's single structure is tissue by construction."
+    ),
+    open_surfaces={
+        "surface": (
+            "Frame 0 is 11 connected components joined across 10 non-manifold edges and is not "
+            "closed. This is genuine debris in an undocumented segmentation rather than a "
+            "preprocessing artefact: welding changed neither the component count nor the edges. "
+            "It is why this pack cuts badly, and it is the price of the only moving asset here "
+            "whose licence is confirmed."
+        ),
+    },
     known_problems=(
         "NO VERTEX CORRESPONDENCE between frames: vertex counts differ (2268 in biV-032, "
         "1712 in biV-302), so frame N+1 is not a displacement of frame N. This is why the "
@@ -481,6 +524,31 @@ BODYPARTS3D = GeometrySource(
     blood_pool_match=(
         "cavity of", "ascending aorta", "pulmonary trunk", "superior vena cava",
     ),
+    blood_pool_basis=(
+        "BodyParts3D models lumen as SOLID CASTS and names them so: `cavity of left ventricle` "
+        "is 97.9 mL of geometry, the ascending aorta 21.5 mL and the pulmonary trunk 19.2 mL, "
+        "all with Euler characteristic 2 — closed solids rather than tubes. Everything else in "
+        "the 86 is a wall, a leaflet, a papillary muscle or a coronary branch, and is tissue. "
+        "The four patterns above are matched against the source's own labels and each must "
+        "match something or the ingest fails."
+    ),
+    hierarchy=bodyparts3d_hierarchy,
+    open_surfaces={
+        "anterolateral-head-of-lateral-papillary-muscle-of-left-ventricle-myocardial-zone-12": (
+            "Two closed shells rather than one. The source models this element as two "
+            "disconnected watertight pieces; welding merges seams and cannot join surfaces "
+            "that never touched, and joining them would be inventing a bridge."
+        ),
+        "right-anterior-cusp-of-pulmonary-valve": (
+            "Two closed shells rather than one, in the source. Nothing is broken about either "
+            "shell — both are watertight and manifold — but the cusp is not one connected "
+            "piece and isolating it shows two."
+        ),
+        "septal-leaflet-of-tricuspid-valve": (
+            "Two closed shells rather than one, in the source. See the note on the pulmonary "
+            "cusp: the pieces are individually clean and are not joined."
+        ),
+    },
     known_problems=(
         "NO ECHO. The parts are separate surfaces with no labelled volume behind them, so this "
         "is an Explore-only pack like every other geometry-only source.",
@@ -513,9 +581,12 @@ BODYPARTS3D = GeometrySource(
         "ambiguous and are cusp-sized: 15-24 mm across, 316 to 1,370 triangles.",
         "The OBJs duplicate a vertex per adjacent face along their seams. Unwelded they look "
         "open — 1,826 boundary edges and 124 connected components on the right atrial wall — "
-        "and they are not: welded, all 86 parts are watertight, single-component and "
-        "manifold. The ingest welds exactly coincident vertices, which moves no surface. This "
-        "is recorded because a reader measuring the raw OBJs will see the larger numbers.",
+        "and they are not: welded, all 86 parts are watertight and manifold, and 83 of the 86 "
+        "are a single connected component. The ingest welds exactly coincident vertices, which "
+        "moves no surface. This is recorded because a reader measuring the raw OBJs will see "
+        "the larger numbers. THREE parts really are two closed shells each and are declared "
+        "individually in `open_surfaces`; an earlier reading of this pack said all 86 were "
+        "single-component, and the per-structure measurement is what corrected it.",
         "NO GREAT VESSELS BEYOND THREE STUBS. BodyParts3D does not count the aorta or the "
         "pulmonary arteries as part of the heart, and their elements run 96-335 mm down the "
         "body. Only the ascending aorta, the pulmonary trunk and the superior vena cava are "
@@ -618,6 +689,20 @@ KIT_FOUR_CHAMBER = GeometrySource(
         "published build — the same position already taken on the Visible Heart Labs pack."
     ),
     blood_pool_match=("cavity",),
+    blood_pool_basis=(
+        "The KIT model is a cavity-and-shell decomposition and names its casts: the four "
+        "chamber surfaces are blood-pool casts, and the epicardium, the great-vessel trunks "
+        "and the pericardium are tissue or an interface. The `cavity` pattern is matched "
+        "against the source's own labels and must match something or the ingest fails."
+    ),
+    open_surfaces={
+        "great-vessel-trunks-outer-surface": (
+            "`outerTrunks.stl` is a 164-triangle sketch of the great-vessel stumps, open at "
+            "both ends and in 8 pieces with 96 boundary edges. It is the one unclean surface "
+            "in an otherwise exemplary source, whose other six are watertight, manifold and "
+            "single-component. Closing it would fabricate vessel ends the source never cut."
+        ),
+    },
     known_problems=(
         "PERMANENTLY UNPUBLISHABLE. Non-commercial, confirmed. Kept for looking at, nothing "
         "more.",
@@ -749,6 +834,12 @@ STRAUS_US = GeometrySource(
         "works, so the state is \"unconfirmed\" and the pack cannot be published. Resolving it "
         "means writing to the depositors."
     ),
+    blood_pool_basis=(
+        "A simulated-ultrasound myocardial volume exported as its boundary: one undivided "
+        "tissue surface per frame, with the endocardium tucked inside the epicardium as part "
+        "of the same shell. No cavity is modelled as an object, so there is no cast here to "
+        "mark, and the pack's single structure is tissue."
+    ),
     known_problems=(
         "SYNTHETIC, NOT A PATIENT. This is the mesh half of a simulation pipeline: an "
         "electromechanical model driving a physical ultrasound simulator. It is a plausible "
@@ -842,6 +933,34 @@ COBIVECO_TOF = GeometrySource(
         'the Zenodo record 10577973 declares license id "cc-by-4.0" (Creative Commons '
         "Attribution 4.0 International), read from the deposit's own record on 2026-08-19."
     ),
+    blood_pool_basis=(
+        "Endocardial and epicardial SHELLS with the annuli as rings — the surfaces bound the "
+        "cavity rather than filling it, so nothing in this source is a solid cast of the "
+        "lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has "
+        "to be told which one it is looking at rather than guessing from a shape."
+    ),
+    open_surfaces={
+        slug: (
+            "OPEN BY CONSTRUCTION, not by damage. " + why + " This is the honest exception the "
+            "watertightness rule exists to accommodate: the surfaces are single-component and "
+            "manifold, and closing them would invent a base plane or a leaflet the imaging "
+            "atlas never contained."
+        )
+        for slug, why in {
+            "epicardium-excluding-the-base":
+                "The ventricles are truncated at the base, so the epicardium ends in a rim.",
+            "epicardial-base":
+                "The basal patch is the truncation itself, bounded by that same rim.",
+            "left-ventricular-endocardium":
+                "Truncated at the base with the cavity open upward.",
+            "right-ventricular-endocardium":
+                "Truncated at the base with the cavity open upward.",
+            "mitral-valve-annulus": "An annulus is a ring; a ring has two boundaries.",
+            "tricuspid-valve-annulus": "An annulus is a ring; a ring has two boundaries.",
+            "aortic-valve-annulus": "An annulus is a ring; a ring has two boundaries.",
+            "pulmonary-valve-annulus": "An annulus is a ring; a ring has two boundaries.",
+        }.items()
+    },
     known_problems=(
         "ONE PATIENT OF TEN. The deposit carries ten patient-specific TOF meshes and this "
         "pack carries one, because ten packs of about 4 MB each is 40 MB of committed assets "

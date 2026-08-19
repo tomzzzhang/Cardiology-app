@@ -38,6 +38,10 @@
         "display_label": "EG Myocardium_1",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the creator's own glTF group name 'EG Myocardium_1' contains neither \"blood\" nor \"pool\"; this source separates its cast from its tissue by naming the cast, so an unnamed group is tissue"
+        },
         "stylized": false
       },
       {
@@ -46,6 +50,10 @@
         "display_label": "Eg Blood Pool_0",
         "parent": null,
         "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "label_match",
+          "evidence": "the creator's own glTF group name 'Eg Blood Pool_0' contains \"blood\" or \"pool\", so this group is a cast of the lumen"
+        },
         "stylized": false
       }
     ],

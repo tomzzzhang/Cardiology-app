@@ -61,6 +61,20 @@ heart can plausibly span, and records the reasoning; centres on the model bounds
 unnamed structure where the source has no labels and one per file where it is a directory of
 parts; and writes one glTF per frame where the source moves.
 
+It **measures every surface it ships** — after welding, after decimation — and records the
+topology per structure. A surface that is not watertight, manifold and single-component must be
+DECLARED in `GeometrySource.open_surfaces` with what is actually wrong with it, and the ingest
+refuses to write the pack otherwise; a declaration for a surface that measures clean is refused
+too, because one that outlives its defect is how the next real one gets waved through. It also
+records **how** it decided `blood_pool` for every structure rather than leaving `false` to mean
+both "tissue" and "never looked" — see `GeometrySource.blood_pool_basis`.
+
+Where a source carries a hierarchy of its own it is read out and emitted as GROUP structures with no
+mesh — `GeometrySource.hierarchy`. BodyParts3D is the one source that has one:
+`partof_element_parts.txt` is a concept-to-element table, and `pipeline/bodyparts3d.py` derives the
+tree from it by set containment, naming no anatomy of its own. Every other source produces a flat
+list, and the viewer renders whatever tree it is given.
+
 It **welds** every surface it reads: unreferenced vertices are dropped and exactly coincident ones
 merged. Both are lossless — a vertex no face references renders nothing, and two vertices at the
 same float32 coordinates are one point written twice — and skipping it was a real defect. Several

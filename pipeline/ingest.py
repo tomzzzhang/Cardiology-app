@@ -118,6 +118,12 @@ class Structure:
     label: str
     surface: Surface
     blood_pool: bool
+    #: HOW `blood_pool` was decided, and on what evidence. Never a default: a
+    #: pack whose structures merely carry `false` cannot be told apart from a
+    #: pipeline that never looked, and that is exactly what shipped on the
+    #: geometry path (`docs/observations.md` entries 31 and 32).
+    blood_pool_basis: str
+    blood_pool_evidence: str
     stylized: bool
     #: Relative acoustic authoring values consumed by the echo renderer.
     echogenicity: float
@@ -217,6 +223,12 @@ def split_rodero(source: Source, mesh: TetMesh, valves: ValveIdentification) -> 
             label=label,
             surface=surface,
             blood_pool=False,   # every tag in this source is tissue, not lumen
+            blood_pool_basis="source_tag",
+            blood_pool_evidence=(
+                f"the source's own per-element tissue tag {int(tag)}. This mesh is volumetric "
+                "tagged MYOCARDIUM throughout and models no lumen as an object: its chambers "
+                "are the space the tissue encloses, so no tag in it is a cast."
+            ),
             stylized=stylized,
             echogenicity=0.55 if int(tag) <= 4 else 0.7,
             attenuation=0.45 if int(tag) <= 4 else 0.6,
@@ -265,6 +277,14 @@ def split_gltf_groups(source: Source, path: Path) -> list[Structure]:
             label=name.strip(),
             surface=merged,
             blood_pool=is_pool,
+            blood_pool_basis="label_match" if is_pool else "label_no_match",
+            blood_pool_evidence=(
+                f"the creator's own glTF group name {name.strip()!r} "
+                + ("contains \"blood\" or \"pool\", so this group is a cast of the lumen"
+                   if is_pool else
+                   "contains neither \"blood\" nor \"pool\"; this source separates its cast "
+                   "from its tissue by naming the cast, so an unnamed group is tissue")
+            ),
             stylized=False,
             echogenicity=0.05 if is_pool else 0.6,
             attenuation=0.05 if is_pool else 0.5,
@@ -288,6 +308,13 @@ def split_single_stl(source: Source, path: Path) -> list[Structure]:
         label="Myocardial tissue (undivided)",
         surface=surface,
         blood_pool=False,
+        blood_pool_basis="authored",
+        blood_pool_evidence=(
+            "a single undivided STL with no groups, no tags and no labels. There is nothing "
+            "in this source to match against, and it models no cavity as an object — the "
+            "interior endocardial surfaces are part of the same tissue body — so the one "
+            "structure is tissue, decided here rather than left to fall through as false."
+        ),
         stylized=False,
         echogenicity=0.6,
         attenuation=0.5,
@@ -914,6 +941,10 @@ def build_pack(
                     "display_label": s.label,
                     "parent": None,
                     "blood_pool": s.blood_pool,
+                    "blood_pool_decision": {
+                        "basis": s.blood_pool_basis,
+                        "evidence": s.blood_pool_evidence,
+                    },
                     "stylized": s.stylized,
                 }
                 for s in structures

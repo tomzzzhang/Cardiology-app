@@ -38,6 +38,16 @@
         "display_label": "Biventricular myocardium (source carries no per-chamber labels)",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Biventricular myocardium (source carries no per-chamber labels)' matches none of (no cast patterns). A simulated-ultrasound myocardial volume exported as its boundary: one undivided tissue surface per frame, with the endocardium tucked inside the epicardium as part of the same shell. No cavity is modelled as an object, so there is no cast here to mark, and the pack's single structure is tissue."
+        },
+        "topology": {
+          "watertight": true,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0
+        },
         "stylized": false
       }
     ],

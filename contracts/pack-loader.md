@@ -58,6 +58,35 @@ real frame of the same heart. Playing keyframes is Explore's cine control; the e
 not read this block, and wiring motion into the echo is a separate task with a performance design in
 front of it (`src/echo/shaders/scanPass.ts`).
 
+## What v0.1 added later, on 2026-08-19, and why
+
+Three more fields, each because a defect the owner found by looking had no field to be caught in.
+
+**`Structure.blood_pool_decision` — blood pool is DECIDED, never defaulted.** `blood_pool` has
+existed since v0, and `pipeline/geometry.py` wrote `false` for every structure it emitted, so no
+geometry-only pack had ever set it and BodyParts3D's four solid chamber casts rendered as tissue
+(`docs/observations.md` entries 31 and 32). A boolean cannot be told apart from a default. The
+decision block records the **basis** — `label_match`, `label_no_match`, `source_tag`, `authored` —
+and the evidence, the flag has to agree with the basis, and a structure that carries no decision is
+refused. Groups carry none, having no surface.
+
+**`Structure.topology` — watertightness is DECLARED, never discovered by a learner.** The measured
+topology of the surface **as shipped**: after welding, after decimation, of the mesh actually in the
+glTF. A surface that is not watertight, manifold and single-component must carry
+`declared_reason`, and one that is clean must NOT — a declaration that outlives its defect is how
+the next real one gets waved through. It is required on every structure of a pack with no
+`echo_volume`, because geometry is the only thing such a pack has to say. CobivecoX is the honest
+exception: truncated ventricles and annuli that really are rings, all eight declared.
+
+**`Structure.mesh_node` is nullable — a GROUP.** A structure with no mesh is a name in the pack's own
+hierarchy over its children: "left coronary artery" above its ten branches. It exists because a
+source's hierarchy is a hierarchy of CONCEPTS whose meshes are the leaves — nothing in BodyParts3D
+is the artery itself. A group must have children, and carries no colour, cap, topology or blood-pool
+state. **Grouping comes from the pack and never from the engine**: a taxonomy hardcoded in viewer
+code is one draft of anatomy frozen into the build, the same reason `docs/view_canon.md`'s families
+are not enumerated there. A pack that declares no hierarchy renders as a flat list, which is every
+pack here but two.
+
 ## Rules
 
 1. **Schema v0.1 is PROVISIONAL.** Code against it. Do not freeze,

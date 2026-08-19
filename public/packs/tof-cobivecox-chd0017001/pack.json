@@ -38,6 +38,17 @@
         "display_label": "Epicardium, excluding the base",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Epicardium, excluding the base' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 312,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. The ventricles are truncated at the base, so the epicardium ends in a rim. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       },
       {
@@ -46,6 +57,17 @@
         "display_label": "Epicardial base",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Epicardial base' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 340,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. The basal patch is the truncation itself, bounded by that same rim. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       },
       {
@@ -54,6 +76,17 @@
         "display_label": "Left ventricular endocardium",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Left ventricular endocardium' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 159,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. Truncated at the base with the cavity open upward. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       },
       {
@@ -62,6 +95,17 @@
         "display_label": "Right ventricular endocardium",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Right ventricular endocardium' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 169,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. Truncated at the base with the cavity open upward. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       },
       {
@@ -70,6 +114,17 @@
         "display_label": "Mitral valve annulus",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Mitral valve annulus' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 206,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. An annulus is a ring; a ring has two boundaries. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       },
       {
@@ -78,6 +133,17 @@
         "display_label": "Tricuspid valve annulus",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Tricuspid valve annulus' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 219,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. An annulus is a ring; a ring has two boundaries. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       },
       {
@@ -86,6 +152,17 @@
         "display_label": "Aortic valve annulus",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Aortic valve annulus' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 162,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. An annulus is a ring; a ring has two boundaries. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       },
       {
@@ -94,6 +171,17 @@
         "display_label": "Pulmonary valve annulus",
         "parent": null,
         "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "label_no_match",
+          "evidence": "the source's own label 'Pulmonary valve annulus' matches none of (no cast patterns). Endocardial and epicardial SHELLS with the annuli as rings \u2014 the surfaces bound the cavity rather than filling it, so nothing in this source is a solid cast of the lumen. That is the opposite of BodyParts3D, and it is why the same viewer rule has to be told which one it is looking at rather than guessing from a shape."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 143,
+          "nonmanifold_edges": 0,
+          "declared_reason": "OPEN BY CONSTRUCTION, not by damage. An annulus is a ring; a ring has two boundaries. This is the honest exception the watertightness rule exists to accommodate: the surfaces are single-component and manifold, and closing them would invent a base plane or a leaflet the imaging atlas never contained."
+        },
         "stylized": false
       }
     ],

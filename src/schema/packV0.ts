@@ -234,15 +234,93 @@ export function orientationProblem(orientation: OrientationConvention): string |
   return null;
 }
 
+/**
+ * HOW a structure's `blood_pool` flag was decided — never how it defaulted.
+ *
+ * `blood_pool` has existed since schema v0 and `pipeline/geometry.py` hardcoded
+ * it to `false` for every structure it emitted, so no geometry-only pack ever
+ * set it and BodyParts3D's four solid chamber casts rendered as tissue
+ * (`docs/observations.md` entries 31 and 32). A boolean cannot tell a decision
+ * apart from a default. This block can: every structure records the basis on
+ * which the pipeline determined it, and a pack that cannot say is rejected.
+ */
+export const BloodPoolDecision = z.strictObject({
+  /**
+   * `label_match` — the source's own label matched a lumen-cast pattern the
+   * source registry declares, so the structure IS a cast.
+   * `label_no_match` — the source declares its lumen-cast patterns and this
+   * label matched none of them, so the structure is tissue.
+   * `source_tag` — decided from the source's own per-element tags or groups
+   * rather than from a label string.
+   * `authored` — set by hand in the source registry, because the source names
+   * its casts in a way no rule can read.
+   */
+  basis: z.enum(['label_match', 'label_no_match', 'source_tag', 'authored']),
+  /** What was actually matched, tagged or read. Never empty. */
+  evidence: z.string().min(1),
+});
+export type BloodPoolDecision = z.infer<typeof BloodPoolDecision>;
+
+/**
+ * The measured topology of one surface AS SHIPPED — after welding, after
+ * decimation, of the mesh actually in the glTF.
+ *
+ * A surface that is watertight, manifold and one connected component caps
+ * correctly at the free cutter and reads as one object. Anything else is a
+ * limitation of the source, and this pack format's rule is that a limitation is
+ * DECLARED rather than discovered by a learner: `declared_reason` is required
+ * exactly when the surface is not clean, and forbidden when it is, so a stale
+ * declaration cannot outlive the defect it excused.
+ */
+export const SurfaceTopology = z.strictObject({
+  watertight: z.boolean(),
+  components: z.number().int().positive(),
+  boundary_edges: z.number().int().nonnegative(),
+  nonmanifold_edges: z.number().int().nonnegative(),
+  /** Why this surface is not clean. Required iff it is not. */
+  declared_reason: z.string().min(1).optional(),
+});
+export type SurfaceTopology = z.infer<typeof SurfaceTopology>;
+
+/** Whether a measured surface is manifold, closed and in one piece. */
+export function topologyIsClean(topology: SurfaceTopology): boolean {
+  return (
+    topology.watertight &&
+    topology.components === 1 &&
+    topology.boundary_edges === 0 &&
+    topology.nonmanifold_edges === 0
+  );
+}
+
 export const Structure = z.strictObject({
   id: Slug,
-  /** Name of the sub-mesh node inside the referenced glTF. */
-  mesh_node: z.string().min(1),
+  /**
+   * Name of the sub-mesh node inside the referenced glTF, or `null` for a GROUP.
+   *
+   * A group is a name in the pack's own hierarchy with no geometry of its own —
+   * "left coronary artery" over its branches. It exists because a source's
+   * hierarchy is a hierarchy of CONCEPTS and the meshes are its leaves: in
+   * BodyParts3D every branch of the coronary tree is a separate element and
+   * nothing in the data is the artery itself. A group carries no colour, no
+   * cap, no topology and no blood-pool state; hiding it hides its children.
+   */
+  mesh_node: z.string().min(1).nullable(),
   display_label: z.string().min(1),
-  /** Structure hierarchy; `null` marks a root. Validated for existence and cycles. */
+  /**
+   * Structure hierarchy; `null` marks a root. Validated for existence and cycles.
+   *
+   * It comes from the PACK and never from the engine. Grouping 86 structures is
+   * a taxonomy, and a taxonomy hardcoded in viewer code is a draft frozen into
+   * the build — the same reason `docs/view_canon.md`'s view families are not
+   * enumerated there. A pack that declares no hierarchy renders as a flat list.
+   */
   parent: Slug.nullable(),
   /** Drives blood-pool colouring in viewer-core. */
   blood_pool: z.boolean(),
+  /** How `blood_pool` was decided. Absent on a group, which has no geometry. */
+  blood_pool_decision: BloodPoolDecision.optional(),
+  /** Measured topology of the shipped surface. Absent on a group. */
+  topology: SurfaceTopology.optional(),
   /**
    * Honest labelling for substrate completion (build_plan, "Anatomical
    * substrate risk"): shelled myocardium, sculpted leaflets, and interface-only
@@ -1000,6 +1078,7 @@ export const Pack = PackShape.superRefine((pack, ctx) => {
 
   const meshNodes = new Set<string>();
   pack.meshes.structures.forEach((structure, index) => {
+    if (structure.mesh_node === null) return;
     if (meshNodes.has(structure.mesh_node)) {
       ctx.addIssue({
         code: 'custom',
@@ -1008,6 +1087,117 @@ export const Pack = PackShape.superRefine((pack, ctx) => {
       });
     }
     meshNodes.add(structure.mesh_node);
+  });
+
+  // A GROUP is a name over its children. One with no children is a dead branch
+  // in the list — an entry a learner can expand into nothing.
+  const hasChildren = new Set(
+    pack.meshes.structures.map((s) => s.parent).filter((id): id is string => id !== null),
+  );
+  pack.meshes.structures.forEach((structure, index) => {
+    const path = ['meshes', 'structures', index] as const;
+    if (structure.mesh_node === null) {
+      if (!hasChildren.has(structure.id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [...path, 'mesh_node'],
+          message:
+            `structure "${structure.id}" has no mesh and no children; a group is a name over ` +
+            'its children and one with neither is an entry that expands into nothing',
+        });
+      }
+      if (structure.blood_pool || structure.blood_pool_decision || structure.topology) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [...path, 'mesh_node'],
+          message:
+            `group "${structure.id}" carries geometry state; a group has no surface, so it ` +
+            'has no blood-pool state and no topology to measure',
+        });
+      }
+      return;
+    }
+
+    /*
+     * BLOOD POOL IS DECIDED, NEVER DEFAULTED.
+     *
+     * A pack whose structures merely carry `blood_pool: false` cannot be told
+     * apart from a pack whose pipeline never looked. That is exactly what
+     * shipped, and a chamber cast reading as tissue is what produced
+     * observations 31 and 32. So the determination is required, and the flag
+     * has to agree with the basis that produced it — a `label_match` that
+     * yielded `false` means the two have drifted apart.
+     */
+    const decision = structure.blood_pool_decision;
+    if (!decision) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'blood_pool_decision'],
+        message:
+          `structure "${structure.id}" does not say how blood_pool was decided; an undecided ` +
+          'structure is a cavity cast waiting to render as tissue',
+      });
+    } else if (decision.basis === 'label_match' && !structure.blood_pool) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'blood_pool'],
+        message: `"${structure.id}" matched a lumen-cast pattern but is not marked blood pool`,
+      });
+    } else if (decision.basis === 'label_no_match' && structure.blood_pool) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'blood_pool'],
+        message: `"${structure.id}" matched no lumen-cast pattern but is marked blood pool`,
+      });
+    }
+
+    /*
+     * WATERTIGHTNESS IS DECLARED, NEVER DISCOVERED BY A LEARNER.
+     *
+     * `declared_reason` is required exactly when the surface is not clean and
+     * forbidden when it is, so a declaration cannot outlive the defect it
+     * excused. CobivecoX is the honest case: its ventricles really are
+     * truncated at the base and its annuli really are rings.
+     */
+    const topology = structure.topology;
+    /*
+     * A pack with no echo volume makes no clinical claim at all: the only thing
+     * it offers is its geometry, so it has to have measured it. That is what
+     * makes this a gate rather than an optional field — omitting the block
+     * would otherwise be a free pass out of the rule below.
+     */
+    if (!topology && pack.echo_volume === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'topology'],
+        message:
+          `geometry-only pack: "${structure.id}" does not report its measured topology, and ` +
+          'geometry is the only thing this pack has to say',
+      });
+    }
+    if (topology) {
+      const clean = topologyIsClean(topology);
+      if (!clean && topology.declared_reason === undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [...path, 'topology', 'declared_reason'],
+          message:
+            `"${structure.id}" is not manifold, closed and single-component ` +
+            `(watertight ${topology.watertight}, ${topology.components} component(s), ` +
+            `${topology.boundary_edges} boundary and ${topology.nonmanifold_edges} ` +
+            'non-manifold edge(s)) and the pack does not say why',
+        });
+      }
+      if (clean && topology.declared_reason !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [...path, 'topology', 'declared_reason'],
+          message:
+            `"${structure.id}" declares a reason for being unclean and measures clean; the ` +
+            'declaration has outlived the defect it excused',
+        });
+      }
+    }
   });
 
   const labelIds = new Set<number>();

@@ -172,11 +172,26 @@ describe('reserved slots', () => {
 /* -------------------------------------------------------------------------- */
 
 describe('EXPLORE-ONLY packs (v0.1: echo_volume is optional)', () => {
-  /** The stub with its echo removed — meshes and nothing to image. */
+  /**
+   * The stub with its echo removed — meshes and nothing to image.
+   *
+   * A pack with no echo volume makes no clinical claim at all, so the only
+   * thing it has to offer is its geometry and it has to have measured it. The
+   * measurements here are the fixture's own; the real packs are measured by the
+   * ingest and checked against this same rule in `packAssets.test.ts`.
+   */
   function exploreOnlyStub(): any {
     const pack = stubPack() as any;
     delete pack.echo_volume;
     pack.views = [];
+    for (const structure of pack.meshes.structures) {
+      structure.topology = {
+        watertight: true,
+        components: 1,
+        boundary_edges: 0,
+        nonmanifold_edges: 0,
+      };
+    }
     return pack;
   }
 
@@ -303,5 +318,168 @@ describe('keyframed geometry (v0.1: motion, whole meshes only)', () => {
       withKeyframes(pack);
       pack.meshes.keyframes.frames = [pack.meshes.keyframes.frames[0]];
     })).toContain('meshes.keyframes.frames');
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* the gates that last round's defects had no check for                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * BLOOD POOL IS DECIDED, NEVER DEFAULTED.
+ *
+ * `pipeline/geometry.py` hardcoded `blood_pool: False` for every structure it
+ * emitted, so BodyParts3D's four solid chamber casts — 98 mL and 117 mL of
+ * geometry — rendered as tissue and the cut read as a filled cavity
+ * (`docs/observations.md` entries 31 and 32). Every gate was green through it,
+ * because a boolean cannot tell a decision apart from a default.
+ */
+describe('blood pool is decided, never defaulted', () => {
+  it('rejects a structure that does not say how it was decided', () => {
+    expect(issuePathsAfter((pack) => {
+      delete pack.meshes.structures[1].blood_pool_decision;
+    })).toContain('meshes.structures.1.blood_pool_decision');
+  });
+
+  it('rejects a determination with no evidence behind it', () => {
+    expect(issuePathsAfter((pack) => {
+      pack.meshes.structures[1].blood_pool_decision.evidence = '';
+    })).toContain('meshes.structures.1.blood_pool_decision.evidence');
+  });
+
+  it('rejects a basis the schema does not know', () => {
+    expect(issuePathsAfter((pack) => {
+      pack.meshes.structures[1].blood_pool_decision.basis = 'probably';
+    })).toContain('meshes.structures.1.blood_pool_decision.basis');
+  });
+
+  it('rejects a label match that did not set the flag', () => {
+    expect(issuePathsAfter((pack) => {
+      pack.meshes.structures[1].blood_pool_decision.basis = 'label_match';
+      pack.meshes.structures[1].blood_pool = false;
+    })).toContain('meshes.structures.1.blood_pool');
+  });
+
+  it('rejects a flag set where nothing matched', () => {
+    expect(issuePathsAfter((pack) => {
+      pack.meshes.structures[0].blood_pool_decision.basis = 'label_no_match';
+      pack.meshes.structures[0].blood_pool = true;
+    })).toContain('meshes.structures.0.blood_pool');
+  });
+});
+
+/**
+ * WATERTIGHTNESS IS DECLARED, NEVER DISCOVERED BY A LEARNER.
+ *
+ * A surface that is not manifold, closed and single-component caps wrongly at
+ * the free cutter and can read as several objects. CobivecoX is the honest
+ * exception — truncated ventricles, annuli that really are rings — and the
+ * point of the rule is that its exception is written down and a silent one is
+ * not possible.
+ */
+describe('watertightness is declared or absent', () => {
+  /** The stub with its echo removed, so the geometry-only rule applies. */
+  function geometryOnly(topology: unknown): any {
+    const pack = stubPack() as any;
+    delete pack.echo_volume;
+    pack.views = [];
+    for (const structure of pack.meshes.structures) structure.topology = topology;
+    return pack;
+  }
+
+  const clean = { watertight: true, components: 1, boundary_edges: 0, nonmanifold_edges: 0 };
+
+  it('accepts a clean surface with no declaration', () => {
+    expect(validatePack(geometryOnly({ ...clean })).ok).toBe(true);
+  });
+
+  it('rejects an open surface that the pack does not explain', () => {
+    const result = validatePack(geometryOnly({ ...clean, watertight: false, boundary_edges: 312 }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.map((issue) => issue.path))
+        .toContain('meshes.structures.0.topology.declared_reason');
+    }
+  });
+
+  it('rejects a multi-component surface that the pack does not explain', () => {
+    const result = validatePack(geometryOnly({ ...clean, components: 11 }));
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects a non-manifold surface that the pack does not explain', () => {
+    const result = validatePack(geometryOnly({ ...clean, nonmanifold_edges: 10 }));
+    expect(result.ok).toBe(false);
+  });
+
+  it('accepts an open surface the pack declares', () => {
+    const result = validatePack(geometryOnly({
+      ...clean,
+      watertight: false,
+      boundary_edges: 312,
+      declared_reason: 'truncated at the base; closing it would invent a base plane',
+    }));
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a declaration that has outlived its defect', () => {
+    const result = validatePack(geometryOnly({ ...clean, declared_reason: 'was open once' }));
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects a geometry-only pack that never measured itself', () => {
+    const pack = stubPack() as any;
+    delete pack.echo_volume;
+    pack.views = [];
+    const result = validatePack(pack);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.map((issue) => issue.path)).toContain('meshes.structures.0.topology');
+    }
+  });
+});
+
+/**
+ * GROUPS COME FROM THE PACK.
+ *
+ * A group is a name in the source's own hierarchy with no geometry of its own —
+ * "left coronary artery" over its ten branches. The engine renders whatever
+ * tree a pack declares and enumerates no anatomy of its own.
+ */
+describe('structure groups', () => {
+  /** Wrap both stub structures under one group with no mesh. */
+  function grouped(pack: any): void {
+    pack.meshes.structures.unshift({
+      id: 'stub-assembly',
+      mesh_node: null,
+      display_label: 'Stub assembly',
+      parent: null,
+      blood_pool: false,
+      stylized: false,
+    });
+    pack.meshes.structures[1].parent = 'stub-assembly';
+  }
+
+  it('accepts a group with no mesh over its children', () => {
+    const pack = stubPack() as any;
+    grouped(pack);
+    const result = validatePack(pack);
+    if (!result.ok) {
+      throw new Error(result.issues.map((i) => `${i.path}: ${i.message}`).join('\n'));
+    }
+  });
+
+  it('rejects a group that expands into nothing', () => {
+    expect(issuePathsAfter((pack) => {
+      grouped(pack);
+      pack.meshes.structures[1].parent = null;
+    })).toContain('meshes.structures.0.mesh_node');
+  });
+
+  it('rejects a group carrying geometry state it cannot have', () => {
+    expect(issuePathsAfter((pack) => {
+      grouped(pack);
+      pack.meshes.structures[0].blood_pool = true;
+    })).toContain('meshes.structures.0.mesh_node');
   });
 });
