@@ -14,7 +14,7 @@
  * The view rail, the pinned provenance strip and the full `?a=`/`?v=`/`?s=`
  * deep-link scheme are `contracts/app-shell.md`, wave 2.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PackViewer, { type ViewerMode } from './viewer/PackViewer.tsx';
 import EchoPanel from './echo/EchoPanel.tsx';
 import type { ProbePose } from './schema/packV0.ts';
@@ -28,7 +28,22 @@ import {
   isPublishedPack,
   type CatalogueEntry,
 } from './packs/published.ts';
-import { SCHEMA_VERSION, isExploreOnly } from './schema/packV0.ts';
+import { SCHEMA_VERSION, isExploreOnly, type Pack } from './schema/packV0.ts';
+import {
+  SHOW_ALL,
+  buildTree,
+  filterTree,
+  hide,
+  isEverythingVisible,
+  isolate,
+  show,
+  showAll,
+  structureCount,
+  visibleIds,
+  walk,
+  type StructureNode,
+  type Visibility,
+} from './viewer/visibility.ts';
 
 /**
  * Which pack the shell shows. `?pack=` exists so the visual suite can hold the
@@ -184,6 +199,16 @@ export default function App() {
     window.history.replaceState(null, '', url);
   }, [packId]);
 
+  /*
+   * Per-structure visibility, owned here because the structure list and the
+   * model are two views of ONE state — a row that says "hidden" while the mesh
+   * is on screen is the same class of bug as the wedge and the echo disagreeing
+   * about the probe.
+   */
+  const [visibility, setVisibility] = useState<Visibility>(SHOW_ALL);
+  // A pack change resets it: the ids in an isolate belong to the old pack.
+  useEffect(() => { setVisibility(SHOW_ALL); }, [packId]);
+
   return (
     <main className="shell">
       <header className="shell__header">
@@ -229,6 +254,18 @@ export default function App() {
         const offTrack = freePose !== null && view !== undefined
           && hasLeftTrack(freePose, view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe);
         const echoVolume = pack.echo_volume;
+        /*
+         * The complement, computed once: viewer-core takes what is HIDDEN and
+         * the list ticks what is VISIBLE, and deriving both from one function
+         * is what stops them drifting apart.
+         */
+        const roots = buildTree(pack);
+        const visible = visibleIds(roots, visibility);
+        const hiddenIds = new Set(
+          pack.meshes.structures
+            .filter((structure) => structure.mesh_node !== null && !visible.has(structure.id))
+            .map((structure) => structure.id),
+        );
         return (
         <>
         {/*
@@ -286,8 +323,17 @@ export default function App() {
             mode={effectiveMode}
             frameUrls={frameUrls}
             freePose={freePose}
+            hidden={hiddenIds}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
+            /*
+             * A click on the model isolates what is under it; empty space shows
+             * everything. Settled design decision 13 — the list is the index
+             * and the model is the surface.
+             */
+            onStructureClick={(id) => setVisibility(
+              id === null ? showAll() : isolate(visibility, id),
+            )}
           />
           {/*
             * Explore has no echo panel, and therefore no probe, no probe
@@ -307,6 +353,8 @@ export default function App() {
             />
           )}
         </div>
+
+        <StructurePanel pack={pack} visibility={visibility} onChange={setVisibility} />
         </>
         );
       })()}
@@ -335,7 +383,10 @@ export default function App() {
             </div>
             <div>
               <dt>Structures</dt>
-              <dd>{packState.loaded.pack.meshes.structures.length}</dd>
+              {/* Drawable structures. A group is a name over its children and
+                  counting it here would say the pack has more anatomy in it
+                  than it has. */}
+              <dd>{structureCount(packState.loaded.pack)}</dd>
             </div>
             <div>
               <dt>Views</dt>
@@ -365,6 +416,127 @@ export default function App() {
         patient, and is not for diagnostic use.
       </footer>
     </main>
+  );
+}
+
+/**
+ * The structure list, and ISOLATE as the gesture that makes 86 of them usable.
+ *
+ * Hiding converges only when there is one thing in the way — the KIT
+ * pericardium is exactly that case. Showing one of 86 by hiding 85 never
+ * converges at all, so "show me only this" is the primary action here and on
+ * the model, and hide is the secondary one for the lid.
+ *
+ * The tree is the PACK's. This component reads `parent` and renders whatever it
+ * finds, including nothing: a pack that declares no hierarchy gets a flat list,
+ * which is every pack here but two. There is no anatomical vocabulary in this
+ * file.
+ */
+function StructurePanel({ pack, visibility, onChange }: {
+  pack: Pack;
+  visibility: Visibility;
+  onChange: (next: Visibility) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const roots = useMemo(() => buildTree(pack), [pack]);
+  const shown = useMemo(() => filterTree(roots, query), [roots, query]);
+  const visible = useMemo(() => visibleIds(roots, visibility), [roots, visibility]);
+  const total = useMemo(
+    () => walk(roots).filter((node) => !node.isGroup).length,
+    [roots],
+  );
+  const matched = useMemo(
+    () => walk(shown).filter((node) => !node.isGroup).length,
+    [shown],
+  );
+
+  const isolatedLabel = visibility.isolated === null
+    ? null
+    : walk(roots).find((node) => node.id === visibility.isolated)?.label ?? null;
+
+  const row = (node: StructureNode) => {
+    const drawable = walk([node]).filter((child) => !child.isGroup);
+    const onScreen = drawable.filter((child) => visible.has(child.id)).length;
+    const isHidden = onScreen === 0;
+    return (
+      <li key={node.id} style={{ paddingInlineStart: `${node.depth * 0.9}rem` }}>
+        <div className="structures__row" data-hidden={isHidden ? 'yes' : 'no'}>
+          <button
+            type="button"
+            className={
+              visibility.isolated === node.id
+                ? 'structures__name structures__name--on'
+                : 'structures__name'
+            }
+            onClick={() => onChange(isolate(visibility, node.id))}
+            title={
+              visibility.isolated === node.id
+                ? 'Showing only this — click again for the whole model'
+                : 'Show only this'
+            }
+            data-testid={`structure-isolate-${node.id}`}
+          >
+            {node.label}
+            {node.isGroup && <span className="structures__count"> · {node.count}</span>}
+            {node.blood_pool && <span className="structures__tag">lumen</span>}
+            {!node.identified && <span className="structures__tag">unidentified</span>}
+          </button>
+          <button
+            type="button"
+            className="structures__eye"
+            aria-pressed={isHidden}
+            onClick={() => onChange(isHidden ? show(visibility, node.id) : hide(visibility, node.id))}
+            title={isHidden ? 'Show' : 'Hide'}
+            data-testid={`structure-hide-${node.id}`}
+          >
+            {isHidden ? 'Show' : 'Hide'}
+          </button>
+        </div>
+        {node.children.length > 0 && <ul>{node.children.map(row)}</ul>}
+      </li>
+    );
+  };
+
+  return (
+    <section className="panel structures" data-testid="structure-panel">
+      <div className="structures__head">
+        <h2>Structures</h2>
+        <span className="structures__total" data-testid="structure-count">
+          {query.trim() === '' ? `${total}` : `${matched} of ${total}`}
+        </span>
+        <button
+          type="button"
+          className="structures__all"
+          disabled={isEverythingVisible(visibility)}
+          onClick={() => onChange(showAll())}
+          data-testid="structure-show-all"
+        >
+          Show all
+        </button>
+      </div>
+
+      {/* The filter earns its place at 86 rows and costs nothing at two. */}
+      <label className="structures__filter">
+        <span className="visually-hidden">Filter structures</span>
+        <input
+          type="search"
+          value={query}
+          placeholder="Filter…"
+          onChange={(event) => setQuery(event.target.value)}
+          data-testid="structure-filter"
+        />
+      </label>
+
+      {isolatedLabel !== null && (
+        <p className="structures__isolated" data-testid="structure-isolated">
+          Showing only <strong>{isolatedLabel}</strong>. Click it again, or empty space on the
+          model, for the whole heart.
+        </p>
+      )}
+
+      <ul className="structures__tree">{shown.map(row)}</ul>
+      {shown.length === 0 && <p className="structures__empty">Nothing matches that.</p>}
+    </section>
   );
 }
 

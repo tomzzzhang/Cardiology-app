@@ -127,10 +127,37 @@ interface PackViewerProps {
    * anything is worse than no affordance.
    */
   onFreePoseChange?: (pose: ProbePose | null) => void;
+  /**
+   * A click on the model, with the structure under it — or null for empty space.
+   *
+   * DIRECT MANIPULATION, settled design decision 13. The list is the index and
+   * the model is the surface: a learner who can see a coronary branch should be
+   * able to say "only that" by pointing at it, not by finding its row among 86.
+   * A sidebar-only control would be the one part of this app that acted at a
+   * distance. A click without a drag was unused, so it is taken for this.
+   *
+   * Without the callback nothing is hit-tested and nothing is pre-highlighted,
+   * for the same reason the probe arrow is not drawn without `onScrubChange`.
+   */
+  onStructureClick?: (id: string | null) => void;
 }
 
 /** Radians of plane rotation per pixel of handle drag. */
 const HANDLE_RADIANS_PER_PIXEL = 0.006;
+
+/**
+ * How far the pointer may travel and still count as a CLICK rather than a drag.
+ *
+ * Four pixels: far enough that a hand resting on a mouse does not turn every
+ * click into an orbit, and near enough that a deliberate orbit never isolates
+ * something by accident. A touch screen needs the slack more than a mouse does
+ * and gets the same number, because a finger that moves more than four pixels
+ * was turning the heart.
+ */
+const CLICK_SLOP_PX = 4;
+
+/** How much the structure under the pointer lifts, to say a click would take it. */
+const HIGHLIGHT_EMISSIVE = 0x2a2a2a;
 
 /**
  * How close the transducer may come to tissue, and how far it may retreat, in
@@ -173,9 +200,16 @@ interface ViewerApi {
 
 export default function PackViewer({
   pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
-  freePose = null, onScrubChange, onFreePoseChange,
+  freePose = null, onScrubChange, onFreePoseChange, onStructureClick,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  /*
+   * Held in a ref rather than in the scene effect's dependencies: rebuilding
+   * the whole scene because the shell re-created a closure would drop the
+   * camera, the cut plane and every loaded keyframe on the floor.
+   */
+  const onStructureClickRef = useRef(onStructureClick);
+  onStructureClickRef.current = onStructureClick;
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const apiRef = useRef<ViewerApi | null>(null);
 
@@ -634,6 +668,54 @@ export default function PackViewer({
     };
 
     /*
+     * WHICH STRUCTURE IS UNDER THE POINTER.
+     *
+     * Only visible meshes are tested, so a click cannot isolate something the
+     * learner cannot see — which is the whole point of the gesture. The
+     * raycaster does not honour clipping planes, so with the cutter on it can
+     * return a structure whose near half has been clipped away; that is a known
+     * limitation rather than a design, and it is recorded in the observations
+     * rather than papered over with a second depth pass.
+     */
+    const raycaster = new THREE.Raycaster();
+    const structureAt = (x: number, y: number): string | null => {
+      const width = host.clientWidth;
+      const height = host.clientHeight;
+      if (width === 0 || height === 0) return null;
+      raycaster.setFromCamera(
+        new THREE.Vector2((x / width) * 2 - 1, -(y / height) * 2 + 1),
+        camera,
+      );
+      const targets = [...byStructure.values()].filter((object) => object.visible);
+      const hit = raycaster.intersectObjects(targets, false)[0];
+      return hit ? hit.object.name : null;
+    };
+
+    /**
+     * Pre-highlight what a click would isolate.
+     *
+     * The same rule the cut handles follow, and from the same reasoning: a fine
+     * pointer gets the affordance revealed on approach, and a coarse pointer
+     * gets nothing here at all, because a touch screen has no hover and the
+     * first contact a finger makes is already the press.
+     */
+    let highlighted: string | null = null;
+    const setHighlight = (id: string | null): void => {
+      if (id === highlighted) return;
+      for (const candidate of [highlighted, id]) {
+        if (candidate === null) continue;
+        const object = byStructure.get(candidate);
+        if (!(object instanceof THREE.Mesh)) continue;
+        const material = object.material as THREE.MeshStandardMaterial;
+        material.emissive?.setHex(candidate === id ? HIGHLIGHT_EMISSIVE : 0x000000);
+      }
+      highlighted = id;
+      if (id === null) delete host.dataset.hoveredStructure;
+      else host.dataset.hoveredStructure = id;
+      schedule();
+    };
+
+    /*
      * Where the affordances are, published on the host element.
      *
      * A test seam, and a deliberate one: "the handles are present and hittable
@@ -773,6 +855,9 @@ export default function PackViewer({
     let dragging = false;
     let lastX = 0;
     let lastY = 0;
+    /** Where the press started, so a pointerup can tell a click from a drag. */
+    let pressX = 0;
+    let pressY = 0;
 
     /**
      * The state a gesture freezes at pointerdown.
@@ -816,6 +901,8 @@ export default function PackViewer({
 
     const onPointerDown = (event: PointerEvent) => {
       dragging = true;
+      pressX = event.clientX;
+      pressY = event.clientY;
       // The learner's hand outranks an animation in flight.
       glide = null;
       delete host.dataset.cameraGlide;
@@ -870,8 +957,16 @@ export default function PackViewer({
       if (!dragging || !gesture) {
         const local = localPoint(event);
         applyReveal(local.x, local.y);
+        // A handle under the pointer outranks the anatomy behind it: what a
+        // press does there is tip the plane, so that is what to pre-announce.
+        if (onStructureClickRef.current && !coarse) {
+          setHighlight(hitTest(local.x, local.y) ? null : structureAt(local.x, local.y));
+        }
         return;
       }
+      // A drag has begun; the click it might have been is off, and so is the
+      // hint that it was coming.
+      setHighlight(null);
 
       if (gesture.kind === 'handle') {
         /*
@@ -918,17 +1013,32 @@ export default function PackViewer({
     };
 
     const onPointerUp = (event: PointerEvent) => {
+      const wasCamera = dragging && gesture?.kind === 'camera';
       dragging = false;
       gesture = null;
       if (renderer.domElement.hasPointerCapture(event.pointerId)) {
         renderer.domElement.releasePointerCapture(event.pointerId);
       }
       const local = localPoint(event);
+      /*
+       * A CLICK WITHOUT A DRAG ISOLATES what is under it, and empty space shows
+       * everything again.
+       *
+       * Only a gesture that would have orbited the camera can become a click: a
+       * press that grabbed a cut handle or the depth arrow was aiming at that
+       * object, and a short one is a nudge that did nothing rather than a click
+       * on the anatomy behind it.
+       */
+      const travel = Math.hypot(event.clientX - pressX, event.clientY - pressY);
+      if (wasCamera && travel <= CLICK_SLOP_PX && onStructureClickRef.current) {
+        onStructureClickRef.current(structureAt(local.x, local.y));
+      }
       applyReveal(local.x, local.y);
     };
 
     const onPointerLeave = () => {
       if (dragging) return;
+      setHighlight(null);
       applyReveal(null, null);
     };
 
@@ -1260,6 +1370,17 @@ export default function PackViewer({
           if (ghost) ghost.visible = !next.has(id);
           index += 1;
         }
+        /*
+         * A test seam, for the same reason the cut handles have one: "isolating
+         * a structure actually takes the others off the model" is a gate, and
+         * checking it by reading pixels out of a WebGL canvas measures the
+         * readback as much as the scene. This is the scene's own answer.
+         */
+        const drawn = [...byStructure.keys()].filter((id) => !next.has(id));
+        host.dataset.drawnStructures = String(drawn.length);
+        host.dataset.structureCount = String(byStructure.size);
+        // A highlight on something no longer drawn would outlive its object.
+        if (highlighted !== null && next.has(highlighted)) setHighlight(null);
         schedule();
       },
       setCut: (next) => {

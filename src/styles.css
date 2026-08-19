@@ -812,3 +812,138 @@ body {
   background: #3a1f1f;
   color: #e0a0a0;
 }
+
+/* --- the structure list ---------------------------------------------------
+   Below the stage rather than beside it: at 86 rows this wants vertical room,
+   and the two-column stage sizes its viewport from the COLUMN width, so a third
+   column would change the model's size on every pack. */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.structures__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.structures__head h2 {
+  margin: 0;
+}
+
+.structures__total {
+  color: #9aa3ad;
+  font-variant-numeric: tabular-nums;
+}
+
+.structures__all {
+  margin-inline-start: auto;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #3a4450;
+  border-radius: 0.35rem;
+  background: #222a33;
+  color: #e6ebf0;
+  cursor: pointer;
+}
+
+.structures__all:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.structures__filter input {
+  width: 100%;
+  margin: 0.7rem 0 0.3rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #3a4450;
+  border-radius: 0.35rem;
+  background: #161b21;
+  color: #e6ebf0;
+}
+
+.structures__isolated {
+  margin: 0.4rem 0 0;
+  color: #9aa3ad;
+  font-size: 0.9rem;
+}
+
+.structures__tree,
+.structures__tree ul {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Capped and scrollable: 86 rows unrolled would push everything else off the
+   page, and the model is what the list is FOR. */
+.structures__tree {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.structures__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.3rem;
+}
+
+.structures__row[data-hidden='yes'] .structures__name {
+  opacity: 0.4;
+}
+
+.structures__name {
+  flex: 1;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.structures__name:hover,
+.structures__name:focus-visible {
+  background: #222a33;
+}
+
+.structures__name--on {
+  border-color: #5b7fa8;
+  background: #1d2a38;
+}
+
+.structures__count {
+  color: #9aa3ad;
+  font-variant-numeric: tabular-nums;
+}
+
+.structures__tag {
+  margin-inline-start: 0.4rem;
+  padding: 0 0.35rem;
+  border-radius: 0.6rem;
+  background: #2a3340;
+  color: #9aa3ad;
+  font-size: 0.72rem;
+}
+
+.structures__eye {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #3a4450;
+  border-radius: 0.3rem;
+  background: #1b2129;
+  color: #cfd6dd;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.structures__empty {
+  color: #9aa3ad;
+}

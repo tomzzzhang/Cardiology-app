@@ -153,6 +153,37 @@ The unlock is paid for by labelling rather than by hiding: see `contracts/README
 withdrawn and what is restored. Nothing about it can write to `views[]`, and locking again returns
 the probe to `frameAt(probe, sweep, t)` exactly.
 
+## Per-structure visibility, and ISOLATE as the gesture
+
+*(Owner decision, 2026-08-19. `docs/observations.md` entries 24, 25 and 31 are the reasoning: two
+of the best packs on the shelf could not be looked at at all.)*
+
+**Isolate is primary; hide is the exception.** Hiding converges only when there is one thing in the
+way — the KIT pericardium is exactly that case, and one action takes the lid off. Showing one of 86
+structures by hiding 85 never converges, so "show me only this" is the gesture, and the number of
+actions it takes does not depend on how many structures the pack has. `Show all` is the escape from
+any state, and isolating what is already isolated is the same escape at the point of the mistake.
+
+**Grouping comes from the PACK.** viewer-core reads `Structure.parent` and renders whatever tree it
+finds — including none, which is a flat list and is what every pack here but two declares. There is
+no anatomical vocabulary anywhere in `src/viewer/visibility.ts`: enumerating chambers or vessel
+families in engine code would freeze one draft of anatomy into the build, the same reason
+`docs/view_canon.md`'s view families are not enumerated there. A `parent` may name a GROUP — a
+structure with no mesh — and hiding or isolating a group applies to its whole subtree.
+
+**A click on the model isolates what is under it; a click on empty space shows everything.**
+Direct manipulation, settled design decision 13: the list is the index and the model is the surface,
+and a sidebar-only control would be the one part of this app that acted at a distance. A click is a
+press that travelled four pixels or less and would otherwise have orbited — a press that grabbed a
+cut handle was aiming at the handle. Hover PRE-HIGHLIGHTS what a click would take, under the same
+rule the cut handles follow and with the same exception: a coarse pointer gets no pre-highlight,
+because a touch screen has no hover.
+
+Two limits, both known rather than designed. The raycast does not honour clipping planes, so with
+the cutter on a click can reach a structure whose near half has been clipped away. And the structure
+list is one flat scrolling tree with no collapse, which at BodyParts3D's depth of six is a lot of
+indentation.
+
 ## The structure palette has THREE states
 
 *(Owner decision, 2026-08-19. `docs/observations.md` entry 24 is the reasoning.)*
@@ -252,4 +283,4 @@ Orbit/zoom around `C` with no polar clamp; positional drag dispatch with every m
 infinite clipping with solid caps and an optional ghost of the removed half; two named cutter modes;
 depth control synchronized across slider, wheel and readout; pointer-class handling in one place.
 Works against the stub pack — viewer-core does not depend on the wave 1 model-pipeline slice.
-Outstanding: pinch-zoom and two-finger pan, per-structure show/hide, labels, measurement.
+Outstanding: pinch-zoom and two-finger pan, labels, measurement.

@@ -995,6 +995,102 @@ test('no console errors on load', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+/*
+ * PER-STRUCTURE VISIBILITY, driven end to end.
+ *
+ * `data-drawn-structures` is the SCENE's own count of what is on the model,
+ * published for exactly this: reading pixels back out of a WebGL canvas
+ * measures the readback as much as it measures the scene, and "isolating a
+ * structure takes the others off the model" is a claim about the scene.
+ */
+test('isolate shows one structure, and empty space brings the rest back', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  const total = Number(await viewer.getAttribute('data-structure-count'));
+  expect(total).toBeGreaterThan(1);
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+
+  // From the list.
+  await page.getByTestId('structure-isolate-lv-myocardium').click();
+  await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
+  await expect(page.getByTestId('structure-isolated')).toContainText('Left ventricular myocardium');
+
+  // Isolating the same thing again is the way back — one click, from anywhere.
+  await page.getByTestId('structure-isolate-lv-myocardium').click();
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+  await expect(page.getByTestId('structure-isolated')).toHaveCount(0);
+});
+
+test('a click on the model isolates, and a click on empty space shows all', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const canvas = page.locator('.anatomy canvas');
+  const box = (await canvas.boundingBox())!;
+
+  // The middle of the panel is the middle of the model: the camera frames it.
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
+
+  // A corner is empty space, and empty space is the escape.
+  await page.mouse.click(box.x + 8, box.y + 8);
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+});
+
+test('a drag orbits and does not isolate anything', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const box = (await page.locator('.anatomy canvas').boundingBox())!;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 60, cy + 20, { steps: 6 });
+  await page.mouse.up();
+
+  // A drag is a drag. The click gesture is only what a drag was NOT.
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+  await expect(page.getByTestId('structure-isolated')).toHaveCount(0);
+});
+
+test('hide takes one structure off, and show all is the escape', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  const total = Number(await viewer.getAttribute('data-structure-count'));
+
+  await page.getByTestId('structure-hide-lv-myocardium').click();
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total - 1));
+
+  await page.getByTestId('structure-show-all').click();
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+});
+
+test('the structure filter narrows the list without touching the model', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  const total = Number(await viewer.getAttribute('data-structure-count'));
+
+  await page.getByTestId('structure-filter').fill('mitral');
+  await expect(page.getByTestId('structure-count')).toContainText(`of ${total}`);
+  const rows = await page.locator('.structures__row').count();
+  expect(rows).toBeGreaterThan(0);
+  expect(rows).toBeLessThan(total);
+  // Filtering is a view of the list. Nothing left the model.
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+});
+
+/*
+ * KEYBOARD REACHABLE. Hospital desktops are a first-class target, and a control
+ * that needs a mouse is a control some of them do not have.
+ */
+test('the structure list is operable from the keyboard', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  await page.getByTestId('structure-filter').focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await expect(viewer).not.toHaveAttribute(
+    'data-drawn-structures',
+    String(await viewer.getAttribute('data-structure-count')),
+  );
+});
+
 test('app shell screenshot', async ({ page }, testInfo) => {
   const baseline = testInfo.snapshotPath('app-shell.png');
   const seeding = !['none', 'missing'].includes(testInfo.config.updateSnapshots);
