@@ -947,3 +947,53 @@ body {
 .structures__empty {
   color: #9aa3ad;
 }
+
+
+/* --- the pack droplist ----------------------------------------------------
+   One row collapsed, whatever the catalogue holds. The chips it replaces took
+   about a third of the viewport at nine packs, and the structure list needs
+   that space (docs/observations.md entry 28). */
+
+.picker__control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.picker__label {
+  color: #9aa3ad;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.picker__control select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #3a4450;
+  border-radius: 0.35rem;
+  background: #1b2129;
+  color: #e6ebf0;
+  font: inherit;
+}
+
+.picker__single {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.picker__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+}
+
+.picker__summary {
+  color: #9aa3ad;
+  font-size: 0.88rem;
+}

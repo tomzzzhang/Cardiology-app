@@ -937,36 +937,53 @@ test('the picker offers exactly what the build ships', async ({ page }) => {
    * only ever sees the production artefact.
    */
   const offered = cataloguedPacks(true);
+  const picker = page.getByTestId('pack-picker');
+  await expect(picker).toBeVisible();
 
   if (offered.length < 2) {
     /*
-     * One real pack ships today, so there is nothing to pick and the picker
-     * does not render at all. Asserted rather than skipped: a picker offering a
-     * single choice is a control that cannot do anything, and this flips to the
-     * branch below the moment a second pack is published.
+     * One real pack ships today, so there is nothing to pick, and the control
+     * degrades to a LABEL rather than to an empty droplist or to nothing at
+     * all: a learner still has to be able to see which model they are looking
+     * at. Asserted rather than skipped, and it flips to the branch below the
+     * moment a second pack is published.
      */
-    await expect(page.getByTestId('pack-picker')).toHaveCount(0);
+    await expect(picker).toHaveAttribute('data-picker', 'single');
+    await expect(page.getByTestId('pack-select')).toHaveCount(0);
+    await expect(page.getByTestId('pack-only')).toHaveText(offered[0].displayName);
   } else {
-    await expect(page.getByTestId('pack-picker')).toBeVisible();
+    await expect(picker).toHaveAttribute('data-picker', 'list');
+    const select = page.getByTestId('pack-select');
+    await expect(select).toBeVisible();
+    // COLLAPSED HEIGHT IS ONE ROW, whatever the catalogue holds. That is the
+    // whole reason this stopped being a wall of chips.
+    expect((await select.boundingBox())!.height).toBeLessThan(64);
     for (const entry of offered) {
-      await expect(page.getByTestId(`pack-chip-${entry.id}`)).toHaveCount(1);
+      await expect(select.locator(`option[value="${entry.id}"]`)).toHaveCount(1);
     }
-    // Every chip states its licence state. A chip with no licence state is the
-    // failure check:provenance exists to prevent, shown to a learner.
-    const picker = page.getByTestId('pack-picker');
-    expect(await picker.locator('.picker__tag').count()).toBe(
-      await picker.locator('.picker__chip').count(),
-    );
-    // Nothing on the deployed site is unpublished, so no chip may say it is.
+    expect(await select.locator('option').count()).toBe(offered.length);
+    // Nothing on the deployed site is unpublished, so nothing may say it is.
     await expect(picker.locator('.picker__tag--unpublished')).toHaveCount(0);
   }
 
-  // Whatever the picker renders, these hold: no unpublished pack is offered,
-  // and no fixture is either.
-  for (const packId of Object.keys(UNPUBLISHED_PACKS)) {
-    await expect(page.getByTestId(`pack-chip-${packId}`)).toHaveCount(0);
+  // The licence state of whatever is showing is stated, always. A pack with no
+  // licence state is the failure check:provenance exists to prevent, shown to a
+  // learner.
+  await expect(picker.locator('.picker__tag')).not.toHaveCount(0);
+
+  /*
+   * THE FIXTURE IS NEVER OFFERED. It is published on purpose — the visual suite
+   * runs against the production artefact and needs one pack whose contents this
+   * repository fixes — and it is two nested boxes, which is not something to
+   * offer a learner beside a heart. Nor is anything the build pruned, which
+   * would be an option that 404s.
+   */
+  for (const packId of [...Object.keys(UNPUBLISHED_PACKS), 'stub']) {
+    await expect(page.getByTestId(`pack-option-${packId}`)).toHaveCount(0);
+    await expect(page.locator(`[data-testid=pack-picker] option[value="${packId}"]`))
+      .toHaveCount(0);
+    await expect(page.getByTestId(`pack-only`).filter({ hasText: packId })).toHaveCount(0);
   }
-  await expect(page.getByTestId('pack-chip-stub')).toHaveCount(0);
 
   /*
    * Hidden from the picker is NOT removed from the build. The stub stays
@@ -978,6 +995,8 @@ test('the picker offers exactly what the build ships', async ({ page }) => {
   await expect(page.getByTestId('pack-status')).toContainText('Synthetic stub pack', {
     timeout: 15_000,
   });
+  // And the picker still does not offer it, even while it is what is on screen.
+  await expect(page.getByTestId('pack-option-stub')).toHaveCount(0);
 });
 
 test('no console errors on load', async ({ page }) => {
@@ -1004,6 +1023,11 @@ test('no console errors on load', async ({ page }) => {
  * structure takes the others off the model" is a claim about the scene.
  */
 test('isolate shows one structure, and empty space brings the rest back', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
   expect(total).toBeGreaterThan(1);
@@ -1021,14 +1045,36 @@ test('isolate shows one structure, and empty space brings the rest back', async 
 });
 
 test('a click on the model isolates, and a click on empty space shows all', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
   const canvas = page.locator('.anatomy canvas');
   const box = (await canvas.boundingBox())!;
 
-  // The middle of the panel is the middle of the model: the camera frames it.
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-  await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
+  /*
+   * Find a point that is actually ON the model rather than assuming the middle
+   * of the panel is: the camera frames the model's BOUNDS, and this substrate
+   * has a gap between the great vessels exactly there.
+   *
+   * Probed by CLICKING rather than by hovering, because a coarse pointer has no
+   * hover and the phone project is exactly where that matters. A click that
+   * lands on empty space shows everything, which is the state this loop starts
+   * from, so a miss costs nothing and the loop tries the next point.
+   */
+  let isolated = false;
+  for (const [fx, fy] of [[0.5, 0.65], [0.65, 0.5], [0.5, 0.5], [0.35, 0.5], [0.5, 0.35]]) {
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    if ((await viewer.getAttribute('data-drawn-structures')) === '1') {
+      isolated = true;
+      break;
+    }
+    await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+  }
+  expect(isolated, 'no point on the model isolated anything').toBe(true);
 
   // A corner is empty space, and empty space is the escape.
   await page.mouse.click(box.x + 8, box.y + 8);
@@ -1036,6 +1082,11 @@ test('a click on the model isolates, and a click on empty space shows all', asyn
 });
 
 test('a drag orbits and does not isolate anything', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
   const box = (await page.locator('.anatomy canvas').boundingBox())!;
@@ -1053,6 +1104,11 @@ test('a drag orbits and does not isolate anything', async ({ page }) => {
 });
 
 test('hide takes one structure off, and show all is the escape', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
 
@@ -1064,6 +1120,11 @@ test('hide takes one structure off, and show all is the escape', async ({ page }
 });
 
 test('the structure filter narrows the list without touching the model', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
 
@@ -1081,6 +1142,11 @@ test('the structure filter narrows the list without touching the model', async (
  * that needs a mouse is a control some of them do not have.
  */
 test('the structure list is operable from the keyboard', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
   const viewer = page.getByTestId('anatomy-viewer');
   await page.getByTestId('structure-filter').focus();
   await page.keyboard.press('Tab');
@@ -1089,6 +1155,44 @@ test('the structure list is operable from the keyboard', async ({ page }) => {
     'data-drawn-structures',
     String(await viewer.getAttribute('data-structure-count')),
   );
+});
+
+/*
+ * EXPLORE ONLY.
+ *
+ * Echo is a claim about one vetted probe pose imaging a whole heart, and a
+ * learner who had isolated one coronary branch would be looking at an echo of a
+ * heart that is not the heart on screen. The restriction is structural rather
+ * than a hidden button: in Echo the list does not exist and a click on the model
+ * does nothing.
+ */
+test('Echo mode has no structure list and no click-to-isolate', async ({ page }) => {
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-viewer-mode', 'echo');
+  await expect(page.getByTestId('structure-panel')).toHaveCount(0);
+
+  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const box = (await page.locator('.anatomy canvas').boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+});
+
+test('an isolate made in Explore does not follow the learner into Echo', async ({ page }) => {
+  await page.goto('/?freeze=1&mode=explore');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  const total = Number(await viewer.getAttribute('data-structure-count'));
+
+  await page.getByTestId('structure-isolate-lv-myocardium').click();
+  await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
+
+  await page.getByTestId('mode-echo').click();
+  await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
+  await expect(page.getByTestId('structure-panel')).toHaveCount(0);
+
+  // And it is still there on the way back: the isolate was about the model.
+  await page.getByTestId('mode-explore').click();
+  await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
 });
 
 test('app shell screenshot', async ({ page }, testInfo) => {

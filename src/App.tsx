@@ -259,13 +259,29 @@ export default function App() {
          * the list ticks what is VISIBLE, and deriving both from one function
          * is what stops them drifting apart.
          */
+        /*
+         * EXPLORE ONLY, and structurally rather than by hiding a button.
+         *
+         * Echo is a claim about one vetted probe pose imaging a whole heart:
+         * the wedge, the beam dim and the echo raster are all statements about
+         * what the beam crosses, and a learner who has isolated one coronary
+         * branch would be looking at an echo of a heart that is not the heart
+         * on screen. So in Echo nothing is hidden — `hiddenIds` is empty and no
+         * click handler is passed, so the gesture does not exist there either.
+         *
+         * The state SURVIVES the trip: switching to Echo and back returns the
+         * learner to what they had isolated, because the isolate was a
+         * statement about the model rather than about the mode.
+         */
         const roots = buildTree(pack);
         const visible = visibleIds(roots, visibility);
-        const hiddenIds = new Set(
-          pack.meshes.structures
-            .filter((structure) => structure.mesh_node !== null && !visible.has(structure.id))
-            .map((structure) => structure.id),
-        );
+        const hiddenIds = effectiveMode === 'explore'
+          ? new Set(
+            pack.meshes.structures
+              .filter((structure) => structure.mesh_node !== null && !visible.has(structure.id))
+              .map((structure) => structure.id),
+          )
+          : new Set<string>();
         return (
         <>
         {/*
@@ -329,11 +345,13 @@ export default function App() {
             /*
              * A click on the model isolates what is under it; empty space shows
              * everything. Settled design decision 13 — the list is the index
-             * and the model is the surface.
+             * and the model is the surface. Explore only: in Echo a click has
+             * nothing to do, so no handler is passed and nothing is hit-tested
+             * or pre-highlighted.
              */
-            onStructureClick={(id) => setVisibility(
-              id === null ? showAll() : isolate(visibility, id),
-            )}
+            onStructureClick={effectiveMode === 'explore'
+              ? (id) => setVisibility(id === null ? showAll() : isolate(visibility, id))
+              : undefined}
           />
           {/*
             * Explore has no echo panel, and therefore no probe, no probe
@@ -354,7 +372,9 @@ export default function App() {
           )}
         </div>
 
-        <StructurePanel pack={pack} visibility={visibility} onChange={setVisibility} />
+        {effectiveMode === 'explore' && (
+          <StructurePanel pack={pack} visibility={visibility} onChange={setVisibility} />
+        )}
         </>
         );
       })()}
@@ -541,95 +561,119 @@ function StructurePanel({ pack, visibility, onChange }: {
 }
 
 /**
- * The model picker.
+ * The model picker, as a DROPLIST.
  *
- * Grouped by what a pack IS — labelled and echo-capable against Explore-only
- * geometry — because that distinction decides which modes are even available,
- * and a learner who picks an Explore-only model and then finds Echo greyed out
- * should have been able to see that coming from the picker.
+ * It was a wall of chips, and at nine packs it took about a third of the
+ * viewport before the model was reached — `docs/observations.md` entry 28
+ * predicted the threshold at ten and it arrived at nine. The structure list now
+ * wants that space, and a control whose collapsed height is one row gives it
+ * back regardless of how many packs are catalogued.
  *
- * Every chip carries its licence state, and an unpublished pack says so in
- * development. Nothing on this shelf ships, and the one thing worse than that
- * would be not being able to tell which is which while looking at them.
+ * A native `<select>` rather than a custom menu, for one reason that outranks
+ * the styling: hospital desktops are a first-class target, and a native select
+ * is keyboard-operable, screen-reader-labelled and touch-friendly on every
+ * platform without any of that being re-implemented here. `<optgroup>` keeps the
+ * two groups the chips had — labelled and echo-capable against Explore-only —
+ * because that distinction decides which modes are even available.
+ *
+ * What a select cannot show is the per-pack detail the chips carried, so the
+ * licence state, the publication state and the one-line summary of the SELECTED
+ * pack are stated underneath it. Nothing on this shelf ships, and the one thing
+ * worse than that would be not being able to tell which is which while looking
+ * at them.
  */
 function PackPicker({ packId, onChoose }: {
   packId: string;
   onChoose: (id: string) => void;
 }) {
   const entries = cataloguedPacks(import.meta.env.PROD);
-  if (entries.length < 2) return null;
+  if (entries.length === 0) return null;
 
+  const current = entries.find((entry) => entry.id === packId);
   const groups: [string, string, CatalogueEntry[]][] = [
-    [
-      'echo',
-      'Labelled — echo and explore',
-      entries.filter((entry) => entry.kind === 'echo'),
-    ],
-    [
-      'explore',
-      'Geometry only — explore',
-      entries.filter((entry) => entry.kind === 'explore'),
-    ],
+    ['echo', 'Labelled — echo and explore', entries.filter((entry) => entry.kind === 'echo')],
+    ['explore', 'Geometry only — explore', entries.filter((entry) => entry.kind === 'explore')],
   ];
 
+  /* The tags for whichever pack is showing, wherever it came from. */
+  const detail = (entry: CatalogueEntry) => (
+    <p className="picker__detail" data-testid={`pack-detail-${entry.id}`}>
+      <span
+        className={
+          entry.licenseState === 'confirmed' ? 'picker__tag' : 'picker__tag picker__tag--warn'
+        }
+      >
+        {LICENSE_STATE_LABEL[entry.licenseState]}
+      </span>
+      {!isPublishedPack(entry.id) && (
+        <span
+          className="picker__tag picker__tag--unpublished"
+          data-testid={`pack-unpublished-${entry.id}`}
+        >
+          not published
+        </span>
+      )}
+      {/* Only ever seen in development — the deployed droplist does not offer
+          fixtures at all. Marked rather than merely absent, so nobody debugging
+          mistakes it for anatomy. */}
+      {entry.fixture && <span className="picker__tag picker__tag--warn">engine fixture</span>}
+      {entry.moving && <span className="picker__tag">moves</span>}
+      <span className="picker__summary">{entry.summary}</span>
+    </p>
+  );
+
+  /*
+   * ONE VISIBLE PACK IS A LABEL, NOT AN EMPTY CONTROL.
+   *
+   * This is the deployed state today: exactly one real pack ships, and a
+   * droplist offering a single choice is a control that cannot do anything.
+   * Rendering nothing at all would be worse — the learner would have no idea
+   * which of the models in this repository they were looking at — so it says
+   * which one, and says it in the same place the control will appear the moment
+   * a second pack is published.
+   */
+  if (entries.length === 1) {
+    return (
+      <div className="picker" data-testid="pack-picker" data-picker="single">
+        <p className="picker__single">
+          <span className="picker__label">Model</span>
+          <strong data-testid="pack-only">{entries[0].displayName}</strong>
+        </p>
+        {detail(entries[0])}
+      </div>
+    );
+  }
+
   return (
-    <div className="picker" data-testid="pack-picker">
-      {groups.map(([key, heading, group]) => group.length === 0 ? null : (
-        <section className="picker__group" key={key} data-testid={`pack-group-${key}`}>
-          <h2 className="picker__heading">{heading}</h2>
-          <div className="picker__chips" role="radiogroup" aria-label={heading}>
-            {group.map((entry) => {
-              const unpublished = !isPublishedPack(entry.id);
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={entry.id === packId}
-                  className={
-                    entry.id === packId ? 'picker__chip picker__chip--on' : 'picker__chip'
-                  }
-                  onClick={() => onChoose(entry.id)}
-                  title={entry.summary}
-                  data-testid={`pack-chip-${entry.id}`}
-                >
-                  <span className="picker__name">
-                    {entry.displayName}
-                    {entry.moving && <span className="picker__moving"> · moves</span>}
-                  </span>
-                  <span className="picker__tags">
-                    <span
-                      className={
-                        entry.licenseState === 'confirmed'
-                          ? 'picker__tag'
-                          : 'picker__tag picker__tag--warn'
-                      }
-                    >
-                      {LICENSE_STATE_LABEL[entry.licenseState]}
-                    </span>
-                    {unpublished && (
-                      <span
-                        className="picker__tag picker__tag--unpublished"
-                        data-testid={`pack-unpublished-${entry.id}`}
-                      >
-                        not published
-                      </span>
-                    )}
-                    {/*
-                      * Only ever seen in development — the deployed picker does
-                      * not offer fixtures at all. Marked rather than merely
-                      * absent, so nobody debugging mistakes it for anatomy.
-                      */}
-                    {entry.fixture && (
-                      <span className="picker__tag picker__tag--warn">engine fixture</span>
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+    <div className="picker" data-testid="pack-picker" data-picker="list">
+      <label className="picker__control">
+        <span className="picker__label">Model</span>
+        <select
+          value={current ? packId : ''}
+          onChange={(event) => onChoose(event.target.value)}
+          data-testid="pack-select"
+        >
+          {/*
+            * `?pack=` can name something the droplist does not offer — the
+            * engine fixture is exactly that, published so the visual suite can
+            * reach it in the production artefact and hidden from the picker so
+            * it is not offered beside a heart. Showing an empty selection would
+            * be the control lying about what is on screen, so the pack names
+            * itself and cannot be chosen.
+            */}
+          {!current && <option value="" disabled>Not in this list — reached by ?pack=</option>}
+          {groups.map(([key, heading, group]) => group.length === 0 ? null : (
+            <optgroup label={heading} key={key} data-testid={`pack-group-${key}`}>
+              {group.map((entry) => (
+                <option key={entry.id} value={entry.id} data-testid={`pack-option-${entry.id}`}>
+                  {entry.displayName}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      {current && detail(current)}
     </div>
   );
 }

@@ -158,6 +158,14 @@ the probe to `frameAt(probe, sweep, t)` exactly.
 *(Owner decision, 2026-08-19. `docs/observations.md` entries 24, 25 and 31 are the reasoning: two
 of the best packs on the shelf could not be looked at at all.)*
 
+**EXPLORE ONLY** *(owner decision, 2026-08-19)*. Echo is a claim about one vetted probe pose
+imaging a whole heart: the wedge, the beam dim and the echo raster are all statements about what the
+beam crosses, and a learner who had isolated one coronary branch would be reading an echo of a heart
+that is not the heart beside it. So in Echo the structure list does not render, nothing is hidden,
+and no click handler is passed — the gesture does not exist there rather than being disabled. The
+state survives the trip: switching to Echo and back returns the learner to what they had isolated,
+because the isolate is a statement about the model rather than about the mode.
+
 **Isolate is primary; hide is the exception.** Hiding converges only when there is one thing in the
 way — the KIT pericardium is exactly that case, and one action takes the lid off. Showing one of 86
 structures by hiding 85 never converges, so "show me only this" is the gesture, and the number of
