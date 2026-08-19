@@ -9,6 +9,9 @@
 import { useEffect, useState } from 'react';
 import PackViewer, { type ViewerMode } from './viewer/PackViewer.tsx';
 import EchoPanel from './echo/EchoPanel.tsx';
+import type { ProbePose } from './schema/packV0.ts';
+import { poseAt } from './echo/probeFrame.ts';
+import { hasLeftTrack } from './viewer/freeProbe.ts';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
 import { DEFAULT_PACK_ID } from './packs/published.ts';
 import { SCHEMA_VERSION } from './schema/packV0.ts';
@@ -79,6 +82,19 @@ export default function App() {
    */
   const [scrub, setScrub] = useState(0.5);
   const [mode, setMode] = useState<ViewerMode>(requestedMode);
+  /**
+   * The probe when it has been unlocked from its view's sweep track, or null.
+   *
+   * Lifted here for the same reason `scrub` is: the wedge on the anatomy and
+   * the echo image are two renderings of ONE probe pose, and two components
+   * each holding their own would be exactly the drift the one-to-one match
+   * forbids.
+   *
+   * It is runtime state and dies with the session. There is no path from it
+   * into `views[]` — see `src/viewer/freeProbe.ts` for what unlocking gives up
+   * and what it does not.
+   */
+  const [freePose, setFreePose] = useState<ProbePose | null>(null);
 
   /*
    * The mode is written back into the URL as it changes, so the address bar is
@@ -86,6 +102,15 @@ export default function App() {
    * a mode toggle is not a navigation, and filling the back button with it
    * would make Back mean something different here than everywhere else.
    */
+  /*
+   * Explore has no probe at all, so it cannot have a free one. Re-locking on
+   * the way in means coming back to Echo lands on the saved view rather than on
+   * whatever pose was left behind in another mode.
+   */
+  useEffect(() => {
+    if (mode === 'explore') setFreePose(null);
+  }, [mode]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
@@ -120,7 +145,20 @@ export default function App() {
         </p>
       </header>
 
-      {packState.status === 'ok' && (
+      {packState.status === 'ok' && (() => {
+        const pack = packState.loaded.pack;
+        const viewIndex = requestedViewIndex(pack);
+        const view = pack.views[viewIndex];
+        /*
+         * Whether the probe has ACTUALLY left the track, not merely whether the
+         * toggle is on. A learner can unlock the probe and never drag it, and
+         * while the pose is still the view's pose the panel would be withdrawing
+         * a claim that is still true. The distinction matters in the direction
+         * that costs nothing: the moment they move it, the claim goes.
+         */
+        const offTrack = freePose !== null && view !== undefined
+          && hasLeftTrack(freePose, view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe);
+        return (
         <>
         {/*
           * The two top-level modes, named and always visible.
@@ -156,7 +194,9 @@ export default function App() {
             scrub={scrub}
             viewIndex={requestedViewIndex(packState.loaded.pack)}
             mode={mode}
+            freePose={freePose}
             onScrubChange={setScrub}
+            onFreePoseChange={setFreePose}
           />
           {/*
             * Explore has no echo panel, and therefore no probe, no tilt arrow,
@@ -170,12 +210,15 @@ export default function App() {
               volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
               scrub={scrub}
               viewIndex={requestedViewIndex(packState.loaded.pack)}
+              freePose={freePose}
+              offTrack={offTrack}
               onScrubChange={setScrub}
             />
           )}
         </div>
         </>
-      )}
+        );
+      })()}
 
       <section className="panel" data-testid="pack-status" data-status={packState.status}>
         <h2>Content pack</h2>

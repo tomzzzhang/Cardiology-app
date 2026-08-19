@@ -50,7 +50,7 @@ const SAMPLES = 24;
  * drag target and to read as an arc rather than a dash; narrow enough that it
  * visibly slides along the track as the sweep scrubs.
  */
-const WINDOW_T = 0.22;
+const WINDOW_T = 0.34;
 
 /**
  * How far behind the transducer face the arrow is drawn, in pack units (mm).
@@ -67,12 +67,14 @@ const WINDOW_T = 0.22;
  * limit is the panel edge, which is why the camera framing takes the probe's
  * whole travel into account rather than only the model's bounds.
  */
-const CLEARANCE_MM = 34;
+const CLEARANCE_MM = 46;
 
 const ARROW_COLOUR = 0xffc857;
 const HEAD_COLOUR = 0xffe6a8;
 /** How visible the arrow is when the pointer is nowhere near it. */
-const RESTING_OPACITY = 0.5;
+const RESTING_OPACITY = 0.75;
+/** Tube radius, in CSS pixels, so the arrow holds its weight at any zoom. */
+const SHAFT_PX = 2.2;
 /** How far the head at an exhausted end is dimmed. Dim, not hidden: the arrow
  * stays double-headed so its axis of motion is still readable at an endpoint. */
 const EXHAUSTED_OPACITY = 0.18;
@@ -220,22 +222,24 @@ export class TiltArrow {
 
   private readonly probe: ProbePose;
   private readonly sweep: Sweep;
-  private readonly line: THREE.Line;
+  private readonly line: THREE.Mesh;
   private readonly heads: [THREE.Mesh, THREE.Mesh];
   private reveal = 0;
   private headScale = 1;
+  /** Tube radius in world units, from the current screen scale. */
+  private shaftRadius = 0.6;
 
   constructor(probe: ProbePose, sweep: Sweep) {
     this.probe = probe;
     this.sweep = sweep;
     this.rebuild(0.5);
 
-    this.line = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(this.path),
+    this.line = new THREE.Mesh(
+      this.shaftGeometry(),
       // Depth test off, like the cut gizmo: an instrument the model must not
       // swallow. The probe body sits between the camera and half of this path
       // at most camera angles.
-      new THREE.LineBasicMaterial({
+      new THREE.MeshBasicMaterial({
         color: ARROW_COLOUR, transparent: true, opacity: 0, depthTest: false,
       }),
     );
@@ -244,7 +248,7 @@ export class TiltArrow {
     // it sits next to a probe indicator it must not compete with. A 1:4 cone
     // reads as an arrowhead where a squat one reads as a marker.
     const head = () => new THREE.Mesh(
-      new THREE.ConeGeometry(1, 4, 10),
+      new THREE.ConeGeometry(1, 3.2, 12),
       new THREE.MeshBasicMaterial({
         color: HEAD_COLOUR, transparent: true, opacity: 0, depthTest: false,
       }),
@@ -253,6 +257,30 @@ export class TiltArrow {
     this.object.add(this.line, ...this.heads);
     this.object.renderOrder = 1000;
     this.placeHeads();
+  }
+
+  /**
+   * The shaft, as a tube.
+   *
+   * A tube rather than a line because WebGL ignores `linewidth`: a
+   * `LineBasicMaterial` is one pixel wide whatever it is asked for, and one
+   * pixel of gold at arm's length from the heart is not a control anyone will
+   * see, let alone aim at.
+   */
+  private shaftGeometry(): THREE.BufferGeometry {
+    /*
+     * A polyline rather than a spline: the path is already a dense sampling of
+     * the real track, and a Catmull-Rom through it would bow away from the
+     * poses it is supposed to depict. The arrow has to be able to say "this is
+     * where the probe will go", which a smoothed version of it cannot.
+     */
+    const curve = new THREE.CurvePath<THREE.Vector3>();
+    for (let i = 0; i < this.path.length - 1; i += 1) {
+      if (this.path[i].distanceToSquared(this.path[i + 1]) < 1e-12) continue;
+      curve.add(new THREE.LineCurve3(this.path[i].clone(), this.path[i + 1].clone()));
+    }
+    if (curve.curves.length === 0) return new THREE.BufferGeometry();
+    return new THREE.TubeGeometry(curve, this.path.length, this.shaftRadius, 8, false);
   }
 
   /** Resample the drawn window for scrub position `t`. */
@@ -272,7 +300,10 @@ export class TiltArrow {
    * around it is generous and invisible, which is the right way round.
    */
   setScreenScale(unitsPerPixel: number, hitRadiusPx: number): void {
-    this.headScale = Math.max(unitsPerPixel * hitRadiusPx * 0.18, 1e-4);
+    this.headScale = Math.max(unitsPerPixel * hitRadiusPx * 0.22, 1e-4);
+    this.shaftRadius = Math.max(unitsPerPixel * SHAFT_PX, 1e-4);
+    this.line.geometry.dispose();
+    this.line.geometry = this.shaftGeometry();
     this.placeHeads();
   }
 
@@ -307,12 +338,12 @@ export class TiltArrow {
     this.reveal = reveal;
     this.rebuild(t);
     this.line.geometry.dispose();
-    this.line.geometry = new THREE.BufferGeometry().setFromPoints(this.path);
+    this.line.geometry = this.shaftGeometry();
     this.placeHeads();
 
     const strength = RESTING_OPACITY + (1 - RESTING_OPACITY) * Math.min(1, Math.max(0, reveal));
     this.object.visible = true;
-    (this.line.material as THREE.LineBasicMaterial).opacity = strength;
+    (this.line.material as THREE.MeshBasicMaterial).opacity = strength;
     const atStart = t <= 1e-4;
     const atEnd = t >= 1 - 1e-4;
     (this.heads[0].material as THREE.MeshBasicMaterial).opacity =

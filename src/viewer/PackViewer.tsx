@@ -34,9 +34,10 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { Pack } from '../schema/packV0.ts';
-import { frameAt, type ImagingFrame } from '../echo/probeFrame.ts';
-import { ProbeIndicator } from './wedge.ts';
+import type { Pack, ProbePose } from '../schema/packV0.ts';
+import { frameAt, imagingFrame, poseAt, type ImagingFrame } from '../echo/probeFrame.ts';
+import { rotatedPose } from './freeProbe.ts';
+import { PROBE_LENGTH, ProbeIndicator } from './wedge.ts';
 import { StencilCaps, type CapSource } from './caps.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
 import {
@@ -93,11 +94,28 @@ interface PackViewerProps {
   /** Echo mode shows the probe; Explore has none, so the cutter is always free. */
   mode?: ViewerMode;
   /**
+   * The probe when it has been unlocked from the view's sweep track, or null.
+   *
+   * Owned by the shell so the wedge and the echo image are one pose, and typed
+   * as a pose rather than as a flag because the pose IS the state: a toggle
+   * plus a hidden rotation would let the two panels disagree about where the
+   * probe is.
+   */
+  freePose?: ProbePose | null;
+  /**
    * The one path the tilt arrow writes through — the same one the sweep slider
    * uses. Without it the arrow is not drawn, because an affordance that cannot
    * move anything is worse than no affordance.
    */
   onScrubChange?: (scrub: number) => void;
+  /**
+   * The only way a free probe pose leaves this component.
+   *
+   * Without it the unlock is not offered at all, for the same reason the arrow
+   * is not drawn without `onScrubChange`: an affordance that cannot move
+   * anything is worse than no affordance.
+   */
+  onFreePoseChange?: (pose: ProbePose | null) => void;
 }
 
 /** Radians of plane rotation per pixel of handle drag. */
@@ -119,7 +137,8 @@ interface ViewerApi {
 }
 
 export default function PackViewer({
-  pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', onScrubChange,
+  pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo',
+  freePose = null, onScrubChange, onFreePoseChange,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
@@ -160,6 +179,10 @@ export default function PackViewer({
 
   const onScrubRef = useRef(onScrubChange);
   onScrubRef.current = onScrubChange;
+  const onFreePoseRef = useRef(onFreePoseChange);
+  onFreePoseRef.current = onFreePoseChange;
+  const freePoseRef = useRef(freePose);
+  freePoseRef.current = freePose;
 
   /*
    * The scrub position is read through a ref inside the load effect, not listed
@@ -254,6 +277,8 @@ export default function PackViewer({
     let beamStrength = 1;
     /** The frame the probe, the highlight and the echo-synced cutter share. */
     let currentFrame: ImagingFrame | null = null;
+    /** Where the probe body's centre projects, for the free-probe grab. */
+    let probeAnchor: THREE.Vector3 | null = null;
 
     /* --- the free anatomical cutter --------------------------------------- */
     const cut: CutPlaneState = initialCutPlane(pack.interaction?.free_cut);
@@ -382,11 +407,11 @@ export default function PackViewer({
        * wall, so fitting its whole travel exactly would pull the camera back
        * far enough to shrink the heart to a third of the panel — and the heart
        * is what the learner came to look at. This buys back enough room for the
-       * transducer and the near end of its arrow while the anatomy stays the
-       * subject; the far end of the arrow can reach the panel edge, and Reset
-       * is the way back. Logged in `docs/observations.md`.
+       * transducer and its scrub arrow while the anatomy stays the subject. The
+       * number is a judgement call between two things the learner needs at once
+       * and is logged in `docs/observations.md`.
        */
-      framedReach = Math.min(framedReach, reach * 1.3);
+      framedReach = Math.min(framedReach, reach * 1.5);
     };
 
     /* --- screen-space affordances ----------------------------------------- */
@@ -410,7 +435,7 @@ export default function PackViewer({
     const arrowScreenPath = (): { x: number; y: number }[] => {
       const width = host.clientWidth;
       const height = host.clientHeight;
-      if (!arrow || width === 0) return [];
+      if (!arrow || width === 0 || freePoseRef.current !== null) return [];
       const out: { x: number; y: number }[] = [];
       for (const world of arrow.path) {
         const point = projectToScreen(world, camera, width, height);
@@ -470,12 +495,17 @@ export default function PackViewer({
       gizmo?.setHandleReveal(reveal, hovered);
 
       if (arrow) {
-        const path = arrowScreenPath();
-        const hit = x === null || y === null ? null : nearestOnPath(path, x, y);
-        // A handle under the pointer wins: it is drawn on top and it is the
-        // smaller target, so the arrow must not steal a drag aimed at one.
-        const distance = hovered !== null || hit === null ? Infinity : hit.distancePx;
-        arrow.setReveal(revealFor(distance, coarse), scrubRef.current);
+        // No arrow while the probe is free: the sweep is not what is moving it,
+        // so a control that says "scrub" would misdescribe the drag.
+        arrow.object.visible = freePoseRef.current === null;
+        if (freePoseRef.current === null) {
+          const path = arrowScreenPath();
+          const hit = x === null || y === null ? null : nearestOnPath(path, x, y);
+          // A handle under the pointer wins: it is drawn on top and it is the
+          // smaller target, so the arrow must not steal a drag aimed at one.
+          const distance = hovered !== null || hit === null ? Infinity : hit.distancePx;
+          arrow.setReveal(revealFor(distance, coarse), scrubRef.current);
+        }
       }
       schedule();
     };
@@ -490,6 +520,7 @@ export default function PackViewer({
     const hitTest = (x: number, y: number):
       | { kind: 'handle'; id: HandleId }
       | { kind: 'arrow'; tangent: { x: number; y: number }; tPerPixel: number }
+      | { kind: 'probe' }
       | null => {
       const grab = hitRadiusPx(coarse);
       let best: HandleId | null = null;
@@ -503,7 +534,22 @@ export default function PackViewer({
       }
       if (best !== null) return { kind: 'handle', id: best };
 
-      if (arrow) {
+      /*
+       * An unlocked probe is grabbed by its BODY, and the tilt arrow is not
+       * drawn — the sweep is not what is moving it any more, so an affordance
+       * that says "scrub" would be lying about what a drag does.
+       */
+      if (freePoseRef.current && probeAnchor && host.clientWidth > 0) {
+        const point = projectToScreen(probeAnchor, camera, host.clientWidth, host.clientHeight);
+        // Twice the radius: the target is a transducer a couple of centimetres
+        // long, not a dot, and it is the only thing in the panel it can be
+        // confused with.
+        if (point.inFront && Math.hypot(point.x - x, point.y - y) <= grab * 2) {
+          return { kind: 'probe' };
+        }
+      }
+
+      if (arrow && !freePoseRef.current) {
         const path = arrowScreenPath();
         const hit = nearestOnPath(path, x, y);
         if (hit && hit.distancePx <= grab) {
@@ -544,6 +590,20 @@ export default function PackViewer({
       } else {
         delete host.dataset.cutHandles;
       }
+      if (probeAnchor && host.clientWidth > 0) {
+        const point = projectToScreen(probeAnchor, camera, host.clientWidth, host.clientHeight);
+        if (point.inFront) {
+          host.dataset.probe = JSON.stringify({
+            x: Math.round(point.x), y: Math.round(point.y),
+          });
+        } else {
+          delete host.dataset.probe;
+        }
+      } else {
+        delete host.dataset.probe;
+      }
+      host.dataset.probeLock = freePoseRef.current ? 'free' : 'onTrack';
+
       const path = arrowScreenPath();
       if (arrow && path.length > 1) {
         const mid = path[Math.floor(path.length / 2)];
@@ -715,6 +775,14 @@ export default function PackViewer({
           startX: number;
           startY: number;
         }
+      | {
+          kind: 'probe';
+          start: ProbePose;
+          right: THREE.Vector3;
+          up: THREE.Vector3;
+          startX: number;
+          startY: number;
+        }
       | { kind: 'camera' }
       | null = null;
 
@@ -750,6 +818,15 @@ export default function PackViewer({
         gizmo?.setHandleReveal(
           new Map(HANDLE_IDS.map((id) => [id, id === hit.id ? 1 : 0.35])), hit.id,
         );
+      } else if (hit?.kind === 'probe' && freePoseRef.current) {
+        gesture = {
+          kind: 'probe',
+          start: freePoseRef.current,
+          right: new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion),
+          up: new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion),
+          startX: event.clientX,
+          startY: event.clientY,
+        };
       } else if (hit?.kind === 'arrow') {
         gesture = {
           kind: 'arrow',
@@ -790,6 +867,22 @@ export default function PackViewer({
           HANDLE_RADIANS_PER_PIXEL,
         ));
         applyCut();
+      } else if (gesture.kind === 'probe') {
+        /*
+         * The unlocked probe, turned about its own origin. This is the ONE
+         * learner-reachable path that leaves the saved sweep track, and it is
+         * an explicit owner decision (2026-08-19) paid for by the echo panel
+         * withdrawing the view's name while it is in force. It still cannot
+         * write to `views[]`: `rotatedPose` takes a pose and returns a pose,
+         * and the result lives in React state until the probe is locked again.
+         */
+        onFreePoseRef.current?.(rotatedPose(
+          gesture.start,
+          [gesture.right.x, gesture.right.y, gesture.right.z],
+          [gesture.up.x, gesture.up.y, gesture.up.z],
+          event.clientX - gesture.startX,
+          event.clientY - gesture.startY,
+        ));
       } else if (gesture.kind === 'arrow') {
         /*
          * The arrow writes `t` and nothing else, through the same callback the
@@ -992,7 +1085,11 @@ export default function PackViewer({
 
         const view = pack.views[viewIndex];
         if (view) {
-          currentFrame = frameAt(view.probe, view.sweep, scrubRef.current);
+          currentFrame = freePoseRef.current
+            ? imagingFrame(freePoseRef.current)
+            : frameAt(view.probe, view.sweep, scrubRef.current);
+          probeAnchor = new THREE.Vector3(...currentFrame.origin)
+            .addScaledVector(new THREE.Vector3(...currentFrame.beam), -PROBE_LENGTH / 2);
           for (const uniforms of dimUniforms) setBeamFrame(uniforms, currentFrame);
         }
 
@@ -1017,6 +1114,11 @@ export default function PackViewer({
     apiRef.current = {
       setFrame: (frame) => {
         currentFrame = frame;
+        // The body's midpoint, which is what a learner aims at to take hold of
+        // the probe. Recomputed with the frame rather than stored per view,
+        // because the probe moves.
+        probeAnchor = new THREE.Vector3(...frame.origin)
+          .addScaledVector(new THREE.Vector3(...frame.beam), -PROBE_LENGTH / 2);
         probe?.update(frame);
         // One frame drives the probe geometry AND the highlight, for the same
         // reason the wedge and the echo share it: they cannot be allowed to
@@ -1163,12 +1265,18 @@ export default function PackViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gltfUrl, pack, viewIndex]);
 
-  // The probe follows the scrubber: same frame the echo renders, by construction.
+  /*
+   * The probe follows the scrubber — or the free pose, when there is one. Same
+   * frame the echo renders either way, which is what keeps the wedge and the
+   * image one object rather than two that agree.
+   */
   useEffect(() => {
     const view = pack.views[viewIndex];
     if (!view) return;
-    apiRef.current?.setFrame(frameAt(view.probe, view.sweep, scrub));
-  }, [scrub, pack, viewIndex, status]);
+    apiRef.current?.setFrame(
+      freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
+    );
+  }, [scrub, pack, viewIndex, status, freePose]);
 
   useEffect(() => {
     apiRef.current?.setHidden(hidden ?? new Set());
@@ -1209,6 +1317,26 @@ export default function PackViewer({
    * see the whole heart WITH the echo fan on it is a thing worth doing.
    */
   const depthLocked = echoMode && cutterMode === 'echo';
+
+  /**
+   * Unlock the probe from its view's sweep track, or lock it again.
+   *
+   * Unlocking SEEDS from the pose the learner is looking at, so the probe does
+   * not jump at the moment it becomes draggable — the same continuity rule the
+   * cutter's mode switch follows.
+   *
+   * Locking discards the free pose rather than merging it, so the probe returns
+   * to `frameAt(probe, sweep, t)` exactly, for whatever `t` the scrubber holds.
+   * That is the invariant the rest of the app depends on, and it is restored
+   * bit for bit rather than approximately.
+   */
+  const setProbeFree = (free: boolean) => {
+    if (!free || !view) {
+      onFreePoseChange?.(null);
+      return;
+    }
+    onFreePoseChange?.(view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe);
+  };
 
   const chooseCutterMode = (next: CutterMode) => {
     const adopted = apiRef.current?.setCutterMode(next);
@@ -1273,12 +1401,34 @@ export default function PackViewer({
           ) : (
             <span className="cutter-mode__button cutter-mode__button--on">Free</span>
           )}
+          {/*
+            * Unlocking the probe is the one learner-reachable way off the saved
+            * sweep track, and it is an explicit owner decision rather than a
+            * drift. It is paid for by LABELLING: while it is on, the echo panel
+            * withdraws the view's name and its draft flag and says the plane is
+            * unvetted. Nothing here writes to `views[]` — the free pose is
+            * runtime state and dies with the session.
+            */}
+          {echoMode && onFreePoseChange && view?.sweep && (
+            <label className="cutter__toggle" title="Turn the probe by hand, off this view's saved sweep. The echo then stops claiming to be this view.">
+              <input
+                type="checkbox"
+                checked={freePose !== null}
+                onChange={(event) => setProbeFree(event.target.checked)}
+                data-testid="probe-free"
+              />
+              Free probe
+            </label>
+          )}
+
           <span className="cutter-mode__state" data-testid="cutter-mode-state">
             {!echoMode
               ? 'Explore — no probe, so the cut is always free'
-              : cutterMode === 'echo'
-                ? "Cut follows the view's imaging plane. Depth slides along that plane's normal."
-                : 'Free cut — the plane is yours, and claims no relationship to the view.'}
+              : freePose !== null
+                ? 'Probe unlocked — drag it to turn it. Once moved, this is not a saved view.'
+                : cutterMode === 'echo'
+                  ? "Cut follows the view's imaging plane."
+                  : 'Free cut — the plane is yours, and claims no relationship to the view.'}
           </span>
         </div>
 

@@ -148,7 +148,7 @@ describe('the arrow cannot reach a pose off the sweep track', () => {
       const beam = at.beam_axis as [number, number, number];
       const beamScale = Math.hypot(...beam);
       for (let axis = 0; axis < 3; axis += 1) {
-        expect(path[i][axis]).toBeCloseTo(origin[axis] - (beam[axis] / beamScale) * 34, 9);
+        expect(path[i][axis]).toBeCloseTo(origin[axis] - (beam[axis] / beamScale) * 46, 9);
       }
     }
   });
@@ -210,13 +210,16 @@ describe('sweepWindow — the stretch of track the arrow rides', () => {
     }
   });
 
-  it('slides with the probe rather than covering the whole track', () => {
+  it('slides with the probe rather than sitting over the whole track', () => {
     // What makes the arrow ride the transducer: at different scrub positions it
-    // is a different piece of the trajectory.
+    // is a different piece of the trajectory. Stated as movement of both ends
+    // rather than as disjointness — the window is wide enough to be a
+    // comfortable drag target, so neighbouring positions do overlap.
     const early = sweepWindow(0.2);
     const late = sweepWindow(0.8);
-    expect(late.from).toBeGreaterThan(early.to - 1e-9);
-    expect(early.to - early.from).toBeLessThan(0.6);
+    expect(late.from).toBeGreaterThan(early.from);
+    expect(late.to).toBeGreaterThan(early.to);
+    expect(sweepWindow(0.5).to - sweepWindow(0.5).from).toBeLessThan(1);
   });
 
   it('shortens at the ends, saying the same thing the dimmed head says', () => {

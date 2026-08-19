@@ -12,10 +12,10 @@
  * unconditionally alongside the canvas and is not behind a prop.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Pack } from '../schema/packV0.ts';
+import type { Pack, ProbePose } from '../schema/packV0.ts';
 import { describePack, resolveTuning } from './acoustics.ts';
 import { EchoRenderer, EchoRendererError, fetchVolume } from './EchoRenderer.ts';
-import { frameAt } from './probeFrame.ts';
+import { frameAt, imagingFrame } from './probeFrame.ts';
 
 interface EchoPanelProps {
   pack: Pack;
@@ -31,6 +31,25 @@ interface EchoPanelProps {
    * scrub state is precisely the drift the one-to-one match forbids.
    */
   scrub: number;
+  /**
+   * The probe, when the learner has unlocked it from the view's sweep track.
+   *
+   * The image still renders — seeing what a plane images is the whole point of
+   * being able to move it — but the panel stops CLAIMING to be the saved view
+   * while it is set. Rendering an arbitrary plane under a vetted view's name is
+   * the one thing this must not do.
+   */
+  freePose?: ProbePose | null;
+  /**
+   * Whether that free pose has ACTUALLY left the view's track.
+   *
+   * Separate from `freePose` being set, because a learner can unlock the probe
+   * and never drag it — and while the pose is still the view's pose, withdrawing
+   * the view's name would be retracting a claim that is still true. Computed by
+   * the shell, which is the only place that holds both the free pose and the
+   * pose the sweep would have produced.
+   */
+  offTrack?: boolean;
   onScrubChange: (scrub: number) => void;
 }
 
@@ -40,7 +59,7 @@ type Status =
   | { kind: 'unavailable'; message: string };
 
 export default function EchoPanel({
-  pack, volumeUrl, viewIndex = 0, scrub, onScrubChange,
+  pack, volumeUrl, viewIndex = 0, scrub, freePose = null, offTrack = false, onScrubChange,
 }: EchoPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<EchoRenderer | null>(null);
@@ -111,7 +130,10 @@ export default function EchoPanel({
         canvas.width = width;
         canvas.height = height;
       }
-      renderer.render(frameAt(view.probe, view.sweep, scrub), tuning);
+      renderer.render(
+        freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
+        tuning,
+      );
       canvas.dataset.echoFrame = String(Number(canvas.dataset.echoFrame ?? '0') + 1);
     };
 
@@ -119,7 +141,7 @@ export default function EchoPanel({
     const observer = new ResizeObserver(draw);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [scrub, status, tuning, view]);
+  }, [scrub, status, tuning, view, freePose]);
 
   if (!view) return null;
 
@@ -131,7 +153,16 @@ export default function EchoPanel({
   return (
     <section className="echo" data-testid="echo-panel" data-status={status.kind}>
       <header className="echo__header">
-        <h2>{view.name}</h2>
+        {/*
+          * The name is the view's CLAIM, so it is withdrawn the moment the
+          * probe leaves the saved track. The image still renders — the point of
+          * being able to move the probe is to see what the plane images — but
+          * it is no longer this view, and saying so is what makes unlocking the
+          * probe defensible at all.
+          */}
+        <h2 data-testid="echo-view-name">
+          {offTrack ? 'Free probe — not a saved view' : view.name}
+        </h2>
         <p className="echo__badge" data-testid="echo-simulated">
           Simulated — not a recording of a patient
         </p>
@@ -158,7 +189,9 @@ export default function EchoPanel({
       {sweep && (
         <div className="echo__scrub">
           <label htmlFor="echo-scrub">
-            Sweep ({sweep.mode}) {sweepValue?.toFixed(1)} {sweep.range.unit}
+            {freePose
+              ? `Sweep (${sweep.mode}) — the probe is off this track`
+              : `Sweep (${sweep.mode}) ${sweepValue?.toFixed(1)} ${sweep.range.unit}`}
           </label>
           <input
             id="echo-scrub"
@@ -168,13 +201,28 @@ export default function EchoPanel({
             max={1}
             step={0.01}
             value={scrub}
+            // The sweep does not drive a probe that has left its track. Disabled
+            // rather than removed, so the control stays where the learner left
+            // it and its state says why it does nothing.
+            disabled={freePose !== null}
             onChange={(event) => onScrubChange(Number(event.target.value))}
           />
         </div>
       )}
 
       <footer className="echo__provenance" data-testid="echo-provenance">
-        <span>{view.provenance.vetted.status === 'vetted' ? 'Vetted' : 'Draft — not vetted'}</span>
+        {/*
+          * Provenance is a statement about THIS image. A free pose has none —
+          * no one reviewed it, because no one authored it — so the draft flag
+          * is replaced rather than carried over onto a plane it was never
+          * granted to. The pack's own attribution stays: the anatomy is still
+          * the anatomy, whatever plane is cutting it.
+          */}
+        <span>
+          {offTrack
+            ? 'Unvetted plane — moved by you, not a reviewed view'
+            : view.provenance.vetted.status === 'vetted' ? 'Vetted' : 'Draft — not vetted'}
+        </span>
         {' · '}
         <span>{pack.provenance.creator}</span>
         {' · '}

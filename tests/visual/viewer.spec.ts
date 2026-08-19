@@ -607,6 +607,62 @@ test('the wheel zooms without a modifier, in every mode', async ({ page }) => {
   await wheelChangesTheView('explore mode');
 });
 
+test('unlocking the probe withdraws the view\'s claim, and locking restores it', async ({ page }) => {
+  test.slow();
+  /*
+   * The probe is normally pinned to its view: every reachable pose is
+   * `frameAt(probe, sweep, t)`, and that constraint is what lets the echo panel
+   * put a view's name on an image. Unlocking it is an explicit owner decision
+   * (2026-08-19), and it is paid for by LABELLING rather than by hiding.
+   *
+   * So the assertions here are about the label keeping step with the truth:
+   * the name and the draft flag survive the toggle alone, go the moment the
+   * probe is actually moved, and come back exactly when it is locked again.
+   */
+  await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+  const viewName = await page.getByTestId('echo-view-name').textContent();
+  const scrubBefore = await page.getByTestId('echo-scrub').inputValue();
+
+  // Unlocking alone changes nothing: the pose is still the view's pose, so the
+  // view's name is still true and must not be retracted.
+  await page.getByTestId('probe-free').check();
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-probe-lock', 'free');
+  await expect(page.getByTestId('echo-view-name')).toHaveText(viewName!);
+  await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
+  // The sweep no longer drives the probe, and says so rather than lying.
+  await expect(page.getByTestId('echo-scrub')).toBeDisabled();
+  // And the tilt arrow is gone: it would misdescribe what a drag now does.
+  await expect(page.getByTestId('anatomy-viewer')).not.toHaveAttribute('data-tilt-arrow', /.*/);
+
+  // Moving it retracts the claim.
+  const raw = await page.getByTestId('anatomy-viewer').getAttribute('data-probe');
+  expect(raw, 'the probe publishes a grab point while unlocked').not.toBeNull();
+  const probe = JSON.parse(raw!) as { x: number; y: number };
+  const box = await panelOrigin(page);
+  const echoBefore = await sampleCanvas(page, '[data-testid="echo-canvas"]');
+  await dragFrom(page, { x: box.x + probe.x, y: box.y + probe.y }, 70, 30);
+
+  await expect(page.getByTestId('echo-view-name')).toContainText('not a saved view');
+  await expect(page.getByTestId('echo-provenance')).toContainText('Unvetted plane');
+  // The image really did move: an unvetted plane that rendered the vetted one
+  // would be the worst of both.
+  await page.waitForTimeout(600);
+  expect(changed(echoBefore!, (await sampleCanvas(page, '[data-testid="echo-canvas"]'))!))
+    .toBeGreaterThan(echoBefore!.length * 0.05);
+
+  // Locking again discards the free pose rather than merging it, so the view
+  // comes back exactly — same name, same draft flag, same sweep position.
+  await page.getByTestId('probe-free').uncheck();
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-probe-lock', 'onTrack');
+  await expect(page.getByTestId('echo-view-name')).toHaveText(viewName!);
+  await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
+  await expect(page.getByTestId('echo-scrub')).toBeEnabled();
+  expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-tilt-arrow', /.*/);
+});
+
 /* --------------------------------------------------------------------------
    Explore: the app is a heart-model explorer as well as an echo trainer
    -------------------------------------------------------------------------- */
@@ -621,6 +677,7 @@ test('Explore drops the probe entirely, and keeps the notice', async ({ page }) 
   await expect(page.getByTestId('echo-panel')).toHaveCount(0);
   await expect(page.getByTestId('match-echo')).toHaveCount(0);
   await expect(page.getByTestId('beam-dim')).toHaveCount(0);
+  await expect(page.getByTestId('probe-free')).toHaveCount(0);
   await expect(page.getByTestId('anatomy-viewer')).not.toHaveAttribute('data-tilt-arrow', /.*/);
 
   // There is no probe to sync to, so the cutter is forced free — and says so.

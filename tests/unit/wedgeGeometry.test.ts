@@ -119,10 +119,46 @@ describe('wedgeGeometry', () => {
 });
 
 describe('wedgeOutline', () => {
-  it('closes back on the apex so the sector reads as a closed sector', () => {
+  /*
+   * The outline is a TUBE, not a polyline, because WebGL ignores `linewidth`:
+   * a `LineBasicMaterial` is one pixel wide whatever it is asked for, and the
+   * imaging plane is the object the whole screen is about. So its vertices are
+   * ring cross-sections around the path rather than the path itself, and the
+   * assertions below are about the SHAPE the tube encloses.
+   */
+  const tubeRadius = (frame: ReturnType<typeof imagingFrame>) => frame.depthMm * 0.005;
+
+  it('runs from the apex out to full depth and back', () => {
     const frame = imagingFrame(probe());
-    const all = points(wedgeOutline(frame));
-    expect(all[0]).toEqual(frame.origin);
-    expect(all[all.length - 1]).toEqual(frame.origin);
+    const radii = points(wedgeOutline(frame)).map((p) => Math.hypot(...sub(p, frame.origin)));
+    // Its nearest point is the apex, to within the tube's own thickness.
+    expect(Math.min(...radii)).toBeLessThan(tubeRadius(frame) * 1.5);
+    // Its furthest is the far arc, at the fan's authored depth.
+    expect(Math.max(...radii)).toBeCloseTo(frame.depthMm, -1);
+  });
+
+  it('stays in the imaging plane, to within its own thickness', () => {
+    /*
+     * A tube has thickness in every direction including elevation, so this is
+     * not the exact-planarity assertion the sector surface gets — but it still
+     * catches an outline built in the wrong basis, which would leave the plane
+     * by centimetres rather than by a millimetre.
+     */
+    const frame = imagingFrame(probe());
+    for (const point of points(wedgeOutline(frame))) {
+      expect(Math.abs(dot(frame.normal, sub(point, frame.origin))))
+        .toBeLessThan(tubeRadius(frame) * 1.5);
+    }
+  });
+
+  it('keeps its weight relative to the fan it outlines', () => {
+    // Thickness scales with depth, so a shallow view's outline is not a rope
+    // and a deep one's is not a hairline.
+    const shallow = imagingFrame(probe({ fan: { angle_deg: 75, depth_cm: 6, focus_cm: 3 } } as Partial<ProbePose>));
+    const deep = imagingFrame(probe({ fan: { angle_deg: 75, depth_cm: 18, focus_cm: 9 } } as Partial<ProbePose>));
+    const spread = (frame: ReturnType<typeof imagingFrame>) =>
+      Math.max(...points(wedgeOutline(frame))
+        .map((p) => Math.abs(dot(frame.normal, sub(p, frame.origin)))));
+    expect(spread(deep)).toBeGreaterThan(spread(shallow) * 2);
   });
 });

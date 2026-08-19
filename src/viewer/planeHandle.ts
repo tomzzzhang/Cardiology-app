@@ -57,6 +57,15 @@ const HALF_LONG = 1.12;
 const HALF_SHORT = 0.76;
 /** Length of the normal stub, as a fraction of the short half-extent. */
 const NORMAL_SCALE = 0.3;
+/**
+ * Edge thickness, in CSS pixels.
+ *
+ * Real geometry rather than `linewidth`, which WebGL ignores: a
+ * `LineBasicMaterial` is one pixel wide whatever it is asked for, and a
+ * hairline rectangle reads as a construction guide rather than as the sheet of
+ * glass the cutter is supposed to be.
+ */
+const EDGE_PX = 1.8;
 
 /** In-plane direction a handle names, in the basis `{u, v}`. */
 export function handleDirection(
@@ -75,8 +84,9 @@ export class CutPlaneGizmo {
   /** World position of each handle, refreshed by `update`. Empty when disabled. */
   readonly handlePositions = new Map<HandleId, THREE.Vector3>();
 
-  private readonly frame: THREE.LineLoop;
-  private readonly stub: THREE.Line;
+  private readonly frame: THREE.Group;
+  private readonly stub: THREE.Mesh;
+  private readonly stubLength: number;
   private readonly handles = new Map<HandleId, THREE.Mesh>();
   private readonly halfLong: number;
   private readonly halfShort: number;
@@ -88,31 +98,37 @@ export class CutPlaneGizmo {
     this.halfLong = Math.max(reach * HALF_LONG, 1);
     this.halfShort = Math.max(reach * HALF_SHORT, 1);
 
-    const corners = [
-      new THREE.Vector3(-this.halfLong, -this.halfShort, 0),
-      new THREE.Vector3(this.halfLong, -this.halfShort, 0),
-      new THREE.Vector3(this.halfLong, this.halfShort, 0),
-      new THREE.Vector3(-this.halfLong, this.halfShort, 0),
-    ];
-    this.frame = new THREE.LineLoop(
-      new THREE.BufferGeometry().setFromPoints(corners),
-      // Depth test off: the rectangle marks a plane cutting THROUGH the model,
-      // so hiding the half behind the heart would hide the half that says where
-      // the cut is going.
-      new THREE.LineBasicMaterial({
-        color: RECT_COLOUR, transparent: true, opacity: 0.75, depthTest: false,
-      }),
-    );
+    // Depth test off on both: the rectangle marks a plane cutting THROUGH the
+    // model, so hiding the half behind the heart would hide the half that says
+    // where the cut is going.
+    this.frame = new THREE.Group();
+    const edgeMaterial = new THREE.MeshBasicMaterial({
+      color: RECT_COLOUR, transparent: true, opacity: 0.75, depthTest: false,
+    });
+    // Four unit-section bars, scaled to thickness by `setScreenScale`. Built as
+    // boxes rather than as one closed tube so the corners stay square: a
+    // rectangle with rounded corners reads as a lozenge.
+    for (const edge of [
+      { x: 0, y: this.halfShort, along: 'x' as const },
+      { x: 0, y: -this.halfShort, along: 'x' as const },
+      { x: this.halfLong, y: 0, along: 'y' as const },
+      { x: -this.halfLong, y: 0, along: 'y' as const },
+    ]) {
+      const length = edge.along === 'x' ? this.halfLong * 2 : this.halfShort * 2;
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), edgeMaterial);
+      bar.userData.along = edge.along;
+      bar.userData.length = length;
+      bar.position.set(edge.x, edge.y, 0);
+      this.frame.add(bar);
+    }
 
-    this.stub = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, this.halfShort * NORMAL_SCALE),
-      ]),
-      new THREE.LineBasicMaterial({
+    this.stub = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({
         color: NORMAL_COLOUR, transparent: true, opacity: 0.9, depthTest: false,
       }),
     );
+    this.stubLength = this.halfShort * NORMAL_SCALE;
 
     this.object.add(this.frame, this.stub);
 
@@ -155,7 +171,7 @@ export class CutPlaneGizmo {
     );
     // The stub points along N, or against it when the kept half-space is
     // reversed — the only visible difference a reversal makes.
-    this.stub.scale.z = flipped ? -1 : 1;
+    this.stub.position.z = (flipped ? -1 : 1) * this.stubLength * 0.5;
 
     this.handlePositions.clear();
     if (this.handlesOn) {
@@ -188,6 +204,20 @@ export class CutPlaneGizmo {
   setScreenScale(unitsPerPixel: number, hitRadiusPx: number): void {
     this.handleRadius = Math.max(unitsPerPixel * hitRadiusPx, 1e-4);
     for (const handle of this.handles.values()) handle.scale.setScalar(this.handleRadius);
+
+    // Edges keep a constant weight on screen rather than in the model, so the
+    // rectangle does not become a slab when the camera comes close.
+    const thickness = Math.max(unitsPerPixel * EDGE_PX, 1e-4);
+    for (const bar of this.frame.children) {
+      const along = bar.userData.along as 'x' | 'y';
+      const length = bar.userData.length as number;
+      bar.scale.set(
+        along === 'x' ? length : thickness,
+        along === 'y' ? length : thickness,
+        thickness,
+      );
+    }
+    this.stub.scale.set(thickness, thickness, this.stubLength);
   }
 
   /**
@@ -231,9 +261,17 @@ export class CutPlaneGizmo {
   }
 
   dispose(): void {
-    for (const object of [this.frame, this.stub, ...this.handles.values()]) {
+    for (const object of [this.stub, ...this.handles.values()]) {
       object.geometry.dispose();
       (object.material as THREE.Material).dispose();
     }
+    // The four edge bars share one material, so it is disposed once.
+    let edgeMaterial: THREE.Material | null = null;
+    for (const bar of this.frame.children) {
+      if (!(bar instanceof THREE.Mesh)) continue;
+      bar.geometry.dispose();
+      edgeMaterial = bar.material as THREE.Material;
+    }
+    edgeMaterial?.dispose();
   }
 }
