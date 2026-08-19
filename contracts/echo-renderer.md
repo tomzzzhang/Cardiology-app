@@ -1,7 +1,9 @@
 # Contract: echo-renderer
 
 **Owns:** `src/echo/**`
-**Status:** contract only. Stage 0 and the full pass are wave 1b. **Wave 0 implements none of it.**
+**Status:** implemented. Scan, separable PSF and display passes run over the labelled volume with
+per-view tuning; every frame is labelled simulated. Outstanding: motion, secondary rays, and
+`echo_tuning` authored per view rather than defaulted.
 **Spec:** `docs/build_plan.md` v1.2 — "Simulated echo work item (echo-shader spec)".
 
 ## Responsibility
@@ -45,7 +47,15 @@ echo_volume           asset, format, resolution, mesh_to_volume, labels[], scatt
 - The **fan geometry comes from the same `probe` the wedge uses.** The plane is derived, never stored
   twice, so wedge and echo cannot disagree.
 - **The free anatomical cutter is not an input.** Moving it must not synthesize, relabel, or
-  re-render an echo image. There is no code path from `{N, s}` into this module.
+  re-render an echo image. There is no code path from `{N, s}` into this module. This holds
+  unchanged through the cutter's Echo plane mode, which reads the imaging frame and writes the
+  cutter — the arrow of causation is probe → cutter.
+- **A hand-turned probe renders, and is labelled.** *(Owner decision, 2026-08-19.)* When the learner
+  unlocks the probe, this module renders the pose it is given, exactly as it renders any other. What
+  changes is what the PANEL claims: the view's name and its draft flag are withdrawn the moment the
+  pose has actually left the saved track, and the provenance line says the plane is unvetted.
+  Rendering an arbitrary plane under a vetted view's name is the one thing forbidden — it is the
+  failure the pack's refusal to author A3 and A4 exists to avoid.
 - The scatterer field is **not shipped**: generate it at runtime from `scatterer_seed`,
   deterministically. Baking a scatterer channel stays a fallback if runtime generation is too costly
   on phones — that call belongs to the slice review, and no baked-channel field exists in schema v0.

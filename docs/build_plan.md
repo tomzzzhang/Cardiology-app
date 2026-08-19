@@ -2,7 +2,7 @@
 
 > **Build specification.** Clinical collaborators are referred to by role, not name. Referenced `research/DR*.md` reports live in the owner's planning folder.
 
-Status: **v1.4** (2026-08-18). The viewer now has an explicit coordinate/control contract: the independent free anatomical cutter is separate from the vetted echo wedge, with radial plane state and touch/mouse behavior pinned. v1.3 added the optional `meshes.anatomical_frame` evidence block to the schema and recorded what a heart-only substrate can and cannot say about orientation. v1.4 adds `anatomical_frame.valve_identification`: which structure carries which valve plane, derived from face adjacency rather than from position, with the shared-face counts that prove it. Anatomy set, echo investment, release ladder, and definition of done are unchanged. Scope authority is `docs/mvp_scope.md` (LOCKED); nothing here changes scope. View/sweep content spec: `docs/view_canon.md` (DRAFT, pending clinical vetting).
+Status: **v1.5** (2026-08-19). v1.5 records the interaction pass the owner ordered after using the build: explicit target selection and the one-shot align bridge are replaced by direct manipulation and two named cutter modes, Explore becomes a first-class top-level mode, and the probe gains an explicit, labelled unlock. The substrate risk below is RESOLVED and the section says how. Earlier: **v1.4** (2026-08-18). The viewer now has an explicit coordinate/control contract: the independent free anatomical cutter is separate from the vetted echo wedge, with radial plane state and touch/mouse behavior pinned. v1.3 added the optional `meshes.anatomical_frame` evidence block to the schema and recorded what a heart-only substrate can and cannot say about orientation. v1.4 adds `anatomical_frame.valve_identification`: which structure carries which valve plane, derived from face adjacency rather than from position, with the shared-face counts that prove it. Anatomy set, echo investment, release ladder, and definition of done are unchanged. Scope authority is `docs/mvp_scope.md` (LOCKED); nothing here changes scope. View/sweep content spec: `docs/view_canon.md` (DRAFT, pending clinical vetting).
 
 ## Goal
 
@@ -17,18 +17,24 @@ The locked MVP is the destination; intermediate releases de-risk it in order:
 3. **Full Normal canon** — all views + sweeps per `view_canon.md`, vetting pass.
 4. **Multi-anatomy MVP** — ASD module + d-TGA packs through the same pipeline; definition of done above.
 
-## Anatomical substrate risk
+## Anatomical substrate risk — RESOLVED
 
-The echo renderer consumes labeled TISSUE (myocardium, pericardium, valve leaflets, interfaces), but several candidate sources are blood-pool casts or fused surfaces. Splitting an STL cannot create tissue that is not there; a bloodpool-only mesh yields chamber lumens and an uninterpretable "echo." Plan:
+The risk was that candidate sources are blood-pool casts or fused surfaces: splitting an STL cannot create tissue that is not there, and a bloodpool-only mesh yields chamber lumens and an uninterpretable "echo".
 
-- **First slice task:** confirm per model whether the Alberta library provides myocardial (not just bloodpool) versions of the Normal heart and d-TGA.
-- **Fallback, in order:** (a) synthetic myocardium by shelling/offsetting the bloodpool surface (Blender solidify), honestly labeled as stylized geometry in provenance; (b) pericardium rendered as a bright interface at the outer myocardial boundary (a renderer trick, not geometry); (c) valve leaflets sculpted as artist geometry where sources lack them — flagged stylized, vetted like everything else.
-- The slice review (with the clinical vetter) decides whether the substrate + fallbacks clear the "learnable-from" bar BEFORE schema v1 freezes and content production starts.
+**It did not materialise, because the source changed.** The shipped Normal pack is built from the Rodero/CEMRG average four-chamber **tetrahedral** mesh (CC BY 4.0), which carries real myocardial volume with tagged element groups — four chamber myocardia, the great-vessel walls, the four valve annuli, and fourteen vein and caval stubs. Rendered LV wall thickness measures 10.5 mm against the substrate's own 10.7 mm median chord, so no shelling fallback was needed. The Alberta 3D Heart Library is **licence-rejected** (CC BY-NC 4.0 against a product with commercial red lines) and its files are pruned from the build; `npm run test:visual` asserts they are not served.
+
+What the substrate still cannot supply, and what is done about it:
+
+- **No leaflets.** The tagged elements are fibrous annuli, so the four valves ship as *rings* and are named as rings everywhere. Calling one a "valve" without "ring" would be a regression in honesty.
+- **No pericardium, chest wall, spine or diaphragm.** This is why the subcostal family (A3, A4) is refused rather than guessed: "below the diaphragm" is a BODY axis this mesh cannot supply, and the three defensible proxies disagree by up to 46°.
+- **Fourteen of twenty-four tags stay generic.** Each borders exactly one chamber, so adjacency cannot separate a right upper pulmonary vein from a left lower one; that needs a clinical reading.
+
+The remaining fallbacks (pericardium as a rendered interface; sculpted leaflets, flagged stylized) are still available and still unused. Clinical review is deferred until the build is substantially complete, so schema v1 has not frozen and schema v0 stays provisional.
 
 ## Repo and hosting
 
-- Repo: **github.com/tomzzzhang/cardiology-app** — public.
-- Hosting: **GitHub Pages** at `https://tomzzzhang.github.io/cardiology-app/`, deployed from `main` via GitHub Actions. Deep links use URL query params (`?a=<anatomy>&v=<view>&s=<sweep-pos>`); no SPA-routing hacks needed.
+- Repo: **github.com/tomzzzhang/Cardiology-app** — public. The capital `C` is load-bearing: GitHub Pages serves a project site from `/<repository-name>/`, so the path is case-sensitive and the workflow passes the real name through as `BASE_PATH`. `npm run check:base-path` builds with a sentinel and asserts the output is prefixed, so neither the path nor its casing can be hardcoded.
+- Hosting: **GitHub Pages** at `https://tomzzzhang.github.io/Cardiology-app/`, deployed from `main` via GitHub Actions. Deep links use URL query params; the full `?a=<anatomy>&v=<view>&s=<sweep-pos>` scheme is wave 2, and `?mode=`, `?view=` and `?pack=` are wired today. No SPA-routing hacks needed.
 - The Git checkout lives OUTSIDE any file-sync tree; sync services corrupt git state.
 - **Privacy rule:** no personal names, program names, or availability details of clinical collaborators anywhere in this repository. In-app provenance shows vetter ROLE labels until explicit naming consent is recorded. Licence-required attribution of a third-party model's source is a separate obligation and stays required.
 
@@ -62,15 +68,15 @@ Anatomy-agnostic engine, versioned self-contained packs, zero lesion-specific en
 ### Mouse, trackpad, and touch behavior
 
 - Default navigation: drag orbits around `C`; pan is a separate gesture; wheel/pinch zooms the camera; reset restores the pack's standard orientation. Familiar globe-viewer orbit behavior is the reference feel.
-- The active target is always visible: **heart/camera**, **free cut**, or **echo view**. A drag must never silently manipulate a different object.
+- A drag must never silently manipulate a different object. **Met positionally rather than by a mode** (2026-08-19, superseding the "heart/camera / free cut / echo view" target selector): every movable object is drawn, and what is under the pointer decides what a drag moves.
 - With the free cutter active, a visible slider and modifier-wheel translate it along plane-local `N`. Wheel without the modifier always zooms. The slider, wheel, depth/offset readout, and reset action stay synchronized. Sensitivity and direction inversion are user preferences if inexpensive.
-- Plane rotation uses visible handles/gizmos. Default free rotation holds `s` constant while rotating `N` around the heart; a gesture freezes its pivot for the duration so the plane cannot drift from continuously recomputing the pivot. Fixed-anatomical-point and probe-origin rotation modes remain authoring/later refinements, not MVP requirements.
+- Plane rotation uses four handles at the edge midpoints of the rendered rectangle. Rotation holds `s` constant while rotating `N` around the heart; a gesture freezes its start normal and its pivot for the duration and applies the drag's total offset, so the plane cannot drift and dragging back returns it. The grabbed handle follows the pointer. Fixed-anatomical-point and probe-origin rotation modes remain authoring/later refinements, not MVP requirements.
 - Phone controls use visible handles and the depth slider rather than hidden modifier gestures; pinch zooms and two-finger drag pans.
 
 ### Separation and bridge actions
 
-- Learner mode can freely move the anatomical cutter but cannot freely reposition a vetted echo wedge. Named views and sweeps drive the wedge through the view rail/scrubber; arbitrary probe-pose work remains in authoring mode.
-- **Align free cut to echo view** copies the selected echo plane into the free cutter. Subsequent free movement breaks the association and never modifies the vetted view.
+- Learner mode can freely move the anatomical cutter. The wedge is driven by named views and sweeps, through the scrubber or the probe's tilt arrow, which writes the same `t`. **One explicit exception** (2026-08-19): a **Free probe** toggle unlocks the probe and lets the learner turn it off the saved track, paid for by the echo panel withdrawing the view's name and draft flag the moment it has actually moved. Arbitrary probe-pose AUTHORING remains in authoring mode, and nothing a learner can do writes to `views[]`.
+- **The cutter has two named modes** (2026-08-19, superseding the one-shot **Align free cut to echo view** bridge): **Echo plane**, in which it continuously follows the selected view's imaging plane as the sweep scrubs, and **Free**, in which it claims no relationship to the view. The name is on screen at all times. Data flows probe → cutter and never the reverse, and neither mode modifies the vetted view.
 - Moving the free cutter alone does not synthesize or relabel an echo image. The echo panel continues to display only the selected vetted view/sweep output.
 
 ## Content pack schema — v0 PROVISIONAL
@@ -138,13 +144,14 @@ Typecheck + lint; pack schema validation; per-view visual regression (headless s
 
 ## Milestones and waves
 
-**Wave 0 — done.** Scaffold (Vite + TS + React + three.js), CI, Pages deploy, pack schema v0 + validator + stub pack, module contract files, `WORKFLOW.md`. The stub pack loads and validates; the viewer is a hello-world scene.
+**Wave 0 — done.** Scaffold (Vite + TS + React + three.js), CI, Pages deploy, pack schema v0 + validator + stub pack, module contract files, `WORKFLOW.md`. The stub pack loads and validates.
 
 **Wave 1 — slice first, then fan out:**
-- **(1a) Model pipeline slice** — one real Alberta Normal asset: myocardial-variant check, label split, substrate completion as needed, decimation, glTF + `echo_volume` voxelization. Touches `pipeline/`, `packs/normal/`.
-- **(1b) Echo slice** — Stage 0 then the full scanline pass against 1a's real volume; one hard sweep end-to-end with the synced wedge (primary: subcostal coronal posterior→anterior sweep; alternate: PLAX TV↔PV); laptop + phone perf numbers. Touches `src/echo/`.
-- **Slice review gate:** interpretation read by the clinical vetter (+ attending if available); decides substrate verdict and freezes schema v1.
-- **(1c) viewer-core** implements the interaction contract above (orbit/pan/zoom, explicit selection, radial free cutter, solid caps, slider/modifier-wheel depth, touch controls, align-to-echo bridge), while **(1d) view rail + scrubber** drives only vetted probe poses/sweeps. They proceed in parallel against the stub pack; their contracts do not depend on the slice.
+- **(1a) Model pipeline slice — done.** Built against the Rodero/CEMRG tet mesh rather than the licence-rejected Alberta library: tag split, valve identification by face adjacency, decimation, glTF + `echo_volume` voxelization, and a measured cardiac frame. Touches `pipeline/`, `public/packs/normal-rodero/`.
+- **(1b) Echo slice — done.** Scan, separable PSF and display passes against 1a's real volume, with `npm run measure:echo` reporting grey levels and wall fill rather than asserting them. Touches `src/echo/`.
+- **Slice review gate — DEFERRED by owner decision (2026-08-19).** Clinical review waits until the build is substantially complete. Schema v0 stays provisional; do not add review gates or solicit vetting before then.
+- **(1c) viewer-core — done for this slice.** Orbit with no polar clamp, camera framing, the radial free cutter with solid stencil caps and an optional ghost of the removed half, direct-manipulation cut handles, two named cutter modes, the probe indicator and its tilt arrow, the beam-dim highlight, the animated match-echo camera, and Explore mode. Outstanding: pinch-zoom and two-finger pan, per-structure show/hide, labels, measurement.
+- **(1d) view rail + scrubber — next.** Drives only vetted probe poses and sweeps. Its annotated ticks come from `sweep.structures_in_order`, which is now measured per view and deliberately EMPTY where the ordering was produced by the size tie-break rather than by the sweep.
 
 **Wave 2 — integration.** Real packs through viewer + echo + rail; deep links; provenance UI + credits; phone layout pass.
 

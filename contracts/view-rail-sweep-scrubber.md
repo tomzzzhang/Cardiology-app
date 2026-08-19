@@ -1,7 +1,9 @@
 # Contract: view rail + sweep scrubber
 
 **Owns:** `src/views/**`
-**Status:** contract only. Implementation is wave 1d, in parallel with viewer-core.
+**Status:** contract only. Implementation is wave 1d. A single sweep slider and the probe's tilt
+arrow stand in for the scrubber today; views are reachable only by `?view=`. Two clauses were
+superseded by the 2026-08-19 interaction pass and are marked below.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (4); `docs/view_canon.md` (DRAFT).
 
 ## Responsibility
@@ -31,11 +33,22 @@ order by pack order.
    `views[i].sweep` — `{mode, axis, range, interpolation}` over `t ∈ [0, 1]`, `slerp` or `lerp` as the
    pack declares. `mode: 'translate'` uses `mm`; `tilt` and `rotate` use `deg`. The axis passes
    through `probe.origin` unless `sweep.axis.origin` says otherwise.
-3. **Learner mode cannot reposition a vetted wedge.** Named views and sweeps are the only controls.
-   Arbitrary probe-pose work belongs to authoring mode. There is no "nudge the wedge" affordance.
+3. **The sweep has a probe-side affordance, and it is an input rather than a second owner.**
+   *(Supersedes "there is no 'nudge the wedge' affordance", 2026-08-19.)* A tilt arrow drawn on the
+   probe scrubs the sweep by calling the same `scrub(t)` the slider calls — one clock, hard-clamped
+   to [0, 1] — so every pose it reaches is one the slider already reached. It is drawn from
+   `poseAt` over a window around the current `t`, so it rides the probe, and a view with no sweep
+   gets no arrow.
+
+   Learner mode still cannot reposition a vetted wedge **except** through the explicit **Free
+   probe** unlock, which is an owner decision of the same date and is paid for by the echo panel
+   withdrawing the view's name. Arbitrary probe-pose AUTHORING still belongs to authoring mode:
+   nothing a learner can do writes to `views[]`.
 4. **The free anatomical cutter is not this module's business.** Selecting a view does not move the
-   free cutter. The single permitted interaction is the user-invoked **Align free cut to echo view**
-   bridge, which *copies* the current echo plane into the cutter and never writes back.
+   free cutter, and the cutter never writes back. *(Supersedes the copy-only align bridge,
+   2026-08-19.)* The cutter now has an **Echo plane** mode of its own in which it follows the
+   selected view's imaging plane continuously; that relationship is owned by viewer-core and reads
+   the same imaging frame this module drives. Data flows probe → cutter and never the reverse.
 5. **`structures_in_order` is teaching content.** Surface the ordered structures a sweep crosses;
    do not reorder, dedupe, or infer them.
 6. **Display conventions come from the pack.** `probe.display.vertex`, `flip_lr`, `marker_side`, and

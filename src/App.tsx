@@ -1,10 +1,18 @@
 /**
- * Wave 0 app shell placeholder.
+ * The app shell: mode, layout, and the composition of the other modules.
  *
- * Deliberately minimal: it renders the hello-world viewer and reports whether
- * the stub content pack loaded and validated against schema v0. The real shell
- * — URL-param deep links, responsive viewport + echo panel + view rail — is
- * specified in `contracts/app-shell.md` and built later.
+ * It composes and does not implement — viewer behaviour is viewer-core's, the
+ * echo image is echo-renderer's — with two exceptions that are genuinely the
+ * shell's, because they are the only place both panels can be seen at once:
+ *
+ * * **the scrub position**, so the wedge on the anatomy and the echo image are
+ *   two renderings of ONE sweep position rather than two that agree;
+ * * **the free probe pose**, for the same reason, plus the judgement of whether
+ *   it has actually left the view's track — which needs both the free pose and
+ *   the pose the sweep would have produced.
+ *
+ * The view rail, the pinned provenance strip and the full `?a=`/`?v=`/`?s=`
+ * deep-link scheme are `contracts/app-shell.md`, wave 2.
  */
 import { useEffect, useState } from 'react';
 import PackViewer, { type ViewerMode } from './viewer/PackViewer.tsx';

@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-18 14:05 EDT
+**Updated:** 2026-08-19 02:05 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -9,9 +9,15 @@ sits on the model — with a simulated echo image alongside and scrubbable sweep
 Education only. Not diagnostic. Every echo image in this app is **simulated**, never a recording
 of a patient, and the app never accepts user-uploaded or arbitrary patient images.
 
-**Status:** the Wave 0 scaffold is in place — build and deploy pipeline, content-pack schema v0
-with validators, a synthetic stub pack, the module contracts, CI, and tests. The viewer is still
-a hello-world scene. The next objective is one real Normal-heart technical slice.
+**Status:** the Normal-heart technical slice is deployed and live. The app loads a real ingested
+heart pack, renders it in 3D with per-structure colouring and a solid-capped free cut plane,
+draws the probe and its sector, and renders a simulated echo for the selected view from the same
+probe pose the wedge is built from. Three clinical views are authored and draft-flagged, reachable
+by `?view=`; two were deliberately refused, and the pack says why. There is no view rail yet —
+that, and the annotated sweep scrubber, are the next objective (wave 1d).
+
+Everything is **draft and unvetted**. Schema v0 is provisional, clinical review is deferred until
+the build is substantially complete, and no view carries a clinical claim.
 
 ## Read first
 
@@ -52,12 +58,17 @@ engine hardcodes lesion names or counts; adding a lesion means authoring a pack.
 ```
 src/schema/     content-pack schema v0 (provisional) and its validator
 src/packs/      pack-loader — the only place JSON becomes a typed pack
-src/viewer/     hello-world scene today; viewer-core lands with the slice work
+src/viewer/     viewer-core: orbit, the free cutter and its handles, stencil caps,
+                the probe indicator, the beam-dim highlight, the tilt arrow
+src/echo/       echo-renderer: probe frame, the three shader passes, the echo panel
+pipeline/       Python model ingest — split, label, decimate, voxelise, author views
+shared/         the few constants the pipeline and the viewer both have to agree on
 public/packs/   shipped packs, one directory each
 scripts/        pack validation, provenance check, base-path check, stub asset generation
 contracts/      one-page module contracts
-tests/unit/     schema, loader, and asset-semantics tests
-tests/visual/   Playwright visual-regression harness
+tests/unit/     schema, loader, asset semantics, plane algebra, orbit, echo acoustics
+tests/visual/   Playwright suite against a production build
+tests/perf/     measurement harnesses that report numbers rather than asserting them
 ```
 
 ### The one boundary that matters
@@ -68,12 +79,20 @@ Two things look similar on screen and are not the same:
   interaction pivot `C`. It is runtime inspection state, the learner moves it freely, it makes no
   clinical claim, and it is **never stored in `views[]`**. A pack may seed it once, via optional
   `interaction.free_cut`.
-- The **vetted echo wedge** is a finite sector derived from a saved probe pose in `views[]`. In
-  learner mode only the view rail and sweep scrubber move it. The plane and the wedge derive from
-  that one pose, so the wedge on the model and the echo fan cannot disagree.
+- The **vetted echo wedge** is a finite sector derived from a saved probe pose in `views[]`. The
+  plane and the wedge derive from that one pose, so the wedge on the model and the echo fan cannot
+  disagree.
 
-The only link is one-way and copy-only: **Align free cut to echo view** copies the echo plane into
-the cutter, and later free movement never writes back. See [`contracts/README.md`](contracts/README.md).
+Data flows **probe → cutter and never the reverse**. The cutter has a mode in which it follows the
+selected view's imaging plane as the sweep scrubs, and a free mode in which it claims no
+relationship to the view; which one is in force is named on screen at all times. Nothing a learner
+can reach writes to `views[]`.
+
+The probe can be **unlocked** and turned by hand, off the view's saved sweep track. That is a
+deliberate exception, paid for by labelling rather than by hiding: the echo keeps rendering, and
+the moment the probe has actually moved the panel withdraws the view's name and its draft flag and
+says the plane is unvetted. Locking again discards the free pose, so the probe returns to the
+saved track exactly. See [`contracts/README.md`](contracts/README.md).
 
 ## Deployment
 
@@ -82,8 +101,16 @@ from `/<repository-name>/`, so the workflow passes `BASE_PATH` to the build and 
 resolves URLs through `import.meta.env.BASE_URL`. Neither value is hardcoded — local dev,
 `vite preview`, and the Playwright harness all run at `/`.
 
-Deep links use query params (`?a=<anatomy>&v=<view>&s=<sweep-pos>`); the site is fully static,
-with no backend and no accounts.
+Deep links use query params; the site is fully static, with no backend and no accounts. The full
+scheme (`?a=`/`?v=`/`?s=`) is wave 2. What is wired today:
+
+| Param | What it does |
+| --- | --- |
+| `?mode=explore` | Open in Explore — the heart model alone, no probe and no echo panel. Echo is the default. |
+| `?view=<view_id>` | Select a view by id or index, until the view rail exists. |
+| `?pack=<pack_id>` | Select a pack. Used by the visual suite to hold the synthetic stub. |
+| `?freeze=1` | Stop animation, for reproducible frames. |
+| `?polar=<scale>` | Scale the echo renderer's internal polar working resolution. A measurement control. |
 
 ## Licensing
 

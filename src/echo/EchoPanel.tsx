@@ -10,6 +10,14 @@
  * Honesty requirement, from `contracts/echo-renderer.md`: every simulated frame
  * is labelled simulated, with provenance one tap away. The label is rendered
  * unconditionally alongside the canvas and is not behind a prop.
+ *
+ * The second honesty requirement is newer and points the other way. The learner
+ * can unlock the probe and turn it off this view's saved sweep track, and this
+ * panel keeps rendering — but the moment the pose has actually left the track it
+ * stops CLAIMING to be the view: the name goes, the draft flag goes, and the
+ * provenance line says the plane is unvetted. Rendering an arbitrary plane under
+ * a vetted view's name is the failure the pack's refusal to author A3 and A4
+ * exists to avoid, and it stays forbidden.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Pack, ProbePose } from '../schema/packV0.ts';

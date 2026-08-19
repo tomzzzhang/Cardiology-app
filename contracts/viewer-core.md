@@ -1,7 +1,8 @@
 # Contract: viewer-core
 
 **Owns:** `src/viewer/**`
-**Status:** contract only. Implementation is wave 1c. Wave 0 ships a hello-world scene, not this.
+**Status:** implemented for the wave 1c slice. Superseded clauses are marked below; where this
+page and the code disagree, the code is what shipped and this page is what was fixed.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (2) and the whole "Viewer interaction contract".
 
 ## Responsibility
@@ -30,8 +31,13 @@ dot(N, X - C) = s          closest point   Q = C + sN
 ```
 
 - `N` is normalized; `s` is signed distance from `C`, in pack `units`.
-- **The mathematical cutter is infinite.** Any rendered rectangle is a helper sized from model bounds
-  and never limits clipping.
+- **The mathematical cutter is infinite.** The rendered rectangle is a helper sized from model
+  bounds and never limits clipping. It is drawn deliberately LARGER than any cross-section it can
+  take — a sheet of glass passed through the heart, not a window cut in one — because a rectangle
+  smaller than the cut reads as if the cut stopped at its edge.
+- The rectangle carries an **in-plane orientation** the mathematics does not: a cross-section reads
+  as a rectangle rather than a disk, and in echo-synced mode its long edge is the sector's lateral
+  axis, so it reads as the same slice the echo panel shows rather than an arbitrarily rolled one.
 - Reversing the oriented plane changes which side remains visible.
 - Cut faces render **solid**, via stencil-buffer caps. A hollow cut is a bug, not a style.
 - The cutter is runtime inspection state. It is never written into `views[]`, and it makes no claim
@@ -42,22 +48,54 @@ dot(N, X - C) = s          closest point   Q = C + sN
 **Navigation.** Drag orbits around `C`. Pan is a separate gesture. Wheel/pinch zooms the camera.
 Reset restores the pack's standard orientation. Familiar globe-viewer orbit feel is the reference.
 
-**Explicit target selection.** The active target is always visible and is exactly one of
-**heart/camera**, **free cut**, or **echo view**. A drag must never silently manipulate a different
-object.
+**Direct manipulation, not modal selection.** *(Supersedes "explicit target selection", 2026-08-19.
+The owner used the build and replaced the mechanism; the requirement it served is unchanged.)*
+
+The requirement is that **a drag must never silently manipulate a different object**. That is met
+positionally rather than by a mode: what a drag moves is decided by what is under the pointer, and
+every movable object is drawn. A cut handle tips the plane, the probe's arrow scrubs the sweep,
+anywhere else orbits the camera. There is no target selector, and no state a learner has to have
+set before a drag does what they meant.
 
 **Depth along the plane normal.** With the free cutter active, a visible slider and a modifier-wheel
 translate it along plane-local `N`. **Wheel without the modifier always zooms** — no exceptions. The
 slider, the wheel, the depth/offset readout, and reset stay synchronized: they are views of one `s`.
 Sensitivity and direction inversion are user preferences if inexpensive.
 
-**Rotation.** Visible handles/gizmos. Default free rotation holds `s` constant while rotating `N`
-around the heart. A gesture **freezes its pivot for the duration** so the plane cannot drift from a
-continuously recomputed pivot. Fixed-anatomical-point and probe-origin rotation modes are
-authoring/later refinements, not MVP requirements.
+**Rotation.** Four handles at the edge midpoints of the rendered rectangle, one per edge direction.
+Rotation holds `s` constant while rotating `N` around the heart, and a gesture **freezes its start
+normal and its pivot for the duration**, applying the drag's total offset, so the result does not
+depend on the pointer's sampling rate and dragging back returns the plane.
+
+The **grabbed handle follows the pointer**: a handle can only move perpendicular to its plane, so
+the drag is measured along the screen projection of `N`, not along the handle's own direction. An
+edge pair therefore gives two opposite controls rather than one doubled. Where the plane is nearly
+face-on the handle has no screen direction to move in, and the gesture falls back to tipping the
+edge the way a picture frame tips.
+
+**Cutter modes.** *(Supersedes the one-shot align bridge, 2026-08-19.)* The cutter is always in one
+of two named modes, and the name is on screen at all times:
+
+- **Echo plane** — the cutter continuously follows the selected view's imaging plane as the sweep
+  scrubs. The rectangle is not drawn and the handles are neither rendered nor hittable: the plane is
+  not the learner's to move, and the wedge already shows where it is. The depth slider is disabled,
+  because in this mode there is no depth to choose.
+- **Free** — the cutter is the learner's, handles active, no relationship to the view claimed.
+
+Switching to Free **adopts the current plane**, so the transition is continuous rather than a jump;
+switching back re-acquires the echo plane. The echo panel does **not** blank in Free mode: the mode
+name carries the distinction, which beats teaching it by an absence, and blanking on every stray
+drag would be hostile now that the plane is directly draggable.
+
+**Ghost cutaway.** The half the cutter removes can be drawn back as a faint translucent shell,
+behind a toggle. It shares geometry with the anatomy and carries the reversed clipping plane, so the
+two halves are complementary by construction.
 
 **Touch.** Phone controls use visible handles and the depth slider, not hidden modifier gestures.
-Pinch zooms; two-finger drag pans.
+The fine/coarse rule lives in ONE module (`src/viewer/pointerClass.ts`) rather than per control: a
+fine pointer reveals a handle on approach, a coarse pointer shows every handle permanently at a
+thumb-sized target, because a touch screen has no hover and a proximity-revealed handle there is
+simply an invisible control. Pinch-zoom and two-finger pan remain outstanding.
 
 ## The vetted echo wedge
 
@@ -65,20 +103,33 @@ A separate object with a separate data path. Built from `views[].probe`: anchor 
 basis = `beam_axis`/`lateral_axis`, extent from `probe.fan`. One source of truth, so the wedge on the
 model and the echo fan match **one-to-one**.
 
-In learner mode the wedge is driven **only** by the view rail and sweep scrubber. viewer-core exposes
-no learner-facing control that repositions a vetted wedge; arbitrary probe-pose work lives in
-authoring mode.
+In learner mode the wedge is driven by the sweep — through the scrubber slider or through the
+probe's **tilt arrow**, which is an input rather than a second owner: it writes the same `t` the
+slider writes, hard-clamped to [0, 1], so every pose it can reach is `frameAt(probe, sweep, t)` by
+construction. The arrow's shape is sampled from `poseAt` over a window around the current `t`, so it
+rides the probe and a translate sweep gets a straight arrow rather than a false arc. A view with no
+sweep gets no arrow.
 
-## The one permitted bridge
+**The one exception, and it is explicit.** *(Owner decision, 2026-08-19; supersedes "viewer-core
+exposes no learner-facing control that repositions a vetted wedge".)* A **Free probe** toggle
+unlocks the probe and lets the learner turn it about its own origin, off the saved track. It is paid
+for by labelling rather than by hiding — see `contracts/README.md` for what is withdrawn and what is
+restored. Nothing about it can write to `views[]`, and locking again returns the probe to
+`frameAt(probe, sweep, t)` exactly.
 
-**Align free cut to echo view** — copies the selected echo plane into the free cutter. One-way and
-copy-only. Subsequent free movement breaks the association and never modifies the vetted view.
-Moving the free cutter alone does not synthesize or relabel an echo image; the echo panel keeps
-showing only the selected vetted view/sweep output.
+## The direction data flows
+
+**Probe → cutter, never the reverse.** The Echo plane mode reads the imaging frame the wedge and the
+echo are built from and writes the cutter; there is no path back. Moving the free cutter does not
+synthesize or relabel an echo image — there is no code path from `{N, s}` into the echo renderer.
+
+The one-shot **Align free cut to echo view** bridge this contract used to specify no longer exists;
+the Echo plane mode replaces it, and is a live relationship rather than a copy that decays.
 
 ## Definition of done
 
-Orbit/pan/zoom around `C`; explicit target selection; infinite clipping with solid caps;
-plane-normal depth control synchronized across slider, wheel, and readout; touch controls; the
-copy-only align bridge. Works against the stub pack — viewer-core does not depend on the wave 1
-model-pipeline slice.
+Orbit/zoom around `C` with no polar clamp; positional drag dispatch with every movable object drawn;
+infinite clipping with solid caps and an optional ghost of the removed half; two named cutter modes;
+depth control synchronized across slider, wheel and readout; pointer-class handling in one place.
+Works against the stub pack — viewer-core does not depend on the wave 1 model-pipeline slice.
+Outstanding: pinch-zoom and two-finger pan, per-structure show/hide, labels, measurement.
