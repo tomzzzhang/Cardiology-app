@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 08:14 EDT
+**Last Updated:** 2026-08-19 08:20 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -1144,3 +1144,31 @@ shelf look bad":
    straight into their own base, where the truncated ventricles and annuli read as craters in a
    blob. That is what "Fallot and STRAUS are blobs with holes" is: a real opening, seen end-on,
    with no colour to separate the surfaces nested inside it.
+
+---
+
+## 30. The Visible Heart Labs pack DOES echo, and the owner is right that it can be probed
+
+**Where.** `?pack=normal-vhl-heart0102`. It opens in **Echo** mode — no refusal, probe drawn, echo
+panel rendering. It is an echo-capable pack and always was.
+
+**What the wave 1a rejection actually said, and what it did not.** It said the pack is a single
+undivided tissue body: one material, one echo label, so nothing can be shown or hidden per chamber
+and a sweep has no ordered structure list to read out. All of that stands. What it did **not** say,
+and what should not be read into it, is that the model cannot be oriented or imaged. It can. The
+probe pose, the sector, the cut plane and the echo raster all work on it today.
+
+**What one label costs the echo, precisely.** The renderer maps label → echogenicity and
+attenuation. With one label there is one echogenicity, so the image has speckle and attenuation but
+**no grey-level ordering between tissues** — the thing `docs/build_plan.md` calls perceptual priority
+1. Blood does not read darker than myocardium because there is no blood label. That is a real limit
+and it is a limit on the TEACHING content, not on the geometry or the orientation.
+
+**Separately: it is CC BY-NC 4.0.** It cannot ship whatever anyone concludes about the substrate.
+
+**Decision for the owner.** Whether the wave 1a substrate verdict on this pack should be revised in
+`src/packs/published.ts` and `public/packs/README.md`. The geometry claim in it — 1,026 connected
+components rendering as voids — was measured before the ingest welded vertices, exactly like the
+BodyParts3D numbers entry 29 corrects. **It has not been re-measured**, because that pack goes
+through `ingest.py`, which has always welded, so the number is probably real. Re-running it and
+checking is cheap and has not been done.
