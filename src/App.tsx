@@ -347,6 +347,9 @@ export default function App() {
             freePose={freePose}
             hidden={hiddenIds}
             apexFlipped={apexFlipped}
+            isolatedLabel={effectiveMode === 'explore' && visibility.isolated !== null
+              ? walk(roots).find((node) => node.id === visibility.isolated)?.label ?? null
+              : null}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
             /*

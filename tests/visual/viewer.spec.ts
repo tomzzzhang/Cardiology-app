@@ -64,7 +64,12 @@ test('renders the simulated echo over the real labelled volume', async ({ page }
 
   // The "simulated" label is a contract requirement (contracts/echo-renderer.md
   // "Honesty requirements"), not decoration. It must be on screen with the image.
+  // The standing safeguard: simulated echo is labelled simulated. The red
+  // banner over the image is gone (owner, 2026-08-19 — the flags are being
+  // reworked as a set); the statement is in the provenance line and the panel
+  // header, and it still has to be on screen.
   await expect(page.getByTestId('echo-simulated')).toBeVisible();
+  await expect(page.getByTestId('echo-panel-note')).toHaveText('Simulated');
   await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
 
   // The sector must contain real grey-level STRUCTURE. A renderer that
@@ -696,10 +701,11 @@ test('unlocking the probe withdraws the view\'s claim, and locking restores it',
    -------------------------------------------------------------------------- */
 
 test('Explore drops the probe entirely, and keeps the notice', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
-    timeout: 30_000,
-  });
+  // Switch modes rather than reloading: `beforeEach` has already loaded the
+  // pack, and a second full load of a WebGL scene per test is what pushed this
+  // file past the 30 s timeout under parallel workers.
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
 
   // Everything that belongs to the probe is absent, not merely hidden.
   await expect(page.getByTestId('echo-panel')).toHaveCount(0);
@@ -1023,10 +1029,11 @@ test('no console errors on load', async ({ page }) => {
  * structure takes the others off the model" is a claim about the scene.
  */
 test('isolate shows one structure, and empty space brings the rest back', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
-    timeout: 30_000,
-  });
+  // Switch modes rather than reloading: `beforeEach` has already loaded the
+  // pack, and a second full load of a WebGL scene per test is what pushed this
+  // file past the 30 s timeout under parallel workers.
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
 
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
@@ -1045,10 +1052,11 @@ test('isolate shows one structure, and empty space brings the rest back', async 
 });
 
 test('a click on the model isolates, and a click on empty space shows all', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
-    timeout: 30_000,
-  });
+  // Switch modes rather than reloading: `beforeEach` has already loaded the
+  // pack, and a second full load of a WebGL scene per test is what pushed this
+  // file past the 30 s timeout under parallel workers.
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
 
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
@@ -1082,10 +1090,11 @@ test('a click on the model isolates, and a click on empty space shows all', asyn
 });
 
 test('a drag orbits and does not isolate anything', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
-    timeout: 30_000,
-  });
+  // Switch modes rather than reloading: `beforeEach` has already loaded the
+  // pack, and a second full load of a WebGL scene per test is what pushed this
+  // file past the 30 s timeout under parallel workers.
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
 
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
@@ -1104,10 +1113,11 @@ test('a drag orbits and does not isolate anything', async ({ page }) => {
 });
 
 test('hide takes one structure off, and show all is the escape', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
-    timeout: 30_000,
-  });
+  // Switch modes rather than reloading: `beforeEach` has already loaded the
+  // pack, and a second full load of a WebGL scene per test is what pushed this
+  // file past the 30 s timeout under parallel workers.
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
 
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
@@ -1120,10 +1130,11 @@ test('hide takes one structure off, and show all is the escape', async ({ page }
 });
 
 test('the structure filter narrows the list without touching the model', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
-    timeout: 30_000,
-  });
+  // Switch modes rather than reloading: `beforeEach` has already loaded the
+  // pack, and a second full load of a WebGL scene per test is what pushed this
+  // file past the 30 s timeout under parallel workers.
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
 
   const viewer = page.getByTestId('anatomy-viewer');
   const total = Number(await viewer.getAttribute('data-structure-count'));
@@ -1142,10 +1153,11 @@ test('the structure filter narrows the list without touching the model', async (
  * that needs a mouse is a control some of them do not have.
  */
 test('the structure list is operable from the keyboard', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
-    timeout: 30_000,
-  });
+  // Switch modes rather than reloading: `beforeEach` has already loaded the
+  // pack, and a second full load of a WebGL scene per test is what pushed this
+  // file past the 30 s timeout under parallel workers.
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
 
   const viewer = page.getByTestId('anatomy-viewer');
   await page.getByTestId('structure-filter').focus();
@@ -1178,9 +1190,9 @@ test('Echo mode has no structure list and no click-to-isolate', async ({ page })
 });
 
 test('an isolate made in Explore does not follow the learner into Echo', async ({ page }) => {
-  await page.goto('/?freeze=1&mode=explore');
   const viewer = page.getByTestId('anatomy-viewer');
-  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
   const total = Number(await viewer.getAttribute('data-structure-count'));
 
   await page.getByTestId('structure-isolate-lv-myocardium').click();

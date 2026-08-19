@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 09:19 EDT
+**Last Updated:** 2026-08-19 17:45 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -1413,3 +1413,240 @@ flips to asserting the full picker the moment a second pack is published. That i
 statement of where the project is: **one publishable heart.** Everything else on the shelf is
 unpublished, and four of the six shelf packs are unpublished for a licence reason rather than a
 quality one.
+
+---
+
+## 37. Isolate makes KIT and BodyParts3D explorable. On KIT it is two clicks.
+
+**Where.** Explore, any pack, the **Structures** panel under the model. Only in Explore — see entry
+41.
+
+**The question this had to answer honestly was whether it worked at all.** Entry 25 said of the KIT
+pack "you cannot see any of it", and entry 24 said 82 of BodyParts3D's 86 parts render in one grey.
+Both were product gaps rather than pack defects, and both are now closed by the same control.
+
+**KIT: two clicks.** Hide `pericardium — outer surface`, hide `epicardium`, and the four chamber
+cavities are there in translucent blue with the great-vessel trunks pink beside them. The default
+view of this pack was a featureless grey egg and six good watertight surfaces were inside it with no
+way to reach any of them. Two clicks. This is the clearest single answer the feature gives.
+
+**BodyParts3D: isolate the left coronary artery and you get the coronary tree.** Twenty-five
+branches, each a different muted hue, tellable apart from each other and from the great cardiac
+vein — which is the thing nothing else in this repository has and which had been invisible inside
+its own model. Isolating a group shows its subtree, so the tree comes out at whatever level of the
+hierarchy you point at: the whole left coronary, or the anterior interventricular branch, or one of
+its ten diagonals.
+
+**What is genuinely worse than it should be.** An isolated structure keeps the camera it had, which
+is framed on the WHOLE model's bounds. A single papillary muscle therefore sits small and off-centre
+in a mostly empty panel — legible, but not well shown. See entry 38.
+
+**The tree is deep and does not collapse.** BodyParts3D goes six levels down and the labels are long
+("third right anterior branch of anterior interventricular branch of left coronary artery"), so the
+list is a lot of indentation inside a 22 rem scroller. The text filter is what makes it usable —
+typing "papillary" cuts 86 rows to three — and the filter keeps a match's ancestors so a row never
+floats free of what it is part of. A collapse control is the obvious next thing and is not built.
+
+**Honest limit: the click does not honour the cut plane.** The raycast tests geometry, and clipping
+is a fragment-stage operation, so with the cutter on a click can isolate a structure whose near half
+has been clipped away. Known rather than designed.
+
+---
+
+## 38. Framing the camera on the isolated structure: tried, it helps, and not like this
+
+**The owner left this open deliberately and asked for it to be tried rather than argued.** It was,
+as a throwaway spike, and then reverted.
+
+**It helps, clearly.** Isolating the anterolateral papillary head with the camera left alone gives a
+pale smudge in the lower-right eighth of the panel. With the camera reframed on what is left, it is
+a papillary muscle — you can see the head, the neck and the direction it runs. The difference is not
+subtle, and for anything smaller than a chamber the un-framed version barely answers the question
+the click asked.
+
+**What is wrong with the spike, and it is not cosmetic.** Framing means moving what the camera looks
+at, and the thing it looks at is `C` — the interaction pivot, which is also the free cutter's own
+origin. Moving it moves the cut plane under the learner: isolate a structure with the cutter on and
+the section jumps somewhere else. And the spike cut to the new camera instead of gliding, which is
+the opposite of what `GLIDE_MS` exists for — a camera move the learner did not perform is animated
+here precisely so they can see which rotation happened.
+
+**So: worth building, and it is not a one-line change.** A correct version moves the camera's target
+and distance without moving `C`, and glides. That is a piece of work rather than an option to
+switch on, and it is still the owner's call whether the loss of spatial context — after framing you
+can no longer see WHERE in the heart the thing was — is a price worth paying. Showing all reframes
+the whole heart and recovers, so the round trip is at least closed.
+
+---
+
+## 39. The derived hues across 86 structures — and the band they had to fit in
+
+**Where.** Explore, BodyParts3D. Every structure that is not blood pool.
+
+**What it looks like.** Olive, sage, tan, slate, dusty rose. Neighbouring coronary branches are
+different colours; a papillary muscle and the vein beside it are different colours; nothing looks
+like it is claiming to be left heart or right heart. The pack went from "the best-looking model
+here, rendering in one grey" to legible in one function.
+
+**The band is narrow on purpose and the narrowness cost something.** Two constraints had to hold at
+once. The colours must not read as claiming a side, which rules out the palette's chroma — the
+derived band is Lab chroma 14–26 against the palette's 44–62 — and, less obviously, rules out the
+palette's HUES: a muted slate blue is still blue to a learner who has been taught that blue is the
+right heart, so the arcs within 28° of the left-red and right-blue anchors are excluded outright.
+That removes a third of the hue circle. What is left has to separate up to ten siblings.
+
+**Measured rather than judged.** The closest sibling pair anywhere in the repository is **8.2
+dE2000**, over nine posterior ventricular branches of the right coronary artery. A just-noticeable
+difference is about 2.3, and the beam-dim tests use 10 for "reads as different at a glance" — so
+these are comfortably distinguishable and NOT as separated as the shipped palette's own colours.
+That is the trade the band bought.
+
+**The uncomfortable part, stated plainly.** The derivation is a pure function of the structure id,
+which is what makes a structure the same colour in every session forever — and it therefore cannot
+see that two structures are siblings, so it cannot GUARANTEE they differ. What it can do is be
+measured against the packs that exist, and the hash salt is chosen to maximise the worst pair.
+**A new pack can push the worst pair under the bar.** When it does, `tests/unit/palette.test.ts`
+fails, and the failing test is the signal to change the derivation rather than to lower the
+threshold. This is the least satisfying thing in this round and it is written down for that reason.
+
+**The exact band is still the owner's, per the brief.** What shipped passes the separation test; it
+is not claimed to be the right band.
+
+---
+
+## 40. The droplist at one pack and at nine
+
+**Where.** The top of the screen. Entry 28 said nine chips were too tall; this closes it.
+
+**At nine (development).** One row, 35 px, plus a line of tags for whatever is selected. The
+`<optgroup>` labels keep the two groups the chips had. Against the previous layout — which ran to
+about 700 px before the model was reached — this is the whole of the improvement, and the structure
+list is what got the space.
+
+**At one (the deployed site).** It renders as a **label**, not as an empty droplist and not as
+nothing. That is a change from what shipped last round, where the picker vanished entirely below two
+packs. Vanishing was defensible — a control offering one choice cannot do anything — but it left the
+learner with no statement anywhere of which of the models in this repository they were looking at.
+A label says it, in the place the control will appear the moment a second pack is published.
+
+**A native `<select>`, and the reason outranks the styling.** Hospital desktops are a first-class
+target. A native select is keyboard-operable, screen-reader-labelled and touch-sized on every
+platform without any of that being written here; a custom menu would have needed all of it
+re-implemented and would have been worse at it.
+
+**One case worth knowing.** `?pack=stub` reaches a pack the droplist does not offer. Rather than
+showing an empty selection or silently selecting something else, the control carries a disabled
+option reading "Not in this list — reached by ?pack=". The fixture stays published, stays in
+`dist/`, and stays out of the list.
+
+---
+
+## 41. Isolate is Explore-only, and that was the owner's correction mid-build
+
+**What changed.** The structure list, the filter, click-to-isolate and hide were built for both
+modes. The owner stopped it: they are Explore-only now.
+
+**Why that is right.** Echo is a claim about one vetted probe pose imaging a whole heart. The wedge,
+the beam dim and the raster are all statements about what the beam crosses, and a learner who had
+isolated one coronary branch would be reading an echo of a heart that is not the heart beside it.
+The echo renderer samples a labelled VOLUME, which per-structure visibility does not touch at all,
+so the two panels would have disagreed silently rather than visibly — the worst version.
+
+**How it is enforced.** Structurally, not by disabling a button: in Echo the list does not render,
+`hidden` is empty, and no click handler is passed to the viewer, so the gesture does not exist
+there. The state survives the trip — Echo and back returns the learner to what they had isolated —
+because an isolate is a statement about the model rather than about the mode.
+
+---
+
+## 42. The horizon lock: it does exactly what it says, and it says no to roll
+
+**Where.** Echo mode only, the **Level** checkbox beside Ghost and Beam. Off by default.
+
+**What it holds vertical is the MODEL's long axis**, not world up — `meshes.orientation.up`, which
+for the shipped substrate is the derived cardiac frame measured in `meshes.anatomical_frame`. Those
+are the same thing only while the heart happens to be upright, and holding the heart upright is the
+whole job, so world up would have been the wrong axis for the one case the lock exists for.
+
+**Help or a fight?** Both, and the split is clean. It is help in that it is exact: through a curved
+drag — the gesture that produces roll on a trackball — the axis stays vertical to within a
+millionth of a radian, because the orientation is re-levelled after every step rather than trusted
+to stay level. Turning it on levels what is already on screen without moving where the camera
+looks, so it is not a jump to a canonical pose.
+
+It is a fight in exactly one way, and it is inherent rather than a defect: **there is no drag that
+rolls the model while it is on**, because that is what "locked" means. And near the pole the
+vertical component of a drag simply stops being applied — three degrees short, where "up" has no
+answer — which reads as the model refusing rather than as a boundary being reached. Nothing on
+screen says why.
+
+**Which is why it is an option and Echo's only.** Explore keeps the trackball as its only orbit,
+because free inspection is the point there and the turntable was removed precisely because it could
+not reach every angle (entry 35). Offering the lock as the default anywhere would re-create the
+problem entry 35 records.
+
+---
+
+## 43. What this round's gates cost, and the one measurement that corrected the record
+
+**Four checks were added for defects that had been found by eye.** Each was verified to FAIL when
+its defect is reintroduced, because a gate that cannot fail is not a gate — and every gate in this
+repository was green through all six defects last round.
+
+- **Watertightness.** Reintroduced by deleting the vertex weld from the geometry ingest, which is
+  the exact `436052a` regression: the ingest now refuses to write the pack. Also reintroduced from
+  the data side, by deleting CobivecoX's declarations from its `pack.json`.
+- **Blood pool decided.** Reintroduced by restoring `blood_pool: False` in `geometry.py`, and
+  separately by stripping the decision out of a `pack.json`. Both are refused.
+- **Blood pool never capped.** Reintroduced by removing the guard in `caps.ts`. Three tests fail.
+- **The fixture never in the picker.** Reintroduced two ways — removing `fixture: true` from the
+  catalogue entry, and removing the filter from `cataloguedPacks` — and the Playwright test fails
+  both times.
+
+**Measuring the shipped surfaces corrected something this repository had written down.** The record
+said all 86 BodyParts3D parts are watertight, single-component and manifold after welding.
+**Eighty-three are.** Three — the anterolateral papillary head, the right anterior pulmonary cusp
+and the septal tricuspid leaflet — are two closed shells each in the source. Both shells of each are
+individually clean; they are simply not joined, and welding merges seams and cannot join surfaces
+that never touched. They are now declared individually in the source registry, and the earlier claim
+is struck through where it was made. That is the first thing this gate found, and it found it
+immediately.
+
+**A stale declaration is refused too.** A pack that declares a reason for being unclean and measures
+clean fails validation. A declaration that outlives its defect is how the next real one gets waved
+through.
+
+**One cost worth recording.** The Rodero pack's assets were re-emitted by this round's schema
+change, and a handful of derived probe values moved by one unit in the last place — a BLAS
+reduction-order difference on this machine, stable run to run here. Nothing is semantically
+different; it is 5.3 MB of binary re-committed for arithmetic noise, and it is the price of the
+pipeline being the source of truth rather than the committed artefact.
+
+---
+
+## 44. The two panels are a pair now, and the red banner is not over the image
+
+**The owner's "align the two windows, make it look good", 2026-08-19, mid-session.**
+
+**What was wrong.** The echo was a card with a title; the anatomy was a bare viewport with no title
+at all. Side by side that reads as an illustration next to a named image, and it left the model
+panel silent about the one thing a learner wants from it — *what am I looking at*. The two canvases
+also started at different heights and were different sizes, because the anatomy box had been sized
+to match the echo CARD (canvas plus its rows) from when the anatomy had no header of its own.
+
+**What it is now.** Both are cards with the same header, and the canvases are the same size and
+start at the same y — measured, not eyeballed: 314 px down and 341 px tall in both columns at
+1400 px wide.
+
+**The anatomy header names what you are looking at, in the order you are likely to be asking.**
+The structure under the pointer first, then the one you isolated, then the model. A long derived
+name truncates with an ellipsis rather than wrapping, because a header that grows a line taller than
+its neighbour moves its canvas and undoes the alignment; the full name is on the element's `title`.
+
+**The red "Simulated — not a recording of a patient" banner is gone from over the image**, at the
+owner's request — the flags and licence furniture are being reworked as a set before this is put in
+front of anyone else. The WORD is not gone: `WORKFLOW.md` carries a standing safeguard that
+simulated echo is labelled simulated, so it now reads "Simulated" in the panel header and
+"Simulated — not a recording of a patient" in the provenance line under the image, in ordinary type.
+That is a deliberate reading of "drop the banner" rather than "drop the label", and it is easy to
+finish removing if that is what was meant.

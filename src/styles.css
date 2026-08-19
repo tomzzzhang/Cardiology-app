@@ -253,17 +253,22 @@ body {
     container-type: inline-size;
   }
 
-  /* As tall as the echo canvas PLUS the rows above and below it, so the model
-     is read against the image at the same scale rather than in a box two
-     thirds its height. The echo canvas is 4:3 of the same width, hence
-     `100cqw * 0.75`; the constant is its header and scrub rows.
+  /* EXACTLY the echo canvas's height, so the two images line up top and
+     bottom. Both cards now carry the same header, so equal canvas heights put
+     the model and the image on the same baseline at the same scale — which is
+     the whole point of showing them side by side. The echo canvas is 4:3 of the
+     same column width, hence `100cqw * 0.75`.
+
+     It used to be that height PLUS 4.6rem, from when the anatomy had no header
+     of its own and the box had to match the echo CARD rather than the echo
+     IMAGE. It does not any more.
 
      The 4:3 ratio still governs the stacked phone layout, where there is no
      second column to match, so it is overridden only here. */
   .anatomy {
     aspect-ratio: auto;
     flex: 0 0 auto;
-    height: calc(100cqw * 0.75 + 4.6rem);
+    height: calc(100cqw * 0.75);
     min-height: 16rem;
   }
 }
@@ -1026,4 +1031,74 @@ body {
 .echo__display-note {
   color: #9aa3ad;
   font-size: 0.8rem;
+}
+
+
+/* --- the two panels are one pair ------------------------------------------
+   They are read side by side, and one of them was titled while the other was
+   not, which made the model read as an illustration beside a named image. Both
+   are cards now, with the same header, so their canvases start at the same y. */
+
+.panel-head {
+  display: flex;
+  /* NOWRAP on purpose: wrapping would let one panel's header grow a line taller
+     than the other's and move its canvas. The title truncates instead. */
+  flex-wrap: nowrap;
+  gap: 0.4rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  min-height: 1.6rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #26303c;
+}
+
+.panel-head h2 {
+  flex: 1 1 auto;
+  /* Without this a long name refuses to shrink, wraps the note onto a second
+     line, and the header of one panel gets taller than the other — which moves
+     the canvas and breaks the alignment this pair exists for. */
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  /* 86 structures include some very long derived names; the title truncates
+     rather than pushing the note onto a second line and moving the canvas. */
+  white-space: nowrap;
+}
+
+.panel-head__note {
+  flex: 0 0 auto;
+  margin: 0;
+  color: #9aa3ad;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.anatomy-panel {
+  border: 1px solid #26303c;
+  border-radius: 10px;
+  background: #0b0f14;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* Inside the card the viewport carries no border of its own — the card's is
+   the edge — and the controls come in from the card's padding. */
+.anatomy-panel .anatomy {
+  border: 0;
+  border-radius: 0;
+}
+
+.anatomy-panel .cutter,
+.anatomy-panel .cutter-mode {
+  padding-inline: 1rem;
+}
+
+.anatomy-panel .cutter:first-of-type {
+  padding-top: 0.75rem;
+}
+
+.anatomy-panel > :last-child {
+  padding-bottom: 0.75rem;
 }

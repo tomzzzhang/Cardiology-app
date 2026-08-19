@@ -203,7 +203,7 @@ export default function EchoPanel({
 
   return (
     <section className="echo" data-testid="echo-panel" data-status={status.kind}>
-      <header className="echo__header">
+      <header className="panel-head echo__header">
         {/*
           * The name is the view's CLAIM, so it is withdrawn the moment the
           * probe leaves the saved track. The image still renders — the point of
@@ -214,9 +214,15 @@ export default function EchoPanel({
         <h2 data-testid="echo-view-name">
           {offTrack ? 'Free probe — not a saved view' : view.name}
         </h2>
-        <p className="echo__badge" data-testid="echo-simulated">
-          Simulated — not a recording of a patient
-        </p>
+        {/*
+          * The red "Simulated — not a recording of a patient" banner is gone
+          * from here (owner, 2026-08-19: the flags are being reworked as a set
+          * before this is put in front of anyone else). The WORD is not gone:
+          * WORKFLOW.md's standing safeguard is that simulated echo is labelled
+          * simulated, so it moved to the provenance line under the image, in
+          * ordinary type rather than in a banner.
+          */}
+        <p className="panel-head__note" data-testid="echo-panel-note">Simulated</p>
       </header>
 
       <div className="echo__stage">
@@ -298,6 +304,12 @@ export default function EchoPanel({
           * granted to. The pack's own attribution stays: the anatomy is still
           * the anatomy, whatever plane is cutting it.
           */}
+        {/* The standing safeguard, in ordinary type: WORKFLOW.md requires that
+            simulated echo is labelled simulated, and it is — here and in the
+            panel header — rather than in the red banner that used to sit over
+            the image. */}
+        <span data-testid="echo-simulated">Simulated — not a recording of a patient</span>
+        {' · '}
         <span>
           {offTrack
             ? 'Unvetted plane — moved by you, not a reviewed view'

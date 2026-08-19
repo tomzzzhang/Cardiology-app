@@ -153,6 +153,14 @@ interface PackViewerProps {
    * the wedge, the cut plane and the default camera are untouched.
    */
   apexFlipped?: boolean;
+  /**
+   * The structure the learner has isolated, for the panel's own header.
+   *
+   * The name rather than the id, because the header is prose and the shell
+   * already holds the tree the name came from. Null means the whole model, and
+   * the header falls back to naming the model.
+   */
+  isolatedLabel?: string | null;
 }
 
 /** Radians of plane rotation per pixel of handle drag. */
@@ -216,6 +224,7 @@ interface ViewerApi {
 export default function PackViewer({
   pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
   freePose = null, onScrubChange, onFreePoseChange, onStructureClick, apexFlipped = false,
+  isolatedLabel = null,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   /*
@@ -225,6 +234,16 @@ export default function PackViewer({
    */
   const onStructureClickRef = useRef(onStructureClick);
   onStructureClickRef.current = onStructureClick;
+  /**
+   * What the pointer is over, for the panel header.
+   *
+   * The header answers "what am I looking at", and under a fine pointer the
+   * most useful answer is the thing about to be clicked. It is React state
+   * rather than the dataset the scene publishes, because the header is React.
+   */
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const setHoveredRef = useRef(setHoveredId);
+  setHoveredRef.current = setHoveredId;
   const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const apiRef = useRef<ViewerApi | null>(null);
 
@@ -755,6 +774,7 @@ export default function PackViewer({
         material.emissive?.setHex(candidate === id ? HIGHLIGHT_EMISSIVE : 0x000000);
       }
       highlighted = id;
+      setHoveredRef.current(id);
       if (id === null) delete host.dataset.hoveredStructure;
       else host.dataset.hoveredStructure = id;
       schedule();
@@ -1896,8 +1916,34 @@ export default function PackViewer({
     if (adopted !== undefined) setCutOffset(adopted);
   };
 
+  /*
+   * WHAT AM I LOOKING AT — the anatomy panel's own header, matching the echo's.
+   *
+   * The two panels are read side by side and one of them was titled and the
+   * other was not, which made the model look like an illustration beside a
+   * named image. It names, in order of what the learner is most likely to be
+   * asking: the structure under the pointer, then the one they isolated, then
+   * the model itself.
+   */
+  const structureLabel = (id: string | null): string | null =>
+    id === null
+      ? null
+      : pack.meshes.structures.find((structure) => structure.id === id)?.display_label ?? id;
+  const hoveredLabel = structureLabel(hoveredId);
+  const title = hoveredLabel ?? isolatedLabel ?? pack.meta.display_name;
+  const note = hoveredLabel !== null
+    ? 'under the pointer'
+    : isolatedLabel !== null ? 'showing only this' : '3D anatomy';
+
   return (
-    <div className="anatomy-panel">
+    <section className="anatomy-panel">
+      <header className="panel-head anatomy__header">
+        {/* The full name in `title`, because a long derived structure name
+            truncates in a column this wide and the ellipsis must not be the
+            only place it exists. */}
+        <h2 data-testid="anatomy-title" title={title}>{title}</h2>
+        <p className="panel-head__note" data-testid="anatomy-note">{note}</p>
+      </header>
       <div
         className="anatomy"
         ref={hostRef}
@@ -2382,6 +2428,6 @@ export default function PackViewer({
         )}
         </>
       )}
-    </div>
+    </section>
   );
 }
