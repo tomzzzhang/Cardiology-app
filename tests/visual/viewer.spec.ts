@@ -794,9 +794,17 @@ test('the wedge and the echo move together on one scrub value', async ({ page })
 test('the cut renders solid caps, not a hollow shell', async ({ page }) => {
   await expect(page.getByTestId('cut-enabled')).toBeChecked();
   await page.getByTestId('beam-dim').uncheck();
-  // The depth slider is only live in Free mode; in Echo plane the cut IS the
-  // imaging plane and there is no depth to choose.
+  /*
+   * The depth slider is only live in Free mode; in Echo plane the cut IS the
+   * imaging plane and there is no depth to choose.
+   *
+   * Awaited rather than assumed: switching modes ADOPTS the current plane, which
+   * writes the slider's value, and a write of our own that lands before React
+   * flushes that would simply be overwritten.
+   */
   await page.getByTestId('cutter-mode-free').click();
+  await expect(page.getByTestId('cut-offset')).toBeEnabled();
+  await expect(page.getByTestId('cut-readout')).not.toContainText('on echo plane');
 
   const exactPaletteHits = async () =>
     page.evaluate(() => {

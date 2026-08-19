@@ -1317,6 +1317,18 @@ export default function PackViewer({
    * see the whole heart WITH the echo fan on it is a thing worth doing.
    */
   const depthLocked = echoMode && cutterMode === 'echo';
+  /**
+   * The slider's travel.
+   *
+   * Normally the model's enclosing radius, which is as far as the plane can go
+   * and still touch anything. But switching out of Echo plane mode ADOPTS the
+   * imaging plane's offset, and a probe sits outside the model — so the adopted
+   * `s` can be larger than the radius. Widening the travel to hold it keeps the
+   * control honest: the alternative is a handle pinned at an end while the value
+   * it reports is somewhere past it, which is a slider that lies about where the
+   * plane is.
+   */
+  const depthLimit = Math.max(cutLimit, Math.abs(cutOffset));
 
   /**
    * Unlock the probe from its view's sweep track, or lock it again.
@@ -1446,9 +1458,9 @@ export default function PackViewer({
           <input
             className="cutter__slider"
             type="range"
-            min={-cutLimit}
-            max={cutLimit}
-            step={cutLimit / 400 || 0.1}
+            min={-depthLimit}
+            max={depthLimit}
+            step={depthLimit / 400 || 0.1}
             value={cutOffset}
             disabled={!cutEnabled || depthLocked}
             onChange={(event) => setCutOffset(Number(event.target.value))}
