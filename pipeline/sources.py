@@ -612,6 +612,230 @@ KIT_FOUR_CHAMBER = GeometrySource(
     ],
 )
 
+
+#: One Girder item per file. Item ids rather than paths, because the Girder API
+#: addresses content by id and a path-shaped URL does not exist. Recorded here
+#: so the fetch is reproducible without re-querying the collection.
+GIRDER_ITEM = (
+    "https://humanheart-project.creatis.insa-lyon.fr/database/api/v1/item/{item}/download"
+)
+
+_STRAUS_FRAMES = (
+    ("usmesh00.vtk", "587f5bbee1af3f30a298129e"),
+    ("usmesh01.vtk", "587f5bc0e1af3f30a29812a1"),
+    ("usmesh02.vtk", "587f5bc1e1af3f30a29812a4"),
+    ("usmesh03.vtk", "587f5bc3e1af3f30a29812a7"),
+    ("usmesh04.vtk", "587f5bc5e1af3f30a29812aa"),
+    ("usmesh05.vtk", "587f5bc6e1af3f30a29812ad"),
+    ("usmesh06.vtk", "587f5bc8e1af3f30a29812b0"),
+    ("usmesh07.vtk", "587f5bcae1af3f30a29812b3"),
+    ("usmesh08.vtk", "587f5bcce1af3f30a29812b6"),
+    ("usmesh09.vtk", "587f5bcde1af3f30a29812b9"),
+    ("usmesh10.vtk", "587f5bcfe1af3f30a29812bc"),
+    ("usmesh11.vtk", "587f5bd1e1af3f30a29812bf"),
+    ("usmesh12.vtk", "587f5bd3e1af3f30a29812c2"),
+    ("usmesh13.vtk", "587f5bd4e1af3f30a29812c5"),
+    ("usmesh14.vtk", "587f5bd6e1af3f30a29812c8"),
+    ("usmesh15.vtk", "587f5bd8e1af3f30a29812cb"),
+    ("usmesh16.vtk", "587f5bd9e1af3f30a29812ce"),
+    ("usmesh17.vtk", "587f5bdbe1af3f30a29812d1"),
+    ("usmesh18.vtk", "587f5bdde1af3f30a29812d4"),
+    ("usmesh19.vtk", "587f5bdfe1af3f30a29812d7"),
+    ("usmesh20.vtk", "587f5be0e1af3f30a29812da"),
+    ("usmesh21.vtk", "587f5be2e1af3f30a29812dd"),
+    ("usmesh22.vtk", "587f5be4e1af3f30a29812e0"),
+    ("usmesh23.vtk", "587f5be6e1af3f30a29812e3"),
+    ("usmesh24.vtk", "587f5be7e1af3f30a29812e6"),
+    ("usmesh25.vtk", "587f5be9e1af3f30a29812e9"),
+    ("usmesh26.vtk", "587f5bebe1af3f30a29812ec"),
+    ("usmesh27.vtk", "587f5bece1af3f30a29812ef"),
+    ("usmesh28.vtk", "587f5beee1af3f30a29812f2"),
+    ("usmesh29.vtk", "587f5bf0e1af3f30a29812f5"),
+)
+
+STRAUS_US = GeometrySource(
+    key="straus-us",
+    pack_id="motion-straus-us-patient01",
+    display_name="Multimodality STRAUS — simulated ultrasound myocardium, one healthy patient",
+    anatomy="Biventricular myocardium, synthetic healthy subject, 30 time steps",
+    canonical_variant=(
+        "patient01_healthy from the STRAUS multi-modality simulation; the ULTRASOUND "
+        "modality's mesh sequence, 30 frames covering one whole cardiac cycle"
+    ),
+    files=tuple(
+        RemoteFile(
+            url=GIRDER_ITEM.format(item=item),
+            name=name,
+            md5=None,
+            size_bytes=1269033,
+        )
+        for name, item in _STRAUS_FRAMES
+    ),
+    members=tuple(name for name, _ in _STRAUS_FRAMES),
+    animated=True,
+    # The frames span one cycle and the source states no rate. A phase axis is
+    # what an unstated rate supports; a heart rate would be invented.
+    fps=None,
+    loop=True,
+    # The claim this source is here for, and it is CHECKED rather than trusted:
+    # all 30 files are byte-for-byte the same length, 11,370 points and 47,186
+    # tetrahedra each, in the same order. This is the only source in the
+    # repository from which a deformation field could ever be derived.
+    vertex_correspondence=True,
+    coverage="one whole cardiac cycle, 30 frames, ends meeting",
+    structure_label="Biventricular myocardium (source carries no per-chamber labels)",
+    part_labels={},
+    creator=(
+        "Alessandrini, M., De Craene, M., Bernard, O., et al. "
+        "(CREATIS, Universite de Lyon; Philips Research Paris; Inria Asclepios)"
+    ),
+    source_text=(
+        "Multimodality STRAUS open-access database, Girder collection "
+        "587de6f4e1af3f30a2980a58, folder patient01_healthy/us/mesh"
+    ),
+    source_url="https://humanheart-project.creatis.insa-lyon.fr/multimodalityStraus.html",
+    # Not a placeholder: this IS the licence position, stated. "UNKNOWN" would
+    # read as an unfilled field and `check:provenance` rejects it as one, which
+    # is right — a blank standing in for a real grant is exactly what that gate
+    # is for. What is true here is that the rights holder has said nothing.
+    license="No licence stated at the source",
+    license_url="https://humanheart-project.creatis.insa-lyon.fr/multimodalityStraus.html",
+    license_state="unconfirmed",
+    citation=(
+        "Alessandrini M, De Craene M, Bernard O, Giffard-Roisin S, Allain P, Waechter-Stehle "
+        "I, Weese J, Saloux E, Delingette H, Sermesant M, D'hooge J. A pipeline for the "
+        "generation of realistic 3D synthetic echocardiographic sequences: methodology and "
+        "open-access database. IEEE Transactions on Medical Imaging 34(7): 1436-1451 (2015)."
+    ),
+    license_quote=(
+        "NO LICENCE STATEMENT EXISTS. The dataset page, the Girder collection description and "
+        "the collection metadata were all read on 2026-08-19 and none of them names a licence. "
+        "The only access statement anywhere is that the database is public and needs no login. "
+        "That is permission to DOWNLOAD and says nothing about redistribution or derivative "
+        "works, so the state is \"unconfirmed\" and the pack cannot be published. Resolving it "
+        "means writing to the depositors."
+    ),
+    known_problems=(
+        "SYNTHETIC, NOT A PATIENT. This is the mesh half of a simulation pipeline: an "
+        "electromechanical model driving a physical ultrasound simulator. It is a plausible "
+        "heart rather than a measured one, and its motion is the model's motion.",
+        "NO LABELS AND NO PER-CHAMBER DIVISION. One myocardial volume per frame; the pack "
+        "carries its boundary as a single unnamed structure.",
+        "LICENCE UNCONFIRMED. Public access is not a grant. Nothing derived from this may be "
+        "published until a depositor says otherwise.",
+        "THE BOUNDARY IS BOTH SURFACES AT ONCE. Extracting the boundary of a myocardial "
+        "volume yields the epicardium AND the endocardium as one closed shell, so the "
+        "endocardial surface is inside the epicardial one and only the cutter reveals it.",
+    ),
+    notes=[
+        "38 MB over 30 files, fetched one folder at a time through the Girder API. The full "
+        "collection is 14.4 GB and is NOT fetched.",
+        "No published checksums; what arrived is recorded in the cache ledger.",
+    ],
+)
+
+
+#: The one patient this pack carries, of the ten in the deposit.
+#:
+#: Ten patients would be ten packs — a pack is one anatomy — and each is about
+#: 4 MB derived, which is 40 MB of committed assets for material that does not
+#: ship. One is enough to see what a repaired Tetralogy of Fallot ventricle
+#: looks like; adding the rest is a one-line change here if the owner wants
+#: them, and the raw archive is already cached.
+COBIVECO_PATIENT = "CHD0017001"
+
+COBIVECO_TOF = GeometrySource(
+    key="cobiveco-tof",
+    pack_id="tof-cobivecox-chd0017001",
+    display_name="Tetralogy of Fallot — CobivecoX patient-specific biventricular surfaces",
+    anatomy="Repaired Tetralogy of Fallot, biventricular, one patient",
+    canonical_variant=(
+        f"Patient {COBIVECO_PATIENT} of the ten patient-specific TOF meshes accompanying "
+        "CobivecoX; endocardium, epicardium and four valve annuli"
+    ),
+    files=(
+        RemoteFile(
+            url=(
+                "https://zenodo.org/api/records/10577973/files/"
+                "CobivecoX_TOF_patient_specific_data.zip/content"
+            ),
+            name="CobivecoX_TOF_patient_specific_data.zip",
+            md5="ab1ae7c161937c86a24930098d6e8fc6",
+            size_bytes=195883497,
+            unpack=True,
+        ),
+    ),
+    members=tuple(
+        f"{COBIVECO_PATIENT}_{part}.ply"
+        for part in ("epi_no_base", "epi_base", "endo_lv", "endo_rv", "mv", "tv", "av", "pv")
+    ),
+    animated=False,
+    fps=None,
+    loop=False,
+    vertex_correspondence=False,
+    coverage="",
+    structure_label="",
+    part_labels={
+        f"{COBIVECO_PATIENT}_epi_no_base": "Epicardium, excluding the base",
+        f"{COBIVECO_PATIENT}_epi_base": "Epicardial base",
+        f"{COBIVECO_PATIENT}_endo_lv": "Left ventricular endocardium",
+        f"{COBIVECO_PATIENT}_endo_rv": "Right ventricular endocardium",
+        f"{COBIVECO_PATIENT}_mv": "Mitral valve annulus",
+        f"{COBIVECO_PATIENT}_tv": "Tricuspid valve annulus",
+        f"{COBIVECO_PATIENT}_av": "Aortic valve annulus",
+        f"{COBIVECO_PATIENT}_pv": "Pulmonary valve annulus",
+    },
+    creator=(
+        "Pankewitz, L. R., Hustad, K. G., Govil, S., Perry, J. C., Hegde, S., Tang, R., "
+        "McCulloch, A. D., Omens, J. H., Young, A. A., Maleckar, M. M., Wang, V. Y."
+    ),
+    source_text=(
+        "Zenodo record 10577973, 'A universal biventricular coordinate system incorporating "
+        "valve annuli: Validation in congenital heart', file "
+        "CobivecoX_TOF_patient_specific_data.zip"
+    ),
+    source_url="https://zenodo.org/records/10577973",
+    license="CC-BY-4.0",
+    license_url="https://creativecommons.org/licenses/by/4.0/",
+    license_state="confirmed",
+    citation=(
+        "Pankewitz LR, Hustad KG, Govil S, Perry JC, Hegde S, Tang R, McCulloch AD, Omens JH, "
+        "Young AA, Maleckar MM, Wang VY. A universal biventricular coordinate system "
+        "incorporating valve annuli: Validation in congenital heart disease [Data set]. "
+        "Zenodo (2023). doi:10.5281/zenodo.10577973"
+    ),
+    license_quote=(
+        'the Zenodo record 10577973 declares license id "cc-by-4.0" (Creative Commons '
+        "Attribution 4.0 International), read from the deposit's own record on 2026-08-19."
+    ),
+    known_problems=(
+        "ONE PATIENT OF TEN. The deposit carries ten patient-specific TOF meshes and this "
+        "pack carries one, because ten packs of about 4 MB each is 40 MB of committed assets "
+        "for material that does not ship. The other nine are one registry line away.",
+        "REPAIRED, AND THE REPAIR IS NOT DESCRIBED. These are post-operative Tetralogy of "
+        "Fallot ventricles from an imaging atlas. Which repair, at what age, and with what "
+        "residual lesion are not stated in the deposit, so nothing here should be read as "
+        "showing a particular surgical result.",
+        "ANNULI, NOT VALVES. The four valve surfaces are RINGS — 445 to 1,840 triangles "
+        "each, the annulus plane the coordinate system is built on. There are no leaflets and "
+        "nothing opens or closes.",
+        "TWO EPICARDIAL PIECES. The source splits the epicardium into `epi_no_base` and "
+        "`epi_base`, which meet at the valve plane. They are carried as two structures "
+        "because that is what the source provides; together they are one surface.",
+        "NO MYOCARDIAL VOLUME IN THIS PACK. The endocardial and epicardial surfaces are "
+        "separate shells, so wall thickness is between them rather than in them. The "
+        "deposit's `result.vtu` per patient is the tetrahedral volume with the CobivecoX "
+        "coordinates on it; it is not fetched into the pack.",
+        "NO ATRIA, NO GREAT VESSELS. Biventricular only.",
+    ),
+    notes=[
+        "196 MB archive; the 10.4 GB atlas is NOT fetched.",
+        "ASCII PLY throughout, written by meshio.",
+        "The archive is macOS-built and carries AppleDouble sidecars, which the unpack drops.",
+    ],
+)
+
 GEOMETRY_SOURCES = {
-    s.key: s for s in (CARDIAC_MOTION, BODYPARTS3D, KIT_FOUR_CHAMBER)
+    s.key: s
+    for s in (CARDIAC_MOTION, BODYPARTS3D, KIT_FOUR_CHAMBER, STRAUS_US, COBIVECO_TOF)
 }

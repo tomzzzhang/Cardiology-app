@@ -1,0 +1,539 @@
+{
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 34705,
+   "max": [
+    53.919212341308594,
+    51.055397033691406,
+    49.43637466430664
+   ],
+   "min": [
+    -53.919212341308594,
+    -51.055397033691406,
+    -49.43637466430664
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 34705,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5125,
+   "count": 207288,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 3130,
+   "max": [
+    0.265838623046875,
+    23.20877456665039,
+    44.772396087646484
+   ],
+   "min": [
+    -41.34387969970703,
+    -33.1339111328125,
+    -11.19658374786377
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 3130,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5125,
+   "count": 17760,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 16484,
+   "max": [
+    49.665321350097656,
+    42.64350891113281,
+    40.48690414428711
+   ],
+   "min": [
+    -35.82459259033203,
+    -17.211151123046875,
+    -25.675630569458008
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5126,
+   "count": 16484,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 8,
+   "componentType": 5125,
+   "count": 98427,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 9,
+   "componentType": 5126,
+   "count": 23541,
+   "max": [
+    43.35363006591797,
+    5.989930152893066,
+    48.67580795288086
+   ],
+   "min": [
+    -51.190269470214844,
+    -47.11363220214844,
+    -45.566062927246094
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 10,
+   "componentType": 5126,
+   "count": 23541,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 11,
+   "componentType": 5125,
+   "count": 140739,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 12,
+   "componentType": 5126,
+   "count": 1023,
+   "max": [
+    -18.00685691833496,
+    36.33460998535156,
+    42.61884689331055
+   ],
+   "min": [
+    -34.975189208984375,
+    6.50693416595459,
+    0.9148082733154297
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 13,
+   "componentType": 5126,
+   "count": 1023,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 14,
+   "componentType": 5125,
+   "count": 5520,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 15,
+   "componentType": 5126,
+   "count": 483,
+   "max": [
+    -30.471277236938477,
+    2.2884883880615234,
+    6.235627174377441
+   ],
+   "min": [
+    -50.05560302734375,
+    -29.974300384521484,
+    -29.680524826049805
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 16,
+   "componentType": 5126,
+   "count": 483,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 17,
+   "componentType": 5125,
+   "count": 2241,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 18,
+   "componentType": 5126,
+   "count": 343,
+   "max": [
+    -19.112089157104492,
+    5.291158676147461,
+    38.47555923461914
+   ],
+   "min": [
+    -37.951751708984375,
+    -19.331085205078125,
+    13.625831604003906
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 19,
+   "componentType": 5126,
+   "count": 343,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 20,
+   "componentType": 5125,
+   "count": 1572,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 21,
+   "componentType": 5126,
+   "count": 294,
+   "max": [
+    -2.1328253746032715,
+    -14.605249404907227,
+    49.43637466430664
+   ],
+   "min": [
+    -21.79215431213379,
+    -37.91156768798828,
+    31.76154327392578
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 22,
+   "componentType": 5126,
+   "count": 294,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 23,
+   "componentType": 5125,
+   "count": 1335,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "generator": "Cardiology app ingest pipeline (pipeline/ingest.py)",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 416460,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 416460,
+   "byteOffset": 416460,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 829152,
+   "byteOffset": 832920,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 37560,
+   "byteOffset": 1662072,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 37560,
+   "byteOffset": 1699632,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 71040,
+   "byteOffset": 1737192,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 197808,
+   "byteOffset": 1808232,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 197808,
+   "byteOffset": 2006040,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 393708,
+   "byteOffset": 2203848,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 282492,
+   "byteOffset": 2597556,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 282492,
+   "byteOffset": 2880048,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 562956,
+   "byteOffset": 3162540,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 12276,
+   "byteOffset": 3725496,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 12276,
+   "byteOffset": 3737772,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 22080,
+   "byteOffset": 3750048,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 5796,
+   "byteOffset": 3772128,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 5796,
+   "byteOffset": 3777924,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 8964,
+   "byteOffset": 3783720,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 4116,
+   "byteOffset": 3792684,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 4116,
+   "byteOffset": 3796800,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 6288,
+   "byteOffset": 3800916,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 3528,
+   "byteOffset": 3807204,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 3528,
+   "byteOffset": 3810732,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 5340,
+   "byteOffset": 3814260,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 3819600,
+   "uri": "model.bin"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "epicardium-excluding-the-base",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0
+     },
+     "indices": 2,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "epicardial-base",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 4,
+      "POSITION": 3
+     },
+     "indices": 5,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "left-ventricular-endocardium",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 7,
+      "POSITION": 6
+     },
+     "indices": 8,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "right-ventricular-endocardium",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 10,
+      "POSITION": 9
+     },
+     "indices": 11,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "mitral-valve-annulus",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 13,
+      "POSITION": 12
+     },
+     "indices": 14,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "tricuspid-valve-annulus",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 16,
+      "POSITION": 15
+     },
+     "indices": 17,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "aortic-valve-annulus",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 19,
+      "POSITION": 18
+     },
+     "indices": 20,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "pulmonary-valve-annulus",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 22,
+      "POSITION": 21
+     },
+     "indices": 23,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "epicardium-excluding-the-base"
+  },
+  {
+   "mesh": 1,
+   "name": "epicardial-base"
+  },
+  {
+   "mesh": 2,
+   "name": "left-ventricular-endocardium"
+  },
+  {
+   "mesh": 3,
+   "name": "right-ventricular-endocardium"
+  },
+  {
+   "mesh": 4,
+   "name": "mitral-valve-annulus"
+  },
+  {
+   "mesh": 5,
+   "name": "tricuspid-valve-annulus"
+  },
+  {
+   "mesh": 6,
+   "name": "aortic-valve-annulus"
+  },
+  {
+   "mesh": 7,
+   "name": "pulmonary-valve-annulus"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ]
+  }
+ ]
+}

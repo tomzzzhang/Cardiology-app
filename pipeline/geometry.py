@@ -54,7 +54,8 @@ from meshlib import (
     Surface,
     read_stl,
     read_obj,
-    read_vtk_polydata,
+    read_ply,
+    read_vtk,
     read_vtu,
     write_gltf,
 )
@@ -78,10 +79,11 @@ TRIANGLE_BUDGET = 220_000
 
 READERS = {
     ".obj": read_obj,
+    ".ply": read_ply,
     ".stl": read_stl,
-    ".vtk": read_vtk_polydata,
+    ".vtk": read_vtk,
     ".vtu": read_vtu,
-    ".vtp": read_vtk_polydata,
+    ".vtp": read_vtk,
 }
 
 
@@ -298,6 +300,7 @@ def explore_pack(
     placement: Placement,
     frames: list[tuple[str, str]],
     measurements: dict[str, dict[str, int]],
+    correspondence: bool,
 ) -> dict:
     """
     The pack document for a geometry-only source.
@@ -335,7 +338,7 @@ def explore_pack(
                 for index, (asset, label) in enumerate(frames)
             ],
             "loop": source.loop,
-            "vertex_correspondence": source.vertex_correspondence,
+            "vertex_correspondence": correspondence,
             "coverage": source.coverage,
         }
         if source.fps is not None:
@@ -478,6 +481,7 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
 
     measurements = {path.stem: measure(surface) for path, surface in zip(paths, surfaces)}
     sizes: dict[str, int] = {}
+    decimated = False
     frames: list[tuple[str, str]] = []
     structures: list[tuple[str, str, Surface]] = []
 
@@ -487,10 +491,17 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
         # node named for the structure or the viewer would lose it mid-playback.
         slug = "surface"
         label = source.structure_label
-        share = max(1, TRIANGLE_BUDGET // len(surfaces))
+        # PER FRAME, not shared out across frames. Only one frame is on screen
+        # at a time, so the budget that matters for interactive display is one
+        # frame's — and dividing it by thirty would decimate a 15,000-triangle
+        # myocardium down to 7,000 for no rendering benefit at all. The download
+        # cost of all the frames together is bounded separately, by the byte
+        # budget this function checks before writing anything.
         for index, (path, surface) in enumerate(zip(paths, surfaces)):
             single = [surface]
-            notes.extend(f"{path.stem}: {note}" for note in decimate_to(single, share))
+            reduced = decimate_to(single, TRIANGLE_BUDGET)
+            decimated = decimated or bool(reduced)
+            notes.extend(f"{path.stem}: {note}" for note in reduced)
             single[0].name = slug
             stem = "model" if index == 0 else f"frame-{index:03d}"
             asset, size = _write_frame(assets, stem, single)
@@ -521,7 +532,20 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
         assert asset == "assets/model.gltf"
 
     sizes["assets"] = sum(value for key, value in sizes.items() if key != "assets")
-    pack = explore_pack(source, structures, placement, frames, measurements)
+
+    # `vertex_correspondence` is a claim about the PACK, not about the source.
+    # Quadric simplification is data-dependent, so decimating frames
+    # independently destroys any correspondence they arrived with — and a pack
+    # that kept claiming it would be telling a future deformation-field
+    # derivation that it can do something it cannot.
+    correspondence = source.vertex_correspondence and not decimated
+    if source.vertex_correspondence and decimated:
+        notes.append(
+            "vertex_correspondence WITHDRAWN: frames were decimated independently, which "
+            "does not preserve vertex count or ordering"
+        )
+
+    pack = explore_pack(source, structures, placement, frames, measurements, correspondence)
     (out_dir / "pack.json").write_text(json.dumps(pack, indent=2) + "\n")
     sizes["pack_json"] = len((out_dir / "pack.json").read_bytes())
 

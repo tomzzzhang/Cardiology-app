@@ -160,9 +160,27 @@ def _fetch_one(cache_dir: Path, remote: RemoteFile, key: str) -> Path:
         marker = cache_dir / f".unpacked-{remote.name}"
         if not marker.exists():
             with zipfile.ZipFile(destination) as archive:
-                archive.extractall(cache_dir)
+                archive.extractall(cache_dir, members=_without_apple_junk(archive))
             marker.write_text(digest + "\n")
     return destination
+
+
+def _without_apple_junk(archive: zipfile.ZipFile) -> list[str]:
+    """
+    Archive members minus macOS AppleDouble sidecars.
+
+    A zip built on macOS carries a `__MACOSX/` tree and a `._name` sidecar for
+    every file. They are not the data and they are not readable as it: extracted
+    alongside the real files they match every glob the real files match, so the
+    CobivecoX ingest tried to parse `._CHD0017001_av.ply` as a PLY and failed on
+    its first byte. Dropped at unpack, where the fix is one place rather than in
+    every reader.
+    """
+    return [
+        name for name in archive.namelist()
+        if not name.startswith("__MACOSX/")
+        and not any(part.startswith("._") for part in name.split("/"))
+    ]
 
 
 def acquire(source: Source) -> Path:

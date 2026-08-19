@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 06:15 EDT
+**Last Updated:** 2026-08-19 06:27 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -964,3 +964,115 @@ caps how much work it deserves.
 **Decision for the owner.** Whether a per-structure show/hide list is built next. It would unlock
 this pack completely and would fix the worst of BodyParts3D. It belongs to viewer-core rather than
 to wave 1d, so it does not collide with the view rail.
+
+---
+
+## 26. `motion-straus-us-patient01` — the one that moves properly, and cannot be published
+
+**Where.** Pick the STRAUS chip. Explore only, and Play.
+
+**What it is.** 30 frames of a biventricular myocardium from the Multimodality STRAUS synthetic
+database, patient01_healthy, ultrasound modality. 11,370 vertices and 15,076 boundary triangles per
+frame, **identical in count and ordering across all 30**, covering one whole cardiac cycle. 13.7 MB
+derived — the largest pack in the repository.
+
+**What it gets right.**
+
+- **The motion is convincing.** Compare it against `motion-biv-cinemri`: this contracts smoothly
+  through a whole cycle, the apex draws up and the walls thicken visibly, and because the frames
+  meet end to end it **loops** rather than bouncing. It reads as a beating heart rather than as a
+  sequence of separate meshes.
+- **Every frame is watertight, one connected component, zero boundary edges.** No debris, no
+  flickering specks, no holes. The cleanest moving geometry available.
+- **It has vertex correspondence, and that is the whole point.** All 30 frames share vertex count and
+  ordering, so this is the only source in the repository from which a deformation field could ever
+  be derived. That fact is recorded in the pack as `vertex_correspondence: true` and it is *checked*:
+  the ingest withdraws the claim automatically if decimation ever runs, because quadric
+  simplification is data-dependent and decimating frames independently destroys correspondence. The
+  triangle budget is applied **per frame** rather than divided across frames for exactly this reason —
+  only one frame is on screen at a time, so dividing 220,000 by 30 would have cut a 15,000-triangle
+  myocardium in half and silently voided the property this pack exists for.
+
+**What is wrong with it.**
+
+- **It is synthetic.** This is the mesh half of a simulation pipeline: an electromechanical model
+  driving a physical ultrasound simulator. It is a plausible heart, not a measured one, and its
+  motion is the model's motion. Nobody should learn what a real ventricle does from it without that
+  caveat attached.
+- **The licence does not exist.** Not "restrictive" — absent. The dataset page, the Girder collection
+  description and the collection metadata were all read and none of them names a licence. The only
+  access statement anywhere is that the database is public and needs no login, which is permission to
+  **download** and says nothing about redistribution or derivative works. State `unconfirmed`, and
+  `license` reads "No licence stated at the source" because that is the true position rather than an
+  unfilled field. Resolving it means writing to the depositors.
+- **One undivided myocardium.** No chambers, no labels, no echo. And because it is the boundary of a
+  myocardial *volume*, the surface is epicardium and endocardium as one closed shell — the
+  endocardial surface is genuinely in there, tucked inside, and only the cutter reveals it.
+- **13.7 MB for a pack that does not ship.** It is inside the 15 MB per-pack budget and it is the
+  largest thing in the repository. Decimating would halve it and destroy the correspondence, so
+  there is no cheap saving here.
+
+**Is it worth keeping?** Yes. It is the best moving asset by a wide margin and the only candidate for
+any future deformation-field work. The licence is the thing standing between it and usefulness, and
+that is an email rather than an engineering problem.
+
+**The Girder fetch was not awkward.** The API is public and unauthenticated:
+`/api/v1/folder?parentType=folder&parentId=...` walks the tree and `/api/v1/item/{id}/download`
+fetches one file. The thirty item ids are pinned in `pipeline/sources.py` so the fetch is
+reproducible without re-querying. The full collection is 14.4 GB and was never touched.
+
+---
+
+## 27. `tof-cobivecox-chd0017001` — congenital, on-topic, and the annuli are only rings
+
+**Where.** Pick the Tetralogy of Fallot chip. Explore only.
+
+**What it is.** One patient of the ten patient-specific repaired-TOF meshes accompanying CobivecoX,
+Zenodo 10577973, CC BY 4.0 confirmed. Eight surfaces: epicardium in two pieces, LV and RV
+endocardium, and the mitral, tricuspid, aortic and pulmonary annuli. 158,294 triangles, 3.8 MB.
+
+**What it gets right.**
+
+- **It is the only congenital anatomy in the repository**, which is the reason it is here — this is
+  a paediatric-cardiology teaching tool and every other model is a normal heart.
+- **Endocardium and epicardium as separate surfaces**, per ventricle for the endocardium. Wall
+  thickness is the gap between them, which is more than most of the shelf offers.
+- **Four named valve annuli as separate meshes**, which is what makes this source the natural
+  registration target if BodyParts3D leaflets are ever grafted onto anything.
+- **Clean topology.** Every one of the eight surfaces is a single connected component. They are all
+  open, but open by construction rather than by damage: the ventricles are truncated at the base and
+  an annulus is a ring.
+
+**What is wrong with it.**
+
+- **The annuli are rings, not valves.** 445 to 1,840 triangles each. They are the annulus plane the
+  coordinate system is built on. No leaflets, nothing opens, nothing closes.
+- **The repair is not described.** These are post-operative Tetralogy of Fallot ventricles from an
+  imaging atlas. Which repair, at what age, with what residual lesion — none of it is in the
+  deposit. Nothing here should be read as showing a particular surgical result, and a trainee
+  looking at it is looking at *a* repaired TOF ventricle and not at *the* repaired TOF ventricle.
+- **One patient of ten.** Ten patients would be ten packs at about 4 MB each, which is 40 MB of
+  committed assets for material that does not ship. The other nine are one registry line away and
+  the archive is already cached.
+- **No atria, no great vessels.** Biventricular only, so the outflow tract that a TOF repair is
+  mostly about stops at the pulmonary annulus.
+- **No echo, and the same 8-structures-in-one-grey problem** as everywhere else on the shelf.
+
+**Is it worth keeping?** Yes, and it is the pack most likely to become clinical content later. It is
+the only congenital model, it has the annuli a view could be built on, and the licence is clean.
+What it needs before that is a clinician saying which of the ten patients is worth showing and what
+the trainee is supposed to see.
+
+---
+
+## 28. Nine packs, and the picker is now too tall
+
+**Where.** The top of the screen.
+
+Entry 20 said five chips already crowded a phone screen and that at ten this needs to become
+something else. It is nine. On the desktop layout the picker takes about a third of the viewport
+before the model is reached, and on a phone you scroll past the whole shelf to get to the heart.
+
+Nothing is broken and nothing has been changed for it — this is the note that the threshold was
+predicted and has now been crossed. What it wants is probably a collapsed control that shows the
+current pack and opens the shelf on demand, with the two groups intact.

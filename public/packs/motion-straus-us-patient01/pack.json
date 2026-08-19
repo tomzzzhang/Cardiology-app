@@ -1,0 +1,482 @@
+{
+  "meta": {
+    "id": "motion-straus-us-patient01",
+    "display_name": "Multimodality STRAUS \u2014 simulated ultrasound myocardium, one healthy patient",
+    "anatomy": "Biventricular myocardium, synthetic healthy subject, 30 time steps",
+    "canonical_variant": "patient01_healthy from the STRAUS multi-modality simulation; the ULTRASOUND modality's mesh sequence, 30 frames covering one whole cardiac cycle",
+    "pack_version": "0.1.0",
+    "schema_version": "0.1"
+  },
+  "provenance": {
+    "creator": "Alessandrini, M., De Craene, M., Bernard, O., et al. (CREATIS, Universite de Lyon; Philips Research Paris; Inria Asclepios)",
+    "source": "Multimodality STRAUS open-access database, Girder collection 587de6f4e1af3f30a2980a58, folder patient01_healthy/us/mesh",
+    "source_url": "https://humanheart-project.creatis.insa-lyon.fr/multimodalityStraus.html",
+    "license": "No licence stated at the source",
+    "license_url": "https://humanheart-project.creatis.insa-lyon.fr/multimodalityStraus.html",
+    "license_state": "unconfirmed",
+    "modified": {
+      "flag": true,
+      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 116 source units; read as mm because 116.0 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 30 input surface(s) together, a single translation of (-88.0, -65.5, -82.7) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. UNLABELLED. The source divides into no named parts, so the pack carries one structure with a generic label rather than an invented anatomical one. LICENCE AS READ AT THE SOURCE: NO LICENCE STATEMENT EXISTS. The dataset page, the Girder collection description and the collection metadata were all read on 2026-08-19 and none of them names a licence. The only access statement anywhere is that the database is public and needs no login. That is permission to DOWNLOAD and says nothing about redistribution or derivative works, so the state is \"unconfirmed\" and the pack cannot be published. Resolving it means writing to the depositors. SYNTHETIC, NOT A PATIENT. This is the mesh half of a simulation pipeline: an electromechanical model driving a physical ultrasound simulator. It is a plausible heart rather than a measured one, and its motion is the model's motion. NO LABELS AND NO PER-CHAMBER DIVISION. One myocardial volume per frame; the pack carries its boundary as a single unnamed structure. LICENCE UNCONFIRMED. Public access is not a grant. Nothing derived from this may be published until a depositor says otherwise. THE BOUNDARY IS BOTH SURFACES AT ONCE. Extracting the boundary of a myocardial volume yields the epicardium AND the endocardium as one closed shell, so the endocardial surface is inside the epicardial one and only the cutter reveals it."
+    },
+    "derivation_chain": [
+      "https://humanheart-project.creatis.insa-lyon.fr/multimodalityStraus.html",
+      "pipeline/fetch.py (checksum-recorded acquisition)",
+      "pipeline/geometry.py (read, unit-normalise, centre, decimate, export)"
+    ],
+    "vetted": {
+      "status": "draft",
+      "vetters": [],
+      "last_reviewed": null
+    }
+  },
+  "meshes": {
+    "gltf": "assets/model.gltf",
+    "structures": [
+      {
+        "id": "surface",
+        "mesh_node": "surface",
+        "display_label": "Biventricular myocardium (source carries no per-chamber labels)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      }
+    ],
+    "canonical_pose": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler_xyz_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0
+    },
+    "units": "mm",
+    "orientation": {
+      "up": "+y",
+      "anterior": "+z",
+      "patient_left": "+x",
+      "handedness": "right"
+    },
+    "keyframes": {
+      "frames": [
+        {
+          "gltf": "assets/model.gltf",
+          "label": "usmesh00",
+          "phase": 0.0
+        },
+        {
+          "gltf": "assets/frame-001.gltf",
+          "label": "usmesh01",
+          "phase": 0.034483
+        },
+        {
+          "gltf": "assets/frame-002.gltf",
+          "label": "usmesh02",
+          "phase": 0.068966
+        },
+        {
+          "gltf": "assets/frame-003.gltf",
+          "label": "usmesh03",
+          "phase": 0.103448
+        },
+        {
+          "gltf": "assets/frame-004.gltf",
+          "label": "usmesh04",
+          "phase": 0.137931
+        },
+        {
+          "gltf": "assets/frame-005.gltf",
+          "label": "usmesh05",
+          "phase": 0.172414
+        },
+        {
+          "gltf": "assets/frame-006.gltf",
+          "label": "usmesh06",
+          "phase": 0.206897
+        },
+        {
+          "gltf": "assets/frame-007.gltf",
+          "label": "usmesh07",
+          "phase": 0.241379
+        },
+        {
+          "gltf": "assets/frame-008.gltf",
+          "label": "usmesh08",
+          "phase": 0.275862
+        },
+        {
+          "gltf": "assets/frame-009.gltf",
+          "label": "usmesh09",
+          "phase": 0.310345
+        },
+        {
+          "gltf": "assets/frame-010.gltf",
+          "label": "usmesh10",
+          "phase": 0.344828
+        },
+        {
+          "gltf": "assets/frame-011.gltf",
+          "label": "usmesh11",
+          "phase": 0.37931
+        },
+        {
+          "gltf": "assets/frame-012.gltf",
+          "label": "usmesh12",
+          "phase": 0.413793
+        },
+        {
+          "gltf": "assets/frame-013.gltf",
+          "label": "usmesh13",
+          "phase": 0.448276
+        },
+        {
+          "gltf": "assets/frame-014.gltf",
+          "label": "usmesh14",
+          "phase": 0.482759
+        },
+        {
+          "gltf": "assets/frame-015.gltf",
+          "label": "usmesh15",
+          "phase": 0.517241
+        },
+        {
+          "gltf": "assets/frame-016.gltf",
+          "label": "usmesh16",
+          "phase": 0.551724
+        },
+        {
+          "gltf": "assets/frame-017.gltf",
+          "label": "usmesh17",
+          "phase": 0.586207
+        },
+        {
+          "gltf": "assets/frame-018.gltf",
+          "label": "usmesh18",
+          "phase": 0.62069
+        },
+        {
+          "gltf": "assets/frame-019.gltf",
+          "label": "usmesh19",
+          "phase": 0.655172
+        },
+        {
+          "gltf": "assets/frame-020.gltf",
+          "label": "usmesh20",
+          "phase": 0.689655
+        },
+        {
+          "gltf": "assets/frame-021.gltf",
+          "label": "usmesh21",
+          "phase": 0.724138
+        },
+        {
+          "gltf": "assets/frame-022.gltf",
+          "label": "usmesh22",
+          "phase": 0.758621
+        },
+        {
+          "gltf": "assets/frame-023.gltf",
+          "label": "usmesh23",
+          "phase": 0.793103
+        },
+        {
+          "gltf": "assets/frame-024.gltf",
+          "label": "usmesh24",
+          "phase": 0.827586
+        },
+        {
+          "gltf": "assets/frame-025.gltf",
+          "label": "usmesh25",
+          "phase": 0.862069
+        },
+        {
+          "gltf": "assets/frame-026.gltf",
+          "label": "usmesh26",
+          "phase": 0.896552
+        },
+        {
+          "gltf": "assets/frame-027.gltf",
+          "label": "usmesh27",
+          "phase": 0.931034
+        },
+        {
+          "gltf": "assets/frame-028.gltf",
+          "label": "usmesh28",
+          "phase": 0.965517
+        },
+        {
+          "gltf": "assets/frame-029.gltf",
+          "label": "usmesh29",
+          "phase": 1.0
+        }
+      ],
+      "loop": true,
+      "vertex_correspondence": true,
+      "coverage": "one whole cardiac cycle, 30 frames, ends meeting"
+    }
+  },
+  "interaction": {
+    "pivot": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "views": [],
+  "display_flags": {
+    "pediatric_vertex_convention": true,
+    "plax_apex_left_exception": true,
+    "dextrocardia_indicator_profile": {
+      "enabled": false,
+      "profile": null
+    }
+  },
+  "volumetric_data": {
+    "geometry_report": {
+      "usmesh00": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh01": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh02": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh03": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh04": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh05": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh06": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh07": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh08": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh09": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh10": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh11": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh12": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh13": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh14": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh15": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh16": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh17": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh18": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh19": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh20": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh21": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh22": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh23": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh24": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh25": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh26": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh27": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh28": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "usmesh29": {
+        "vertices": 11370,
+        "triangles": 15076,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      }
+    }
+  }
+}

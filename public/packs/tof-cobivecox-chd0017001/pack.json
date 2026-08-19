@@ -1,0 +1,205 @@
+{
+  "meta": {
+    "id": "tof-cobivecox-chd0017001",
+    "display_name": "Tetralogy of Fallot \u2014 CobivecoX patient-specific biventricular surfaces",
+    "anatomy": "Repaired Tetralogy of Fallot, biventricular, one patient",
+    "canonical_variant": "Patient CHD0017001 of the ten patient-specific TOF meshes accompanying CobivecoX; endocardium, epicardium and four valve annuli",
+    "pack_version": "0.1.0",
+    "schema_version": "0.1"
+  },
+  "provenance": {
+    "creator": "Pankewitz, L. R., Hustad, K. G., Govil, S., Perry, J. C., Hegde, S., Tang, R., McCulloch, A. D., Omens, J. H., Young, A. A., Maleckar, M. M., Wang, V. Y.",
+    "source": "Zenodo record 10577973, 'A universal biventricular coordinate system incorporating valve annuli: Validation in congenital heart', file CobivecoX_TOF_patient_specific_data.zip",
+    "source_url": "https://zenodo.org/records/10577973",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "license_state": "confirmed",
+    "modified": {
+      "flag": true,
+      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 107.8 source units; read as mm because 107.8 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 8 input surface(s) together, a single translation of (2.3, -6.9, -1.3) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. LICENCE AS READ AT THE SOURCE: the Zenodo record 10577973 declares license id \"cc-by-4.0\" (Creative Commons Attribution 4.0 International), read from the deposit's own record on 2026-08-19. ONE PATIENT OF TEN. The deposit carries ten patient-specific TOF meshes and this pack carries one, because ten packs of about 4 MB each is 40 MB of committed assets for material that does not ship. The other nine are one registry line away. REPAIRED, AND THE REPAIR IS NOT DESCRIBED. These are post-operative Tetralogy of Fallot ventricles from an imaging atlas. Which repair, at what age, and with what residual lesion are not stated in the deposit, so nothing here should be read as showing a particular surgical result. ANNULI, NOT VALVES. The four valve surfaces are RINGS \u2014 445 to 1,840 triangles each, the annulus plane the coordinate system is built on. There are no leaflets and nothing opens or closes. TWO EPICARDIAL PIECES. The source splits the epicardium into `epi_no_base` and `epi_base`, which meet at the valve plane. They are carried as two structures because that is what the source provides; together they are one surface. NO MYOCARDIAL VOLUME IN THIS PACK. The endocardial and epicardial surfaces are separate shells, so wall thickness is between them rather than in them. The deposit's `result.vtu` per patient is the tetrahedral volume with the CobivecoX coordinates on it; it is not fetched into the pack. NO ATRIA, NO GREAT VESSELS. Biventricular only."
+    },
+    "derivation_chain": [
+      "https://zenodo.org/records/10577973",
+      "pipeline/fetch.py (checksum-recorded acquisition)",
+      "pipeline/geometry.py (read, unit-normalise, centre, decimate, export)"
+    ],
+    "vetted": {
+      "status": "draft",
+      "vetters": [],
+      "last_reviewed": null
+    }
+  },
+  "meshes": {
+    "gltf": "assets/model.gltf",
+    "structures": [
+      {
+        "id": "epicardium-excluding-the-base",
+        "mesh_node": "epicardium-excluding-the-base",
+        "display_label": "Epicardium, excluding the base",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "epicardial-base",
+        "mesh_node": "epicardial-base",
+        "display_label": "Epicardial base",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "left-ventricular-endocardium",
+        "mesh_node": "left-ventricular-endocardium",
+        "display_label": "Left ventricular endocardium",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "right-ventricular-endocardium",
+        "mesh_node": "right-ventricular-endocardium",
+        "display_label": "Right ventricular endocardium",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "mitral-valve-annulus",
+        "mesh_node": "mitral-valve-annulus",
+        "display_label": "Mitral valve annulus",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "tricuspid-valve-annulus",
+        "mesh_node": "tricuspid-valve-annulus",
+        "display_label": "Tricuspid valve annulus",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "aortic-valve-annulus",
+        "mesh_node": "aortic-valve-annulus",
+        "display_label": "Aortic valve annulus",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      },
+      {
+        "id": "pulmonary-valve-annulus",
+        "mesh_node": "pulmonary-valve-annulus",
+        "display_label": "Pulmonary valve annulus",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      }
+    ],
+    "canonical_pose": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler_xyz_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0
+    },
+    "units": "mm",
+    "orientation": {
+      "up": "+y",
+      "anterior": "+z",
+      "patient_left": "+x",
+      "handedness": "right"
+    }
+  },
+  "interaction": {
+    "pivot": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "views": [],
+  "display_flags": {
+    "pediatric_vertex_convention": true,
+    "plax_apex_left_exception": true,
+    "dextrocardia_indicator_profile": {
+      "enabled": false,
+      "profile": null
+    }
+  },
+  "volumetric_data": {
+    "geometry_report": {
+      "CHD0017001_epi_no_base": {
+        "vertices": 34705,
+        "triangles": 69096,
+        "boundary_edges": 312,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "CHD0017001_epi_base": {
+        "vertices": 3130,
+        "triangles": 5920,
+        "boundary_edges": 340,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "CHD0017001_endo_lv": {
+        "vertices": 16484,
+        "triangles": 32809,
+        "boundary_edges": 159,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "CHD0017001_endo_rv": {
+        "vertices": 23541,
+        "triangles": 46913,
+        "boundary_edges": 169,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "CHD0017001_mv": {
+        "vertices": 1023,
+        "triangles": 1840,
+        "boundary_edges": 206,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "CHD0017001_tv": {
+        "vertices": 483,
+        "triangles": 747,
+        "boundary_edges": 219,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "CHD0017001_av": {
+        "vertices": 343,
+        "triangles": 524,
+        "boundary_edges": 162,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      },
+      "CHD0017001_pv": {
+        "vertices": 294,
+        "triangles": 445,
+        "boundary_edges": 143,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 0
+      }
+    }
+  }
+}

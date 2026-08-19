@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-19 06:15 EDT
+**Updated:** 2026-08-19 06:27 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -26,8 +26,9 @@ npm run ingest -- --budget-table               # volume size against resolution
 | --- | --- |
 | `sources.py` | Two source registries: `SOURCES` (labelled substrates) and `GEOMETRY_SOURCES`. |
 | `fetch.py` | Checksum-verified download into the gitignored `.cache/`, one file or many. |
-| `meshlib.py` | Readers (VTK tets, VTK PolyData, VTU, glTF, STL, OBJ) and the glTF writer. |
+| `meshlib.py` | Readers (legacy VTK tets/PolyData/unstructured, XML VTU, glTF, STL, OBJ, PLY) and the glTF writer. |
 | `geometry.py` | The geometry-only path: plain surfaces in, an Explore-only pack out. |
+| `bodyparts3d.py` | Which BodyParts3D files are the heart, and what each one is called. |
 | `anatomy.py` | Valve identification by face adjacency, and the cardiac frame derived from it. |
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
@@ -54,8 +55,8 @@ Everything after that is shared.
 ## The geometry-only path
 
 `geometry.py` exists because most material worth looking at carries no labels, no tags and
-no documentation, and schema v0.1 made those packs possible. It reads OBJ, STL, VTK PolyData
-and VTU; normalises units to millimetres by *measuring* the model against the range a whole
+no documentation, and schema v0.1 made those packs possible. It reads OBJ, PLY, STL (ASCII and
+binary), legacy VTK PolyData and unstructured grids, and XML VTU; normalises units to millimetres by *measuring* the model against the range a whole
 heart can plausibly span, and records the reasoning; centres on the model bounds; emits one
 unnamed structure where the source has no labels and one per file where it is a directory of
 parts; and writes one glTF per frame where the source moves.
@@ -72,10 +73,14 @@ Three things it deliberately does not do.
 - **It centres every frame together, never each frame on itself.** Per-frame centring would
   subtract exactly the bulk translation that makes a beating heart beat.
 
-Motion is carried as whole meshes per frame rather than as a deformation field. That follows
-the data: the frames of the one 4D source in hand differ in vertex *count*, so there is no
-correspondence a displacement could be expressed against. Each pack records
-`vertex_correspondence` so the question is answerable without re-reading the source.
+Motion is carried as whole meshes per frame rather than as a deformation field. That follows the
+data: the frames of the *first* 4D source differ in vertex **count**, so there is no correspondence
+a displacement could be expressed against. Each pack records `vertex_correspondence`, and the ingest
+**withdraws** the claim if it ever decimates — quadric simplification is data-dependent, so
+decimating frames independently destroys any correspondence they arrived with. For the same reason
+the triangle budget applies **per frame** on an animated source rather than being divided across
+frames: only one frame is on screen at a time, and dividing would have halved a 15,000-triangle
+myocardium for no rendering benefit while silently voiding the property that source exists for.
 
 ## What gets named, and on what evidence
 

@@ -301,6 +301,85 @@ def read_gltf_surfaces(path: Path) -> list[tuple[Surface, int, int]]:
     return out
 
 
+
+def _legacy_cell_index(flat: np.ndarray, cells: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Per-cell size and connectivity start from a classic `CELLS` array.
+
+    The array is `[size, i0, i1, ..., size, i0, ...]`, so the sizes cannot be
+    read without knowing where they are. Where every cell has the SAME size —
+    which every mesh this pipeline has met does, tetrahedra throughout — the
+    whole thing is one reshape. The mixed case falls back to walking it, which
+    is O(cells) in Python and only pays where it is actually needed.
+    """
+    if cells == 0:
+        return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
+
+    width = int(flat[0])
+    if len(flat) == cells * (width + 1) and np.all(flat[::width + 1] == width):
+        sizes = np.full(cells, width, dtype=np.int64)
+        starts = np.arange(cells, dtype=np.int64) * (width + 1) + 1
+        return sizes, starts
+
+    sizes_list, starts_list, cursor = [], [], 0
+    for _ in range(cells):
+        size = int(flat[cursor])
+        sizes_list.append(size)
+        starts_list.append(cursor + 1)
+        cursor += size + 1
+    return np.asarray(sizes_list, dtype=np.int64), np.asarray(starts_list, dtype=np.int64)
+
+
+def _legacy_lines(raw: bytes) -> tuple[list[str], int]:
+    """
+    The four-line legacy VTK header, and the offset just past it.
+
+    Four, not five: the fifth line is already the first SECTION (`POINTS ...`),
+    and consuming it here would leave the section search starting past the
+    section it is looking for.
+    """
+    lines, cursor = [], 0
+    while len(lines) < 4 and cursor < len(raw):
+        stop = raw.find(b"\n", cursor)
+        if stop < 0:
+            break
+        lines.append(raw[cursor:stop].decode("ascii", "replace").strip())
+        cursor = stop + 1
+    return lines, cursor
+
+
+def _legacy_dataset(raw: bytes, path: Path) -> bytes:
+    """The `DATASET` keyword of a legacy VTK file."""
+    lines, _ = _legacy_lines(raw)
+    if not lines or not lines[0].startswith("# vtk DataFile Version"):
+        raise ValueError(f"{path.name}: not a legacy VTK file")
+    if len(lines) < 4 or not lines[3].upper().startswith("DATASET"):
+        raise ValueError(f"{path.name}: no DATASET line")
+    return lines[3].split()[1].upper().encode()
+
+
+def _legacy_header(raw: bytes, path: Path, expected: bytes) -> tuple[str, int]:
+    """Validate the header and return `(encoding, offset past it)`."""
+    lines, cursor = _legacy_lines(raw)
+    if not lines or not lines[0].startswith("# vtk DataFile Version"):
+        raise ValueError(f"{path.name}: not a legacy VTK file")
+    encoding = lines[2].upper()
+    if encoding not in ("ASCII", "BINARY"):
+        raise ValueError(f"{path.name}: unknown VTK encoding {lines[2]!r}")
+    if _legacy_dataset(raw, path) != expected:
+        raise ValueError(f"{path.name}: expected DATASET {expected.decode()}, got {lines[3]!r}")
+    return encoding, cursor
+
+
+def _legacy_section(raw: bytes, keyword: bytes, after: int, path: Path) -> tuple[list[bytes], int]:
+    """A section's header tokens, and the offset of its payload."""
+    at = raw.find(keyword, after)
+    if at < 0:
+        raise ValueError(f"{path.name}: no {keyword.decode()} section")
+    stop = raw.find(b"\n", at)
+    return raw[at:stop].split(), stop + 1
+
+
 def read_vtk_polydata(path: Path) -> Surface:
     """
     Read a legacy VTK `DATASET POLYDATA` surface, ASCII or binary.
@@ -488,16 +567,37 @@ def read_vtu(path: Path) -> Surface:
         picks = starts[selected][:, None] + np.arange(width)[None, :]
         return connectivity[picks]
 
-    # Vectorised on purpose. A Python loop over cells is unusable here: the KIT
-    # mechanics mesh carries hundreds of thousands of tetrahedra, and walking
-    # them one at a time took longer than ten minutes before this was rewritten.
-    triangles = [gather(_VTK_TRIANGLE, 3)]
-    quads = gather(_VTK_QUAD, 4)
-    if quads.size:
-        triangles.append(quads[:, [0, 1, 2]])
-        triangles.append(quads[:, [0, 2, 3]])
+    return boundary_surface(
+        path.stem,
+        points,
+        triangles=gather(_VTK_TRIANGLE, 3),
+        quads=gather(_VTK_QUAD, 4),
+        tets=gather(_VTK_TETRA, 4),
+        present=sorted(set(types.tolist())),
+        origin=path.name,
+    )
 
-    tets = gather(_VTK_TETRA, 4)
+
+def boundary_surface(name: str, points: np.ndarray, *, triangles: np.ndarray,
+                     quads: np.ndarray, tets: np.ndarray, present: list[int],
+                     origin: str) -> Surface:
+    """
+    The renderable surface of a cell complex: its surface cells plus the
+    BOUNDARY of its volumetric ones.
+
+    Shared by the XML VTU reader and the legacy VTK unstructured-grid reader,
+    which differ entirely in how they get the arrays and not at all in what has
+    to be done with them.
+
+    Vectorised on purpose. A Python loop over cells is unusable here: the KIT
+    mechanics mesh carries hundreds of thousands of tetrahedra, and walking them
+    one at a time took over ten minutes before this was rewritten.
+    """
+    blocks = [triangles]
+    if quads.size:
+        blocks.append(quads[:, [0, 1, 2]])
+        blocks.append(quads[:, [0, 2, 3]])
+
     if tets.size:
         faces = np.concatenate([
             tets[:, [0, 2, 1]], tets[:, [0, 1, 3]], tets[:, [0, 3, 2]], tets[:, [1, 2, 3]],
@@ -513,18 +613,91 @@ def read_vtu(path: Path) -> Surface:
         same_as_next[:-1] = np.all(keyed[1:] == keyed[:-1], axis=1)
         shared = same_as_next.copy()
         shared[1:] |= same_as_next[:-1]
-        triangles.append(faces[~shared])
+        blocks.append(faces[~shared])
 
-    unsupported = sorted(set(types.tolist()) - {_VTK_TRIANGLE, _VTK_QUAD, _VTK_TETRA})
-    surface = np.concatenate([block for block in triangles if block.size]) \
-        if any(block.size for block in triangles) else np.empty((0, 3), dtype=np.int64)
-    if surface.size == 0:
+    kept = [block for block in blocks if block.size]
+    if not kept:
+        unsupported = sorted(set(present) - {_VTK_TRIANGLE, _VTK_QUAD, _VTK_TETRA})
         raise ValueError(
-            f"{path.name}: no surface cells; unsupported VTK cell types present: "
-            f"{unsupported}"
+            f"{origin}: no surface cells; unsupported VTK cell types present: {unsupported}"
         )
+    return Surface(name=name, vertices=points,
+                   faces=np.concatenate(kept).astype(np.int32))
 
-    return Surface(name=path.stem, vertices=points, faces=surface.astype(np.int32))
+
+def read_vtk_unstructured(path: Path) -> Surface:
+    """
+    Read a legacy VTK `DATASET UNSTRUCTURED_GRID` and return its boundary.
+
+    ASCII or binary, classic `CELLS n size` layout. Cells of unsupported types
+    are skipped rather than misread — a grid of hexahedra would come back empty
+    and raise, naming the types it found.
+
+    The STRAUS ultrasound meshes are this: binary, 11,370 points and 47,186
+    tetrahedra per frame, one file per time step.
+    """
+    raw = path.read_bytes()
+    encoding, cursor = _legacy_header(raw, path, b"UNSTRUCTURED_GRID")
+    text = raw.decode("ascii", "replace") if encoding == "ASCII" else ""
+
+    if encoding == "ASCII":
+        tokens = text.split()
+        at = tokens.index("POINTS")
+        count = int(tokens[at + 1])
+        points = np.asarray(tokens[at + 3:at + 3 + count * 3],
+                            dtype=np.float64).reshape(count, 3).astype(np.float32)
+        at = tokens.index("CELLS")
+        cells, ints = int(tokens[at + 1]), int(tokens[at + 2])
+        flat = np.asarray(tokens[at + 3:at + 3 + ints], dtype=np.int64)
+        at = tokens.index("CELL_TYPES")
+        types = np.asarray(tokens[at + 2:at + 2 + cells], dtype=np.int64)
+    else:
+        header, cursor = _legacy_section(raw, b"POINTS", cursor, path)
+        count = int(header[1])
+        dtype = {b"float": ">f4", b"double": ">f8"}.get(header[2].lower())
+        if dtype is None:
+            raise ValueError(f"{path.name}: unsupported POINTS type {header[2]!r}")
+        points = np.frombuffer(raw, dtype=dtype, count=count * 3, offset=cursor)
+        points = points.reshape(count, 3).astype(np.float32)
+        cursor += count * 3 * np.dtype(dtype).itemsize
+
+        header, cursor = _legacy_section(raw, b"CELLS", cursor, path)
+        cells, ints = int(header[1]), int(header[2])
+        flat = np.frombuffer(raw, dtype=">i4", count=ints, offset=cursor).astype(np.int64)
+        cursor += ints * 4
+
+        header, cursor = _legacy_section(raw, b"CELL_TYPES", cursor, path)
+        types = np.frombuffer(raw, dtype=">i4", count=cells, offset=cursor).astype(np.int64)
+
+    sizes, starts = _legacy_cell_index(flat, cells)
+
+    def gather(cell_type: int, width: int) -> np.ndarray:
+        selected = np.flatnonzero((types == cell_type) & (sizes == width))
+        if selected.size == 0:
+            return np.empty((0, width), dtype=np.int64)
+        return flat[starts[selected][:, None] + np.arange(width)[None, :]]
+
+    return boundary_surface(
+        path.stem, points,
+        triangles=gather(_VTK_TRIANGLE, 3),
+        quads=gather(_VTK_QUAD, 4),
+        tets=gather(_VTK_TETRA, 4),
+        present=sorted(set(types.tolist())),
+        origin=path.name,
+    )
+
+
+def read_vtk(path: Path) -> Surface:
+    """A legacy `.vtk` file of either dataset kind this pipeline can render."""
+    raw = path.read_bytes()
+    dataset = _legacy_dataset(raw, path)
+    if dataset == b"POLYDATA":
+        return read_vtk_polydata(path)
+    if dataset == b"UNSTRUCTURED_GRID":
+        return read_vtk_unstructured(path)
+    raise ValueError(f"{path.name}: DATASET {dataset.decode()} is not implemented")
+
+
 
 
 def _vtu_array(node, appended: bytes, appended_base64: bool, order: str, header_type: str,
@@ -615,6 +788,70 @@ def _zlib_blocks(payload: bytes, head: np.dtype, dtype: np.dtype) -> np.ndarray:
         chunks.append(zlib.decompress(payload[cursor:cursor + int(size)]))
         cursor += int(size)
     return np.frombuffer(b"".join(chunks), dtype=dtype)
+
+
+def read_ply(path: Path) -> Surface:
+    """
+    Read an ASCII PLY triangle surface.
+
+    Only `format ascii 1.0`, and only the `x`/`y`/`z` vertex properties plus a
+    face index list. Binary PLY is refused by name rather than guessed at: the
+    property list in the header is free-form, and a reader that assumed a layout
+    would silently return a mesh of noise for a file that used a different one.
+
+    The CobivecoX deposit writes ASCII PLY throughout, one file per surface —
+    endocardium, epicardium, and one ring per valve annulus.
+    """
+    with path.open("r", errors="replace") as handle:
+        if handle.readline().strip() != "ply":
+            raise ValueError(f"{path.name}: not a PLY file")
+
+        encoding, vertex_count, face_count = "", 0, 0
+        element, properties = "", []
+        while True:
+            line = handle.readline()
+            if not line:
+                raise ValueError(f"{path.name}: PLY header has no end_header")
+            fields = line.split()
+            if not fields:
+                continue
+            if fields[0] == "format":
+                encoding = fields[1]
+            elif fields[0] == "element":
+                element = fields[1]
+                if element == "vertex":
+                    vertex_count = int(fields[2])
+                elif element == "face":
+                    face_count = int(fields[2])
+            elif fields[0] == "property" and element == "vertex" and fields[1] != "list":
+                properties.append(fields[-1])
+            elif fields[0] == "end_header":
+                break
+
+        if encoding != "ascii":
+            raise ValueError(f"{path.name}: only ASCII PLY is implemented, not {encoding!r}")
+        for axis in ("x", "y", "z"):
+            if axis not in properties:
+                raise ValueError(f"{path.name}: vertices carry no {axis!r} property")
+        columns = [properties.index(axis) for axis in ("x", "y", "z")]
+
+        vertices = np.empty((vertex_count, 3), dtype=np.float64)
+        for index in range(vertex_count):
+            fields = handle.readline().split()
+            vertices[index] = [float(fields[column]) for column in columns]
+
+        polygons = []
+        for _ in range(face_count):
+            fields = handle.readline().split()
+            polygons.append(np.asarray(fields[1:1 + int(fields[0])], dtype=np.int64))
+
+    if not polygons:
+        raise ValueError(f"{path.name}: PLY carries no faces")
+    return Surface(
+        name=path.stem,
+        vertices=vertices.astype(np.float32),
+        faces=_fan_triangulate(polygons, path),
+    )
 
 
 def read_obj(path: Path) -> Surface:

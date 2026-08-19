@@ -78,6 +78,21 @@ export const UNPUBLISHED_PACKS: Readonly<Record<string, NotPublished>> = {
       'CC BY-NC 4.0. Not published: a non-commercial pack binds the whole application to the ' +
       'non-commercial red lines, and that constraint is not accepted for the published build.',
   },
+  'tof-cobivecox-chd0017001': {
+    licence:
+      'CC BY 4.0, state "confirmed" — read from the Zenodo record\'s own licence field. Not ' +
+      'published anyway: nothing new ships in this build. It is also patient-derived ' +
+      'congenital anatomy from an imaging atlas, and whether a repaired Tetralogy of Fallot ' +
+      'ventricle belongs in a teaching tool is a clinical question, not a licence one.',
+  },
+  'motion-straus-us-patient01': {
+    licence:
+      'NO LICENCE STATEMENT EXISTS at the source, so the state is "unconfirmed". The dataset ' +
+      "page, the Girder collection description and its metadata were all read and none names " +
+      'a licence; the only access statement anywhere is that the database is public and needs ' +
+      'no login, which is permission to DOWNLOAD and says nothing about redistribution or ' +
+      'derivative works. Resolving it means writing to the depositors.',
+  },
   'normal-kit-four-chamber': {
     licence:
       'CC BY-NC 4.0, state "non_commercial" — read from the Zenodo record\'s own licence ' +
@@ -193,6 +208,22 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
     licenseState: 'non_commercial',
     moving: false,
     summary: 'Wave 1a reject. One undivided tissue body, 1,026 components.',
+  },
+  {
+    id: 'tof-cobivecox-chd0017001',
+    displayName: 'Tetralogy of Fallot — CobivecoX patient-specific biventricular surfaces',
+    kind: 'explore',
+    licenseState: 'confirmed',
+    moving: false,
+    summary: 'Congenital. LV and RV endocardium, epicardium, four valve annuli.',
+  },
+  {
+    id: 'motion-straus-us-patient01',
+    displayName: 'Multimodality STRAUS — simulated ultrasound myocardium, one healthy patient',
+    kind: 'explore',
+    licenseState: 'unconfirmed',
+    moving: true,
+    summary: '30 frames, a whole cycle, with vertex correspondence. Synthetic.',
   },
   {
     id: 'normal-kit-four-chamber',
