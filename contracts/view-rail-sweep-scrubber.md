@@ -34,11 +34,11 @@ order by pack order.
    pack declares. `mode: 'translate'` uses `mm`; `tilt` and `rotate` use `deg`. The axis passes
    through `probe.origin` unless `sweep.axis.origin` says otherwise.
 3. **The sweep has a probe-side affordance, and it is an input rather than a second owner.**
-   *(Supersedes "there is no 'nudge the wedge' affordance", 2026-08-19.)* A tilt arrow drawn on the
-   probe scrubs the sweep by calling the same `scrub(t)` the slider calls — one clock, hard-clamped
-   to [0, 1] — so every pose it reaches is one the slider already reached. It is drawn from
-   `poseAt` over a window around the current `t`, so it rides the probe, and a view with no sweep
-   gets no arrow.
+   *(Supersedes "there is no 'nudge the wedge' affordance", 2026-08-19.)* A **probe control pad**
+   steps the sweep by calling the same `scrub(t)` the slider calls — one clock, hard-clamped to
+   [0, 1] — so every pose it reaches is one the slider already reached, and one press is a known
+   amount (2 degrees, or 2 mm) rather than a gesture whose gain depends on the camera. Locked it
+   offers only that one pair of buttons; a view with no sweep gets no pad.
 
    Learner mode still cannot reposition a vetted wedge **except** through the explicit **Free
    probe** unlock, which is an owner decision of the same date and is paid for by the echo panel

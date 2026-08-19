@@ -215,6 +215,41 @@ export function tiltedNormal(
 }
 
 /**
+ * Move the plane along its own normal by a screen drag.
+ *
+ * The depth `s` follows the pointer at 1:1 in world units: the drag is measured
+ * along the screen projection of `N`, and scaled by how many model units a pixel
+ * spans at the plane's own distance, so the plane tracks the hand rather than
+ * moving at some gain that changes with the zoom.
+ *
+ * Frozen start and total offset, the same rule the handles and the pad follow.
+ *
+ * A plane seen face-on has `N` pointing at the camera, where it projects to
+ * nothing and there is no direction to drag along. That is degenerate rather
+ * than fixable — a face-on plane has no visible depth to move through — so the
+ * gesture becomes a no-op and the learner orbits a little. Returning the start
+ * offset rather than a NaN is the whole handling.
+ */
+export function draggedOffset(
+  startOffset: number,
+  normal: THREE.Vector3,
+  cameraRight: THREE.Vector3,
+  cameraUp: THREE.Vector3,
+  totalDx: number,
+  totalDy: number,
+  unitsPerPixel: number,
+): number {
+  const n = normal.clone().normalize();
+  const screenX = n.dot(cameraRight.clone().normalize());
+  // Screen `y` grows downward while `cameraUp` grows upward.
+  const screenY = -n.dot(cameraUp.clone().normalize());
+  const length = Math.hypot(screenX, screenY);
+  if (length < 1e-6 || !Number.isFinite(unitsPerPixel)) return startOffset;
+  const along = (totalDx * screenX + totalDy * screenY) / length;
+  return startOffset + along * unitsPerPixel;
+}
+
+/**
  * The free cutter's state that reproduces a vetted view's imaging plane.
  *
  * The ONE permitted bridge, and it is one-way and copy-only: geometry is read
@@ -260,4 +295,41 @@ export function enclosingRadius(root: THREE.Object3D, pivot: THREE.Vector3): num
     }
   });
   return furthest;
+}
+
+/**
+ * A subsampled copy of a model's world-space vertices.
+ *
+ * For clearance tests — "how close is this point to tissue" — where an exact
+ * answer over every vertex is far more than the question needs and far more
+ * than a held button can afford. The stride is chosen to land near `budget`
+ * points however dense the mesh is, so the cost is bounded by the budget rather
+ * than by the model.
+ *
+ * Vertices rather than triangles, and therefore an OVER-estimate of the
+ * distance when the nearest surface point is in the middle of a large face. On
+ * a mesh decimated to this density the error is under a millimetre, which is
+ * finer than anything measured against it.
+ */
+export function sampleSurface(root: THREE.Object3D, budget = 6000): Float32Array<ArrayBuffer> {
+  root.updateMatrixWorld(true);
+  let total = 0;
+  root.traverse((object) => {
+    if (object instanceof THREE.Mesh) total += object.geometry.getAttribute('position')?.count ?? 0;
+  });
+  if (total === 0) return new Float32Array(0);
+
+  const stride = Math.max(1, Math.floor(total / budget));
+  const out: number[] = [];
+  const point = new THREE.Vector3();
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    const position = object.geometry.getAttribute('position');
+    if (!position) return;
+    for (let i = 0; i < position.count; i += stride) {
+      point.fromBufferAttribute(position as THREE.BufferAttribute, i).applyMatrix4(object.matrixWorld);
+      out.push(point.x, point.y, point.z);
+    }
+  });
+  return new Float32Array(out);
 }

@@ -104,15 +104,27 @@ export class StencilCaps {
     this.quadMaterial = new THREE.MeshBasicMaterial({
       side: THREE.DoubleSide,
       /*
-       * `depthTest: false` with `depthWrite: true`. Everything that survives
-       * clipping lies behind the plane, so there is nothing the cap could
-       * legitimately be occluded by and the test only risks z-fighting between
-       * the coplanar quads. Depth is still WRITTEN, so the probe wedge — which
-       * is not clipped and may pass behind the cut face — is occluded by the
-       * cap rather than showing through solid tissue.
+       * Depth TESTED as well as written.
+       *
+       * An earlier revision disabled the test, on the reasoning that everything
+       * surviving the clip lies behind the plane so nothing could legitimately
+       * occlude the cap. That holds only while the camera is on the discarded
+       * side. Orbit round to look at the cut from the side that was KEPT and the
+       * whole remaining half of the heart is between the eye and the plane — and
+       * an untested cap paints its palette colour straight over it, so the cut
+       * faces show through solid tissue.
+       *
+       * The test costs nothing here: the quads are masked by disjoint stencils
+       * so they never compete with each other, and the geometry that would
+       * z-fight with them at the plane is exactly the geometry the clip removes.
+       * The polygon offset covers the coincident case anyway, biasing the cap a
+       * hair toward the camera so it wins where it should.
        */
-      depthTest: false,
+      depthTest: true,
       depthWrite: true,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
       stencilWrite: true,
       stencilRef: 0,
       stencilFunc: THREE.NotEqualStencilFunc,

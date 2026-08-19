@@ -31,13 +31,19 @@
  * a modifier ALWAYS zooms, in every mode, and the cutter's modifier-wheel depth
  * control below has to coexist with that.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
 import { frameAt, imagingFrame, poseAt, type ImagingFrame } from '../echo/probeFrame.ts';
-import { rotatedPose } from './freeProbe.ts';
-import { PROBE_LENGTH, ProbeIndicator } from './wedge.ts';
+import {
+  NUDGE_DEG,
+  STANDOFF_STEP_MM,
+  movedAlongBeam,
+  nudgedPose,
+  type ProbeAxis,
+} from './freeProbe.ts';
+import { ProbeIndicator } from './wedge.ts';
 import { StencilCaps, type CapSource } from './caps.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
 import {
@@ -53,19 +59,15 @@ import {
   clippingPlane,
   enclosingRadius,
   initialCutPlane,
+  draggedOffset,
   planeAnchor,
   planeBasis,
+  sampleSurface,
   tiltedNormal,
   type CutPlaneState,
 } from './cutPlane.ts';
 import { CutPlaneGizmo, HANDLE_IDS, handleDirection, type HandleId } from './planeHandle.ts';
-import {
-  TiltArrow,
-  nearestOnPath,
-  pathScreenLength,
-  scrubbedT,
-  sweepPath,
-} from './tiltArrow.ts';
+import { probeTravelPath, steppedT } from './probeControl.ts';
 import { hitRadiusPx, isCoarsePointer, revealFor, watchPointerClass } from './pointerClass.ts';
 import { projectToScreen, unitsPerPixel } from './screen.ts';
 import { PALETTE, structureColour } from './palette.ts';
@@ -103,9 +105,9 @@ interface PackViewerProps {
    */
   freePose?: ProbePose | null;
   /**
-   * The one path the tilt arrow writes through — the same one the sweep slider
-   * uses. Without it the arrow is not drawn, because an affordance that cannot
-   * move anything is worse than no affordance.
+   * The one path the probe control pad's fan buttons write through — the same
+   * one the sweep slider uses. Without it the pad is not drawn, because an
+   * affordance that cannot move anything is worse than no affordance.
    */
   onScrubChange?: (scrub: number) => void;
   /**
@@ -121,6 +123,24 @@ interface PackViewerProps {
 /** Radians of plane rotation per pixel of handle drag. */
 const HANDLE_RADIANS_PER_PIXEL = 0.006;
 
+/**
+ * How close the transducer may come to tissue, and how far it may retreat, in
+ * pack units (mm).
+ *
+ * The near stop keeps the probe OUT of the heart. This substrate has no chest
+ * wall, so nothing but this number stops a learner pushing the aperture through
+ * the epicardium and imaging from inside a ventricle — which renders something
+ * perfectly plausible and teaches the opposite of the truth. The far stop keeps
+ * the sector on the heart at all.
+ *
+ * Measured against the model SURFACE rather than against the authored pose, so
+ * both mean the same thing on every view: how far a window stands off the
+ * epicardium differs per view, and a bound measured from the pose would sit
+ * inside the heart on one and nowhere near it on another.
+ */
+const MIN_CLEARANCE_MM = 3;
+const MAX_CLEARANCE_MM = 70;
+
 interface ViewerApi {
   setFrame: (frame: ImagingFrame) => void;
   setHidden: (hidden: ReadonlySet<string>) => void;
@@ -128,6 +148,10 @@ interface ViewerApi {
   setBeamDim: (strength: number) => void;
   setGhost: (on: boolean) => void;
   setPointerClass: (coarse: boolean) => void;
+  /** Distance from a world point to the nearest model surface, in pack units. */
+  clearanceMm: (point: readonly [number, number, number]) => number;
+  /** Whether the cutter should be reversed for the cut to open toward the camera. */
+  cutShouldFaceCamera: () => boolean;
   setMode: (mode: ViewerMode) => void;
   /** Returns the depth the slider should now show, in the new mode's terms. */
   setCutterMode: (mode: CutterMode) => number;
@@ -163,14 +187,17 @@ export default function PackViewer({
   /**
    * Whether the half the cutter removes is drawn back as a ghost.
    *
-   * Off by default: the point of the cut is to see inside, and a ghost is
-   * another thing between the eye and the cut face. On, it puts the removed
-   * half back as a faint translucent shell, so the section can be read against
-   * the whole heart it came out of.
+   * On by default: a section read against the whole heart it came out of says
+   * more than a section alone, and at 7% opacity the shell is faint enough not
+   * to compete with the cut faces. Off, the cut is a clean section.
    */
-  const [ghostCutaway, setGhostCutaway] = useState(false);
-  /** Slider bound, from model bounds; 0 until the model reports its size. */
-  const [cutLimit, setCutLimit] = useState(0);
+  const [ghostCutaway, setGhostCutaway] = useState(true);
+  /*
+   * The model's reach is no longer needed in React — the depth slider it
+   * bounded is gone, and the shift-wheel's clamp lives in the scene where the
+   * number is measured. `setCutLimit` stays only as the signal that the model
+   * has been measured.
+   */
   /** Explore has no probe to sync to, so the cutter is forced free there. */
   const [cutterMode, setCutterModeState] = useState<CutterMode>(
     mode === 'explore' ? 'free' : 'echo',
@@ -246,7 +273,6 @@ export default function PackViewer({
     const byStructure = new Map<string, THREE.Object3D>();
     const dimUniforms: ReturnType<typeof applyBeamDim>[] = [];
     let probe: ProbeIndicator | null = null;
-    let arrow: TiltArrow | null = null;
     let caps: StencilCaps | null = null;
     let gizmo: CutPlaneGizmo | null = null;
     /** The half the cutter removes, put back as a faint shell. */
@@ -256,6 +282,21 @@ export default function PackViewer({
     let bounds = new THREE.Box3();
     /** Enclosing radius about `C`: frames the camera and bounds the slider. */
     let reach = 0;
+    /**
+     * A subsampled copy of the model's world-space vertices.
+     *
+     * The probe's stand-off is bounded by how close it is to TISSUE, which is
+     * the physical quantity a stop should be expressed in — not by a distance
+     * from the authored pose, which would let the probe sit inside the heart on
+     * one view and nowhere near it on another.
+     *
+     * Subsampled because the bound is a clearance test, not a collision test: a
+     * few thousand points spread over the surface put the nearest one within a
+     * millimetre or so of the true nearest, which is finer than the 2 mm step
+     * the buttons move in. The exact walk is 180k vertices and would run on
+     * every repeat of a held button.
+     */
+    let surfacePoints: Float32Array<ArrayBuffer> = new Float32Array(0);
     /**
      * What the camera actually has to fit, which is not the same thing.
      *
@@ -277,8 +318,6 @@ export default function PackViewer({
     let beamStrength = 1;
     /** The frame the probe, the highlight and the echo-synced cutter share. */
     let currentFrame: ImagingFrame | null = null;
-    /** Where the probe body's centre projects, for the free-probe grab. */
-    let probeAnchor: THREE.Vector3 | null = null;
 
     /* --- the free anatomical cutter --------------------------------------- */
     const cut: CutPlaneState = initialCutPlane(pack.interaction?.free_cut);
@@ -399,7 +438,7 @@ export default function PackViewer({
       if (viewerMode !== 'echo') return;
       const view = pack.views[viewIndex];
       if (!view) return;
-      for (const point of sweepPath(view.probe, view.sweep)) {
+      for (const point of probeTravelPath(view.probe, view.sweep)) {
         framedReach = Math.max(framedReach, new THREE.Vector3(...point).distanceTo(pivot));
       }
       /*
@@ -431,23 +470,10 @@ export default function PackViewer({
       return out;
     };
 
-    /** The tilt arrow's path, projected to the panel. Empty when there is none. */
-    const arrowScreenPath = (): { x: number; y: number }[] => {
-      const width = host.clientWidth;
-      const height = host.clientHeight;
-      if (!arrow || width === 0 || freePoseRef.current !== null) return [];
-      const out: { x: number; y: number }[] = [];
-      for (const world of arrow.path) {
-        const point = projectToScreen(world, camera, width, height);
-        if (point.inFront) out.push({ x: point.x, y: point.y });
-      }
-      return out;
-    };
-
     /**
-     * Keep the handles and the arrow the size of their own hit targets.
+     * Keep the cut handles the size of their own hit targets.
      *
-     * Both are drawn in world space and grabbed in screen space, so the two
+     * They are drawn in world space and grabbed in screen space, so the two
      * numbers have to be derived from one: a handle that draws smaller than it
      * grabs swallows drags meant for the camera, and one that draws larger
      * misses when aimed at.
@@ -455,15 +481,11 @@ export default function PackViewer({
     const rescaleAffordances = () => {
       const height = host.clientHeight;
       if (height === 0) return;
-      const grab = hitRadiusPx(coarse);
-      if (gizmo) {
-        const anchor = planeAnchor(cut, pivot);
-        gizmo.setScreenScale(unitsPerPixel(camera, camera.position.distanceTo(anchor), height), grab);
-      }
-      if (arrow && arrow.path.length > 0) {
-        const mid = arrow.path[Math.floor(arrow.path.length / 2)];
-        arrow.setScreenScale(unitsPerPixel(camera, camera.position.distanceTo(mid), height), grab);
-      }
+      if (!gizmo) return;
+      const anchor = planeAnchor(cut, pivot);
+      gizmo.setScreenScale(
+        unitsPerPixel(camera, camera.position.distanceTo(anchor), height), hitRadiusPx(coarse),
+      );
     };
 
     /**
@@ -494,19 +516,12 @@ export default function PackViewer({
       }
       gizmo?.setHandleReveal(reveal, hovered);
 
-      if (arrow) {
-        // No arrow while the probe is free: the sweep is not what is moving it,
-        // so a control that says "scrub" would misdescribe the drag.
-        arrow.object.visible = freePoseRef.current === null;
-        if (freePoseRef.current === null) {
-          const path = arrowScreenPath();
-          const hit = x === null || y === null ? null : nearestOnPath(path, x, y);
-          // A handle under the pointer wins: it is drawn on top and it is the
-          // smaller target, so the arrow must not steal a drag aimed at one.
-          const distance = hovered !== null || hit === null ? Infinity : hit.distancePx;
-          arrow.setReveal(revealFor(distance, coarse), scrubRef.current);
-        }
-      }
+      // The depth arrow follows the same reveal rule, from the same module.
+      const depthAway = x === null || y === null ? Infinity : depthDistance(x, y);
+      gizmo?.setDepthReveal(
+        revealFor(hovered === null ? depthAway : Infinity, coarse),
+        hovered === null && depthAway <= grab,
+      );
       schedule();
     };
 
@@ -517,10 +532,32 @@ export default function PackViewer({
      * coarse pointer has no hover: the first contact a finger makes with the
      * screen is already the press.
      */
+    /** Distance in panel pixels from `(x, y)` to a projected world segment. */
+    const distanceToSegment = (
+      from: THREE.Vector3, to: THREE.Vector3, x: number, y: number,
+    ): number => {
+      const width = host.clientWidth;
+      const height = host.clientHeight;
+      const a = projectToScreen(from, camera, width, height);
+      const b = projectToScreen(to, camera, width, height);
+      if (!a.inFront || !b.inFront) return Infinity;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const lengthSq = dx * dx + dy * dy;
+      if (lengthSq < 1e-9) return Math.hypot(a.x - x, a.y - y);
+      const u = Math.min(1, Math.max(0, ((x - a.x) * dx + (y - a.y) * dy) / lengthSq));
+      return Math.hypot(a.x + dx * u - x, a.y + dy * u - y);
+    };
+
+    const depthDistance = (x: number, y: number): number => {
+      if (!gizmo || !gizmo.handlesEnabled || !cutActive || host.clientWidth === 0) return Infinity;
+      const ends = gizmo.depthEnds();
+      return distanceToSegment(ends.from, ends.to, x, y);
+    };
+
     const hitTest = (x: number, y: number):
       | { kind: 'handle'; id: HandleId }
-      | { kind: 'arrow'; tangent: { x: number; y: number }; tPerPixel: number }
-      | { kind: 'probe' }
+      | { kind: 'depth' }
       | null => {
       const grab = hitRadiusPx(coarse);
       let best: HandleId | null = null;
@@ -532,49 +569,37 @@ export default function PackViewer({
           best = handle.id;
         }
       }
+      /*
+       * The cut handles are the only thing in the panel a drag can grab.
+       *
+       * The probe used to have one — an arrow that scrubbed the sweep — and it
+       * is gone. Positioning a transducer is not a drag: the probe turns about
+       * three of its OWN axes, a drag has two degrees of freedom and no way to
+       * say which it meant, and even the one motion a drag can express
+       * unambiguously is better served by a button that steps a known amount.
+       * The probe control pad is the control now, and a drag anywhere that is
+       * not a cut handle orbits the camera.
+       */
       if (best !== null) return { kind: 'handle', id: best };
 
       /*
-       * An unlocked probe is grabbed by its BODY, and the tilt arrow is not
-       * drawn — the sweep is not what is moving it any more, so an affordance
-       * that says "scrub" would be lying about what a drag does.
+       * The depth arrow. Tested after the edge handles because they are drawn
+       * on top and are the smaller target: a drag aimed at a handle that
+       * happens to pass near the shaft must move the handle.
        */
-      if (freePoseRef.current && probeAnchor && host.clientWidth > 0) {
-        const point = projectToScreen(probeAnchor, camera, host.clientWidth, host.clientHeight);
-        // Twice the radius: the target is a transducer a couple of centimetres
-        // long, not a dot, and it is the only thing in the panel it can be
-        // confused with.
-        if (point.inFront && Math.hypot(point.x - x, point.y - y) <= grab * 2) {
-          return { kind: 'probe' };
-        }
-      }
-
-      if (arrow && !freePoseRef.current) {
-        const path = arrowScreenPath();
-        const hit = nearestOnPath(path, x, y);
-        if (hit && hit.distancePx <= grab) {
-          // The LOCAL rate of the track: how much `t` a pixel of drag along the
-          // drawn window is worth. Taken from the window rather than the whole
-          // sweep so the feel does not change as it is clipped short at an end.
-          const screenLength = pathScreenLength(path);
-          return {
-            kind: 'arrow',
-            tangent: hit.tangent,
-            tPerPixel: screenLength > 1 ? arrow.windowExtent / screenLength : 0,
-          };
-        }
-      }
+      if (depthDistance(x, y) <= grab) return { kind: 'depth' };
       return null;
     };
 
     /*
      * Where the affordances are, published on the host element.
      *
-     * A test seam, and a deliberate one: "the handles and the tilt arrow are
-     * present and hittable under a coarse pointer" is a gate, and a gate that
-     * can only be checked by guessing at pixel coordinates is not a gate. These
-     * are the same numbers the hit test uses, so a test that drags to them
-     * exercises the real dispatch rather than a parallel one.
+     * A test seam, and a deliberate one: "the handles are present and hittable
+     * under a coarse pointer" is a gate, and a gate that can only be checked by
+     * guessing at pixel coordinates is not a gate. These are the same numbers
+     * the hit test uses, so a test that drags to them exercises the real
+     * dispatch rather than a parallel one. The probe control pad needs no such
+     * seam — it is buttons, and a test can click a button.
      */
     const publishAffordances = (): void => {
       host.dataset.pointerClass = coarse ? 'coarse' : 'fine';
@@ -590,29 +615,8 @@ export default function PackViewer({
       } else {
         delete host.dataset.cutHandles;
       }
-      if (probeAnchor && host.clientWidth > 0) {
-        const point = projectToScreen(probeAnchor, camera, host.clientWidth, host.clientHeight);
-        if (point.inFront) {
-          host.dataset.probe = JSON.stringify({
-            x: Math.round(point.x), y: Math.round(point.y),
-          });
-        } else {
-          delete host.dataset.probe;
-        }
-      } else {
-        delete host.dataset.probe;
-      }
       host.dataset.probeLock = freePoseRef.current ? 'free' : 'onTrack';
 
-      const path = arrowScreenPath();
-      if (arrow && path.length > 1) {
-        const mid = path[Math.floor(path.length / 2)];
-        host.dataset.tiltArrow = JSON.stringify({
-          x: Math.round(mid.x), y: Math.round(mid.y),
-        });
-      } else {
-        delete host.dataset.tiltArrow;
-      }
     };
 
     const draw = () => {
@@ -714,30 +718,12 @@ export default function PackViewer({
           probe.dispose();
           probe = null;
         }
-        if (arrow) {
-          scene.remove(arrow.object);
-          arrow.dispose();
-          arrow = null;
-        }
         return;
       }
 
       if (!probe && currentFrame) {
         probe = new ProbeIndicator(currentFrame);
         scene.add(probe.object);
-      }
-      /*
-       * No sweep, no arrow. A view whose probe pose is a single point has
-       * nothing for the arrow to scrub, and drawing a control that cannot move
-       * anything is worse than drawing none.
-       *
-       * Likewise no `onScrubChange`: the arrow's whole contract is that it
-       * writes `t` through the same path the slider does, so without that path
-       * it must not appear.
-       */
-      if (!arrow && view?.sweep && onScrubRef.current) {
-        arrow = new TiltArrow(view.probe, view.sweep);
-        scene.add(arrow.object);
       }
     };
 
@@ -768,18 +754,12 @@ export default function PackViewer({
           startY: number;
         }
       | {
-          kind: 'arrow';
-          startT: number;
-          tangent: { x: number; y: number };
-          tPerPixel: number;
-          startX: number;
-          startY: number;
-        }
-      | {
-          kind: 'probe';
-          start: ProbePose;
+          kind: 'depth';
+          startOffset: number;
+          normal: THREE.Vector3;
           right: THREE.Vector3;
           up: THREE.Vector3;
+          unitsPerPixel: number;
           startX: number;
           startY: number;
         }
@@ -818,24 +798,24 @@ export default function PackViewer({
         gizmo?.setHandleReveal(
           new Map(HANDLE_IDS.map((id) => [id, id === hit.id ? 1 : 0.35])), hit.id,
         );
-      } else if (hit?.kind === 'probe' && freePoseRef.current) {
+      } else if (hit?.kind === 'depth') {
         gesture = {
-          kind: 'probe',
-          start: freePoseRef.current,
+          kind: 'depth',
+          startOffset: depth,
+          normal: cut.normal.clone(),
           right: new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion),
           up: new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion),
+          // Frozen with the rest of the gesture, so the plane does not change
+          // gear if the camera moves under a drag that is already running.
+          unitsPerPixel: unitsPerPixel(
+            camera,
+            camera.position.distanceTo(planeAnchor(cut, pivot)),
+            host.clientHeight,
+          ),
           startX: event.clientX,
           startY: event.clientY,
         };
-      } else if (hit?.kind === 'arrow') {
-        gesture = {
-          kind: 'arrow',
-          startT: scrubRef.current,
-          tangent: hit.tangent,
-          tPerPixel: hit.tPerPixel,
-          startX: event.clientX,
-          startY: event.clientY,
-        };
+        gizmo?.setDepthReveal(1, true);
       } else {
         gesture = { kind: 'camera' };
       }
@@ -867,35 +847,20 @@ export default function PackViewer({
           HANDLE_RADIANS_PER_PIXEL,
         ));
         applyCut();
-      } else if (gesture.kind === 'probe') {
+      } else if (gesture.kind === 'depth') {
         /*
-         * The unlocked probe, turned about its own origin. This is the ONE
-         * learner-reachable path that leaves the saved sweep track, and it is
-         * an explicit owner decision (2026-08-19) paid for by the echo panel
-         * withdrawing the view's name while it is in force. It still cannot
-         * write to `views[]`: `rotatedPose` takes a pose and returns a pose,
-         * and the result lives in React state until the probe is locked again.
+         * Slide the plane along its own normal. It writes the same `s` the
+         * readout shows and the shift-wheel writes — one value, and now one
+         * control in the picture rather than a slider outside it.
          */
-        onFreePoseRef.current?.(rotatedPose(
-          gesture.start,
-          [gesture.right.x, gesture.right.y, gesture.right.z],
-          [gesture.up.x, gesture.up.y, gesture.up.z],
+        onCutOffset(draggedOffset(
+          gesture.startOffset,
+          gesture.normal,
+          gesture.right,
+          gesture.up,
           event.clientX - gesture.startX,
           event.clientY - gesture.startY,
-        ));
-      } else if (gesture.kind === 'arrow') {
-        /*
-         * The arrow writes `t` and nothing else, through the same callback the
-         * sweep slider writes through. It cannot reposition the probe: there is
-         * no code path from here to `views[].probe`, and the pose that results
-         * is `frameAt(probe, sweep, t)` by construction.
-         */
-        onScrubRef.current?.(scrubbedT(
-          gesture.startT,
-          gesture.tangent,
-          event.clientX - gesture.startX,
-          event.clientY - gesture.startY,
-          gesture.tPerPixel,
+          gesture.unitsPerPixel,
         ));
       } else {
         // No clamp anywhere: the model turns all the way over. See `orbit.ts`.
@@ -1014,7 +979,16 @@ export default function PackViewer({
             roughness: 0.55,
             metalness: 0.05,
             transparent: isPool || !named,
-            opacity: isPool ? 0.45 : named ? 1 : 0.85,
+            /*
+             * Named structures are opaque; the fourteen unnamed stubs are only
+             * SLIGHTLY translucent. The translucency is how the viewer says "we
+             * have not identified this" — see `docs/observations.md` on tags
+             * 11-24 — but it was low enough that the ghost of the removed half
+             * showed through the kept half, which blurred the one distinction
+             * the ghost exists to draw. Enough to read as unidentified, not
+             * enough to read as removed.
+             */
+            opacity: isPool ? 0.45 : named ? 1 : 0.95,
             side: THREE.DoubleSide,
           });
           dimUniforms.push(applyBeamDim(object.material));
@@ -1064,6 +1038,7 @@ export default function PackViewer({
               .applyMatrix4(gltf.scene.matrixWorld)
           : centre;
         reach = enclosingRadius(gltf.scene, pivot);
+        surfacePoints = sampleSurface(gltf.scene);
         measureFraming();
         radius = framingRadius();
 
@@ -1088,14 +1063,11 @@ export default function PackViewer({
           currentFrame = freePoseRef.current
             ? imagingFrame(freePoseRef.current)
             : frameAt(view.probe, view.sweep, scrubRef.current);
-          probeAnchor = new THREE.Vector3(...currentFrame.origin)
-            .addScaledVector(new THREE.Vector3(...currentFrame.beam), -PROBE_LENGTH / 2);
           for (const uniforms of dimUniforms) setBeamFrame(uniforms, currentFrame);
         }
 
         loaded = true;
         syncProbeObjects();
-        setCutLimit(reach);
         applyCut();
         applyCamera();
         resize();
@@ -1112,13 +1084,38 @@ export default function PackViewer({
     );
 
     apiRef.current = {
+      clearanceMm: (point) => {
+        let nearest = Infinity;
+        for (let i = 0; i < surfacePoints.length; i += 3) {
+          const dx = surfacePoints[i] - point[0];
+          const dy = surfacePoints[i + 1] - point[1];
+          const dz = surfacePoints[i + 2] - point[2];
+          const squared = dx * dx + dy * dy + dz * dz;
+          if (squared < nearest) nearest = squared;
+        }
+        return nearest === Infinity ? Infinity : Math.sqrt(nearest);
+      },
+      /*
+       * Which half to remove, so the cut opens TOWARD the viewer.
+       *
+       * `clippingPlane` keeps `dot(N, X - C) <= s`, so it discards the `+N`
+       * half. That is the right half to lose when the camera is on the `+N`
+       * side and the wrong one when it is not — and on the wrong side the
+       * learner sees an intact heart from the back of the cut and reasonably
+       * concludes the cutter is broken. (Until the cap quads were depth-tested
+       * this was invisible, because the cut faces painted straight over the
+       * tissue in front of them.)
+       *
+       * Evaluated when the cut is set up rather than continuously: a cut that
+       * flipped itself halfway through an orbit would be worse than one facing
+       * the wrong way, and `Reverse` is right there.
+       */
+      cutShouldFaceCamera: () => {
+        const toCamera = camera.position.clone().sub(pivot);
+        return cut.normal.dot(toCamera) < 0;
+      },
       setFrame: (frame) => {
         currentFrame = frame;
-        // The body's midpoint, which is what a learner aims at to take hold of
-        // the probe. Recomputed with the frame rather than stored per view,
-        // because the probe moves.
-        probeAnchor = new THREE.Vector3(...frame.origin)
-          .addScaledVector(new THREE.Vector3(...frame.beam), -PROBE_LENGTH / 2);
         probe?.update(frame);
         // One frame drives the probe geometry AND the highlight, for the same
         // reason the wedge and the echo share it: they cannot be allowed to
@@ -1127,8 +1124,6 @@ export default function PackViewer({
         // Echo-synced: the cutter FOLLOWS, so it moves with every frame rather
         // than having been aligned once.
         if (cutter === 'echo') applyCut();
-        // The heads dim at the ends of the sweep, so they follow `t`.
-        arrow?.refresh(scrubRef.current);
         schedule();
       },
       setHidden: (next) => {
@@ -1241,7 +1236,6 @@ export default function PackViewer({
         if (ghost instanceof THREE.Mesh) (ghost.material as THREE.Material).dispose();
       }
       probe?.dispose();
-      arrow?.dispose();
       caps?.dispose();
       gizmo?.dispose();
       scene.traverse((object) => {
@@ -1257,7 +1251,6 @@ export default function PackViewer({
       delete host.dataset.viewerReady;
       delete host.dataset.cameraGlide;
       delete host.dataset.cutHandles;
-      delete host.dataset.tiltArrow;
     };
     // `mode` is read once here to seed the scene and is applied thereafter
     // through `setMode`; listing it would reload a five-megabyte glTF on a
@@ -1285,6 +1278,16 @@ export default function PackViewer({
   useEffect(() => {
     apiRef.current?.setCut({ enabled: cutEnabled, offset: cutOffset, flipped: cutFlipped });
   }, [cutEnabled, cutOffset, cutFlipped, status]);
+
+  /*
+   * Open the cut toward the viewer when it is switched on, and once the model
+   * is ready. Not on every change: the learner's own `Reverse` has to stick.
+   */
+  useEffect(() => {
+    if (status !== 'ready' || !cutEnabled) return;
+    const shouldFlip = apiRef.current?.cutShouldFaceCamera();
+    if (shouldFlip !== undefined) setCutFlipped(shouldFlip);
+  }, [cutEnabled, status]);
 
   useEffect(() => {
     apiRef.current?.setBeamDim(beamDim ? 1 : 0);
@@ -1317,18 +1320,6 @@ export default function PackViewer({
    * see the whole heart WITH the echo fan on it is a thing worth doing.
    */
   const depthLocked = echoMode && cutterMode === 'echo';
-  /**
-   * The slider's travel.
-   *
-   * Normally the model's enclosing radius, which is as far as the plane can go
-   * and still touch anything. But switching out of Echo plane mode ADOPTS the
-   * imaging plane's offset, and a probe sits outside the model — so the adopted
-   * `s` can be larger than the radius. Widening the travel to hold it keeps the
-   * control honest: the alternative is a handle pinned at an end while the value
-   * it reports is somewhere past it, which is a slider that lies about where the
-   * plane is.
-   */
-  const depthLimit = Math.max(cutLimit, Math.abs(cutOffset));
 
   /**
    * Unlock the probe from its view's sweep track, or lock it again.
@@ -1342,13 +1333,165 @@ export default function PackViewer({
    * That is the invariant the rest of the app depends on, and it is restored
    * bit for bit rather than approximately.
    */
+  /*
+   * The probe control pad's press-and-hold repeat.
+   *
+   * A press is two degrees, which is small enough to settle a plane with and
+   * far too small to cross a sweep by clicking. Holding repeats it, after a
+   * pause long enough that a deliberate single press does not become two.
+   *
+   * The pose is read from a ref and written back to it as well as through the
+   * callback, so a repeat that fires before React has re-rendered still
+   * compounds from the value the previous repeat produced rather than from a
+   * stale prop.
+   */
+  const holdRef = useRef<{ delay: number; repeat: number } | null>(null);
+
+  /**
+   * Whether the probe may still be pressed closer, or lifted further.
+   *
+   * Both stops are expressed as a CLEARANCE from tissue, which is the physical
+   * quantity they are about: the probe must not end up inside the heart, and it
+   * must not be pulled so far that its sector no longer reaches anything. A
+   * bound measured from the authored pose instead would sit inside the heart on
+   * one view and nowhere near it on another, because how far a window stands
+   * off the epicardium differs per view.
+   */
+  const [standOffRoom, setStandOffRoom] = useState({ closer: true, further: true });
+
+  const roomAround = (pose: ProbePose) => {
+    const clearance = apiRef.current?.clearanceMm(pose.origin as [number, number, number]);
+    if (clearance === undefined || !Number.isFinite(clearance)) {
+      return { closer: true, further: true };
+    }
+    return {
+      closer: clearance - STANDOFF_STEP_MM >= MIN_CLEARANCE_MM,
+      further: clearance + STANDOFF_STEP_MM <= MAX_CLEARANCE_MM,
+    };
+  };
+
+  const standOffAllowed = (pose: ProbePose) => {
+    const clearance = apiRef.current?.clearanceMm(pose.origin as [number, number, number]);
+    if (clearance === undefined || !Number.isFinite(clearance)) return true;
+    return clearance >= MIN_CLEARANCE_MM && clearance <= MAX_CLEARANCE_MM;
+  };
+
+  /**
+   * Hold the pointer for the duration of a press.
+   *
+   * Capture so that a pointerup off the button still stops the repeat — a
+   * finger that slides off a repeating button and lifts elsewhere would
+   * otherwise leave it running. Guarded because `setPointerCapture` throws for
+   * a pointer id the browser does not consider active, and a throw here would
+   * take the press down with it.
+   */
+  const capturePress = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Nothing to hold on to; the press still works, it just cannot follow a
+      // pointer that leaves the button.
+    }
+  };
+
+  const stopHold = () => {
+    if (!holdRef.current) return;
+    window.clearTimeout(holdRef.current.delay);
+    window.clearInterval(holdRef.current.repeat);
+    holdRef.current = null;
+  };
+
+  useEffect(() => stopHold, []);
+
+  /**
+   * One press of the stand-off pair: slide the probe along its own beam.
+   *
+   * The ONE translation offered, and it is not the one that would be a problem:
+   * sliding the probe ACROSS the chest would claim a different acoustic window,
+   * which is authored content, while sliding it along the beam only changes how
+   * far the transducer stands off the tissue. On this substrate that gap is
+   * empty space anyway — the mesh is heart-only, so there is no skin, fat,
+   * intercostal muscle or pericardium to stand off from, and the pipeline parks
+   * the probe 8 mm clear of the epicardium and says so in the view's landmark.
+   *
+   * Bounded against the pose the view authored, so the probe cannot be pushed
+   * out through the far side of the heart or pulled until the sector reaches
+   * nothing.
+   */
+  const pressStandOff = (sign: -1 | 1) => {
+    const pose = freePoseRef.current;
+    if (!pose || !view) return;
+    const next = movedAlongBeam(pose, sign * STANDOFF_STEP_MM);
+    if (!standOffAllowed(next)) return;
+    freePoseRef.current = next;
+    onFreePoseChange?.(next);
+    setStandOffRoom(roomAround(next));
+  };
+
+  /** One press: step the sweep when the probe is locked, turn it when it is not. */
+  const pressProbe = (axis: ProbeAxis, sign: -1 | 1) => {
+    const pose = freePoseRef.current;
+    if (pose === null) {
+      // LOCKED: the press writes `t` and nothing else, so the pose it produces
+      // is `frameAt(probe, sweep, t)` by construction and stays on the track.
+      onScrubChange?.(steppedT(scrubRef.current, sign, view?.sweep));
+      return;
+    }
+    const next = nudgedPose(pose, axis, sign * NUDGE_DEG);
+    freePoseRef.current = next;
+    onFreePoseChange?.(next);
+  };
+
+  const beginHold = (step: () => void) => {
+    stopHold();
+    step();
+    const delay = window.setTimeout(() => {
+      const repeat = window.setInterval(step, 55);
+      if (holdRef.current) holdRef.current.repeat = repeat;
+    }, 320);
+    holdRef.current = { delay, repeat: 0 };
+  };
+
+  const beginPress = (axis: ProbeAxis, sign: -1 | 1) => beginHold(() => pressProbe(axis, sign));
+
+  /**
+   * Put the probe back on the view's saved track, without locking it.
+   *
+   * The same pose the unlock seeds from, so recentring and unlocking afresh are
+   * the same operation — and neither of them merges anything: the free pose is
+   * replaced outright by a pose the pack authored.
+   */
+  const recentreProbe = () => {
+    if (!view) return;
+    const onTrack = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
+    freePoseRef.current = onTrack;
+    onFreePoseChange?.(onTrack);
+    setStandOffRoom(roomAround(onTrack));
+  };
+
   const setProbeFree = (free: boolean) => {
     if (!free || !view) {
       onFreePoseChange?.(null);
       return;
     }
-    onFreePoseChange?.(view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe);
+    const seeded = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
+    onFreePoseChange?.(seeded);
+    setStandOffRoom(roomAround(seeded));
   };
+
+  /**
+   * The pad's buttons, in render order.
+   *
+   * The `fan` pair is present in BOTH modes, because it is the same motion
+   * either way: locked it steps along the view's saved sweep, unlocked it turns
+   * the probe about the same axis the sweep turns it about. The other four are
+   * free-probe only — there is no on-track meaning for aiming within the plane
+   * or rolling the probe, so offering them locked would be offering a control
+   * that cannot do anything.
+   */
+  const probeFree = freePose !== null;
+  const hasSweep = view?.sweep !== undefined;
+  const padPresent = echoMode && (probeFree || (hasSweep && onScrubChange !== undefined));
 
   const chooseCutterMode = (next: CutterMode) => {
     const adopted = apiRef.current?.setCutterMode(next);
@@ -1371,6 +1514,200 @@ export default function PackViewer({
             The 3D anatomy view needs WebGL, which this browser did not provide. The rest of the
             page still works.
           </p>
+        )}
+
+        {/*
+          * The probe control pad.
+          *
+          * Buttons rather than a drag, because the probe turns about three of
+          * its OWN axes and a drag has two degrees of freedom and no way to say
+          * which one it meant. Each button is a named anatomical motion, which
+          * is also what a learner has to be able to name.
+          *
+          * It sits over the panel rather than under it so the probe and its
+          * effect are in one place, and only the buttons take pointer events —
+          * the rest of the overlay lets a drag through to the camera.
+          */}
+        {status === 'ready' && padPresent && (
+          <div className="probe-pad" data-testid="probe-pad" data-probe-pad={probeFree ? 'free' : 'sweep'}>
+            <p className="probe-pad__title">Probe control</p>
+
+            {/*
+              * One 3x3 grid, laid out as a game controller's d-pad: a fat cross
+              * of five filled cells, with the two roll buttons in the corners
+              * the cross leaves empty. Corners rather than a row of their own,
+              * so adding them costs no height — the pad covers the same amount
+              * of anatomy locked or free.
+              */}
+            <div className={probeFree ? 'probe-pad__grid' : 'probe-pad__grid probe-pad__grid--fan'}>
+              {probeFree && ([[-1, '↺', 'Roll the probe anticlockwise about its beam, turning the imaging plane'],
+                [1, '↻', 'Roll the probe clockwise about its beam, turning the imaging plane'],
+              ] as [-1 | 1, string, string][]).map(([sign, glyph, hint]) => (
+                <button
+                  key={sign}
+                  type="button"
+                  className={`probe-pad__roll probe-pad__roll--${sign > 0 ? 'cw' : 'ccw'}`}
+                  title={hint}
+                  aria-label={hint}
+                  data-testid={`probe-roll-${sign > 0 ? 'cw' : 'ccw'}`}
+                  onPointerDown={(event) => {
+                    capturePress(event);
+                    beginPress('rotate', sign);
+                  }}
+                  onPointerUp={stopHold}
+                  onPointerCancel={stopHold}
+                >
+                  {glyph}
+                </button>
+              ))}
+
+              {/*
+                * Up and down are the FAN: the plane sweeps through the heart.
+                * Locked, that is a step along the view's own saved sweep; free,
+                * it is the same turn with nothing claiming it is the view.
+                */}
+              <button
+                type="button"
+                className="probe-pad__button probe-pad__button--up"
+                title={probeFree
+                  ? 'Fan the imaging plane through the heart, about the probe\u2019s lateral axis'
+                  : 'Step the sweep forward'}
+                aria-label={probeFree ? 'Fan the imaging plane one way' : 'Step the sweep forward'}
+                data-testid="probe-fan-up"
+                onPointerDown={(event) => {
+                  capturePress(event);
+                  beginPress('fan', 1);
+                }}
+                onPointerUp={stopHold}
+                onPointerCancel={stopHold}
+              >
+                ▲
+              </button>
+
+              {probeFree && (
+                <button
+                  type="button"
+                  className="probe-pad__button probe-pad__button--left"
+                  title="Aim the beam left within the same imaging plane"
+                  aria-label="Aim the beam left within the same imaging plane"
+                  data-testid="probe-aim-left"
+                  onPointerDown={(event) => {
+                    capturePress(event);
+                    beginPress('aim', -1);
+                  }}
+                  onPointerUp={stopHold}
+                  onPointerCancel={stopHold}
+                >
+                  ◀
+                </button>
+              )}
+
+              {/*
+                * The middle of the cross. It is what makes four arms read as
+                * one control, and when there is a free angle to undo it is also
+                * the way back: it returns the probe to the view's saved track at
+                * the current sweep position, WITHOUT locking it — so a learner
+                * who has turned the probe somewhere unrecognisable can recentre
+                * and carry on rather than having to toggle off and on.
+                *
+                * Locked there is no free angle, so it is a plain cell.
+                */}
+              {probeFree ? (
+                <button
+                  type="button"
+                  className="probe-pad__core probe-pad__core--reset"
+                  title="Recentre: put the probe back on this view's saved track, still unlocked"
+                  aria-label="Recentre the probe on this view's saved track"
+                  data-testid="probe-recentre"
+                  onClick={recentreProbe}
+                >
+                  <span className="probe-pad__dot" aria-hidden="true" />
+                </button>
+              ) : (
+                <span className="probe-pad__core" aria-hidden="true" />
+              )}
+
+              {probeFree && (
+                <button
+                  type="button"
+                  className="probe-pad__button probe-pad__button--right"
+                  title="Aim the beam right within the same imaging plane"
+                  aria-label="Aim the beam right within the same imaging plane"
+                  data-testid="probe-aim-right"
+                  onPointerDown={(event) => {
+                    capturePress(event);
+                    beginPress('aim', 1);
+                  }}
+                  onPointerUp={stopHold}
+                  onPointerCancel={stopHold}
+                >
+                  ▶
+                </button>
+              )}
+
+              {/*
+                * Stand-off. A chevron against a BAR — the bar is the tissue —
+                * rather than an arrow, because an arrow encodes a screen
+                * direction and a screen direction is only right for one camera:
+                * the heart sits above the probe in an apical view and elsewhere
+                * in others, so an arrow pointing at the tissue in one view
+                * points away from it in the next. Chevron and bar together are
+                * about the gap, which is what actually changes.
+                *
+                * The bar is a CSS border rather than a character, so it is crisp
+                * at this size and does not depend on a font having a glyph for
+                * whatever combining mark would otherwise be needed.
+                */}
+              {probeFree && ([[1, 'closer', 'Press the probe closer to the tissue'],
+                [-1, 'further', 'Lift the probe away from the tissue'],
+              ] as [-1 | 1, 'closer' | 'further', string][]).map(([sign, key, hint]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`probe-pad__roll probe-pad__roll--${key}`}
+                  disabled={!standOffRoom[key]}
+                  title={`${hint}. The only translation offered — it changes the stand-off, not the window, and it stops before the probe reaches tissue.`}
+                  aria-label={hint}
+                  data-testid={`probe-${key}`}
+                  onPointerDown={(event) => {
+                    capturePress(event);
+                    beginHold(() => pressStandOff(sign));
+                  }}
+                  onPointerUp={stopHold}
+                  onPointerCancel={stopHold}
+                >
+                  {/*
+                    * The SAME glyph and the same bar in both buttons, with one
+                    * of them flipped, so the pair are exact mirror images. Two
+                    * different arrowhead characters are not: they sit at
+                    * different heights on the baseline and have different
+                    * metrics, so the two buttons came out visibly mismatched.
+                    */}
+                  <span className={`probe-pad__gap probe-pad__gap--${key}`} aria-hidden="true">
+                    {'\u2303'}
+                  </span>
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className="probe-pad__button probe-pad__button--down"
+                title={probeFree
+                  ? 'Fan the imaging plane the other way, about the probe\u2019s lateral axis'
+                  : 'Step the sweep back'}
+                aria-label={probeFree ? 'Fan the imaging plane the other way' : 'Step the sweep back'}
+                data-testid="probe-fan-down"
+                onPointerDown={(event) => {
+                  capturePress(event);
+                  beginPress('fan', -1);
+                }}
+                onPointerUp={stopHold}
+                onPointerCancel={stopHold}
+              >
+                ▼
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -1422,7 +1759,7 @@ export default function PackViewer({
             * runtime state and dies with the session.
             */}
           {echoMode && onFreePoseChange && view?.sweep && (
-            <label className="cutter__toggle" title="Turn the probe by hand, off this view's saved sweep. The echo then stops claiming to be this view.">
+            <label className="cutter__toggle" title="Turn the probe by hand with the control pad, off this view's saved sweep. The echo then stops claiming to be this view.">
               <input
                 type="checkbox"
                 checked={freePose !== null}
@@ -1434,13 +1771,21 @@ export default function PackViewer({
           )}
 
           <span className="cutter-mode__state" data-testid="cutter-mode-state">
+            {/*
+              * Kept to one short line each. These sit above the control row, so
+              * a string long enough to wrap pushes every control below it down
+              * the moment a mode is toggled — and a control that moves under
+              * the hand is a control you have to re-find. The detail these used
+              * to carry is in the buttons' own titles, where it does not cost
+              * layout.
+              */}
             {!echoMode
-              ? 'Explore — no probe, so the cut is always free'
+              ? 'Explore — no probe, so the cut is free.'
               : freePose !== null
-                ? 'Probe unlocked — drag it to turn it. Once moved, this is not a saved view.'
+                ? 'Probe unlocked — not a saved view once moved.'
                 : cutterMode === 'echo'
                   ? "Cut follows the view's imaging plane."
-                  : 'Free cut — the plane is yours, and claims no relationship to the view.'}
+                  : 'Free cut — no relationship to the view claimed.'}
           </span>
         </div>
 
@@ -1455,25 +1800,20 @@ export default function PackViewer({
             Cut
           </label>
 
-          <input
-            className="cutter__slider"
-            type="range"
-            min={-depthLimit}
-            max={depthLimit}
-            step={depthLimit / 400 || 0.1}
-            value={cutOffset}
-            disabled={!cutEnabled || depthLocked}
-            onChange={(event) => setCutOffset(Number(event.target.value))}
-            aria-label="Cut depth along the plane normal"
-            title={
-              depthLocked
-                ? 'The cut is the echo plane in this mode. Switch to Free to move it.'
-                : undefined
-            }
-            data-testid="cut-offset"
-          />
-
-          {/* The readout is the same value the slider and shift-wheel write. */}
+          {/*
+            * The readout, and no slider.
+            *
+            * The depth arrow in the scene replaced it. A slider is a fine
+            * control for a number and a poor one for a plane: it sits outside
+            * the picture, so the learner has to look away from the thing they
+            * are moving, and its travel means nothing in the scene. The arrow
+            * is in the picture and tracks the hand at 1:1. Shift-wheel still
+            * works, and the readout is still the one value all of them write.
+            *
+            * What this costs is keyboard reach — a range input is operable
+            * without a pointer and a 3D drag is not. Logged in
+            * `docs/observations.md` rather than traded away silently.
+            */}
           <output className="cutter__readout" data-testid="cut-readout">
             {depthLocked ? 'on echo plane' : `${cutOffset.toFixed(1)} ${pack.meshes.units}`}
           </output>
@@ -1540,9 +1880,9 @@ export default function PackViewer({
             type="button"
             onClick={() => {
               setCutOffset(cutterMode === 'echo' ? 0 : (pack.interaction?.free_cut?.offset ?? 0));
-              setCutFlipped(false);
               apiRef.current?.resetCutPlane();
               apiRef.current?.resetCamera();
+              setCutFlipped(apiRef.current?.cutShouldFaceCamera() ?? false);
             }}
             data-testid="cut-reset"
           >

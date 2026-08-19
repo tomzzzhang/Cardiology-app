@@ -321,11 +321,6 @@ async function waitForHandles(page: import('@playwright/test').Page) {
   return handlePositions(page);
 }
 
-async function arrowPosition(page: import('@playwright/test').Page) {
-  const raw = await page.getByTestId('anatomy-viewer').getAttribute('data-tilt-arrow');
-  return raw === null ? null : (JSON.parse(raw) as { x: number; y: number });
-}
-
 async function panelOrigin(page: import('@playwright/test').Page) {
   const box = await page.locator('.anatomy canvas').boundingBox();
   expect(box).not.toBeNull();
@@ -346,24 +341,22 @@ async function dragFrom(
 }
 
 /**
- * A point in the panel that is not on any affordance.
+ * A point in the panel that is not on a cut handle.
  *
  * Picked by measuring rather than assumed, because the cut rectangle is
  * deliberately larger than the model — a sheet of glass passed through the
  * heart — so its handles can sit anywhere along the panel's edges depending on
- * how the plane is turned.
+ * how the plane is turned. The probe control pad is excluded by construction:
+ * the candidates below stay clear of the bottom-right corner it occupies.
  */
 async function emptySpot(page: import('@playwright/test').Page) {
   const box = await panelOrigin(page);
-  const handles = await handlePositions(page);
-  const arrow = await arrowPosition(page);
-  const avoid = [...handles, ...(arrow ? [arrow] : [])];
+  const avoid = await handlePositions(page);
   const candidates = [
     { x: box.width * 0.5, y: box.height * 0.5 },
     { x: box.width * 0.12, y: box.height * 0.12 },
     { x: box.width * 0.88, y: box.height * 0.12 },
     { x: box.width * 0.12, y: box.height * 0.88 },
-    { x: box.width * 0.88, y: box.height * 0.88 },
     { x: box.width * 0.5, y: box.height * 0.12 },
     { x: box.width * 0.12, y: box.height * 0.5 },
   ];
@@ -433,41 +426,52 @@ test('a drag moves what is under the pointer, and nothing else', async ({ page }
   expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
 });
 
-test('the tilt arrow scrubs the sweep, and writes nothing else', async ({ page }) => {
+test('the probe control pad steps the sweep, and writes nothing else', async ({ page }) => {
   test.slow();
   /*
-   * The arrow replaced the "Echo view" drag target. It is an INPUT, not a new
-   * owner of the sweep: it writes `t` through the same path the slider writes
-   * through, so the wedge and the echo image still advance from one clock, and
-   * the pose it produces is `frameAt(probe, sweep, t)` by construction — pinned
-   * as arithmetic in tests/unit/tiltArrow.test.ts.
+   * The pad replaced a drag affordance — an arrow under the probe that scrubbed
+   * the sweep — and the replacement is not cosmetic. Positioning a transducer
+   * is not a drag: the probe turns about three of its OWN axes, a drag has two
+   * degrees of freedom and no way to say which it meant, and even the one
+   * motion a drag can express unambiguously is better served by a button that
+   * steps a known amount than by a gesture whose gain depends on where the
+   * camera happens to be.
    *
-   * What this adds is the end-to-end half: the drag really reaches the sweep,
-   * and the vetted view is identical before and after.
+   * Locked, the pad's fan buttons write `t` and nothing else, through the same
+   * path the slider writes through — pinned as arithmetic in
+   * tests/unit/probeControl.test.ts. What this adds is the end-to-end half.
    */
   await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,
   });
+  await expect(page.getByTestId('anatomy-viewer')).not.toHaveAttribute('data-tilt-arrow', /.*/);
 
-  const arrow = await arrowPosition(page);
-  expect(arrow, 'the default view has a sweep, so it has an arrow').not.toBeNull();
+  // Locked, only the fan pair exists: there is no on-track meaning for aiming
+  // within the plane or rolling the probe, so offering them would be offering
+  // controls that cannot do anything.
+  await expect(page.getByTestId('probe-pad')).toHaveAttribute('data-probe-pad', 'sweep');
+  for (const control of [
+    'probe-aim-left', 'probe-roll-cw', 'probe-closer', 'probe-recentre',
+  ]) {
+    await expect(page.getByTestId(control)).toHaveCount(0);
+  }
 
-  const box = await panelOrigin(page);
-  const viewName = await page.locator('.echo__header h2').textContent();
-  const scrubBefore = Number(await page.getByTestId('echo-scrub').inputValue());
+  const viewName = await page.getByTestId('echo-view-name').textContent();
   const depthBefore = await page.getByTestId('cut-readout').textContent();
+  const start = Number(await page.getByTestId('echo-scrub').inputValue());
 
-  // A drag long enough to move `t` well clear of where it started, in both
-  // directions, so the test cannot pass on the tangent's sign by luck.
-  await dragFrom(page, { x: box.x + arrow!.x, y: box.y + arrow!.y }, 200, 0);
-  const after = Number(await page.getByTestId('echo-scrub').inputValue());
-  await dragFrom(page, { x: box.x + arrow!.x, y: box.y + arrow!.y }, -200, 0);
-  const back = Number(await page.getByTestId('echo-scrub').inputValue());
-  expect(Math.abs(after - scrubBefore) + Math.abs(back - after)).toBeGreaterThan(0.05);
+  await page.getByTestId('probe-fan-up').click();
+  const forward = Number(await page.getByTestId('echo-scrub').inputValue());
+  expect(forward).toBeGreaterThan(start);
 
-  // `t` is hard-clamped: no wrap, no rubber band, at either end.
-  for (const pixels of [3000, -3000]) {
-    await dragFrom(page, { x: box.x + arrow!.x, y: box.y + arrow!.y }, pixels, 0);
+  // The opposite button returns it exactly. A stepped control that does not
+  // reverse walks the probe every time a learner overshoots and corrects.
+  await page.getByTestId('probe-fan-down').click();
+  expect(Number(await page.getByTestId('echo-scrub').inputValue())).toBeCloseTo(start, 6);
+
+  // `t` is hard-clamped: no wrap at either end, however many presses land.
+  for (const control of ['probe-fan-up', 'probe-fan-down']) {
+    for (let press = 0; press < 30; press += 1) await page.getByTestId(control).click();
     const t = Number(await page.getByTestId('echo-scrub').inputValue());
     expect(t).toBeGreaterThanOrEqual(0);
     expect(t).toBeLessThanOrEqual(1);
@@ -475,7 +479,7 @@ test('the tilt arrow scrubs the sweep, and writes nothing else', async ({ page }
 
   // The vetted view is untouched: same name, same draft flag, and the cutter
   // did not move either. Nothing a learner can do writes to `views[]`.
-  await expect(page.locator('.echo__header h2')).toHaveText(viewName!);
+  await expect(page.getByTestId('echo-view-name')).toHaveText(viewName!);
   await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
   expect(await page.getByTestId('cut-readout').textContent()).toBe(depthBefore);
 });
@@ -507,12 +511,10 @@ test('the echo-synced cutter follows the sweep, and the view is identical after'
   await page.waitForTimeout(500);
 
   /*
-   * In this mode the cut IS the imaging plane, so there is no depth to choose
-   * and the slider is disabled — DISABLED rather than removed, so the control
-   * the learner will look for is where they left it and its state says why it
-   * does nothing. The readout names the plane instead of a number.
+   * In this mode the cut IS the imaging plane, so there is no depth to choose:
+   * the readout names the plane instead of a number, and the depth arrow that
+   * would move it is not drawn, because the plane is not the learner's here.
    */
-  await expect(page.getByTestId('cut-offset')).toBeDisabled();
   await expect(page.getByTestId('cut-readout')).toContainText('on echo plane');
 
   // The Cut checkbox stays live in both modes: turning the cut off to see the
@@ -530,7 +532,6 @@ test('the echo-synced cutter follows the sweep, and the view is identical after'
   await page.getByTestId('cutter-mode-free').click();
   expect(await waitForHandles(page)).toHaveLength(4);
   await expect(page.getByTestId('cutter-mode-state')).toContainText('Free cut');
-  await expect(page.getByTestId('cut-offset')).toBeEnabled();
   await expect(page.getByTestId('cut-readout')).not.toContainText('on echo plane');
 
   // The echo panel does NOT blank in Free mode. The mode name carries the
@@ -560,7 +561,14 @@ test('the affordances are present and hittable under a coarse pointer', async ({
   await page.getByTestId('cutter-mode-free').click();
   const handles = await waitForHandles(page);
   expect(handles).toHaveLength(4);
-  expect(await arrowPosition(page)).not.toBeNull();
+
+  // The probe control pad is buttons, so it is hittable by construction — but
+  // it has to be BIG ENOUGH, and that is a rule the CSS carries rather than the
+  // code. A coarse pointer gets a larger cell than a mouse does.
+  const cell = await page.getByTestId('probe-fan-up').boundingBox();
+  expect(cell).not.toBeNull();
+  const minimum = testInfo.project.name === 'phone-portrait' ? 30 : 22;
+  expect(Math.min(cell!.width, cell!.height)).toBeGreaterThanOrEqual(minimum);
 
   // Hittable, not merely published: a drag that starts on one really turns the
   // plane, and really does not move its depth.
@@ -633,16 +641,22 @@ test('unlocking the probe withdraws the view\'s claim, and locking restores it',
   await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
   // The sweep no longer drives the probe, and says so rather than lying.
   await expect(page.getByTestId('echo-scrub')).toBeDisabled();
-  // And the tilt arrow is gone: it would misdescribe what a drag now does.
-  await expect(page.getByTestId('anatomy-viewer')).not.toHaveAttribute('data-tilt-arrow', /.*/);
 
-  // Moving it retracts the claim.
-  const raw = await page.getByTestId('anatomy-viewer').getAttribute('data-probe');
-  expect(raw, 'the probe publishes a grab point while unlocked').not.toBeNull();
-  const probe = JSON.parse(raw!) as { x: number; y: number };
-  const box = await panelOrigin(page);
+  // The pad grows the four controls that only mean something off the track.
+  await expect(page.getByTestId('probe-pad')).toHaveAttribute('data-probe-pad', 'free');
+  for (const control of [
+    'probe-aim-left', 'probe-aim-right', 'probe-roll-cw', 'probe-roll-ccw',
+    'probe-closer', 'probe-further', 'probe-recentre',
+  ]) {
+    await expect(page.getByTestId(control)).toBeVisible();
+  }
+
+  // Moving it retracts the claim — and each of the three axes does, since each
+  // one is a real motion off the saved track.
   const echoBefore = await sampleCanvas(page, '[data-testid="echo-canvas"]');
-  await dragFrom(page, { x: box.x + probe.x, y: box.y + probe.y }, 70, 30);
+  for (const control of ['probe-roll-cw', 'probe-aim-left', 'probe-fan-up', 'probe-closer']) {
+    await page.getByTestId(control).click();
+  }
 
   await expect(page.getByTestId('echo-view-name')).toContainText('not a saved view');
   await expect(page.getByTestId('echo-provenance')).toContainText('Unvetted plane');
@@ -652,15 +666,28 @@ test('unlocking the probe withdraws the view\'s claim, and locking restores it',
   expect(changed(echoBefore!, (await sampleCanvas(page, '[data-testid="echo-canvas"]'))!))
     .toBeGreaterThan(echoBefore!.length * 0.05);
 
-  // Locking again discards the free pose rather than merging it, so the view
-  // comes back exactly — same name, same draft flag, same sweep position.
+  /*
+   * Recentre: back onto the saved track WITHOUT locking. A learner who has
+   * turned the probe somewhere unrecognisable should not have to toggle off and
+   * on to find their way back, and the way back has to restore the claim too —
+   * the pose really is the view's again.
+   */
+  await page.getByTestId('probe-recentre').click();
+  await expect(page.getByTestId('echo-view-name')).toHaveText(viewName!);
+  await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-probe-lock', 'free');
+  await expect(page.getByTestId('probe-free')).toBeChecked();
+
+  // Locking discards the free pose rather than merging it, so the view comes
+  // back exactly — same name, same draft flag, same sweep position.
+  await page.getByTestId('probe-aim-right').click();
   await page.getByTestId('probe-free').uncheck();
   await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-probe-lock', 'onTrack');
   await expect(page.getByTestId('echo-view-name')).toHaveText(viewName!);
   await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
   await expect(page.getByTestId('echo-scrub')).toBeEnabled();
   expect(await page.getByTestId('echo-scrub').inputValue()).toBe(scrubBefore);
-  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-tilt-arrow', /.*/);
+  await expect(page.getByTestId('probe-aim-left')).toHaveCount(0);
 });
 
 /* --------------------------------------------------------------------------
@@ -678,7 +705,7 @@ test('Explore drops the probe entirely, and keeps the notice', async ({ page }) 
   await expect(page.getByTestId('match-echo')).toHaveCount(0);
   await expect(page.getByTestId('beam-dim')).toHaveCount(0);
   await expect(page.getByTestId('probe-free')).toHaveCount(0);
-  await expect(page.getByTestId('anatomy-viewer')).not.toHaveAttribute('data-tilt-arrow', /.*/);
+  await expect(page.getByTestId('probe-pad')).toHaveCount(0);
 
   // There is no probe to sync to, so the cutter is forced free — and says so.
   await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-cutter-mode', 'free');
@@ -792,18 +819,27 @@ test('the wedge and the echo move together on one scrub value', async ({ page })
  * for reasons that have nothing to do with whether the cap is solid.
  */
 test('the cut renders solid caps, not a hollow shell', async ({ page }) => {
+  // Forty wheel events, each forcing a full redraw with a stencil cap pass per
+  // structure. Slow under headless software GL when the suite runs in parallel.
+  test.slow();
   await expect(page.getByTestId('cut-enabled')).toBeChecked();
-  await page.getByTestId('beam-dim').uncheck();
   /*
-   * The depth slider is only live in Free mode; in Echo plane the cut IS the
+   * Both overlays off first. The beam dim multiplies the cap colour everywhere
+   * the beam does not reach, and the ghost lays the removed half back over the
+   * cut at 7% — either would defeat an exact-match test for reasons that have
+   * nothing to do with whether the cap is solid.
+   */
+  await page.getByTestId('beam-dim').uncheck();
+  await page.getByTestId('ghost-cutaway').uncheck();
+  /*
+   * Depth is only the learner's in Free mode; in Echo plane the cut IS the
    * imaging plane and there is no depth to choose.
    *
    * Awaited rather than assumed: switching modes ADOPTS the current plane, which
-   * writes the slider's value, and a write of our own that lands before React
+   * writes the depth value, and a write of our own that lands before React
    * flushes that would simply be overwritten.
    */
   await page.getByTestId('cutter-mode-free').click();
-  await expect(page.getByTestId('cut-offset')).toBeEnabled();
   await expect(page.getByTestId('cut-readout')).not.toContainText('on echo plane');
 
   const exactPaletteHits = async () =>
@@ -839,21 +875,30 @@ test('the cut renders solid caps, not a hollow shell', async ({ page }) => {
   /*
    * And the caps follow the plane: pushed clear of the model, they vanish.
    *
-   * The value is written through React's own value setter rather than with
-   * `fill()`, which does not drive a range input. Dispatching `input` after it
-   * is what React listens for, so this exercises the real state path — slider
-   * to `s` to plane to cap — instead of poking the renderer behind it.
+   * Driven by the DEPTH ARROW rather than by a slider, because the slider is
+   * gone — the arrow in the scene replaced it. Shift-wheel writes the same `s`
+   * and is what this uses, since it reaches the value without having to find
+   * the arrow's projected position first.
    */
-  await page.getByTestId('cut-offset').evaluate((node: HTMLInputElement) => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      'value',
-    )?.set;
-    setter?.call(node, node.max);
-    node.dispatchEvent(new Event('input', { bubbles: true }));
-  });
+  const box = await panelOrigin(page);
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(centre.x, centre.y);
+  for (let notch = 0; notch < 40; notch += 1) {
+    await page.keyboard.down('Shift');
+    await page.mouse.wheel(0, -120);
+    await page.keyboard.up('Shift');
+  }
+
   await expect(page.getByTestId('cut-readout')).not.toContainText('0.0 mm');
-  expect(await exactPaletteHits()).toBe(0);
+  /*
+   * Polled, not sampled once. Forty wheel events each schedule a redraw of a
+   * 24-structure scene with a stencil pass per structure, and under headless
+   * software GL with the whole suite running in parallel the last of those
+   * redraws can land well after the last event was dispatched. A single read
+   * catches a half-moved plane and fails on a picture that is on its way to
+   * being right.
+   */
+  await expect.poll(exactPaletteHits, { timeout: 15_000 }).toBe(0);
 });
 
 test('a rejected pack is not reachable in the production build', async ({ page }) => {

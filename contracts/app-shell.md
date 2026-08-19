@@ -14,7 +14,7 @@ synced-camera toggle **only if nearly free** — no split-screen investment.
 ## One screen is the product, in one of two modes
 
 **Echo** (the default) is 3D viewport + echo panel + view rail. **Explore** is the 3D viewport
-alone: no echo panel, no probe, no tilt arrow, no beam-dim control, no "Match echo", and the cutter
+alone: no echo panel, no probe, no probe control pad, no beam-dim control, no "Match echo", and the cutter
 is forced free because there is no probe to sync to.
 
 Explore is a **first-class mode, not a tool** *(owner decision, 2026-08-19, deliberately reversing

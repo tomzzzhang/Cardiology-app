@@ -15,6 +15,7 @@ import {
   clippingPlane,
   enclosingRadius,
   initialCutPlane,
+  draggedOffset,
   planeAnchor,
   planeBasis,
   tiltedNormal,
@@ -306,6 +307,70 @@ describe('tiltedNormal — dragging one edge handle', () => {
     const after = planeAnchor({ normal: turned, offset: 12, flipped: false }, PIVOT);
     expect(before.distanceTo(PIVOT)).toBeCloseTo(12, 9);
     expect(after.distanceTo(PIVOT)).toBeCloseTo(12, 9);
+  });
+});
+
+describe('draggedOffset — the depth arrow that replaced the slider', () => {
+  const RIGHT = new THREE.Vector3(1, 0, 0);
+  const UP = new THREE.Vector3(0, 1, 0);
+  /** A plane seen edge-on: its normal lies across the screen, to the right. */
+  const EDGE_ON = new THREE.Vector3(1, 0, 0);
+
+  it('moves the plane at 1:1 with the hand, in model units', () => {
+    /*
+     * The whole reason the arrow beats the slider it replaced: the plane tracks
+     * the pointer through the scene, at the scale of the scene, instead of
+     * moving at a gain set by a control's travel. 40 px of drag at 0.5 units
+     * per pixel is 20 units of depth, whatever the zoom happens to be.
+     */
+    expect(draggedOffset(10, EDGE_ON, RIGHT, UP, 40, 0, 0.5)).toBeCloseTo(30, 12);
+    expect(draggedOffset(10, EDGE_ON, RIGHT, UP, 40, 0, 0.25)).toBeCloseTo(20, 12);
+  });
+
+  it('follows the normal\'s own screen direction, in both senses', () => {
+    expect(draggedOffset(0, EDGE_ON, RIGHT, UP, 60, 0, 1)).toBeGreaterThan(0);
+    expect(draggedOffset(0, EDGE_ON, RIGHT, UP, -60, 0, 1)).toBeLessThan(0);
+  });
+
+  it('ignores the drag component across the arrow', () => {
+    // The arrow is one axis. A drag perpendicular to it is not a depth change
+    // and must not become one.
+    expect(draggedOffset(7, EDGE_ON, RIGHT, UP, 0, 120, 1)).toBeCloseTo(7, 12);
+  });
+
+  it('depends only on where the drag ended, not on how it got there', () => {
+    const direct = draggedOffset(3, EDGE_ON, RIGHT, UP, 90, 0, 0.4);
+    let stepped = 3;
+    for (let step = 1; step <= 30; step += 1) {
+      stepped = draggedOffset(3, EDGE_ON, RIGHT, UP, (90 * step) / 30, 0, 0.4);
+    }
+    expect(stepped).toBeCloseTo(direct, 12);
+    expect(draggedOffset(3, EDGE_ON, RIGHT, UP, 0, 0, 0.4)).toBeCloseTo(3, 12);
+  });
+
+  it('is a no-op on a plane seen face-on, where depth has no screen direction', () => {
+    /*
+     * `N` pointing at the camera projects to nothing: a face-on plane has no
+     * visible depth to move through, and no mapping can invent one. Returning
+     * the start offset is the whole handling — the alternative is a NaN that
+     * would take the plane out of the scene entirely.
+     */
+    const faceOn = new THREE.Vector3(0, 0, 1);
+    expect(draggedOffset(12, faceOn, RIGHT, UP, 200, 200, 1)).toBe(12);
+    expect(draggedOffset(12, EDGE_ON, RIGHT, UP, 200, 0, Number.NaN)).toBe(12);
+  });
+
+  it('turns the plane about nothing — it only slides it', () => {
+    // Depth and orientation are separate gestures on separate affordances, and
+    // this one returns a scalar, so it cannot rotate anything by construction.
+    const before = planeAnchor({ normal: EDGE_ON, offset: 4, flipped: false }, PIVOT);
+    const after = planeAnchor(
+      { normal: EDGE_ON, offset: draggedOffset(4, EDGE_ON, RIGHT, UP, 50, 0, 0.2), flipped: false },
+      PIVOT,
+    );
+    // The anchor moved along the normal and nowhere else.
+    const moved = after.clone().sub(before);
+    expect(moved.clone().normalize().distanceTo(EDGE_ON)).toBeCloseTo(0, 9);
   });
 });
 

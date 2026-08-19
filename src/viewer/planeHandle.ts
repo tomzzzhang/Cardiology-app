@@ -55,8 +55,14 @@ const HANDLE_HOVER_COLOUR = 0xfff3d0;
  */
 const HALF_LONG = 1.12;
 const HALF_SHORT = 0.76;
-/** Length of the normal stub, as a fraction of the short half-extent. */
-const NORMAL_SCALE = 0.3;
+/**
+ * Half-length of the depth arrow along `N`, as a fraction of the short
+ * half-extent.
+ *
+ * It is the control that moves the plane through the model, so it has to read
+ * as a shaft you can take hold of rather than as a tick marking a direction.
+ */
+const NORMAL_SCALE = 0.55;
 /**
  * Edge thickness, in CSS pixels.
  *
@@ -85,7 +91,18 @@ export class CutPlaneGizmo {
   readonly handlePositions = new Map<HandleId, THREE.Vector3>();
 
   private readonly frame: THREE.Group;
-  private readonly stub: THREE.Mesh;
+  /**
+   * The depth arrow: a double-headed shaft along `N` through the anchor.
+   *
+   * Dragging it slides the plane along its own normal, which is the motion the
+   * depth slider used to own. A slider is a fine control for a number and a
+   * poor one for a plane: it lives outside the picture, so the learner has to
+   * look away from the thing they are moving, and its travel means nothing in
+   * the scene. The arrow is in the picture and moves at 1:1 with the hand.
+   */
+  private readonly depth: THREE.Group;
+  private readonly depthShaft: THREE.Mesh;
+  private readonly depthHeads: [THREE.Mesh, THREE.Mesh];
   private readonly stubLength: number;
   private readonly handles = new Map<HandleId, THREE.Mesh>();
   private readonly halfLong: number;
@@ -122,15 +139,23 @@ export class CutPlaneGizmo {
       this.frame.add(bar);
     }
 
-    this.stub = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial({
-        color: NORMAL_COLOUR, transparent: true, opacity: 0.9, depthTest: false,
-      }),
-    );
     this.stubLength = this.halfShort * NORMAL_SCALE;
+    const depthMaterial = new THREE.MeshBasicMaterial({
+      color: NORMAL_COLOUR, transparent: true, opacity: 0, depthTest: false,
+    });
+    this.depthShaft = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), depthMaterial);
+    this.depthHeads = [
+      new THREE.Mesh(new THREE.ConeGeometry(1, 2.6, 10), depthMaterial),
+      new THREE.Mesh(new THREE.ConeGeometry(1, 2.6, 10), depthMaterial),
+    ];
+    // Cones are built about +y; the arrow runs along the plane's normal, which
+    // is local +z, and the two heads point opposite ways along it.
+    this.depthHeads[0].rotation.x = Math.PI / 2;
+    this.depthHeads[1].rotation.x = -Math.PI / 2;
+    this.depth = new THREE.Group();
+    this.depth.add(this.depthShaft, ...this.depthHeads);
 
-    this.object.add(this.frame, this.stub);
+    this.object.add(this.frame, this.depth);
 
     for (const id of HANDLE_IDS) {
       // A sphere so the handle is the same target from every camera angle; a
@@ -169,9 +194,7 @@ export class CutPlaneGizmo {
     this.object.setRotationFromMatrix(
       new THREE.Matrix4().makeBasis(basis.u, basis.v, normal.clone().normalize()),
     );
-    // The stub points along N, or against it when the kept half-space is
-    // reversed — the only visible difference a reversal makes.
-    this.stub.position.z = (flipped ? -1 : 1) * this.stubLength * 0.5;
+    void flipped;
 
     this.handlePositions.clear();
     if (this.handlesOn) {
@@ -217,7 +240,12 @@ export class CutPlaneGizmo {
         thickness,
       );
     }
-    this.stub.scale.set(thickness, thickness, this.stubLength);
+    this.depthShaft.scale.set(thickness, thickness, this.stubLength * 2);
+    const head = Math.max(thickness * 3, 1e-4);
+    for (const [index, cone] of this.depthHeads.entries()) {
+      cone.scale.set(head, head, head);
+      cone.position.z = (index === 0 ? 1 : -1) * this.stubLength;
+    }
   }
 
   /**
@@ -240,10 +268,34 @@ export class CutPlaneGizmo {
     }
   }
 
+  /**
+   * The depth arrow's two ends in world space, for hit-testing the drag.
+   *
+   * A segment rather than two points: the whole shaft is grabbable, and a
+   * learner aiming at the middle of an arrow should not have to find an end.
+   */
+  depthEnds(): { from: THREE.Vector3; to: THREE.Vector3 } {
+    this.object.updateMatrixWorld(true);
+    return {
+      from: this.object.localToWorld(new THREE.Vector3(0, 0, -this.stubLength)),
+      to: this.object.localToWorld(new THREE.Vector3(0, 0, this.stubLength)),
+    };
+  }
+
+  /** How visible the depth arrow is, and whether the pointer is on it. */
+  setDepthReveal(reveal: number, hovered: boolean): void {
+    const material = this.depthShaft.material as THREE.MeshBasicMaterial;
+    const amount = this.handlesOn ? reveal : 0;
+    material.opacity = amount;
+    material.color.setHex(hovered ? HANDLE_HOVER_COLOUR : NORMAL_COLOUR);
+    this.depth.visible = amount > 0.01;
+  }
+
   /** Echo-synced mode: the plane is not the learner's, so the handles go away. */
   set handlesEnabled(value: boolean) {
     this.handlesOn = value;
     if (!value) {
+      this.depth.visible = false;
       this.handlePositions.clear();
       for (const handle of this.handles.values()) {
         handle.visible = false;
@@ -261,7 +313,8 @@ export class CutPlaneGizmo {
   }
 
   dispose(): void {
-    for (const object of [this.stub, ...this.handles.values()]) {
+    for (const cone of this.depthHeads) cone.geometry.dispose();
+    for (const object of [this.depthShaft, ...this.handles.values()]) {
       object.geometry.dispose();
       (object.material as THREE.Material).dispose();
     }

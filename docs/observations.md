@@ -83,41 +83,83 @@ through a body, and whether the size is right, are both taste calls.
 
 ---
 
-## 3. The probe has a scrub arrow, and it can be unlocked
+## 3. The probe is driven by a control pad, and it can be unlocked
 
-**Where.** Anatomy panel, just below the transducer.
+**Where.** Anatomy panel, bottom right, headed **PROBE CONTROL**.
 
-**What to look at.** A double-headed arrow hugging the probe, always visible, that slides and tilts
-WITH the probe as the sweep runs. Drag it and the sweep scrubs — the same value the slider owns, so
-the wedge, the highlight and the echo image all advance together. At either end of the sweep the
-head for that direction dims and the drag stops rather than wrapping.
+**What to look at.** Locked, it is a two-button rocker: up and down step the view's saved sweep by
+two degrees a press, and holding one repeats. Unlocked, it becomes a game-controller cross with four
+more controls in the corners.
 
-**What it is not.** It is an input, not a second owner of the sweep. It writes `t` and nothing else,
-hard-clamped to [0, 1], so every pose it can reach is one the slider already reached. Its shape is
-sampled from the actual sweep, which is why the parasternal short-axis view — a *translation* — gets
-a straight arrow rather than a curved one. A curved arrow drawn over a translation would be claiming
-a motion the pack does not describe.
+**Why buttons and not a drag.** An earlier revision of this slice had a curved arrow under the probe
+that you dragged to scrub. It is gone, deliberately. Positioning a transducer is not a drag: the
+probe turns about three of its *own* axes, a drag has two degrees of freedom and no way to say which
+of the three it meant, and even the one motion a drag can express unambiguously — sliding along a
+one-dimensional track — is better served by a button that steps a known amount than by a gesture
+whose gain depends on where the camera happens to be.
+
+**What each control does, and what it leaves alone.** Each rotation preserves exactly one axis of the
+probe's frame, which is what makes them three distinct clinical motions rather than three ways of
+nudging:
+
+| Control | Turns about | Leaves alone |
+| --- | --- | --- |
+| ▲ ▼ fan | the lateral axis | the lateral axis — the plane sweeps through the heart |
+| ◀ ▶ aim | the elevation normal | **the imaging plane itself** — same plane, different part of it under the fan |
+| ↺ ↻ roll | the beam | the beam — the plane turns about it, four-chamber toward two-chamber |
+| chevrons | nothing; slides along the beam | the orientation entirely |
+| centre dot | nothing; recentres | — |
+
+**How to judge it.** Press ◀ or ▶ and watch the cut plane in Echo-plane mode: it should not move at
+all, because the imaging plane is unchanged and only the beam's aim within it has. Press ▲ or ▼ and
+the plane should sweep. Press ↺ and the plane should turn about the beam. If aim moves the plane,
+the axes are wrong.
 
 **The unlock, which is the significant change.** The **Free probe** checkbox turns the probe by hand,
-off the view's saved sweep track. Everywhere else in this app the probe is pinned to its view, and
-that constraint is what lets the echo panel put a view's name on an image. Unlocking it is a
-deliberate owner decision (2026-08-19) and it is paid for by labelling, not by hiding:
+off the view's saved sweep track. Everywhere else the probe is pinned to its view, and that
+constraint is what lets the echo panel put a view's name on an image. Unlocking it is a deliberate
+owner decision (2026-08-19) and it is paid for by labelling, not by hiding:
 
 - the echo keeps rendering, because seeing what a plane images is the point;
-- the moment the probe has *actually* moved, the panel's heading becomes "Free probe — not a saved
-  view", the draft flag becomes "Unvetted plane — moved by you, not a reviewed view", and the sweep
-  slider is disabled and says the probe is off its track;
-- turning the checkbox on and not dragging changes nothing, because nothing has stopped being true;
-- unchecking it discards the free pose and returns the probe to the saved track exactly.
+- the moment the probe has *actually* moved — turned OR slid — the panel's heading becomes "Free
+  probe — not a saved view", the draft flag becomes "Unvetted plane", and the sweep slider is
+  disabled and says the probe is off its track;
+- turning the checkbox on and pressing nothing changes nothing, because nothing has stopped being
+  true;
+- the centre dot recentres onto the saved track without locking, and the claim comes back with it;
+- unchecking discards the free pose and returns the probe to the saved track exactly.
 
-**How to judge it.** Unlock, drag the probe a long way, and read the panel: it should be impossible
-to mistake what you are looking at for a vetted view. Then lock again and confirm the view's name,
-draft flag and sweep position all come back unchanged. If any of that lags the pose by a frame, the
-label is not tracking the truth.
+**The stand-off, and its stops.** The two chevron buttons are the only translation offered. Sliding
+the probe *across* the chest would claim a different acoustic window, which is authored content;
+sliding it *along its beam* only changes how far the transducer stands off the tissue. It stops
+before the aperture reaches the model surface and before the sector is pulled clear of the heart,
+and both stops are measured as a clearance from the surface so they mean the same thing on every
+view. A button at its stop is dimmed rather than removed.
 
-**Judgement calls.** The arrow's size, weight and distance below the probe are all chosen rather than
-derived, and the tilt-arrow design was iterated three times in review before landing here. The
-orientation marker that used to sit on the probe body has been **removed** at the owner's request:
+**Why the probe looks so close to the heart in the first place.** It is 8 mm off the epicardium, and
+that gap is *empty space*. This substrate is heart-only: no skin, no subcutaneous fat, no intercostal
+muscle, no pericardium, no ribs. In a patient there would be several millimetres to a couple of
+centimetres of tissue there. The pipeline says so in every view's placement landmark, and putting
+fake tissue in the gap would be inventing anatomy. Worth knowing when the near field of the echo
+looks emptier than a real one.
+
+**The depth arrow, and the slider that is gone.** The cut plane now carries a double-headed arrow
+along its own normal; dragging it slides the plane through the model at 1:1 with the hand, in model
+units, at whatever zoom. The depth slider it replaced has been removed. A slider is a fine control
+for a number and a poor one for a plane: it sits outside the picture, so you look away from the
+thing you are moving, and its travel means nothing in the scene. **What that costs is keyboard
+reach** — a range input works without a pointer and a 3D drag does not. Shift-wheel still writes the
+same value, and the readout still shows it. Worth deciding whether the slider should come back as a
+keyboard affordance.
+
+**Judgement calls.** Two degrees and two millimetres per press, repeating after a third of a second;
+the pad's size and its bottom-right corner; and the chevron-and-bar glyphs for stand-off. The glyphs
+are deliberately NOT arrows: an arrow encodes a screen direction, and a screen direction is only
+right for one camera — the heart is above the probe in an apical view and elsewhere in others, so an
+arrow pointing at the tissue in one view points away from it in the next. The two are one glyph
+drawn once and flipped, so they are exact mirrors.
+
+**Removed at the owner's request.** The orientation marker that used to sit on the probe body.
 `display.marker_side` still decides how the sector maps to the displayed image, but the probe no
 longer shows which of its sides becomes the left of the panel. That is a real loss of information,
 recorded here rather than passed off as a simplification.
@@ -146,15 +188,65 @@ designed. A mode whose whole purpose is inspecting the model probably wants its 
 
 ## 5. The removed half can be put back as a ghost
 
-**Where.** Anatomy panel, the **Ghost** checkbox, next to **Cut**.
+**Where.** Anatomy panel, the **Ghost** checkbox, next to **Cut**. **On by default.**
 
-**What to look at.** On, the half the cutter takes away is drawn back as a faint translucent shell in
-its own tissue colour, so the section can be read against the whole heart it came out of. Off (the
-default), the cut is a clean section.
+**What to look at.** The half the cutter takes away, drawn back as a faint translucent shell in its
+own tissue colour, so the section can be read against the whole heart it came out of. Off, the cut is
+a clean section.
+
+**One consequence worth knowing.** The fourteen unnamed vein and caval stubs are drawn slightly
+translucent — that translucency is how the viewer says "we have not identified this", see entry 16 —
+and at the opacity they had, the ghost showed *through* them and blurred the one distinction the
+ghost exists to draw. They are now only just translucent. If the stubs stop reading as unidentified,
+that is the number that moved.
 
 **How to judge it.** The ghost must never compete with the cut faces — it does not write depth, so it
 should sit behind them rather than fogging them. If the cut face looks hazy, the opacity is too high;
 if you cannot tell what was removed, too low. It is one number (0.07) and it is a taste call.
+
+---
+
+## 5b. The cut faces no longer paint through the tissue in front of them
+
+**Where.** Anatomy panel, with **Cut** on. Orbit right round the model.
+
+**What was wrong.** The stencil cap quads were drawn with the depth test OFF, on the reasoning that
+everything surviving the clip lies behind the plane so nothing could occlude them. That holds only
+while the camera is on the discarded side. From the side that was KEPT, the whole remaining half of
+the heart sits between the eye and the plane — and an untested cap painted its palette colour
+straight over it. The coloured cross-sections showed through solid tissue, which looked like a
+translucency setting and was actually a depth bug.
+
+**A consequence worth knowing.** With the test on, a cut facing away from you now correctly shows
+nothing — so the cut had to learn which way to open. It now removes the half nearer the camera when
+it is switched on, and on **Reset**. Deliberately not continuously: a cut that flipped itself
+halfway through an orbit would be worse than one facing the wrong way, and **Reverse** is right
+there.
+
+**How to judge it.** Turn the model all the way round with the cut on. The cut faces should be
+visible from one side and hidden from the other, and the heart should look solid from the far side
+rather than tattooed with coloured outlines.
+
+---
+
+## 5c. The anatomy panel is now as tall as the echo image plus its scrubber
+
+**Where.** Side-by-side layout, which is any viewport at least 900 px wide. Below that the two panels
+stack, which is unchanged.
+
+**What to look at.** The 3D viewport should be about as tall as the echo canvas and the sweep row
+beneath it together, with the cut and probe controls sitting below that. Previously it was a 4:3 box,
+which left the model in a container two thirds the height of the image it is supposed to be read
+against.
+
+**How it is sized.** From the COLUMN width rather than from a guess: both stage columns are `1fr`, so
+the anatomy column is exactly as wide as the echo one, and the echo canvas is 4:3 of that width. The
+height is that plus a constant for the header and scrub rows. It therefore stays correct at every
+window width rather than at the one it was eyeballed at.
+
+**Worth checking.** That the controls below the viewport do not push the panel past the echo column
+by enough to look unbalanced, and that the stacked phone layout still uses the 4:3 box, where there
+is no second column to match.
 
 ---
 

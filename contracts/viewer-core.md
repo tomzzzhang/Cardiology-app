@@ -87,9 +87,10 @@ switching back re-acquires the echo plane. The echo panel does **not** blank in 
 name carries the distinction, which beats teaching it by an absence, and blanking on every stray
 drag would be hostile now that the plane is directly draggable.
 
-**Ghost cutaway.** The half the cutter removes can be drawn back as a faint translucent shell,
-behind a toggle. It shares geometry with the anatomy and carries the reversed clipping plane, so the
-two halves are complementary by construction.
+**Ghost cutaway.** The half the cutter removes is drawn back as a faint translucent shell, ON by
+default and behind a toggle. It shares geometry with the anatomy and carries the reversed clipping
+plane, so the two halves are complementary by construction. The kept half stays near-opaque, or the
+ghost shows through it and blurs the one distinction it exists to draw.
 
 **Touch.** Phone controls use visible handles and the depth slider, not hidden modifier gestures.
 The fine/coarse rule lives in ONE module (`src/viewer/pointerClass.ts`) rather than per control: a
@@ -104,18 +105,45 @@ basis = `beam_axis`/`lateral_axis`, extent from `probe.fan`. One source of truth
 model and the echo fan match **one-to-one**.
 
 In learner mode the wedge is driven by the sweep — through the scrubber slider or through the
-probe's **tilt arrow**, which is an input rather than a second owner: it writes the same `t` the
-slider writes, hard-clamped to [0, 1], so every pose it can reach is `frameAt(probe, sweep, t)` by
-construction. The arrow's shape is sampled from `poseAt` over a window around the current `t`, so it
-rides the probe and a translate sweep gets a straight arrow rather than a false arc. A view with no
-sweep gets no arrow.
+**probe control pad**, which is an input rather than a second owner: its fan buttons write the same
+`t` the slider writes, hard-clamped to [0, 1], so every pose they can reach is
+`frameAt(probe, sweep, t)` by construction.
+
+**Buttons, not a drag.** A revision of this slice had a curved arrow under the probe that scrubbed
+the sweep, and it is gone. Positioning a transducer is not a drag: the probe turns about three of its
+OWN axes, a drag has two degrees of freedom and no way to say which it meant, and even the one motion
+a drag can express unambiguously is better served by a button that steps a known amount than by a
+gesture whose gain depends on where the camera is. The pad is a game-controller cross — fan up and
+down, aim left and right — with roll in the top corners and stand-off in the bottom ones. Locked it
+shows only the fan pair, because the other five have no on-track meaning.
 
 **The one exception, and it is explicit.** *(Owner decision, 2026-08-19; supersedes "viewer-core
 exposes no learner-facing control that repositions a vetted wedge".)* A **Free probe** toggle
-unlocks the probe and lets the learner turn it about its own origin, off the saved track. It is paid
-for by labelling rather than by hiding — see `contracts/README.md` for what is withdrawn and what is
-restored. Nothing about it can write to `views[]`, and locking again returns the probe to
-`frameAt(probe, sweep, t)` exactly.
+unlocks the probe. It then turns about its own axes and slides along its own beam:
+
+| Control | Axis | What is preserved |
+| --- | --- | --- |
+| fan (up/down) | the probe's lateral axis | the lateral axis; the plane sweeps through the heart |
+| aim (left/right) | the elevation normal | **the imaging plane itself** — same plane, different part of it |
+| roll (the two arcs) | the beam axis | the beam; the plane turns about it |
+| stand-off (the two chevrons) | translation along the beam | the orientation entirely |
+
+Each rotation preserves exactly one axis of the frame, and those three invariants are what the tests
+pin — "left and right maintain the same plane" is a claim about geometry, not about the code.
+
+**Stand-off is the only translation, and it is bounded by tissue.** Sliding the probe ACROSS the
+chest would claim a different acoustic window, which is authored content; sliding it along the beam
+only changes how far the transducer stands off. It stops before the aperture reaches the model
+surface — this substrate has no chest wall, so nothing else prevents imaging from inside a ventricle
+— and before the sector is pulled clear of the heart. Both stops are measured as a clearance from
+the surface, so they mean the same thing on every view.
+
+**Recentre** — the middle of the cross — returns the probe to the saved track at the current sweep
+position without locking it.
+
+The unlock is paid for by labelling rather than by hiding: see `contracts/README.md` for what is
+withdrawn and what is restored. Nothing about it can write to `views[]`, and locking again returns
+the probe to `frameAt(probe, sweep, t)` exactly.
 
 ## The direction data flows
 

@@ -59,7 +59,7 @@ engine hardcodes lesion names or counts; adding a lesion means authoring a pack.
 src/schema/     content-pack schema v0 (provisional) and its validator
 src/packs/      pack-loader — the only place JSON becomes a typed pack
 src/viewer/     viewer-core: orbit, the free cutter and its handles, stencil caps,
-                the probe indicator, the beam-dim highlight, the tilt arrow
+                the probe indicator and its control pad, the beam-dim highlight
 src/echo/       echo-renderer: probe frame, the three shader passes, the echo panel
 pipeline/       Python model ingest — split, label, decimate, voxelise, author views
 shared/         the few constants the pipeline and the viewer both have to agree on

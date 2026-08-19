@@ -207,8 +207,8 @@ export default function App() {
             onFreePoseChange={setFreePose}
           />
           {/*
-            * Explore has no echo panel, and therefore no probe, no tilt arrow,
-            * no beam-dim control and no "Match echo". The non-diagnostic notice
+            * Explore has no echo panel, and therefore no probe, no probe
+            * control pad, no beam-dim control and no "Match echo". The notice
             * in the footer stays in BOTH modes: it is not behind a toggle
             * (`contracts/app-shell.md` rule 4).
             */}
