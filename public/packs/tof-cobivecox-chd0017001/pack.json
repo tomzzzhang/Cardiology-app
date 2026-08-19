@@ -37,6 +37,7 @@
         "mesh_node": "epicardium-excluding-the-base",
         "display_label": "Epicardium, excluding the base",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -56,6 +57,7 @@
         "mesh_node": "epicardial-base",
         "display_label": "Epicardial base",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -75,6 +77,7 @@
         "mesh_node": "left-ventricular-endocardium",
         "display_label": "Left ventricular endocardium",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -94,6 +97,7 @@
         "mesh_node": "right-ventricular-endocardium",
         "display_label": "Right ventricular endocardium",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -113,6 +117,7 @@
         "mesh_node": "mitral-valve-annulus",
         "display_label": "Mitral valve annulus",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -132,6 +137,7 @@
         "mesh_node": "tricuspid-valve-annulus",
         "display_label": "Tricuspid valve annulus",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -151,6 +157,7 @@
         "mesh_node": "aortic-valve-annulus",
         "display_label": "Aortic valve annulus",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -170,6 +177,7 @@
         "mesh_node": "pulmonary-valve-annulus",
         "display_label": "Pulmonary valve annulus",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",

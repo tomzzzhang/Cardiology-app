@@ -37,6 +37,7 @@
         "mesh_node": "surface",
         "display_label": "Biventricular surface (source carries no labels)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",

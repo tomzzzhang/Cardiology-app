@@ -940,6 +940,7 @@ def build_pack(
                     "mesh_node": s.slug,
                     "display_label": s.label,
                     "parent": None,
+                    "identified": s.named,
                     "blood_pool": s.blood_pool,
                     "blood_pool_decision": {
                         "basis": s.blood_pool_basis,

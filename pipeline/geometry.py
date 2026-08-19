@@ -484,6 +484,7 @@ def group_structures(
             "mesh_node": None,
             "display_label": name,
             "parent": slug_of[parent] if parent else None,
+            "identified": True,
             "blood_pool": False,
             "stylized": False,
         }
@@ -793,6 +794,7 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
         )
 
     # Groups first, because a parent read before its children reads as a tree.
+    unlabelled = len(structures) == 1 and structures[0][0] == "surface"
     slugs = {slug for slug, _, _ in structures}
     groups, group_of_stem = group_structures(source, cache_dir, list(stem_of.values()), slugs)
     entries: list[dict] = list(groups)
@@ -804,6 +806,11 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
             "mesh_node": slug,
             "display_label": label,
             "parent": group_of_stem.get(stem),
+            # A source that divides into no named parts has identified nothing:
+            # its one structure is "the surface", which is a description of the
+            # file rather than a reading of the anatomy. Everything else here is
+            # named from the source's own labels or concept map.
+            "identified": not unlabelled,
             "blood_pool": pool,
             "blood_pool_decision": decision,
             "topology": topology_block(measurements[stem], slug, source),

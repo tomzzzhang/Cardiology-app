@@ -1006,13 +1006,22 @@ export default function PackViewer({
         const bloodPool = new Set(
           pack.meshes.structures.filter((s) => s.blood_pool).map((s) => s.id),
         );
+        /*
+         * Which structures the PACK says it has identified. Not "which ones the
+         * palette knows": every BodyParts3D part is identified and none of them
+         * is in the palette, and rendering those two states the same grey said
+         * something false about 82 of 86 structures (observation 24).
+         */
+        const unidentified = new Set(
+          pack.meshes.structures.filter((s) => !s.identified).map((s) => s.id),
+        );
         const capSources: CapSource[] = [];
 
         gltf.scene.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
           byStructure.set(object.name, object);
           const isPool = bloodPool.has(object.name);
-          const colour = structureColour(object.name, isPool);
+          const colour = structureColour(object.name, isPool, !unidentified.has(object.name));
           object.material = new THREE.MeshStandardMaterial({
             // Blood pool reads as lumen, not tissue: translucent and cool, so a
             // cast-shaped pack cannot be mistaken for a wall-shaped one.

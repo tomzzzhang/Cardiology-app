@@ -37,6 +37,7 @@
         "mesh_node": "myocardial-tissue",
         "display_label": "Myocardial tissue (undivided)",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "authored",

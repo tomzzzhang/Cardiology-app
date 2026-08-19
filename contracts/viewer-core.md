@@ -153,6 +153,41 @@ The unlock is paid for by labelling rather than by hiding: see `contracts/README
 withdrawn and what is restored. Nothing about it can write to `views[]`, and locking again returns
 the probe to `frameAt(probe, sweep, t)` exactly.
 
+## The structure palette has THREE states
+
+*(Owner decision, 2026-08-19. `docs/observations.md` entry 24 is the reasoning.)*
+`structureColour` is the single place a surface, its stencil cap and the beam dim read colour from,
+so this is one function with three branches:
+
+1. **Named, and in `PALETTE`** — the palette's colour, unchanged. These carry meaning: left heart
+   red, right heart blue.
+2. **Identified, but not in `PALETTE`** — a DERIVED muted colour, deterministic from the structure
+   id and therefore the same in every session on every machine. All 86 BodyParts3D parts are here:
+   every one of them is identified, from the source's own concept map, and they simply do not share
+   slugs with a palette keyed to the Rodero substrate. One grey for all 86 said something false
+   about them.
+3. **Not identified at all** — the neutral grey, and nothing else may use it. Rodero's tags 11 to 24
+   are here. Grey means one thing — "we declined to identify this" — and it only means that while
+   nothing else can say it.
+
+The state comes from `Structure.identified` in the pack, never from whether the palette happens to
+know the slug: those are different questions and conflating them is what produced state 2's problem.
+
+**The derived band cannot claim a side.** Chroma 14–26 against the palette's 44–62, lightness held
+mid-range, and the hue arcs within 28° of the palette's left-red and right-blue excluded outright —
+desaturating alone is not enough, because a muted slate blue is still blue to a learner who has been
+taught what blue means. Within what is left, sibling structures have to be tellable apart, and that
+is MEASURED in dE2000 over the packs in the repository (`tests/unit/palette.test.ts`), not judged by
+eye. The derivation is a pure function of the id and cannot see that two structures are siblings, so
+it cannot guarantee separation; the salt is chosen to maximise the worst pair, which as shipped is
+8.2 dE2000 against a just-noticeable difference of 2.3.
+
+**None of the three states is translucent**, and that is deliberate rather than an omission — see
+the rule below. The brief that asked for three states described state 3 as "grey and translucent,
+exactly as now, it must not change"; as of `b3bce93` it is grey and OPAQUE, because near-opaque
+translucency is a depth-ordering hazard that made structures pop in and out under orbit
+(`docs/observations.md` entry 34). "It must not change" is the instruction that was followed.
+
 ## Blood pool is drawn, and is not capped
 
 `Structure.blood_pool` marks a cast of the lumen rather than tissue. Two rules follow, and the second

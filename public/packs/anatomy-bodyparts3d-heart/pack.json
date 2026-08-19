@@ -37,6 +37,7 @@
         "mesh_node": null,
         "display_label": "anterior cardiac venous tree",
         "parent": "right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -45,6 +46,7 @@
         "mesh_node": null,
         "display_label": "anterior interventricular branch of left coronary artery",
         "parent": "left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -53,6 +55,7 @@
         "mesh_node": null,
         "display_label": "anterior wall of left ventricle",
         "parent": "free-wall-of-left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -61,6 +64,7 @@
         "mesh_node": null,
         "display_label": "aortic valve",
         "parent": "outflow-part-of-left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -69,6 +73,7 @@
         "mesh_node": null,
         "display_label": "circumflex branch of left coronary artery",
         "parent": "left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -77,6 +82,7 @@
         "mesh_node": null,
         "display_label": "conus branch of anterior interventricular branch of left coronary artery",
         "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -85,6 +91,7 @@
         "mesh_node": null,
         "display_label": "diagonal branch of anterior descending branch of left coronary artery",
         "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -93,6 +100,7 @@
         "mesh_node": null,
         "display_label": "fibrous ring of mitral valve",
         "parent": "mitral-valve",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -101,6 +109,7 @@
         "mesh_node": null,
         "display_label": "first anterior ventricular branch of right coronary artery",
         "parent": "right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -109,6 +118,7 @@
         "mesh_node": null,
         "display_label": "first posterior ventricular branch of right coronary artery",
         "parent": "right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -117,6 +127,7 @@
         "mesh_node": null,
         "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery",
         "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -125,6 +136,7 @@
         "mesh_node": null,
         "display_label": "free wall of left ventricle",
         "parent": "wall-of-left-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -133,6 +145,7 @@
         "mesh_node": null,
         "display_label": "free wall of right ventricle",
         "parent": "wall-of-right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -141,6 +154,7 @@
         "mesh_node": null,
         "display_label": "inflow part of left ventricle",
         "parent": "left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -149,6 +163,7 @@
         "mesh_node": null,
         "display_label": "left atrium",
         "parent": "left-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -157,6 +172,7 @@
         "mesh_node": null,
         "display_label": "left coronary artery",
         "parent": "left-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -165,6 +181,7 @@
         "mesh_node": null,
         "display_label": "left side of heart",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -173,6 +190,7 @@
         "mesh_node": null,
         "display_label": "left ventricle",
         "parent": "left-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -181,6 +199,7 @@
         "mesh_node": null,
         "display_label": "marginal branch of right coronary artery",
         "parent": "right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -189,6 +208,7 @@
         "mesh_node": null,
         "display_label": "mitral valve",
         "parent": "inflow-part-of-left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -197,6 +217,7 @@
         "mesh_node": null,
         "display_label": "outflow part of left ventricle",
         "parent": "left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -205,6 +226,7 @@
         "mesh_node": null,
         "display_label": "outflow part of right atrium",
         "parent": "right-atrium",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -213,6 +235,7 @@
         "mesh_node": null,
         "display_label": "outflow part of right ventricle",
         "parent": "right-ventricle",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -221,6 +244,7 @@
         "mesh_node": null,
         "display_label": "posterior interventricular branch of right coronary artery",
         "parent": "right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -229,6 +253,7 @@
         "mesh_node": null,
         "display_label": "right atrium",
         "parent": "right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -237,6 +262,7 @@
         "mesh_node": null,
         "display_label": "right conus artery",
         "parent": "right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -245,6 +271,7 @@
         "mesh_node": null,
         "display_label": "right coronary artery",
         "parent": "right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -253,6 +280,7 @@
         "mesh_node": null,
         "display_label": "right side of heart",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -261,6 +289,7 @@
         "mesh_node": null,
         "display_label": "right ventricle",
         "parent": "right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -269,6 +298,7 @@
         "mesh_node": null,
         "display_label": "small cardiac vein",
         "parent": "right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -277,6 +307,7 @@
         "mesh_node": null,
         "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery",
         "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -285,6 +316,7 @@
         "mesh_node": null,
         "display_label": "wall of left side of heart",
         "parent": "left-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -293,6 +325,7 @@
         "mesh_node": null,
         "display_label": "wall of right side of heart",
         "parent": "right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "stylized": false
       },
@@ -301,6 +334,7 @@
         "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2727",
         "display_label": "anterior cardiac venous tree / right marginal vein (FJ2727)",
         "parent": "anterior-cardiac-venous-tree",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -319,6 +353,7 @@
         "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2728",
         "display_label": "anterior cardiac venous tree / right marginal vein (FJ2728)",
         "parent": "anterior-cardiac-venous-tree",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -337,6 +372,7 @@
         "mesh_node": "anterior-cardiac-venous-tree-right-marginal-vein-fj2729",
         "display_label": "anterior cardiac venous tree / right marginal vein (FJ2729)",
         "parent": "anterior-cardiac-venous-tree",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -355,6 +391,7 @@
         "mesh_node": "anterior-cusp-of-aortic-valve",
         "display_label": "anterior cusp of aortic valve",
         "parent": "aortic-valve",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -373,6 +410,7 @@
         "mesh_node": "anterior-leaflet-of-mitral-valve",
         "display_label": "anterior leaflet of mitral valve",
         "parent": "fibrous-ring-of-mitral-valve",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -391,6 +429,7 @@
         "mesh_node": "anterior-leaflet-of-tricuspid-valve",
         "display_label": "anterior leaflet of tricuspid valve",
         "parent": "outflow-part-of-right-atrium",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -409,6 +448,7 @@
         "mesh_node": "anterior-papillary-muscle-of-right-ventricle-anterior-wall-of-right-ventricle",
         "display_label": "anterior papillary muscle of right ventricle / anterior wall of right ventricle",
         "parent": "free-wall-of-right-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -427,6 +467,7 @@
         "mesh_node": "anterior-wall-of-left-ventricle-lateral-papillary-muscle-of-left-ventricle-6",
         "display_label": "anterior wall of left ventricle / lateral papillary muscle of left ventricle +6",
         "parent": "anterior-wall-of-left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -445,6 +486,7 @@
         "mesh_node": "anterolateral-head-of-lateral-papillary-muscle-of-left-ventricle-myocardial-zone-12",
         "display_label": "anterolateral head of lateral papillary muscle of left ventricle / myocardial zone 12",
         "parent": "anterior-wall-of-left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -464,6 +506,7 @@
         "mesh_node": "ascending-aorta",
         "display_label": "ascending aorta",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -482,6 +525,7 @@
         "mesh_node": "cavity-of-left-atrium",
         "display_label": "cavity of left atrium",
         "parent": "left-atrium",
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -500,6 +544,7 @@
         "mesh_node": "cavity-of-left-ventricle",
         "display_label": "cavity of left ventricle",
         "parent": "left-ventricle",
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -518,6 +563,7 @@
         "mesh_node": "cavity-of-right-atrium",
         "display_label": "cavity of right atrium",
         "parent": "right-atrium",
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -536,6 +582,7 @@
         "mesh_node": "cavity-of-right-ventricle",
         "display_label": "cavity of right ventricle",
         "parent": "right-ventricle",
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -554,6 +601,7 @@
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2649",
         "display_label": "circumflex branch of left coronary artery (FJ2649)",
         "parent": "circumflex-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -572,6 +620,7 @@
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2650",
         "display_label": "circumflex branch of left coronary artery (FJ2650)",
         "parent": "circumflex-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -590,6 +639,7 @@
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2651",
         "display_label": "circumflex branch of left coronary artery (FJ2651)",
         "parent": "circumflex-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -608,6 +658,7 @@
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2652",
         "display_label": "circumflex branch of left coronary artery (FJ2652)",
         "parent": "circumflex-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -626,6 +677,7 @@
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2653",
         "display_label": "circumflex branch of left coronary artery (FJ2653)",
         "parent": "circumflex-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -644,6 +696,7 @@
         "mesh_node": "circumflex-branch-of-left-coronary-artery-fj2654",
         "display_label": "circumflex branch of left coronary artery (FJ2654)",
         "parent": "circumflex-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -662,6 +715,7 @@
         "mesh_node": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2643",
         "display_label": "conus branch of anterior interventricular branch of left coronary artery (FJ2643)",
         "parent": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -680,6 +734,7 @@
         "mesh_node": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2644",
         "display_label": "conus branch of anterior interventricular branch of left coronary artery (FJ2644)",
         "parent": "conus-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -698,6 +753,7 @@
         "mesh_node": "coronary-sinus",
         "display_label": "coronary sinus",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -716,6 +772,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2633",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2633)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -734,6 +791,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2634",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2634)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -752,6 +810,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2635",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2635)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -770,6 +829,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2636",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2636)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -788,6 +848,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2637",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2637)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -806,6 +867,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2638",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2638)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -824,6 +886,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2639",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2639)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -842,6 +905,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2640",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2640)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -860,6 +924,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2642",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2642)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -878,6 +943,7 @@
         "mesh_node": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery-fj2648",
         "display_label": "diagonal branch of anterior descending branch of left coronary artery (FJ2648)",
         "parent": "diagonal-branch-of-anterior-descending-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -896,6 +962,7 @@
         "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2671",
         "display_label": "first anterior ventricular branch of right coronary artery (FJ2671)",
         "parent": "first-anterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -914,6 +981,7 @@
         "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2673",
         "display_label": "first anterior ventricular branch of right coronary artery (FJ2673)",
         "parent": "first-anterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -932,6 +1000,7 @@
         "mesh_node": "first-anterior-ventricular-branch-of-right-coronary-artery-fj2677",
         "display_label": "first anterior ventricular branch of right coronary artery (FJ2677)",
         "parent": "first-anterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -950,6 +1019,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2714",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2714)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -968,6 +1038,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2715",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2715)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -986,6 +1057,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2716",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2716)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1004,6 +1076,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2717",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2717)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1022,6 +1095,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2718",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2718)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1040,6 +1114,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2719",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2719)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1058,6 +1133,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2720",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2720)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1076,6 +1152,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2721",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2721)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1094,6 +1171,7 @@
         "mesh_node": "first-posterior-ventricular-branch-of-right-coronary-artery-fj2722",
         "display_label": "first posterior ventricular branch of right coronary artery (FJ2722)",
         "parent": "first-posterior-ventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1112,6 +1190,7 @@
         "mesh_node": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2632",
         "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery (FJ2632)",
         "parent": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1130,6 +1209,7 @@
         "mesh_node": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2645",
         "display_label": "first right anterior branch of anterior interventricular branch of left coronary artery (FJ2645)",
         "parent": "first-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1148,6 +1228,7 @@
         "mesh_node": "great-cardiac-vein",
         "display_label": "great cardiac vein",
         "parent": "left-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1166,6 +1247,7 @@
         "mesh_node": "inferior-wall-of-right-ventricle-posterior-papillary-muscle-of-right-ventricle",
         "display_label": "inferior wall of right ventricle / posterior papillary muscle of right ventricle",
         "parent": "free-wall-of-right-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1184,6 +1266,7 @@
         "mesh_node": "left-anterior-cusp-of-pulmonary-valve",
         "display_label": "left anterior cusp of pulmonary valve",
         "parent": "outflow-part-of-right-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1202,6 +1285,7 @@
         "mesh_node": "left-posterior-cusp-of-aortic-valve",
         "display_label": "left posterior cusp of aortic valve",
         "parent": "aortic-valve",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1220,6 +1304,7 @@
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2667",
         "display_label": "marginal branch of right coronary artery (FJ2667)",
         "parent": "marginal-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1238,6 +1323,7 @@
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2668",
         "display_label": "marginal branch of right coronary artery (FJ2668)",
         "parent": "marginal-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1256,6 +1342,7 @@
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2672",
         "display_label": "marginal branch of right coronary artery (FJ2672)",
         "parent": "marginal-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1274,6 +1361,7 @@
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2674",
         "display_label": "marginal branch of right coronary artery (FJ2674)",
         "parent": "marginal-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1292,6 +1380,7 @@
         "mesh_node": "marginal-branch-of-right-coronary-artery-fj2675",
         "display_label": "marginal branch of right coronary artery (FJ2675)",
         "parent": "marginal-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1310,6 +1399,7 @@
         "mesh_node": "posterior-cusp-of-pulmonary-valve",
         "display_label": "posterior cusp of pulmonary valve",
         "parent": "outflow-part-of-right-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1328,6 +1418,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2692",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2692)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1346,6 +1437,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2693",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2693)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1364,6 +1456,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2694",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2694)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1382,6 +1475,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2695",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2695)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1400,6 +1494,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2696",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2696)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1418,6 +1513,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2697",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2697)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1436,6 +1532,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2698",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2698)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1454,6 +1551,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2699",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2699)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1472,6 +1570,7 @@
         "mesh_node": "posterior-interventricular-branch-of-right-coronary-artery-fj2700",
         "display_label": "posterior interventricular branch of right coronary artery (FJ2700)",
         "parent": "posterior-interventricular-branch-of-right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1490,6 +1589,7 @@
         "mesh_node": "posterior-leaflet-of-mitral-valve-inferior-wall-of-left-ventricle-2",
         "display_label": "posterior leaflet of mitral valve / inferior wall of left ventricle +2",
         "parent": "free-wall-of-left-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1508,6 +1608,7 @@
         "mesh_node": "posterior-leaflet-of-tricuspid-valve",
         "display_label": "posterior leaflet of tricuspid valve",
         "parent": "outflow-part-of-right-atrium",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1526,6 +1627,7 @@
         "mesh_node": "pulmonary-trunk",
         "display_label": "pulmonary trunk",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -1544,6 +1646,7 @@
         "mesh_node": "right-anterior-cusp-of-pulmonary-valve",
         "display_label": "right anterior cusp of pulmonary valve",
         "parent": "outflow-part-of-right-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1563,6 +1666,7 @@
         "mesh_node": "right-conus-artery-fj2670",
         "display_label": "right conus artery (FJ2670)",
         "parent": "right-conus-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1581,6 +1685,7 @@
         "mesh_node": "right-conus-artery-fj2676",
         "display_label": "right conus artery (FJ2676)",
         "parent": "right-conus-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1599,6 +1704,7 @@
         "mesh_node": "right-posterior-cusp-of-aortic-valve",
         "display_label": "right posterior cusp of aortic valve",
         "parent": "aortic-valve",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1617,6 +1723,7 @@
         "mesh_node": "second-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
         "display_label": "second right anterior branch of anterior interventricular branch of left coronary artery",
         "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1635,6 +1742,7 @@
         "mesh_node": "septal-leaflet-of-tricuspid-valve",
         "display_label": "septal leaflet of tricuspid valve",
         "parent": "outflow-part-of-right-atrium",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1654,6 +1762,7 @@
         "mesh_node": "septal-papillary-muscle-of-right-ventricle",
         "display_label": "septal papillary muscle of right ventricle",
         "parent": "free-wall-of-right-ventricle",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1672,6 +1781,7 @@
         "mesh_node": "small-cardiac-vein-fj2724",
         "display_label": "small cardiac vein (FJ2724)",
         "parent": "small-cardiac-vein",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1690,6 +1800,7 @@
         "mesh_node": "small-cardiac-vein-fj2731",
         "display_label": "small cardiac vein (FJ2731)",
         "parent": "small-cardiac-vein",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1708,6 +1819,7 @@
         "mesh_node": "superior-vena-cava",
         "display_label": "superior vena cava",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -1726,6 +1838,7 @@
         "mesh_node": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2641",
         "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery (FJ2641)",
         "parent": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1744,6 +1857,7 @@
         "mesh_node": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery-fj2647",
         "display_label": "third right anterior branch of anterior interventricular branch of left coronary artery (FJ2647)",
         "parent": "third-right-anterior-branch-of-anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1762,6 +1876,7 @@
         "mesh_node": "trunk-of-anterior-interventricular-branch-of-left-coronary-artery",
         "display_label": "trunk of anterior interventricular branch of left coronary artery",
         "parent": "anterior-interventricular-branch-of-left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1780,6 +1895,7 @@
         "mesh_node": "trunk-of-left-coronary-artery",
         "display_label": "trunk of left coronary artery",
         "parent": "left-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1798,6 +1914,7 @@
         "mesh_node": "trunk-of-right-coronary-artery",
         "display_label": "trunk of right coronary artery",
         "parent": "right-coronary-artery",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1816,6 +1933,7 @@
         "mesh_node": "wall-of-left-atrium",
         "display_label": "wall of left atrium",
         "parent": "wall-of-left-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -1834,6 +1952,7 @@
         "mesh_node": "wall-of-right-atrium",
         "display_label": "wall of right atrium",
         "parent": "wall-of-right-side-of-heart",
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",

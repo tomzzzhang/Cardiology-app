@@ -315,6 +315,19 @@ export const Structure = z.strictObject({
    * enumerated there. A pack that declares no hierarchy renders as a flat list.
    */
   parent: Slug.nullable(),
+  /**
+   * Whether this structure carries an anatomical IDENTIFICATION.
+   *
+   * Not the same question as whether it has a `display_label` — everything has
+   * one — and not the same as whether the palette knows its slug. Rodero's
+   * tags 11 to 24 are real tissue nobody has read yet and say "Tagged region
+   * 18"; BodyParts3D's 86 parts are all identified, from the source's own
+   * concept map, and simply do not share slugs with the palette. Those are
+   * different states and the viewer draws them differently
+   * (`docs/observations.md` entry 24): grey is reserved for the first, and
+   * saying "we declined to identify this" is the only thing it means.
+   */
+  identified: z.boolean(),
   /** Drives blood-pool colouring in viewer-core. */
   blood_pool: z.boolean(),
   /** How `blood_pool` was decided. Absent on a group, which has no geometry. */

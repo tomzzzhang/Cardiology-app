@@ -454,6 +454,7 @@ describe('structure groups', () => {
       mesh_node: null,
       display_label: 'Stub assembly',
       parent: null,
+      identified: true,
       blood_pool: false,
       stylized: false,
     });

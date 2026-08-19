@@ -37,6 +37,7 @@
         "mesh_node": "lv-myocardium",
         "display_label": "Left ventricular myocardium",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -49,6 +50,7 @@
         "mesh_node": "rv-myocardium",
         "display_label": "Right ventricular myocardium",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -61,6 +63,7 @@
         "mesh_node": "ra-myocardium",
         "display_label": "Right atrial myocardium",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -73,6 +76,7 @@
         "mesh_node": "la-myocardium",
         "display_label": "Left atrial myocardium",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -85,6 +89,7 @@
         "mesh_node": "aortic-wall",
         "display_label": "Aortic wall",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -97,6 +102,7 @@
         "mesh_node": "pulmonary-artery-wall",
         "display_label": "Pulmonary artery wall",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -109,6 +115,7 @@
         "mesh_node": "tricuspid-valve-ring",
         "display_label": "Tricuspid valve ring",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -121,6 +128,7 @@
         "mesh_node": "aortic-valve-ring",
         "display_label": "Aortic valve ring",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -133,6 +141,7 @@
         "mesh_node": "mitral-valve-ring",
         "display_label": "Mitral valve ring",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -145,6 +154,7 @@
         "mesh_node": "pulmonary-valve-ring",
         "display_label": "Pulmonary valve ring",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -157,6 +167,7 @@
         "mesh_node": "tagged-region-18",
         "display_label": "Tagged region 18 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -169,6 +180,7 @@
         "mesh_node": "tagged-region-16",
         "display_label": "Tagged region 16 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -181,6 +193,7 @@
         "mesh_node": "tagged-region-11",
         "display_label": "Tagged region 11 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -193,6 +206,7 @@
         "mesh_node": "tagged-region-17",
         "display_label": "Tagged region 17 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -205,6 +219,7 @@
         "mesh_node": "tagged-region-23",
         "display_label": "Tagged region 23 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -217,6 +232,7 @@
         "mesh_node": "tagged-region-24",
         "display_label": "Tagged region 24 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -229,6 +245,7 @@
         "mesh_node": "tagged-region-21",
         "display_label": "Tagged region 21 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -241,6 +258,7 @@
         "mesh_node": "tagged-region-19",
         "display_label": "Tagged region 19 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -253,6 +271,7 @@
         "mesh_node": "tagged-region-22",
         "display_label": "Tagged region 22 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -265,6 +284,7 @@
         "mesh_node": "tagged-region-15",
         "display_label": "Tagged region 15 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -277,6 +297,7 @@
         "mesh_node": "tagged-region-20",
         "display_label": "Tagged region 20 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -289,6 +310,7 @@
         "mesh_node": "tagged-region-14",
         "display_label": "Tagged region 14 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -301,6 +323,7 @@
         "mesh_node": "tagged-region-12",
         "display_label": "Tagged region 12 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
@@ -313,6 +336,7 @@
         "mesh_node": "tagged-region-13",
         "display_label": "Tagged region 13 (unnamed pending vetting)",
         "parent": null,
+        "identified": false,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",

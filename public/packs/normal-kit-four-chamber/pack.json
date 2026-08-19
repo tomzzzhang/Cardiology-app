@@ -37,6 +37,7 @@
         "mesh_node": "epicardium",
         "display_label": "Epicardium",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -55,6 +56,7 @@
         "mesh_node": "left-ventricular-cavity",
         "display_label": "Left ventricular cavity",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -73,6 +75,7 @@
         "mesh_node": "right-ventricular-cavity",
         "display_label": "Right ventricular cavity",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -91,6 +94,7 @@
         "mesh_node": "left-atrial-cavity",
         "display_label": "Left atrial cavity",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -109,6 +113,7 @@
         "mesh_node": "right-atrial-cavity",
         "display_label": "Right atrial cavity",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",
@@ -127,6 +132,7 @@
         "mesh_node": "great-vessel-trunks-outer-surface",
         "display_label": "Great-vessel trunks, outer surface",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -146,6 +152,7 @@
         "mesh_node": "pericardium-outer-surface",
         "display_label": "Pericardium, outer surface",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",

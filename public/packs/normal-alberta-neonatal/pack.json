@@ -37,6 +37,7 @@
         "mesh_node": "eg-myocardium-1",
         "display_label": "EG Myocardium_1",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "label_no_match",
@@ -49,6 +50,7 @@
         "mesh_node": "eg-blood-pool-0",
         "display_label": "Eg Blood Pool_0",
         "parent": null,
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "label_match",

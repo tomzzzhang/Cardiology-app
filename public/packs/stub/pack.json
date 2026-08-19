@@ -35,6 +35,7 @@
         "mesh_node": "stub_shell",
         "display_label": "Stub shell",
         "parent": null,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "authored",
@@ -47,6 +48,7 @@
         "mesh_node": "stub_core",
         "display_label": "Stub core",
         "parent": "stub-shell",
+        "identified": true,
         "blood_pool": true,
         "blood_pool_decision": {
           "basis": "authored",
