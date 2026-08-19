@@ -78,6 +78,13 @@ export const UNPUBLISHED_PACKS: Readonly<Record<string, NotPublished>> = {
       'CC BY-NC 4.0. Not published: a non-commercial pack binds the whole application to the ' +
       'non-commercial red lines, and that constraint is not accepted for the published build.',
   },
+  'normal-kit-four-chamber': {
+    licence:
+      'CC BY-NC 4.0, state "non_commercial" — read from the Zenodo record\'s own licence ' +
+      'field. PERMANENTLY UNPUBLISHABLE: a non-commercial pack binds the whole application ' +
+      'to the NC red lines, and that constraint is not accepted for the published build. ' +
+      'The same position already taken on the Visible Heart Labs pack.',
+  },
   'anatomy-bodyparts3d-heart': {
     licence:
       'CC BY 4.0, state "confirmed" — read from the rights holder\'s own licence page, which ' +
@@ -186,6 +193,14 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
     licenseState: 'non_commercial',
     moving: false,
     summary: 'Wave 1a reject. One undivided tissue body, 1,026 components.',
+  },
+  {
+    id: 'normal-kit-four-chamber',
+    displayName: 'KIT four-chamber heart — chambers, epicardium and pericardium',
+    kind: 'explore',
+    licenseState: 'non_commercial',
+    moving: false,
+    summary: 'Four chamber cavities, an epicardium and a pericardial shell. Watertight.',
   },
   {
     id: 'anatomy-bodyparts3d-heart',

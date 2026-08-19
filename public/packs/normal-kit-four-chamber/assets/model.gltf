@@ -1,0 +1,475 @@
+{
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 9910,
+   "max": [
+    76.88345336914062,
+    60.364501953125,
+    60.693851470947266
+   ],
+   "min": [
+    -76.7325439453125,
+    -60.31849670410156,
+    -61.01015090942383
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 9910,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5125,
+   "count": 59448,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 3190,
+   "max": [
+    68.10845947265625,
+    41.692501068115234,
+    40.309852600097656
+   ],
+   "min": [
+    -13.320547103881836,
+    -48.74749755859375,
+    -52.62714767456055
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 3190,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5125,
+   "count": 19128,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 3518,
+   "max": [
+    38.421451568603516,
+    6.146503448486328,
+    42.03784942626953
+   ],
+   "min": [
+    -60.921546936035156,
+    -55.82849884033203,
+    -54.223148345947266
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5126,
+   "count": 3518,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 8,
+   "componentType": 5125,
+   "count": 21096,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 9,
+   "componentType": 5126,
+   "count": 1646,
+   "max": [
+    20.38245391845703,
+    57.34049987792969,
+    56.36885070800781
+   ],
+   "min": [
+    -46.50354766845703,
+    15.012502670288086,
+    -7.451148986816406
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 10,
+   "componentType": 5126,
+   "count": 1646,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 11,
+   "componentType": 5125,
+   "count": 9864,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 12,
+   "componentType": 5126,
+   "count": 2130,
+   "max": [
+    -15.014547348022461,
+    34.981502532958984,
+    55.90584945678711
+   ],
+   "min": [
+    -73.20555114746094,
+    -32.03350067138672,
+    -29.268150329589844
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 13,
+   "componentType": 5126,
+   "count": 2130,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 14,
+   "componentType": 5125,
+   "count": 12768,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 15,
+   "componentType": 5126,
+   "count": 138,
+   "max": [
+    23.718151092529297,
+    71.41670227050781,
+    68.85745239257812
+   ],
+   "min": [
+    -62.736045837402344,
+    -30.80480194091797,
+    -34.03434753417969
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 16,
+   "componentType": 5126,
+   "count": 138,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 17,
+   "componentType": 5125,
+   "count": 492,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 18,
+   "componentType": 5126,
+   "count": 763,
+   "max": [
+    91.57745361328125,
+    75.25350189208984,
+    75.64755249023438
+   ],
+   "min": [
+    -91.57745361328125,
+    -75.25350189208984,
+    -75.64755249023438
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 19,
+   "componentType": 5126,
+   "count": 763,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 20,
+   "componentType": 5125,
+   "count": 4566,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "generator": "Cardiology app ingest pipeline (pipeline/ingest.py)",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 118920,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 118920,
+   "byteOffset": 118920,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 237792,
+   "byteOffset": 237840,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 38280,
+   "byteOffset": 475632,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 38280,
+   "byteOffset": 513912,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 76512,
+   "byteOffset": 552192,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 42216,
+   "byteOffset": 628704,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 42216,
+   "byteOffset": 670920,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 84384,
+   "byteOffset": 713136,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 19752,
+   "byteOffset": 797520,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 19752,
+   "byteOffset": 817272,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 39456,
+   "byteOffset": 837024,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 25560,
+   "byteOffset": 876480,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 25560,
+   "byteOffset": 902040,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 51072,
+   "byteOffset": 927600,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1656,
+   "byteOffset": 978672,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1656,
+   "byteOffset": 980328,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1968,
+   "byteOffset": 981984,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 9156,
+   "byteOffset": 983952,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 9156,
+   "byteOffset": 993108,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 18264,
+   "byteOffset": 1002264,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 1020528,
+   "uri": "model.bin"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "epicardium",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0
+     },
+     "indices": 2,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "left-ventricular-cavity",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 4,
+      "POSITION": 3
+     },
+     "indices": 5,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "right-ventricular-cavity",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 7,
+      "POSITION": 6
+     },
+     "indices": 8,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "left-atrial-cavity",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 10,
+      "POSITION": 9
+     },
+     "indices": 11,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "right-atrial-cavity",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 13,
+      "POSITION": 12
+     },
+     "indices": 14,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "great-vessel-trunks-outer-surface",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 16,
+      "POSITION": 15
+     },
+     "indices": 17,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "pericardium-outer-surface",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 19,
+      "POSITION": 18
+     },
+     "indices": 20,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "epicardium"
+  },
+  {
+   "mesh": 1,
+   "name": "left-ventricular-cavity"
+  },
+  {
+   "mesh": 2,
+   "name": "right-ventricular-cavity"
+  },
+  {
+   "mesh": 3,
+   "name": "left-atrial-cavity"
+  },
+  {
+   "mesh": 4,
+   "name": "right-atrial-cavity"
+  },
+  {
+   "mesh": 5,
+   "name": "great-vessel-trunks-outer-surface"
+  },
+  {
+   "mesh": 6,
+   "name": "pericardium-outer-surface"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  }
+ ]
+}

@@ -496,4 +496,122 @@ BODYPARTS3D = GeometrySource(
     ],
 )
 
-GEOMETRY_SOURCES = {s.key: s for s in (CARDIAC_MOTION, BODYPARTS3D)}
+
+ZENODO_KIT = "https://zenodo.org/api/records/10526554/files/{name}/content"
+
+KIT_FOUR_CHAMBER = GeometrySource(
+    key="kit-four-chamber",
+    pack_id="normal-kit-four-chamber",
+    display_name="KIT four-chamber heart — chambers, epicardium and pericardium",
+    anatomy="Normal adult heart, four chambers with a pericardial layer",
+    canonical_variant=(
+        "Single 33-year-old male volunteer; the surface set from the KIT/IBT "
+        "four-chamber electromechanics model"
+    ),
+    files=(
+        RemoteFile(
+            url=ZENODO_KIT.format(name="Surfaces.zip"),
+            name="Surfaces.zip",
+            md5="c9fa25053693429ffe9f6d315f300a08",
+            size_bytes=1468779,
+            unpack=True,
+        ),
+        RemoteFile(
+            url=ZENODO_KIT.format(name="LabelIDs.txt"),
+            name="LabelIDs.txt",
+            md5="9cf108dcd68fc97e76f51eaf86212a9a",
+            size_bytes=1265,
+        ),
+        # The mechanics mesh. Fetched because it is the tagged volumetric half of
+        # this deposit and the only path to a labelled echo volume from this
+        # source — but NOT read into this pack: extracting its boundary would
+        # produce one undivided envelope duplicating `epicard.stl`, and splitting
+        # it by tag is `ingest.py`'s job and needs a derived frame this source
+        # has not been given. `EP.vtu` is deliberately NOT fetched: 640 MB of
+        # electrophysiology mesh with no use here.
+        RemoteFile(
+            url=ZENODO_KIT.format(name="M.vtu"),
+            name="M.vtu",
+            md5="d2c9a077ef355b985d6dcb3740eb493a",
+            size_bytes=8722885,
+        ),
+    ),
+    members=(
+        "epicard.stl",
+        "cavityLV.stl",
+        "cavityRV.stl",
+        "cavityLA.stl",
+        "cavityRA.stl",
+        "outerTrunks.stl",
+        "outerPeri.stl",
+    ),
+    animated=False,
+    fps=None,
+    loop=False,
+    vertex_correspondence=False,
+    coverage="",
+    structure_label="",
+    part_labels={
+        "epicard": "Epicardium",
+        "cavityLV": "Left ventricular cavity",
+        "cavityRV": "Right ventricular cavity",
+        "cavityLA": "Left atrial cavity",
+        "cavityRA": "Right atrial cavity",
+        "outerTrunks": "Great-vessel trunks, outer surface",
+        "outerPeri": "Pericardium, outer surface",
+    },
+    creator="Gerach, T., Schuler, S., Wachter, A., Loewe, A. (Institute of Biomedical Engineering, Karlsruhe Institute of Technology)",
+    source_text=(
+        "Zenodo record 10526554, 'Four-Chamber Human Heart Model for the Simulation of "
+        "Cardiac Electrophysiology and Cardiac Mechanics', files Surfaces.zip, LabelIDs.txt "
+        "and M.vtu"
+    ),
+    source_url="https://zenodo.org/records/10526554",
+    license="CC-BY-NC-4.0",
+    license_url="https://creativecommons.org/licenses/by-nc/4.0/",
+    license_state="non_commercial",
+    citation=(
+        "Gerach T, Schuler S, Wachter A, Loewe A. Four-Chamber Human Heart Model for the "
+        "Simulation of Cardiac Electrophysiology and Cardiac Mechanics [Data set]. Zenodo "
+        "(2024). doi:10.5281/zenodo.10526554. Gerach T, Loewe A. Differential effects of "
+        "mechano-electric feedback mechanisms on whole-heart activation, repolarization, and "
+        "tension. The Journal of Physiology (2024). doi:10.1113/JP285022"
+    ),
+    license_quote=(
+        'the Zenodo record 10526554 declares license id "cc-by-nc-4.0" (Creative Commons '
+        "Attribution-NonCommercial 4.0 International), read from the deposit's own record on "
+        "2026-08-19. NON-COMMERCIAL: this pack can never ship. An NC pack binds the whole "
+        "application to the NC red lines, and that constraint is not accepted for the "
+        "published build — the same position already taken on the Visible Heart Labs pack."
+    ),
+    known_problems=(
+        "PERMANENTLY UNPUBLISHABLE. Non-commercial, confirmed. Kept for looking at, nothing "
+        "more.",
+        "THE PERICARDIUM ENCLOSES EVERYTHING. `outerPeri.stl` is a 183 mm shell of only 1,522 "
+        "triangles wrapped round the whole heart, so the default view of this pack is a "
+        "coarse faceted bag with the anatomy inside it. Turning the cutter on opens it. There "
+        "is no per-structure show/hide control yet, so nothing else does.",
+        "CONTACT SURFACES EXCLUDED. `master.stl` and `slave.stl` are the mechanics solver's "
+        "contact pair, not anatomy: both are coincident with the epicardium at coarser "
+        "resolution (identical extents and centre, 14,848 and 1,522 triangles against the "
+        "epicardium's 19,816), so including them would z-fight with the anatomy for no "
+        "anatomical gain. Excluded, and recorded here rather than silently dropped.",
+        "CAVITIES ONLY, NO WALL THICKNESS. The chambers are blood-pool casts and there is one "
+        "epicardium; there is no per-chamber myocardium, so wall thickness is not derivable "
+        "by pairing them — the same defect that lost the Alberta pack the wave 1a comparison.",
+        "VALVES ARE PLANES IN THE VOLUMETRIC MESH, NOT SURFACES HERE. LabelIDs.txt names "
+        "mitral, tricuspid, aortic and pulmonary valve labels, and vein and caval orifices — "
+        "all of them tags in M.vtu, none of them separate files in Surfaces.zip. This pack "
+        "therefore carries no valves at all.",
+        "ONE 33-YEAR-OLD MALE VOLUNTEER. Adult, and a single subject.",
+    ),
+    notes=[
+        "EP.vtu (640 MB) is deliberately not fetched.",
+        "Surfaces.zip mixes ASCII and binary STL under identical headers; the reader decides "
+        "by file size arithmetic rather than by the word 'solid'.",
+    ],
+)
+
+GEOMETRY_SOURCES = {
+    s.key: s for s in (CARDIAC_MOTION, BODYPARTS3D, KIT_FOUR_CHAMBER)
+}

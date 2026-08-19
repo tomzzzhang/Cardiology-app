@@ -52,7 +52,7 @@ import fast_simplification
 
 from meshlib import (
     Surface,
-    read_binary_stl,
+    read_stl,
     read_obj,
     read_vtk_polydata,
     read_vtu,
@@ -78,7 +78,7 @@ TRIANGLE_BUDGET = 220_000
 
 READERS = {
     ".obj": read_obj,
-    ".stl": read_binary_stl,
+    ".stl": read_stl,
     ".vtk": read_vtk_polydata,
     ".vtu": read_vtu,
     ".vtp": read_vtk_polydata,

@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 05:57 EDT
+**Last Updated:** 2026-08-19 06:15 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -899,3 +899,68 @@ a heart from the first frame without any cutting.
 rings are the registration targets when that happens, and it is a task of its own. Given the finding
 above, only the six semilunar cusps are plausible graft candidates; the atrioventricular elements
 are wall segments and would bring a second left ventricle with them.
+
+---
+
+## 25. `normal-kit-four-chamber` — the cleanest geometry here, and you cannot see any of it
+
+**Where.** Pick the KIT chip. Explore only, and it can never be anything else: CC BY-NC 4.0.
+
+**What it is.** Seven surfaces from the KIT/IBT four-chamber electromechanics model, Zenodo
+10526554 — epicardium, the four chamber cavities, the great-vessel trunks and the outer pericardium.
+42,454 triangles, 1.0 MB derived. A single 33-year-old male volunteer.
+
+**What it gets right.** The mesh quality is the best on the shelf by a distance. **Six of the seven
+surfaces are watertight with exactly one connected component and zero boundary edges** — compare
+BodyParts3D, where all 86 are open and the right atrial wall alone splits into 124 pieces. Only
+`outerTrunks` is open, and it is a 164-triangle sketch. That means the free cutter's stencil caps
+actually close on this pack: turn the cut on and you get a solid cut face, not a hollow shell.
+
+**What is wrong with it, and it is one thing that ruins the rest.**
+
+**The pericardium is an opaque bag around everything.** `outerPeri.stl` is a 183 mm shell of 1,522
+triangles wrapped round the whole heart. The default view of this pack is a featureless grey egg —
+you cannot see the epicardium, let alone the four cavities inside it. Turn the cutter on and you get
+a clean solid cut face, of the pericardium, which then hides everything behind it. Six good surfaces
+are in there and none of them is visible.
+
+This is a **product gap, not a pack defect**, and it is now the clearest one on the list: there is no
+per-structure show/hide control anywhere in the app. The schema has `show_hide_preset` per view, but
+an Explore-only pack has no views, and Explore has no structure list. Two packs now need it for
+different reasons — this one to take the lid off, BodyParts3D to tell 86 identical greys apart.
+
+**Other limitations.**
+
+- **Cavities only, no wall thickness.** The chambers are blood-pool casts and there is one
+  epicardium; there is no per-chamber myocardium, so wall thickness is not derivable by pairing
+  them. That is the same defect that lost the Alberta pack the wave 1a comparison, and it means this
+  model could not replace Rodero as a substrate even if the licence allowed it.
+- **No valves at all.** `LabelIDs.txt` names mitral, tricuspid, aortic and pulmonary valve labels
+  plus vein and caval orifices — every one of them a tag in the volumetric mesh, none of them a file
+  in `Surfaces.zip`.
+- **Permanently unpublishable.** Non-commercial, confirmed at the source.
+
+**Two things excluded, both deliberately.**
+
+- `master.stl` and `slave.stl` are the mechanics solver's contact pair, not anatomy. Both are
+  coincident with the epicardium at coarser resolution — identical extents and centre to the
+  millimetre, 14,848 and 1,522 triangles against the epicardium's 19,816 — so including them would
+  z-fight with the anatomy for no anatomical gain.
+- `EP.vtu` (640 MB) was never fetched. It is an electrophysiology mesh with no use here.
+
+**`M.vtu` was fetched and is not in the pack, on evidence.** It is the tagged volumetric mechanics
+mesh and the only route from this source to a labelled echo volume. Reading its boundary gives
+32,505 vertices and 43,916 triangles spanning **183.2 × 150.5 × 151.3 mm — exactly `outerPeri.stl`'s
+extent and centre**, which confirms its outer boundary is the pericardium and would have been a
+seventh copy of a surface already here. Splitting it by tag is `ingest.py`'s job and needs a derived
+anatomical frame this source has not been given. It stays in the cache as the raw material for that,
+if it is ever wanted.
+
+**Is it worth keeping?** Yes, but for what it could become rather than for what it shows. As it
+stands you cannot look at it. As tagged volumetric geometry with clean watertight surfaces it is the
+best-conditioned source in the repository — and it is non-commercial, so it can never ship, which
+caps how much work it deserves.
+
+**Decision for the owner.** Whether a per-structure show/hide list is built next. It would unlock
+this pack completely and would fix the worst of BodyParts3D. It belongs to viewer-core rather than
+to wave 1d, so it does not collide with the view rail.

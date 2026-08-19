@@ -437,8 +437,15 @@ def read_vtu(path: Path) -> Surface:
     # rather than after: an XML parser handed raw binary fails on the first byte
     # that is not UTF-8, which is a confusing error for a well-formed file.
     appended = b""
+    appended_base64 = False
     marker = raw.find(b"<AppendedData")
     if marker >= 0:
+        # The appended block carries its OWN encoding, independent of every
+        # DataArray's `format`. VTK writes `raw` or `base64` here, and the KIT
+        # mechanics mesh uses base64 — so an "appended" array in that file is a
+        # base64 string at a character offset, not bytes at a byte offset.
+        head = raw[marker:raw.find(b">", marker)]
+        appended_base64 = b'encoding="base64"' in head
         start = raw.find(b"_", marker) + 1
         stop = raw.rfind(b"</AppendedData>")
         appended = raw[start:stop]
@@ -461,7 +468,8 @@ def read_vtu(path: Path) -> Surface:
             raise ValueError(f"{path.name}: no {parent_tag} element")
         for node in parent.findall("DataArray"):
             if node.get("Name") == name or parent_tag == "Points":
-                return _vtu_array(node, appended, order, header_type, bool(compressor), path)
+                return _vtu_array(node, appended, appended_base64, order, header_type,
+                                  bool(compressor), path)
         raise ValueError(f"{path.name}: no DataArray named {name!r}")
 
     points = array("Points", "Points").reshape(-1, 3).astype(np.float32)
@@ -470,42 +478,58 @@ def read_vtu(path: Path) -> Surface:
     types = array("Cells", "types").astype(np.int64)
 
     starts = np.concatenate(([0], offsets[:-1]))
-    triangles: list[tuple[int, int, int]] = []
-    tet_faces: list[tuple[int, int, int]] = []
-    unsupported: set[int] = set()
-    for cell_type, start, stop in zip(types, starts, offsets):
-        nodes = connectivity[start:stop]
-        if cell_type == _VTK_TRIANGLE:
-            triangles.append((int(nodes[0]), int(nodes[1]), int(nodes[2])))
-        elif cell_type == _VTK_QUAD:
-            a, b, c, d = (int(n) for n in nodes[:4])
-            triangles.extend([(a, b, c), (a, c, d)])
-        elif cell_type == _VTK_TETRA:
-            a, b, c, d = (int(n) for n in nodes[:4])
-            tet_faces.extend([(a, b, c), (a, b, d), (a, c, d), (b, c, d)])
-        else:
-            unsupported.add(int(cell_type))
+    sizes = offsets - starts
 
-    if tet_faces:
-        # Interior faces are shared by two tetrahedra; boundary faces by one.
+    def gather(cell_type: int, width: int) -> np.ndarray:
+        """The connectivity of every cell of one type, as an (N, width) block."""
+        selected = np.flatnonzero((types == cell_type) & (sizes == width))
+        if selected.size == 0:
+            return np.empty((0, width), dtype=np.int64)
+        picks = starts[selected][:, None] + np.arange(width)[None, :]
+        return connectivity[picks]
+
+    # Vectorised on purpose. A Python loop over cells is unusable here: the KIT
+    # mechanics mesh carries hundreds of thousands of tetrahedra, and walking
+    # them one at a time took longer than ten minutes before this was rewritten.
+    triangles = [gather(_VTK_TRIANGLE, 3)]
+    quads = gather(_VTK_QUAD, 4)
+    if quads.size:
+        triangles.append(quads[:, [0, 1, 2]])
+        triangles.append(quads[:, [0, 2, 3]])
+
+    tets = gather(_VTK_TETRA, 4)
+    if tets.size:
+        faces = np.concatenate([
+            tets[:, [0, 2, 1]], tets[:, [0, 1, 3]], tets[:, [0, 3, 2]], tets[:, [1, 2, 3]],
+        ])
+        # Interior faces are shared by two tetrahedra, boundary faces by one.
         # Sorting each face's indices makes the two orientations of one shared
-        # face compare equal, which is what "shared" has to mean here.
-        keys = np.sort(np.asarray(tet_faces, dtype=np.int64), axis=1)
-        _, first, counts = np.unique(keys, axis=0, return_index=True, return_counts=True)
-        triangles.extend(tuple(np.asarray(tet_faces)[index]) for index in first[counts == 1])
+        # face compare equal, which is what "shared" has to mean here — and the
+        # ORIGINAL winding is kept, so the boundary comes out facing outward.
+        keyed = np.sort(faces, axis=1)
+        order = np.lexsort((keyed[:, 2], keyed[:, 1], keyed[:, 0]))
+        keyed, faces = keyed[order], faces[order]
+        same_as_next = np.zeros(len(keyed), dtype=bool)
+        same_as_next[:-1] = np.all(keyed[1:] == keyed[:-1], axis=1)
+        shared = same_as_next.copy()
+        shared[1:] |= same_as_next[:-1]
+        triangles.append(faces[~shared])
 
-    if not triangles:
+    unsupported = sorted(set(types.tolist()) - {_VTK_TRIANGLE, _VTK_QUAD, _VTK_TETRA})
+    surface = np.concatenate([block for block in triangles if block.size]) \
+        if any(block.size for block in triangles) else np.empty((0, 3), dtype=np.int64)
+    if surface.size == 0:
         raise ValueError(
             f"{path.name}: no surface cells; unsupported VTK cell types present: "
-            f"{sorted(unsupported)}"
+            f"{unsupported}"
         )
-    return Surface(name=path.stem, vertices=points,
-                   faces=np.asarray(triangles, dtype=np.int32))
+
+    return Surface(name=path.stem, vertices=points, faces=surface.astype(np.int32))
 
 
-def _vtu_array(node, appended: bytes, order: str, header_type: str,
+def _vtu_array(node, appended: bytes, appended_base64: bool, order: str, header_type: str,
                compressed: bool, path: Path) -> np.ndarray:
-    """One VTU `DataArray`, whichever of the three encodings it uses."""
+    """One VTU `DataArray`, whichever of the encodings it uses."""
     numpy_type = {
         "Float32": "f4", "Float64": "f8",
         "Int8": "i1", "UInt8": "u1", "Int16": "i2", "UInt16": "u2",
@@ -521,9 +545,13 @@ def _vtu_array(node, appended: bytes, order: str, header_type: str,
         return np.asarray((node.text or "").split(), dtype=dtype.newbyteorder("="))
 
     if encoding == "appended":
-        payload = appended[int(node.get("offset", "0")):]
+        offset = int(node.get("offset", "0"))
+        payload = (
+            _from_base64(appended[offset:].decode("ascii", "replace"), head, compressed)
+            if appended_base64 else appended[offset:]
+        )
     elif encoding == "binary":
-        payload = _b64_payload((node.text or "").strip(), head, compressed)
+        payload = _from_base64((node.text or "").strip(), head, compressed)
     else:
         raise ValueError(f"{path.name}: unsupported DataArray format {encoding!r}")
 
@@ -534,24 +562,59 @@ def _vtu_array(node, appended: bytes, order: str, header_type: str,
                          offset=head.itemsize)
 
 
-def _b64_payload(text: str, head: np.dtype, compressed: bool) -> bytes:
-    """
-    Decode an inline `binary` DataArray to the same bytes `appended` would give.
+def _base64_length(byte_count: int) -> int:
+    """Base64 characters needed to encode `byte_count` bytes."""
+    return ((byte_count + 2) // 3) * 4
 
-    VTK encodes a COMPRESSED inline array as two separate base64 strings laid
-    end to end: the block header first, then the blocks. Decoding the whole
-    thing in one call yields garbage after the first string, so the header is
-    decoded on its own to learn its length before the rest is touched. An
-    uncompressed array is a single string and needs none of this.
+
+def _from_base64(text: str, head: np.dtype, compressed: bool) -> bytes:
+    """
+    Decode ONE base64-encoded array to the bytes a raw payload would have given.
+
+    Two things make this more than a `b64decode` call.
+
+    VTK encodes a COMPRESSED array as two separate base64 strings laid end to
+    end — the block header, then the blocks — so decoding the whole thing in one
+    call yields garbage after the first string.
+
+    And in a base64 `AppendedData` block every array's string is concatenated
+    with the next one's, so `text` runs past the end of the array being read.
+    Both branches therefore decode exactly as many characters as the declared
+    lengths call for and no more; taking the rest would run into the following
+    array's padding, where the decoder gives up or silently truncates.
     """
     if not compressed:
-        return base64.b64decode(text)
-    # 32 base64 characters decode to 24 bytes: enough for the three leading
-    # counts under either header width.
-    blocks = int(np.frombuffer(base64.b64decode(text[:32]), dtype=head, count=1)[0])
-    header_bytes = (3 + blocks) * head.itemsize
-    header_chars = ((header_bytes + 2) // 3) * 4
-    return base64.b64decode(text[:header_chars]) + base64.b64decode(text[header_chars:])
+        # header and data are one base64 string. 12 characters decode to 9
+        # bytes, enough for the length under either header width.
+        length = int(np.frombuffer(base64.b64decode(text[:12]), dtype=head, count=1)[0])
+        return base64.b64decode(text[:_base64_length(head.itemsize + length)])
+
+    blocks = int(np.frombuffer(base64.b64decode(text[:12]), dtype=head, count=1)[0])
+    header_chars = _base64_length((3 + blocks) * head.itemsize)
+    header = base64.b64decode(text[:header_chars])
+    sizes = np.frombuffer(header, dtype=head, count=blocks, offset=3 * head.itemsize)
+    data_chars = _base64_length(int(sizes.sum()))
+    return header + base64.b64decode(text[header_chars:header_chars + data_chars])
+
+
+def _zlib_blocks(payload: bytes, head: np.dtype, dtype: np.dtype) -> np.ndarray:
+    """
+    Decompress VTK's block-structured zlib payload.
+
+    Layout: `[block count, uncompressed block size, size of the last block,
+    compressed size of block 0, ... of block n-1]`, then the compressed blocks
+    laid end to end.
+    """
+    import zlib
+
+    blocks = int(np.frombuffer(payload, dtype=head, count=1)[0])
+    sizes = np.frombuffer(payload, dtype=head, count=blocks, offset=3 * head.itemsize)
+    cursor = (3 + blocks) * head.itemsize
+    chunks = []
+    for size in sizes:
+        chunks.append(zlib.decompress(payload[cursor:cursor + int(size)]))
+        cursor += int(size)
+    return np.frombuffer(b"".join(chunks), dtype=dtype)
 
 
 def read_obj(path: Path) -> Surface:
@@ -583,6 +646,51 @@ def read_obj(path: Path) -> Surface:
         name=path.stem,
         vertices=np.asarray(vertices, dtype=np.float32),
         faces=_fan_triangulate([np.asarray(p) for p in polygons], path),
+    )
+
+
+def read_stl(path: Path) -> Surface:
+    """
+    Read an STL, binary or ASCII, deciding by ARITHMETIC rather than by the word
+    "solid".
+
+    An ASCII STL begins "solid" — and so do plenty of binary ones, because the
+    80-byte binary header is free text and exporters write a name into it. The
+    KIT four-chamber deposit ships both flavours in one archive, every file
+    headed "Visualization Toolkit generated SLA File", so the header says
+    nothing at all about which is which.
+
+    A binary STL is exactly `84 + 50 * count` bytes, where `count` is the
+    little-endian uint32 at offset 80. If the file size matches that to the
+    byte, it is binary; nothing else plausibly does. Anything else is read as
+    ASCII.
+    """
+    raw = path.read_bytes()
+    if len(raw) >= 84:
+        count = struct.unpack("<I", raw[80:84])[0]
+        if len(raw) == 84 + 50 * count:
+            return read_binary_stl(path)
+    return read_ascii_stl(path)
+
+
+def read_ascii_stl(path: Path) -> Surface:
+    """Read an ASCII STL into a welded surface."""
+    corners: list[tuple[float, float, float]] = []
+    with path.open("r", errors="replace") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if stripped.startswith("vertex "):
+                _, x, y, z = stripped.split()
+                corners.append((float(x), float(y), float(z)))
+    if len(corners) < 3 or len(corners) % 3 != 0:
+        raise ValueError(f"{path.name}: {len(corners)} vertices is not whole triangles")
+
+    points = np.asarray(corners, dtype=np.float32)
+    vertices, inverse = np.unique(points, axis=0, return_inverse=True)
+    return Surface(
+        name=path.stem,
+        vertices=vertices.astype(np.float32),
+        faces=inverse.reshape(-1, 3).astype(np.int32),
     )
 
 
