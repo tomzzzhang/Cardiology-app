@@ -156,6 +156,36 @@ describe('dragOrientation', () => {
     }
   });
 
+  it('reaches a rolled orientation a turntable could not name', () => {
+    /*
+     * The reason the drag is about the CAMERA's axes rather than world up.
+     *
+     * A turntable fixes the screen's up from world up, so it cannot roll: there
+     * is no drag that tilts the model on screen, and the owner's "I cannot get
+     * the heart to the angle I want" is exactly that. Local rotations generate
+     * the whole group, and roll falls out of a CURVED drag the way it does when
+     * you turn something over in your hand.
+     *
+     * Stated as what the learner sees: drag right, then down, then left, then
+     * up — a closed loop that a turntable would return to where it started —
+     * and the screen's up must have moved.
+     */
+    const start = orientationFromYawPitch(0.3, 0.2);
+    const upBefore = orbitPose(start, 300).up;
+
+    let orientation = start;
+    for (const [dx, dy] of [[60, 0], [0, 60], [-60, 0], [0, -60]] as [number, number][]) {
+      orientation = dragOrientation(orientation, dx, dy);
+    }
+
+    // Back where it started as a VIEW DIRECTION — the loop closes on the sphere.
+    const forwardBefore = forwardOf(start);
+    expect(forwardOf(orientation).dot(forwardBefore)).toBeGreaterThan(0.99);
+    // But rolled: the screen's up has turned about the view direction.
+    const upAfter = orbitPose(orientation, 300).up;
+    expect(upAfter.dot(upBefore)).toBeLessThan(0.999);
+  });
+
   it('keeps horizontal drag meaning one thing after the model turns over', () => {
     /*
      * Past a pole the camera's up inverts and a world-Y rotation reads

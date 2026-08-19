@@ -488,6 +488,14 @@ BODYPARTS3D = GeometrySource(
         "triangles each and look faceted at any useful zoom. Not fixed here: smoothing them "
         "would be sculpting anatomy, which is a different task with a different licence "
         "consequence.",
+        "NO VENTRICULAR MYOCARDIUM. The source's own concepts resolve `myocardium of left "
+        "ventricle` to 12.1 mL over three elements — the anterolateral papillary head and two "
+        "wall patches — against a 97.9 mL cavity, and `myocardium of right ventricle` to 7.7 mL "
+        "against 117.0 mL. There is no interventricular septum concept at all. The ATRIAL walls "
+        "are properly modelled at 40.5 and 27.6 mL. Checked across the whole atlas: every "
+        "concept naming ventricular myocardium or wall resolves to elements already in this "
+        "pack, so nothing was excluded. This pack cannot show wall thickness, hypertrophy or a "
+        "septal defect, because it has no ventricular wall to show them in.",
         "ONE CADAVER, and an adult one. Nothing about this model is paediatric, and the "
         "leaflet geometry is a fixed post-mortem configuration, not a phase of a cardiac "
         "cycle: these leaflets neither open nor close.",

@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 08:55 EDT
+**Last Updated:** 2026-08-19 09:08 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -1267,33 +1267,51 @@ written into `pipeline/sources.py` next to the pattern, and it is one line to re
 
 ---
 
-## 33. There is almost no ventricular muscle in the BodyParts3D heart
+## 33. There is no ventricular myocardium in the BodyParts3D heart
 
-**The owner's "why is there no muscle around the ventricles?" — the source genuinely does not have
-it.** Not a preprocessing loss; nothing was dropped.
+**The owner's "why is there no muscle around the ventricles?" — the source does not have any.**
+Nothing was dropped in ingest, and this was checked across the WHOLE atlas rather than assumed.
 
-Volumes over the whole 86-part heart:
+**What the source itself calls ventricular myocardium.** These are the source's own concepts, and
+the elements each one resolves to:
 
-| | Volume |
-| --- | --- |
-| Left atrial wall (FJ2438) | 40.5 mL |
-| Right atrial wall (FJ2439) | 27.6 mL |
-| **All four ventricular wall patches** (FJ2429, FJ2432, FJ2419, FJ2430) | **12.3 mL** |
-| Ventricular cavities (FJ2422 + FJ2423) | 215 mL |
+| Concept | Elements | Total volume |
+| --- | --- | --- |
+| `myocardium of left ventricle` (= `wall of left ventricle`) | FJ2418, FJ2429, FJ2432 | **12.1 mL** |
+| `myocardium of right ventricle` (= `wall of right ventricle`) | FJ2419, FJ2430, FJ2437 | **7.7 mL** |
+| `cavity of left ventricle` | FJ2422 | 97.9 mL |
+| `cavity of right ventricle` | FJ2423 | 117.0 mL |
+| `wall of left atrium` | FJ2438 | 40.5 mL |
+| `wall of right atrium` | FJ2439 | 27.6 mL |
+| `interventricular septum` | **no such concept** | — |
 
-A real left ventricular myocardium is 100–150 mL. This atlas carries **12.3 mL of ventricular wall
-against 215 mL of ventricular cavity**, in four small patches that are each also labelled as a
-papillary muscle or a valve leaflet — the same many-to-many labelling entry 24 records. The atrial
-walls are properly modelled; the ventricular myocardium effectively is not.
+A real left ventricular myocardium is 100–150 mL. This atlas has **12.1 mL**, against a 97.9 mL
+cavity — and the three elements it is made of are, by the source's own other labels, the
+anterolateral papillary head, a patch of anterior wall, and a patch of inferior wall that is also
+called the posterior mitral leaflet. What BodyParts3D calls the myocardium of the left ventricle is
+**the papillary muscles and two wall patches**. There is no septum concept at all.
+
+The ATRIAL walls, by contrast, are properly modelled at 40.5 and 27.6 mL.
+
+**It is not a selection error.** Every concept in the atlas whose name contains `myocardium`, `wall
+of left/right ventricle`, `free wall`, `lateral wall`, `inferior wall` or `subendocardial layer`
+was resolved to its elements and checked against the 86 in this pack: **every one is already
+inside**. The only elements outside are the brain's ventricles and the cardiac veins. This is the
+same check that caught the great vessels in entry 32, run over the whole atlas, and this time it
+comes back clean.
 
 So the ventricles render as bare lumen casts with papillary muscles and trabeculae hanging inside
 them and nothing around them, and that is an accurate rendering of what the source contains.
 
-**This is decisive for one of the deferred tasks.** Grafting BodyParts3D onto the Rodero mesh was
-already narrowed to the six semilunar cusps by entry 24. This confirms it: there is no ventricular
-myocardium here to graft, and Rodero's — native volumetric tagged tissue — is exactly what
-BodyParts3D lacks. The two sources are complementary in the direction the graft was already
-pointing, and in no other.
+**This settles the deferred graft question.** Entry 24 had already narrowed the BodyParts3D graft to
+the six semilunar cusps. This confirms it from the other side: there is no ventricular myocardium
+here to graft, and Rodero's — native volumetric tagged tissue, which is why it won the wave 1a
+comparison — is precisely what BodyParts3D lacks. The two sources are complementary in exactly one
+direction: cusps and papillary muscles from BodyParts3D onto Rodero's walls, never the reverse.
+
+**And it caps what this pack can ever teach.** It is the best-looking model on the shelf and it
+cannot show wall thickness, hypertrophy, or a septal defect, because it has no ventricular wall to
+show them in.
 
 ---
 
@@ -1324,3 +1342,40 @@ not a reason to keep a rendering hazard.
 **Verified** by orbiting the pack through twelve steps and sampling the rendered silhouette at each:
 the covered-pixel count moves smoothly (4,362 → 4,902 → 4,126) with no discontinuity, where a
 vanishing structure would show as a step.
+
+---
+
+## 35. Orbit was a turntable, and a turntable cannot reach every angle
+
+**The owner's "rotation feels weird, I can't get the heart to the angle I want".**
+
+**What it was.** Horizontal drag rotated about **world up**, vertical about the camera's own right.
+That is a turntable — a globe viewer — and `contracts/viewer-core.md` asked for exactly that.
+
+**Why it could not do what was asked.** Yaw and pitch fix the view direction and leave the screen's
+up determined by world up, so there is **no drag that rolls the model**. Tilting the apex on screen
+was not a thing the control could express. And near the poles it degenerates: looking down world Y,
+a world-Y yaw spins the picture in place rather than turning the object, and the sign correction
+that kept horizontal drag reading correctly past the pole flipped back and forth for small drags
+right at the crossing. Both are inherent to a turntable, neither is a coding mistake.
+
+**What it is now.** Both rotations are about the **camera's own axes**, which are the screen's axes,
+composed locally. The model turns exactly the way the hand pushes it at every orientation; local X
+and local Y generate the whole rotation group, so every orientation is reachable; and roll comes out
+of a curved drag the way it does when you turn something over in your hand.
+
+**Verified.** All 30 existing orbit tests pass unchanged — they pin the requirement as "the near
+face of the model follows the pointer", which a trackball satisfies more strongly than a turntable
+did, and the sign correction the turntable needed is simply gone. One test added: a closed
+right-down-left-up drag loop returns the VIEW DIRECTION to where it started and leaves the screen's
+up rotated, which is a roll no turntable could produce. Confirmed in the browser on the Rodero pack.
+
+**What it gives up, and this is a real trade.** The level horizon. A turntable guarantees world up
+stays up the screen; this does not, so the heart can end up tilted and `Reset` is the way back. For
+a clinical tool that is arguably the wrong way round — orientation is exactly what a trainee is
+supposed to be learning — and the alternative is a turntable plus an explicit roll gesture, which
+costs a gesture nobody will discover.
+
+**Decision for the owner.** Whether the level horizon should come back as a mode or an option. It
+would be a small change either way; what it should NOT be is the only behaviour, which is what it
+was.

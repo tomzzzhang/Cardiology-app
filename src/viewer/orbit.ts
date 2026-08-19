@@ -1,9 +1,13 @@
 /**
  * The orbit camera's orientation, as arithmetic rather than as scene state.
  *
- * `contracts/viewer-core.md` asks for "familiar globe-viewer orbit feel" with
- * the pivot unambiguously at `C`. That is a turntable: horizontal drag about
- * world up, vertical drag about the camera's own right, at a fixed distance.
+ * `contracts/viewer-core.md` asked for "familiar globe-viewer orbit feel" with
+ * the pivot unambiguously at `C`. That was read as a turntable — horizontal
+ * drag about WORLD up — and a turntable turned out to be the wrong object
+ * model here. See `dragOrientation`: a globe has a fixed axis and is never
+ * turned over, and a heart being read from underneath is neither. Drag is now
+ * about the CAMERA's own axes, so the model follows the hand and every
+ * orientation is reachable.
  *
  * Two things make this a module rather than a few lines in the component.
  *
@@ -91,12 +95,37 @@ export function orientationFromYawPitch(yaw: number, pitch: number): THREE.Quate
 export function dragOrientation(
   orientation: THREE.Quaternion, dx: number, dy: number,
 ): THREE.Quaternion {
-  const upright = WORLD_UP.clone().applyQuaternion(orientation).y >= 0 ? 1 : -1;
-
-  // World-space yaw composes on the left; local pitch composes on the right.
-  const yaw = new THREE.Quaternion().setFromAxisAngle(WORLD_UP, -dx * DRAG_SPEED * upright);
+  /*
+   * BOTH rotations are about the CAMERA's own axes, which are the SCREEN's
+   * axes, and both compose on the right. That is what makes the model turn
+   * exactly the way the hand pushes it at every orientation.
+   *
+   * This replaced a turntable — world-Y yaw composed on the left — and the
+   * turntable had two problems the owner ran into immediately.
+   *
+   * **Some orientations were unreachable.** Yaw and pitch fix the view
+   * direction and leave the screen's up determined by world up, so the model
+   * could not be rolled. "I cannot get the heart to the angle I want" is the
+   * exact symptom: there is no drag that tilts the apex on screen.
+   *
+   * **It degenerated at the poles.** Looking down world Y, a world-Y yaw spins
+   * the picture in place instead of turning the object, and the sign
+   * correction that kept horizontal drag reading correctly past the pole
+   * flipped back and forth for small drags right at the crossing.
+   *
+   * Local composition has neither problem: local X and local Y generate the
+   * whole rotation group, so every orientation is reachable, and roll comes out
+   * of a curved drag the way it does when you turn something in your hand.
+   *
+   * WHAT IT GIVES UP is the level horizon. A turntable guarantees world up
+   * stays up the screen; this does not, so the heart can end up tilted and
+   * `Reset` is the way back. That is the trade a globe viewer makes in the
+   * other direction, and it is the wrong trade for an object you are turning
+   * over to look underneath — which a subcostal view requires.
+   */
+  const yaw = new THREE.Quaternion().setFromAxisAngle(WORLD_UP, -dx * DRAG_SPEED);
   const pitch = new THREE.Quaternion().setFromAxisAngle(CAMERA_RIGHT, -dy * DRAG_SPEED);
-  return yaw.multiply(orientation.clone().multiply(pitch)).normalize();
+  return orientation.clone().multiply(yaw).multiply(pitch).normalize();
 }
 
 /**

@@ -46,7 +46,15 @@ dot(N, X - C) = s          closest point   Q = C + sN
 ## Interaction requirements
 
 **Navigation.** Drag orbits around `C`. Pan is a separate gesture. Wheel/pinch zooms the camera.
-Reset restores the pack's standard orientation. Familiar globe-viewer orbit feel is the reference.
+Reset restores the pack's standard orientation.
+
+*(Supersedes "familiar globe-viewer orbit feel is the reference", 2026-08-19.)* A globe has a fixed
+axis and is never turned over; a heart read from underneath is neither, and reading that clause as a
+turntable made some orientations unreachable — there was no drag that rolled the model, and near the
+poles horizontal drag spun the picture in place instead of turning the object. **Drag now rotates
+about the CAMERA's own axes**, so the model follows the hand at every orientation and local X and Y
+between them reach the whole rotation group; roll comes out of a curved drag. What that gives up is
+the guaranteed level horizon, and `Reset` is the way back to it. See `src/viewer/orbit.ts`.
 
 **Direct manipulation, not modal selection.** *(Supersedes "explicit target selection", 2026-08-19.
 The owner used the build and replaced the mechanism; the requirement it served is unchanged.)*
