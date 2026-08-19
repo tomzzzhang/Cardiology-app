@@ -443,6 +443,14 @@ function PackPicker({ packId, onChoose }: {
                         not published
                       </span>
                     )}
+                    {/*
+                      * Only ever seen in development — the deployed picker does
+                      * not offer fixtures at all. Marked rather than merely
+                      * absent, so nobody debugging mistakes it for anatomy.
+                      */}
+                    {entry.fixture && (
+                      <span className="picker__tag picker__tag--warn">engine fixture</span>
+                    )}
                   </span>
                 </button>
               );

@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 09:08 EDT
+**Last Updated:** 2026-08-19 09:19 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -1379,3 +1379,37 @@ costs a gesture nobody will discover.
 **Decision for the owner.** Whether the level horizon should come back as a mode or an option. It
 would be a small change either way; what it should NOT be is the only behaviour, which is what it
 was.
+
+---
+
+## 36. The stub is a cube on purpose — and the picker was advertising it
+
+**The owner's "the synthetic stub is a cube…". Two separate things, one intended and one not.**
+
+**Why it is a cube, and why it should stay one.** The stub is the only pack whose contents this
+repository fixes, so it is the only one that can pin loader and validator behaviour without
+depending on ingest output. Its geometry is chosen to be *exactly known*: two nested boxes over
+`[-1, 1]³`, with the core label matching its mesh and the shell label deliberately stopping short of
+the shell mesh so a rim of background voxels survives — without which the validator's
+reserved-background rule would go unexercised. Making it heart-shaped would destroy every one of
+those properties and buy nothing: a fixture's job is to be predictable, not plausible.
+
+**What was wrong was that a learner could see it.** `PUBLISHED_PACK_IDS` has always included the
+stub, because the visual suite runs against the production artefact and needs it there. Before the
+picker, that was invisible — the stub was reachable only by `?pack=stub`, which is exactly how the
+suite reaches it. The picker turned "published" into "advertised", and put a chip reading **Synthetic
+stub pack** on the deployed site next to a real heart. Publishing a test artefact and offering it as
+content are different things, and the picker collapsed them.
+
+**Fixed.** `CatalogueEntry.fixture` marks it; `cataloguedPacks(production)` filters fixtures out
+alongside unpublished packs. It stays published, stays in `dist/`, stays reachable by `?pack=stub`,
+and in development it still appears — marked **engine fixture** in amber, because there seeing it is
+the point.
+
+**A consequence worth knowing: the deployed site now has no picker at all.** With the fixture hidden,
+exactly one real pack ships, and a picker offering a single choice is a control that cannot do
+anything, so it does not render. The visual test asserts that branch rather than skipping it, and
+flips to asserting the full picker the moment a second pack is published. That is an honest
+statement of where the project is: **one publishable heart.** Everything else on the shelf is
+unpublished, and four of the six shelf packs are unpublished for a licence reason rather than a
+quality one.

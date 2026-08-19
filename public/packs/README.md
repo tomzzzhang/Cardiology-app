@@ -16,7 +16,7 @@ A pack is one of two kinds, and the distinction decides which modes it can even 
 
 | Pack | Kind | What it is | Licence | Licence state | Published? |
 | --- | --- | --- | --- | --- | --- |
-| `stub/` | echo | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | confirmed | yes |
+| `stub/` | echo | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | confirmed | yes, but never offered in the picker |
 | `normal-rodero/` | echo | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 | confirmed | **yes — the selected substrate** |
 | `normal-alberta-neonatal/` | echo | Normal neonatal heart, 3D Heart Project. Blood pool plus a separate myocardium. | CC BY 4.0 (contested) | unconfirmed | **no** |
 | `normal-vhl-heart0102/` | echo | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 | non_commercial | **no** |
@@ -25,6 +25,16 @@ A pack is one of two kinds, and the distinction decides which modes it can even 
 | `normal-kit-four-chamber/` | explore | Four chamber cavities, epicardium, great-vessel trunks and a pericardial shell. Six of seven watertight. | CC BY-NC 4.0 | non_commercial | **no — never** |
 | `motion-straus-us-patient01/` | explore | **Moving, with vertex correspondence.** 30 frames of a synthetic biventricular myocardium over one whole cycle. | none stated | unconfirmed | **no** |
 | `tof-cobivecox-chd0017001/` | explore | **Congenital.** Repaired Tetralogy of Fallot: LV and RV endocardium, epicardium, four valve annuli. | CC BY 4.0 | confirmed | **no** |
+
+**The engine fixture is published and is not advertised.** The visual suite runs against the
+production artefact and needs one pack whose contents this repository fixes, so `stub` stays in
+`dist/` and stays reachable by `?pack=stub`. It is marked `fixture` in the catalogue and the picker
+filters it out of the deployed site: publishing a test artefact and offering it to a learner beside
+a real heart are different things. In development it appears, marked **engine fixture**.
+
+A consequence: with the fixture hidden, exactly **one** real pack ships, so the deployed site renders
+no picker at all — a control offering a single choice cannot do anything. It returns the moment a
+second pack is published.
 
 ## Licence state, and what it decides
 

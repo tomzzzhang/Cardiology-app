@@ -156,6 +156,16 @@ export interface CatalogueEntry {
   licenseState: LicenseState;
   /** Whether the pack carries keyframed geometry the cine control can play. */
   moving: boolean;
+  /**
+   * An ENGINE FIXTURE rather than content.
+   *
+   * The stub is two nested boxes. It is published on purpose — the visual suite
+   * runs against the production artefact and needs one pack whose contents this
+   * repository fixes — but it is not something a learner should be offered
+   * beside a heart. The picker hides fixtures on the deployed site and marks
+   * them in development, where seeing them is the point.
+   */
+  fixture?: boolean;
   /** One short line on what this pack is, for the chip's title. */
   summary: string;
 }
@@ -192,6 +202,7 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
     licenseState: 'confirmed',
     moving: false,
     summary: 'Synthetic engine fixture. Two nested boxes — not anatomy.',
+    fixture: true,
   },
   {
     id: 'normal-alberta-neonatal',
@@ -254,13 +265,20 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
 /**
  * What the picker should offer here.
  *
- * In a production build that is the published packs and nothing else — the rest
- * are not in `dist/` at all, so offering them would offer a 404. In development
- * it is everything, because the whole point of keeping unpublished packs is
- * being able to look at them.
+ * In a production build that is the published packs, MINUS the engine fixtures.
+ * Unpublished packs are not in `dist/` at all, so offering them would offer a
+ * 404; the fixtures are there and must stay there, but a chip reading
+ * "Synthetic stub pack" beside a real heart advertises a test artefact as
+ * content. It stays reachable by `?pack=stub`, which is how the visual suite
+ * and anyone debugging the loader get to it.
+ *
+ * In development it is everything, because the whole point of keeping
+ * unpublished packs and fixtures is being able to look at them.
  */
 export function cataloguedPacks(production: boolean): readonly CatalogueEntry[] {
-  return production ? PACK_CATALOGUE.filter((entry) => isPublishedPack(entry.id)) : PACK_CATALOGUE;
+  return production
+    ? PACK_CATALOGUE.filter((entry) => isPublishedPack(entry.id) && !entry.fixture)
+    : PACK_CATALOGUE;
 }
 
 /** Human wording for a licence state, for the chip. */

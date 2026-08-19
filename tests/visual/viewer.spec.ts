@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { PUBLISHED_PACK_IDS, UNPUBLISHED_PACKS } from '../../src/packs/published.ts';
+import { UNPUBLISHED_PACKS, cataloguedPacks } from '../../src/packs/published.ts';
 
 /**
  * Wave 0 visual-regression seed.
@@ -929,37 +929,55 @@ test('no unpublished pack is reachable in the production build', async ({ page }
 
 test('the picker offers exactly what the build ships', async ({ page }) => {
   /*
-   * The picker is the one place a learner sees what models exist, so in a
-   * production build it must not advertise a pack the build pruned — that would
-   * be a chip that 404s. In development it offers everything, which is the
-   * whole point of keeping unpublished packs; that half is unit-tested, because
-   * this suite only ever sees the production artefact.
+   * The picker is the one place a learner sees what models exist, so on the
+   * deployed site it must not advertise a pack the build pruned — that would be
+   * a chip that 404s — nor an engine fixture, which is published on purpose and
+   * is two nested boxes. Development offers everything, which is the whole point
+   * of keeping unpublished packs; that half is unit-tested, because this suite
+   * only ever sees the production artefact.
    */
-  const picker = page.getByTestId('pack-picker');
-  await expect(picker).toBeVisible();
+  const offered = cataloguedPacks(true);
 
-  for (const packId of PUBLISHED_PACK_IDS) {
-    await expect(page.getByTestId(`pack-chip-${packId}`)).toHaveCount(1);
+  if (offered.length < 2) {
+    /*
+     * One real pack ships today, so there is nothing to pick and the picker
+     * does not render at all. Asserted rather than skipped: a picker offering a
+     * single choice is a control that cannot do anything, and this flips to the
+     * branch below the moment a second pack is published.
+     */
+    await expect(page.getByTestId('pack-picker')).toHaveCount(0);
+  } else {
+    await expect(page.getByTestId('pack-picker')).toBeVisible();
+    for (const entry of offered) {
+      await expect(page.getByTestId(`pack-chip-${entry.id}`)).toHaveCount(1);
+    }
+    // Every chip states its licence state. A chip with no licence state is the
+    // failure check:provenance exists to prevent, shown to a learner.
+    const picker = page.getByTestId('pack-picker');
+    expect(await picker.locator('.picker__tag').count()).toBe(
+      await picker.locator('.picker__chip').count(),
+    );
+    // Nothing on the deployed site is unpublished, so no chip may say it is.
+    await expect(picker.locator('.picker__tag--unpublished')).toHaveCount(0);
   }
+
+  // Whatever the picker renders, these hold: no unpublished pack is offered,
+  // and no fixture is either.
   for (const packId of Object.keys(UNPUBLISHED_PACKS)) {
     await expect(page.getByTestId(`pack-chip-${packId}`)).toHaveCount(0);
   }
+  await expect(page.getByTestId('pack-chip-stub')).toHaveCount(0);
 
-  // Nothing on the deployed site is unpublished, so no chip may say it is.
-  await expect(picker.locator('.picker__tag--unpublished')).toHaveCount(0);
-
-  // Every chip states its licence state. A chip with no licence state is the
-  // failure `check:provenance` exists to prevent, shown to a learner.
-  const chips = picker.locator('.picker__chip');
-  const tags = picker.locator('.picker__tag');
-  expect(await tags.count()).toBe(await chips.count());
-
-  // Switching pack does not reload the page, and the URL follows.
-  await page.getByTestId('pack-chip-stub').click();
+  /*
+   * Hidden from the picker is NOT removed from the build. The stub stays
+   * published and reachable by `?pack=`, which is how this suite and anyone
+   * debugging the loader get to it.
+   */
+  expect((await page.request.get('/packs/stub/pack.json')).status()).toBe(200);
+  await page.goto('/?freeze=1&pack=stub');
   await expect(page.getByTestId('pack-status')).toContainText('Synthetic stub pack', {
     timeout: 15_000,
   });
-  expect(new URL(page.url()).searchParams.get('pack')).toBe('stub');
 });
 
 test('no console errors on load', async ({ page }) => {

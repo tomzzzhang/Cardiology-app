@@ -197,9 +197,29 @@ describe('the model picker catalogue', () => {
   });
 
   it('offers only published packs in a production build', () => {
+    expect(cataloguedPacks(true).every((entry) => isPublishedPack(entry.id))).toBe(true);
+  });
+
+  it('does not offer an engine fixture beside real anatomy on the deployed site', () => {
+    /*
+     * The stub is two nested boxes and is published on purpose — the visual
+     * suite runs against the production artefact and needs one pack whose
+     * contents this repository fixes. Publishing it and ADVERTISING it are
+     * different things: a chip reading "Synthetic stub pack" next to a heart
+     * offers a test artefact as content.
+     */
     const production = cataloguedPacks(true);
-    expect(production.every((entry) => isPublishedPack(entry.id))).toBe(true);
-    expect(production.map((entry) => entry.id).sort()).toEqual([...PUBLISHED_PACK_IDS].sort());
+    expect(production.some((entry) => entry.fixture)).toBe(false);
+    expect(production.map((entry) => entry.id).sort()).toEqual(
+      [...PUBLISHED_PACK_IDS].filter(
+        (id) => !PACK_CATALOGUE.find((entry) => entry.id === id)?.fixture,
+      ).sort(),
+    );
+  });
+
+  it('keeps the fixture published, so a deep link and the visual suite still reach it', () => {
+    // Hidden from the picker is not removed from the build.
+    expect(isPublishedPack('stub')).toBe(true);
   });
 
   it('offers everything in development, because looking at them is the point', () => {
