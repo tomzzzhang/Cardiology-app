@@ -159,10 +159,32 @@ export const DEFAULT_TUNING: Readonly<EchoTuning> = {
    */
   scattererDensity: 3.6,
   /*
-   * Diffuse tissue sits ~20 dB below a perfect reflector. With the pack's
-   * echogenicity 0.55 for myocardium that puts the myocardial envelope near
-   * -25 dB, roughly the middle of the window above, and blood at 0.02 near
-   * -54 dB — dark but still textured rather than a hole.
+   * Diffuse tissue sits ~20 dB below a PERFECT reflector, in the PRE-COMPRESSION
+   * ENVELOPE. Both qualifications matter, and their absence made this comment
+   * read as contradicting a measurement it does not contradict.
+   *
+   * * **Pre-compression.** This is a ratio of envelope amplitudes, before the
+   *   60 dB log window and gamma 1.25 in `displayPass.ts`. Displayed grey is a
+   *   compressed function of it: 20 dB of envelope is about 0.25 of the grey
+   *   scale here, not a factor of ten of brightness.
+   * * **Perfect reflector.** It is a statement about the model, not about this
+   *   pack. No interface in this substrate is a perfect reflector; the
+   *   strongest is blood against myocardium, an echogenicity step of about
+   *   0.53, and `boundaryReflection` below puts it ~14 dB above the tissue
+   *   interior rather than 20.
+   *
+   * Neither figure is the 1.21 that `npm run measure:echo` reports for rim
+   * versus core, and that is not a disagreement either: 1.21 is a ratio of
+   * DISPLAYED GREY averaged over the outer 1.5 mm of a wall chord against its
+   * middle. Worked back through the window and gamma it is 6.3 dB of envelope
+   * separation over that window — lower than the 14 dB peak because the axial
+   * PSF is 0.7 mm and a 1.5 mm window mixes interface energy into the core and
+   * interior energy into the rim. Three quantities, three numbers, and the
+   * table in `docs/observations.md` now says which is which.
+   *
+   * With the pack's echogenicity 0.55 for myocardium this puts the myocardial
+   * envelope near -25 dB, roughly the middle of the window, and blood at 0.02
+   * near -54 dB — dark but still textured rather than a hole.
    */
   scatter: 0.1,
   psfAxialMm: 0.7,
@@ -172,8 +194,19 @@ export const DEFAULT_TUNING: Readonly<EchoTuning> = {
   /*
    * A strong interface — blood against myocardium, an echogenicity step of
    * about 0.53 — now returns ~0.29 at normal incidence, some 14 dB above the
-   * tissue interior rather than swamping it. The border reads as a border and
-   * the wall behind it still reads as a wall.
+   * tissue interior rather than swamping it, PRE-COMPRESSION and measured at
+   * the interface itself rather than over a window. The border reads as a
+   * border and the wall behind it still reads as a wall.
+   *
+   * This value is NOT pinned to the renderer's internal sampling, which was an
+   * open worry: the PSF's coherent pass normalises by `sqrt(sum(w^2))`, which
+   * is resolution-invariant for independent scatterers but not for a return
+   * correlated across the kernel, so a specular term could have gained ~3 dB
+   * per doubling of lateral resolution. Measured, it does not: rim versus core
+   * is flat to 0.06 dB over a four-fold span of polar resolution, because the
+   * boundary return is generated per sample at a label transition and so is
+   * closer to an impulse than to a correlated block.
+   * `tests/visual/echo-resolution.spec.ts` holds that.
    */
   boundaryReflection: 0.55,
   clutter: 0.012,

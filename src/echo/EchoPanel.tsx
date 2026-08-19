@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
 import { describePack, resolveTuning } from './acoustics.ts';
-import { EchoRenderer, EchoRendererError, fetchVolume } from './EchoRenderer.ts';
+import { DEFAULT_POLAR, EchoRenderer, EchoRendererError, fetchVolume } from './EchoRenderer.ts';
 import { frameAt, imagingFrame } from './probeFrame.ts';
 
 interface EchoPanelProps {
@@ -53,6 +53,28 @@ interface EchoPanelProps {
   onScrubChange: (scrub: number) => void;
 }
 
+/**
+ * `?polar=` — scale the renderer's internal polar working resolution.
+ *
+ * A developer control, like `?freeze=1`, and it exists for one measurement:
+ * the PSF's coherent pass normalises by `sqrt(sum(w^2))`, which makes
+ * INDEPENDENT scatterers resolution-invariant, while a specular boundary return
+ * is correlated across the kernel and so is not. Whether that matters can only
+ * be settled by rendering the same view at different sampling and comparing, and
+ * a claim about resolution invariance that cannot be measured is a claim nobody
+ * will check. See `tests/perf/echo-fill.mjs` and `docs/observations.md`.
+ *
+ * Clamped, because the polar targets are allocated from it: a typo should not
+ * ask the driver for a 40k-wide render target.
+ */
+function polarScale(): number {
+  if (typeof window === 'undefined') return 1;
+  const raw = new URLSearchParams(window.location.search).get('polar');
+  if (raw === null) return 1;
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? Math.min(4, Math.max(0.25, value)) : 1;
+}
+
 type Status =
   | { kind: 'loading' }
   | { kind: 'ready' }
@@ -81,6 +103,13 @@ export default function EchoPanel({
     (async () => {
       try {
         renderer = new EchoRenderer(canvas);
+        const scale = polarScale();
+        if (scale !== 1) {
+          renderer.setPolarResolution({
+            scanlines: Math.round(DEFAULT_POLAR.scanlines * scale),
+            samples: Math.round(DEFAULT_POLAR.samples * scale),
+          });
+        }
         const voxels = await fetchVolume(volumeUrl, { signal: controller.signal });
         if (controller.signal.aborted) return;
         renderer.setVolume(descriptor, voxels);

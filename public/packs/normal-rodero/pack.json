@@ -597,19 +597,19 @@
       "indicator_clock": "3:00",
       "probe": {
         "origin": [
-          0.1054158086849426,
+          0.10541580868494355,
           -79.87412567548702,
           12.86589048118901
         ],
         "beam_axis": [
-          -0.03892056723675134,
-          0.9771453673924172,
-          -0.2089787559287014
+          -0.038920567236751344,
+          0.977145367392417,
+          -0.20897875592870138
         ],
         "lateral_axis": [
           0.9992134710353209,
-          0.039647631078269435,
-          -0.0007103882230686514
+          0.03964763107826945,
+          -0.0007103882230686532
         ],
         "fan": {
           "angle_deg": 80.0,
@@ -627,11 +627,11 @@
         "axis": {
           "direction": [
             0.9992134710353209,
-            0.039647631078269435,
-            -0.0007103882230686514
+            0.03964763107826945,
+            -0.0007103882230686532
           ],
           "origin": [
-            0.1054158086849426,
+            0.10541580868494355,
             -79.87412567548702,
             12.86589048118901
           ]
@@ -723,7 +723,7 @@
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex and BOTH atrioventricular ring centroids, which is the defining property of the view; probe standing off the apical epicardium along the plane, beam toward the midpoint of the two rings. Sweep tilts the plane posteriorly to anteriorly about the in-plane axis. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert."
+          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex and BOTH atrioventricular ring centroids, which is the defining property of the view; probe standing off the apical epicardium along the plane, beam toward the midpoint of the two rings. Sweep tilts the plane posteriorly to anteriorly about the in-plane axis. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -757,9 +757,9 @@
           -0.761452730556768
         ],
         "lateral_axis": [
-          0.06517650693500611,
+          0.0651765069350061,
           0.9978737510044801,
-          -1.387778780781446e-17
+          -2.775557561562892e-17
         ],
         "fan": {
           "angle_deg": 70.0,
@@ -776,9 +776,9 @@
         "mode": "tilt",
         "axis": {
           "direction": [
-            -0.06517650693500611,
+            -0.0651765069350061,
             -0.9978737510044801,
-            1.387778780781446e-17
+            2.775557561562892e-17
           ],
           "origin": [
             -33.36292056688886,
@@ -873,7 +873,7 @@
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex, the mitral ring centroid and the aortic ring centroid \u2014 the long axis of the left ventricle together with the aortic root. Probe standing off the anterior epicardium along the measured anterior axis. Screen-x runs toward the base so the apex falls on screen-left. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert."
+          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex, the mitral ring centroid and the aortic ring centroid \u2014 the long axis of the left ventricle together with the aortic root. Probe standing off the anterior epicardium along the measured anterior axis. Screen-x runs toward the base so the apex falls on screen-left. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -898,18 +898,18 @@
       "indicator_clock": "2:00",
       "probe": {
         "origin": [
-          -0.354699350951943,
+          -0.3546993509519441,
           22.20965766588477,
           67.9155387878418
         ],
         "beam_axis": [
-          -2.100093521801519e-34,
+          2.100093521801519e-34,
           -2.0494357866503254e-17,
           -1.0
         ],
         "lateral_axis": [
           1.0,
-          -1.0247178933251627e-17,
+          1.0247178933251627e-17,
           0.0
         ],
         "fan": {
@@ -927,7 +927,7 @@
         "mode": "translate",
         "axis": {
           "direction": [
-            -1.0247178933251627e-17,
+            1.0247178933251627e-17,
             -1.0,
             2.0494357866503254e-17
           ]
@@ -938,18 +938,7 @@
           "to": 79.7
         },
         "interpolation": "lerp",
-        "structures_in_order": [
-          "lv-myocardium",
-          "rv-myocardium",
-          "ra-myocardium",
-          "la-myocardium",
-          "aortic-wall",
-          "pulmonary-artery-wall",
-          "tricuspid-valve-ring",
-          "aortic-valve-ring",
-          "mitral-valve-ring",
-          "pulmonary-valve-ring"
-        ]
+        "structures_in_order": []
       },
       "structures": [
         "lv-myocardium",
@@ -1019,7 +1008,7 @@
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane perpendicular to the long axis measured between the left-ventricular apex and the centroid of the four valve rings, translated along that axis from the aortic ring's level to 88 percent of the distance to the apex. Probe standing off the anterior epicardium. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert."
+          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane perpendicular to the long axis measured between the left-ventricular apex and the centroid of the four valve rings, translated along that axis from the aortic ring's level to 88 percent of the distance to the apex. Probe standing off the anterior epicardium. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is DELIBERATELY EMPTY: every named structure is first reached at the same sample of this sweep, so the only thing ordering them would be the size tie-break \u2014 the structures sorted largest first, which is a fact about the mesh and not about the sweep. An ordering the sweep did not produce is not shipped, because the sweep scrubber takes its ticks from this list and would otherwise annotate events that do not happen."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",

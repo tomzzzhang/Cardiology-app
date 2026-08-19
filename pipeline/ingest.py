@@ -48,7 +48,13 @@ from anatomy import (  # noqa: E402
 )
 from meshlib import Surface, TetMesh, read_binary_stl, read_gltf_surfaces, read_vtk_tets, write_gltf  # noqa: E402
 from sources import SOURCES, Source  # noqa: E402
-from views import BUILDERS, SKIPPED, landmarks_from, structures_in_order  # noqa: E402
+from views import (  # noqa: E402
+    BUILDERS,
+    SKIPPED,
+    first_seen_samples,
+    landmarks_from,
+    ordering_is_vacuous,
+)
 
 
 REPO = Path(__file__).resolve().parent.parent
@@ -685,7 +691,9 @@ def reference_view(structures: list[Structure], bounds: tuple[np.ndarray, np.nda
     }
 
 
-def clinical_views(structures: list[Structure], frame: CardiacFrame, source: Source) -> list[dict]:
+def clinical_views(
+    structures: list[Structure], frame: CardiacFrame, source: Source,
+) -> tuple[list[dict], list[str]]:
     """
     Every view this substrate can support, built from measured landmarks.
 
@@ -703,6 +711,7 @@ def clinical_views(structures: list[Structure], frame: CardiacFrame, source: Sou
     """
     landmarks = landmarks_from(structures, frame)
     views: list[dict] = []
+    notes: list[str] = []
 
     for builder in BUILDERS:
         identity, sector, sweep = builder(landmarks)
@@ -710,9 +719,33 @@ def clinical_views(structures: list[Structure], frame: CardiacFrame, source: Sou
         # annotation reading "tagged region 19" teaches nothing and claims more
         # than the pack knows; the fourteen unnamed stubs are still crossed, and
         # still rendered, they are just not something to call out.
-        sweep["structures_in_order"] = structures_in_order(
-            [s for s in structures if s.named], sector, sweep,
+        first_seen = first_seen_samples([s for s in structures if s.named], sector, sweep)
+        vacuous = ordering_is_vacuous(first_seen)
+        sweep["structures_in_order"] = [] if vacuous else [
+            slug for slug, _ in sorted(first_seen.items(), key=lambda item: item[1])
+        ]
+
+        # The measurement the list rests on, reported rather than assumed. The
+        # sweep-scrubber annotation (wave 1d) takes its ticks from this list, so
+        # whether the order was produced by the SWEEP or by the size tie-break
+        # is the difference between a tick that marks an event and a tick that
+        # marks nothing.
+        samples = sorted({step for step, _ in first_seen.values()})
+        notes.append(
+            f"{identity['view_id']}: first reached at samples {samples} of 0..60"
+            + ("" if not first_seen else " — " + ", ".join(
+                f"{slug}@{step}" for slug, (step, _) in
+                sorted(first_seen.items(), key=lambda item: item[1])
+            ))
         )
+        if vacuous:
+            notes.append(
+                f"{identity['view_id']}: structures_in_order NOT emitted. Every named "
+                "structure is first reached at the same sample, so the order is entirely "
+                "the size tie-break — the structures sorted largest first, which is a fact "
+                "about the mesh and not about the sweep. Shipping it would invite the "
+                "scrubber to annotate ticks that do not exist."
+            )
         views.append({
             "family": identity["family"],
             "view_id": identity["view_id"],
@@ -746,10 +779,23 @@ def clinical_views(structures: list[Structure], frame: CardiacFrame, source: Sou
                     + identity["derivation"]
                     + " Geometry only — not read from an imaging protocol, not reviewed by a "
                     "clinician, and not a claim that this is a reachable window on a real "
-                    "patient. sweep.structures_in_order is MEASURED: it lists the structures "
-                    "whose geometry the sector intersects, in the order the sweep first reaches "
-                    "them. It is not the canon's list of what a clinician would call out, which "
-                    "is a reading this pipeline may not assert."
+                    "patient. "
+                    + (
+                        "sweep.structures_in_order is DELIBERATELY EMPTY: every named structure "
+                        "is first reached at the same sample of this sweep, so the only thing "
+                        "ordering them would be the size tie-break — the structures sorted "
+                        "largest first, which is a fact about the mesh and not about the sweep. "
+                        "An ordering the sweep did not produce is not shipped, because the "
+                        "sweep scrubber takes its ticks from this list and would otherwise "
+                        "annotate events that do not happen."
+                        if vacuous else
+                        "sweep.structures_in_order is MEASURED: it lists the structures whose "
+                        "geometry the sector intersects, in the order the sweep first reaches "
+                        "them. It is not the canon's list of what a clinician would call out, "
+                        "which is a reading this pipeline may not assert. A structure counts as "
+                        "reached when ANY of its surface vertices falls inside the sector, "
+                        "which over-calls a structure the beam only clips a corner of."
+                    )
                 ),
                 chain=[
                     "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -758,7 +804,7 @@ def clinical_views(structures: list[Structure], frame: CardiacFrame, source: Sou
                 ],
             ),
         })
-    return views
+    return views, notes
 
 
 def build_pack(
@@ -768,7 +814,14 @@ def build_pack(
     origin: np.ndarray,
     pitch: float,
     frame: CardiacFrame | None,
-) -> dict:
+) -> tuple[dict, list[str]]:
+    """The pack document, and the notes the view measurement produced.
+
+    The notes come back rather than being printed here so the ingest's single
+    report carries them: the `first_seen` table is the evidence
+    `structures_in_order` rests on, and evidence that only exists in a scrolled-
+    past line of output is evidence nobody will find.
+    """
     low = np.min([s.surface.vertices.min(axis=0) for s in structures], axis=0)
     high = np.max([s.surface.vertices.max(axis=0) for s in structures], axis=0)
 
@@ -815,6 +868,11 @@ def build_pack(
     # survive being read years later by someone holding only the pack.
     if source.rejection:
         caveats = f"{source.rejection} {caveats}".strip()
+
+    view_notes: list[str] = []
+    clinical_view_list: list[dict] = []
+    if frame is not None:
+        clinical_view_list, view_notes = clinical_views(structures, frame, source)
 
     return {
         "meta": {
@@ -909,7 +967,7 @@ def build_pack(
         # The reference pose stays behind them: it is mechanically generated and
         # says so, and it exercises a third sweep mode against a real pack.
         "views": (
-            (clinical_views(structures, frame, source) if frame is not None else [])
+            (clinical_view_list if frame is not None else [])
             + [reference_view(structures, (low, high), source)]
         ),
         "display_flags": {
@@ -917,7 +975,7 @@ def build_pack(
             "plax_apex_left_exception": True,
             "dextrocardia_indicator_profile": {"enabled": False, "profile": None},
         },
-    }
+    }, view_notes
 
 
 # --------------------------------------------------------------------------- #
@@ -1007,7 +1065,8 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
     )
     (assets / "echo-volume.raw").write_bytes(raw_volume_bytes(volume))
 
-    pack = build_pack(source, structures, resolution, origin, pitch, frame)
+    pack, view_notes = build_pack(source, structures, resolution, origin, pitch, frame)
+    notes.extend(view_notes)
     (out_dir / "pack.json").write_text(json.dumps(pack, indent=2) + "\n")
 
     raw_bytes = volume.size

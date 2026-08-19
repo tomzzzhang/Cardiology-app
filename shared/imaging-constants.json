@@ -1,0 +1,46 @@
+{
+  "$comment": [
+    "Numbers that BOTH the Python ingest pipeline and the TypeScript viewer have to agree on.",
+    "",
+    "This file exists because they did not. `pipeline/views.py` used 6.0 mm and",
+    "`src/viewer/beamDim.ts` used 5 mm for the same physical quantity — the elevation",
+    "half-thickness of the slab a sector is treated as imaging — so the sweep scrubber",
+    "would have named structures the on-screen highlight did not mark, and neither number",
+    "was wrong on its own face. A constant duplicated across two languages is a constant",
+    "that will drift, and this one drifts invisibly: both values render something plausible.",
+    "",
+    "Python reads it with json.load; TypeScript imports it directly, and Vite inlines it at",
+    "build time, so there is no runtime fetch. tests/unit/beamDim.test.ts pins the TS",
+    "constant against this file.",
+    "",
+    "Add a number here only when two languages genuinely both need it. This is not a",
+    "settings file, and it is not the content pack — anything a VIEW owns belongs in",
+    "pack.json, where it can be authored and reviewed per view."
+  ],
+
+  "elevationSlabHalfMm": {
+    "value": 6.0,
+    "unit": "mm",
+    "$comment": [
+      "Half-thickness of the slab about the imaging plane that a sector is treated as",
+      "imaging. An echo plane is not a mathematical plane: a sector is an elevation-focused",
+      "slice several millimetres thick, and on a paediatric phased array that is roughly",
+      "3-6 mm at the focus and worse away from it.",
+      "",
+      "6.0 won over the viewer's 5, for two reasons that point the same way.",
+      "",
+      "First, the three shipped views were authored and validated against 6.0 —",
+      "`Sector.contains` and `require_in_plane` both use it as the tolerance a landmark has",
+      "to fall within. Adopting 5 would silently re-derive content: the views would be",
+      "re-checked against a tighter rule they were never placed to satisfy, and a view that",
+      "failed would be a pipeline error rather than a considered decision.",
+      "",
+      "Second, the two uses fail in opposite directions and 6 is the safe end of both. In the",
+      "pipeline it is a TOLERANCE on whether a landmark is close enough to the plane, where",
+      "being generous risks accepting a slightly off view and being strict risks refusing a",
+      "correct one for a millimetre. In the viewer it is the thickness of a HIGHLIGHT, where",
+      "one extra millimetre is imperceptible. So the value is set by the use that can",
+      "actually be wrong."
+    ]
+  }
+}

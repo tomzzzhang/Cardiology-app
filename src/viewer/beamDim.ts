@@ -19,23 +19,28 @@
  */
 import * as THREE from 'three';
 import type { ImagingFrame } from '../echo/probeFrame.ts';
+import imagingConstants from '../../shared/imaging-constants.json';
 
 /**
  * Half-thickness of the highlighted slab, in pack units (mm).
  *
- * Elevation slice thickness on a paediatric phased array is roughly 3-6 mm at
- * the focus and worse elsewhere. 5 mm sits inside that and, importantly, is
- * thick enough that the highlight survives being viewed edge-on.
+ * Read from `shared/imaging-constants.json` rather than written here, because
+ * the ingest pipeline needs the same number and had a different one: it used
+ * 6.0 mm where this file used 5, for the same physical quantity. The two are
+ * the same slab — `pipeline/views.py` decides which structures a sweep reaches
+ * and this decides which fragments the highlight marks — so the sweep scrubber
+ * would have named structures the highlight did not mark, and nothing on screen
+ * would have said so. The shared file records which value won and why.
  */
-export const SLAB_HALF_MM = 5;
+export const SLAB_HALF_MM = imagingConstants.elevationSlabHalfMm.value;
 
 /*
  * How far a non-crossed fragment is pushed down and toward grey — as TWO
- * independent numbers, which is the point.
+ * numbers, which is the point, though they are not independent.
  *
  * The panel has to do two things at once: mark the imaged slab, and stay a
  * labelled anatomy viewer while doing it. Those pull in opposite directions
- * only if the dim is treated as one knob. Split, they do not:
+ * only if the dim is treated as one knob. Split, they mostly do not:
  *
  * * **luminance** carries the marking. A darker surround is what makes the
  *   bright band read as the imaged tissue, and lightness is the channel the eye
@@ -44,13 +49,52 @@ export const SLAB_HALF_MM = 5;
  *   Structures stay tellable apart by hue long after the hue has stopped being
  *   vivid, because "tellable apart" is a difference, not an intensity.
  *
- * So saturation is cut much harder than luminance, and luminance is pushed
- * exactly as far as the labelling will bear. Measured on the shipped palette in
- * CIE Lab (`tests/unit/beamDim.test.ts`), at these values the closest pair in
- * the palette — the gold left atrium against the green right atrium — is still
- * 11.8 units apart outside the beam, well above the ~10 at which two colours
- * stop reading as different, while the in/out contrast rises to 49.8 from the
- * 41.0 the previous single-knob setting managed.
+ * **They are not fully independent, and that is why the binding constraint came
+ * out as a hue pair.** Multiplying all three channels by `DIM_LUMINANCE` scales
+ * chroma along with lightness — in Lab, lowering L at fixed sRGB ratios drags
+ * a* and b* down with it — so the luminance knob spends some of the saturation
+ * budget whether or not it means to. Pushing luminance further therefore costs
+ * hue separation twice over, and the pair that runs out first is a pair that
+ * differs mainly in hue rather than in lightness.
+ *
+ * ## What these values actually guarantee
+ *
+ * Measured on the shipped palette in CIE dE2000 (`tests/unit/beamDim.test.ts`),
+ * outside the beam:
+ *
+ * * **The four chamber myocardia stay tellable apart.** The closest of those
+ *   six pairs is the gold left atrium against the green right atrium at
+ *   **12.8**, above the ~10 at which two colours stop reading as different at a
+ *   glance. That is the guarantee, and it is the one the tuning was pushed
+ *   against — "can the right ventricle still be told from the left atrium".
+ * * **In/out contrast still rises**: mean 29.9 against the 27.9 the previous
+ *   single-knob setting managed, and no structure changes by less than 27.2, so
+ *   the split improves both halves at once. (The earlier note's 49.8 against
+ *   41.0 was the same comparison in plain Lab distance, which reads larger
+ *   throughout; in that metric these values are 47.0 against 40.3.)
+ *
+ * ## What they do NOT guarantee
+ *
+ * **Ring hue is a full-brightness feature. The dim does not preserve it.** Over
+ * all ten shipped structures, dimmed, five pairs sit below 10:
+ *
+ *     tricuspid ring  vs pulmonary ring          3.4
+ *     RA myocardium   vs pulmonary artery wall   4.8
+ *     mitral ring     vs tricuspid ring          7.8
+ *     LV myocardium   vs aortic wall             9.0
+ *     mitral ring     vs pulmonary ring          9.8
+ *
+ * The valve rings are hued TOWARD the chamber they guard (`palette.ts`), which
+ * is what makes them readable at full brightness and what makes them collapse
+ * onto their chamber's neighbours once chroma is cut. An earlier revision of
+ * this comment claimed 11.8 as "the closest pair in the palette"; it was the
+ * closest pair among the four chamber myocardia, which is all the test iterated,
+ * and the two are not the same claim.
+ *
+ * Whether the rings should stay tellable apart outside the beam is an open
+ * question for the owner — answering it means retuning, and these values are
+ * the owner's call and stand. `tests/unit/beamDim.test.ts` pins the current
+ * worst pair so a future change cannot make it quietly worse.
  *
  * UI-2 in the planning folder's `ui_design_questions.md` is closed on these.
  */

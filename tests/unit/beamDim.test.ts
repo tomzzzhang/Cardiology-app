@@ -11,18 +11,30 @@
  *
  * "Costing legibility" is exactly the kind of claim that gets asserted from
  * memory and quietly stops being true, so it is measured here instead, in CIE
- * Lab, over the palette the viewer actually ships. Lab because sRGB distance is
- * not perceptual: green occupies far more of the sRGB cube than blue does, so
- * two greens can be numerically further apart than a blue and a gold that any
- * reader tells apart instantly.
+ * dE2000, over the palette the viewer actually ships. A perceptual metric
+ * because sRGB distance is not one: green occupies far more of the sRGB cube
+ * than blue does, so two greens can be numerically further apart than a blue
+ * and a gold that any reader tells apart instantly. dE2000 rather than plain
+ * Lab distance because Lab is still noticeably non-uniform in the blue-violet
+ * region, which is where two of this palette's ten structures live.
+ *
+ * **What the guarantee covers, and what it does not.** These tests iterate the
+ * four CHAMBER MYOCARDIA, and that is the whole of the claim: the four chambers
+ * stay tellable apart outside the beam. They are not the closest pairs in the
+ * palette. Over all ten shipped structures five pairs fall below the threshold
+ * below, and the worst is pinned at the bottom of this file so a future change
+ * cannot make it quietly worse. An earlier revision of `beamDim.ts` described
+ * the chamber figure as "the closest pair in the palette", which it is not.
  */
 import { describe, expect, it } from 'vitest';
 import {
   DIM_LUMINANCE,
   DIM_SATURATION,
+  SLAB_HALF_MM,
   dimmedColour,
 } from '../../src/viewer/beamDim.ts';
 import { PALETTE } from '../../src/viewer/palette.ts';
+import imagingConstants from '../../shared/imaging-constants.json';
 
 type Rgb = [number, number, number];
 
@@ -44,10 +56,72 @@ function lab([r, g, b]: Rgb): [number, number, number] {
   return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
 }
 
-function separation(a: Rgb, b: Rgb): number {
-  const [la, aa, ba] = lab(a);
-  const [lb, ab, bb] = lab(b);
-  return Math.hypot(la - lb, aa - ab, ba - bb);
+/**
+ * CIE dE2000, the standard perceptual difference.
+ *
+ * Written out rather than pulled in: it is forty lines that never change, and
+ * the alternative is a runtime dependency for two colours' worth of arithmetic
+ * in a repository whose whole shipped dependency list is four packages long.
+ */
+function separation(first: Rgb, second: Rgb): number {
+  const [l1, a1, b1] = lab(first);
+  const [l2, a2, b2] = lab(second);
+
+  const c1 = Math.hypot(a1, b1);
+  const c2 = Math.hypot(a2, b2);
+  const meanC = (c1 + c2) / 2;
+  // The a* axis is stretched for low-chroma colours, which is what fixes Lab's
+  // over-estimate of the difference between two near-greys.
+  const g = 0.5 * (1 - Math.sqrt(meanC ** 7 / (meanC ** 7 + 25 ** 7)));
+  const a1p = (1 + g) * a1;
+  const a2p = (1 + g) * a2;
+  const c1p = Math.hypot(a1p, b1);
+  const c2p = Math.hypot(a2p, b2);
+
+  const hueOf = (a: number, b: number) => {
+    if (a === 0 && b === 0) return 0;
+    const degrees = (Math.atan2(b, a) * 180) / Math.PI;
+    return degrees < 0 ? degrees + 360 : degrees;
+  };
+  const h1 = hueOf(a1p, b1);
+  const h2 = hueOf(a2p, b2);
+
+  const dL = l2 - l1;
+  const dC = c2p - c1p;
+  let dh = 0;
+  if (c1p * c2p !== 0) {
+    dh = h2 - h1;
+    if (dh > 180) dh -= 360;
+    else if (dh < -180) dh += 360;
+  }
+  const dH = 2 * Math.sqrt(c1p * c2p) * Math.sin((dh * Math.PI) / 360);
+
+  const meanL = (l1 + l2) / 2;
+  const meanCp = (c1p + c2p) / 2;
+  let meanH = h1 + h2;
+  if (c1p * c2p !== 0) {
+    meanH = Math.abs(h1 - h2) > 180
+      ? (h1 + h2 + (h1 + h2 < 360 ? 360 : -360)) / 2
+      : (h1 + h2) / 2;
+  }
+
+  const t = 1
+    - 0.17 * Math.cos(((meanH - 30) * Math.PI) / 180)
+    + 0.24 * Math.cos((2 * meanH * Math.PI) / 180)
+    + 0.32 * Math.cos(((3 * meanH + 6) * Math.PI) / 180)
+    - 0.2 * Math.cos(((4 * meanH - 63) * Math.PI) / 180);
+
+  const sL = 1 + (0.015 * (meanL - 50) ** 2) / Math.sqrt(20 + (meanL - 50) ** 2);
+  const sC = 1 + 0.045 * meanCp;
+  const sH = 1 + 0.015 * meanCp * t;
+  // The blue-violet rotation term — the reason plain Lab distance is wrong for
+  // the aortic wall and its ring.
+  const rotation = -Math.sin((2 * 30 * Math.exp(-(((meanH - 275) / 25) ** 2)) * Math.PI) / 180)
+    * 2 * Math.sqrt(meanCp ** 7 / (meanCp ** 7 + 25 ** 7));
+
+  return Math.sqrt(
+    (dL / sL) ** 2 + (dC / sC) ** 2 + (dH / sH) ** 2 + rotation * (dC / sC) * (dH / sH),
+  );
 }
 
 /**
@@ -62,6 +136,27 @@ const READS_AS_DIFFERENT = 10;
 
 const chambers = ['lv-myocardium', 'rv-myocardium', 'la-myocardium', 'ra-myocardium'] as const;
 
+describe('the imaged slab is one number, not two', () => {
+  it('takes its thickness from the file the ingest pipeline reads', () => {
+    /*
+     * `pipeline/views.py` decides which structures a sweep REACHES and this
+     * module decides which fragments the highlight MARKS, over the same slab.
+     * They held 6.0 and 5 respectively, so the sweep scrubber would have named
+     * structures the highlight did not mark — and nothing on screen would have
+     * said so, because both numbers render something perfectly plausible.
+     *
+     * Pinned here rather than trusted, because a duplicated constant is only
+     * shared until someone edits one copy.
+     */
+    expect(SLAB_HALF_MM).toBe(imagingConstants.elevationSlabHalfMm.value);
+    expect(imagingConstants.elevationSlabHalfMm.unit).toBe('mm');
+    // A sanity bound, not a taste one: paediatric elevation slice thickness is
+    // roughly 3-6 mm at the focus, and zero thickness highlights nothing.
+    expect(SLAB_HALF_MM).toBeGreaterThan(2);
+    expect(SLAB_HALF_MM).toBeLessThan(10);
+  });
+});
+
 describe('the beam dim keeps the model labelled', () => {
   it('cuts saturation much harder than luminance', () => {
     // The decoupling itself. One knob would have to compromise between the two
@@ -72,10 +167,13 @@ describe('the beam dim keeps the model labelled', () => {
   it('leaves every pair of chambers telling itself apart outside the beam', () => {
     /*
      * THE test the tuning was pushed against: outside the beam, can the right
-     * ventricle still be told from the left atrium at a glance? The whole
-     * palette is checked rather than that one pair, because the binding
-     * constraint turned out to be the closest pair in it — the gold left
-     * atrium against the green right atrium.
+     * ventricle still be told from the left atrium at a glance? All six pairs
+     * of chamber myocardia are checked rather than that one, because the
+     * binding constraint among them turned out to be a different pair — the
+     * gold left atrium against the green right atrium, at 12.8.
+     *
+     * This is the four CHAMBERS, and that is the whole guarantee. See the
+     * full-palette pin below for what it does not cover.
      */
     for (const first of chambers) {
       for (const second of chambers) {
@@ -87,12 +185,65 @@ describe('the beam dim keeps the model labelled', () => {
   });
 
   it('marks the imaged slab clearly, in and out', () => {
-    // The other half of the trade. Every structure has to visibly change when
-    // the beam leaves it, or the highlight is not marking anything.
+    /*
+     * The other half of the trade. Every structure has to visibly change when
+     * the beam leaves it, or the highlight is not marking anything.
+     *
+     * The threshold is in dE2000, which reads a good deal smaller than the Lab
+     * distance an earlier revision used — 25 here is not the 25 that was there
+     * before, and the measured minimum is 27.2.
+     */
     for (const id of Object.keys(PALETTE)) {
       const colour = rgbOf(PALETTE[id]);
       expect(separation(colour, dimmedColour(colour)), id).toBeGreaterThan(25);
     }
+  });
+
+  it('pins the worst pair in the WHOLE palette, which is not a chamber pair', () => {
+    /*
+     * The claim the tuning does NOT make, measured so it cannot drift further.
+     *
+     * The valve rings are hued toward the chamber they guard (`palette.ts`),
+     * which is what makes them readable at full brightness and what makes them
+     * collapse onto their neighbours once chroma is cut. Five of the
+     * forty-five pairs fall below `READS_AS_DIFFERENT` when dimmed; the worst
+     * is the tricuspid ring against the pulmonary ring, two pale greens.
+     *
+     * Whether that should be fixed is an open question for the owner, because
+     * fixing it means retuning either the dim or the palette and both are the
+     * owner's call. What is NOT open is letting it get worse by accident, so
+     * the current figure is pinned here. A change that improves it will fail
+     * this test and should raise the number.
+     */
+    const ids = Object.keys(PALETTE);
+    let worst = { pair: '', gap: Infinity };
+    for (const first of ids) {
+      for (const second of ids) {
+        if (first >= second) continue;
+        const gap = separation(
+          dimmedColour(rgbOf(PALETTE[first])), dimmedColour(rgbOf(PALETTE[second])),
+        );
+        if (gap < worst.gap) worst = { pair: `${first} vs ${second}`, gap };
+      }
+    }
+
+    expect(worst.pair).toBe('pulmonary-valve-ring vs tricuspid-valve-ring');
+    expect(worst.gap).toBeGreaterThan(3.4);
+    expect(worst.gap).toBeLessThan(3.5);
+
+    // And the count below the threshold, so a change that trades one pair for
+    // another cannot pass by leaving the single worst figure alone.
+    let below = 0;
+    for (const first of ids) {
+      for (const second of ids) {
+        if (first >= second) continue;
+        const gap = separation(
+          dimmedColour(rgbOf(PALETTE[first])), dimmedColour(rgbOf(PALETTE[second])),
+        );
+        if (gap < READS_AS_DIFFERENT) below += 1;
+      }
+    }
+    expect(below).toBe(5);
   });
 
   it('beats the single-knob setting it replaced on both counts at once', () => {

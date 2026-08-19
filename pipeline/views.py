@@ -39,14 +39,31 @@ flags are the canon's values carried across unverified. Every view is draft.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 
-#: Half-thickness of the slab a sector is treated as imaging, in mm. An echo
+#: The numbers this pipeline and the TypeScript viewer both have to agree on.
+_SHARED = json.loads(
+    (Path(__file__).resolve().parent.parent / "shared" / "imaging-constants.json").read_text()
+)
+
+#: Half-thickness of the slab a sector is treated as imaging, in mm.
+#:
+#: Read from ``shared/imaging-constants.json`` rather than written here, because
+#: ``src/viewer/beamDim.ts`` needs the same number and had a different one: 5 mm
+#: against this file's 6.0, for the same physical quantity. The sweep scrubber
+#: takes its structures from this module and the on-screen highlight takes its
+#: thickness from that one, so the two disagreeing means the scrubber names
+#: structures the highlight does not mark — invisibly, since both render
+#: something plausible. The shared file records which value won and why.
+#:
+#: An echo
 #: plane is elevation-focused and several millimetres thick, not a mathematical
 #: plane; a zero-thickness test would find almost nothing.
-SLAB_MM = 6.0
+SLAB_MM = float(_SHARED["elevationSlabHalfMm"]["value"])
 
 #: How far the transducer face stands off the epicardium, in mm. The model
 #: carries no chest wall, so this is a gap in empty space rather than an
@@ -183,27 +200,32 @@ def _pose_at(sector: Sector, sweep: dict, t: float) -> Sector:
     )
 
 
-def structures_in_order(structures, sector: Sector, sweep: dict, samples: int = 61) -> list[str]:
+def first_seen_samples(
+    structures, sector: Sector, sweep: dict, samples: int = 61,
+) -> dict[str, tuple[int, int]]:
     """
-    Which structures the sweep crosses, in the order it first reaches them.
+    The sample index at which the sweep first reaches each structure.
 
-    **This is a measurement, not a reading.** It says: walk the sweep, and at
-    each position ask which labelled structures have geometry inside the sector.
+    The measurement `structures_in_order` is built from, exposed on its own so
+    the ORDER can be audited rather than trusted. The value is
+    ``(first sample, -triangle count)``: the sample decides the order, and the
+    size breaks ties so that a sweep entering the left ventricle and clipping a
+    vein stub in the same step is described as reaching the ventricle.
+
     Nothing here decides what is worth naming, what a sweep is *for*, or which
     structures a clinician would call out — those are the canon's business and a
-    vetter's, and this pipeline may not assert them.
+    vetter's, and this pipeline may not assert them. This walks the sweep and
+    asks which labelled structures have geometry inside the sector.
 
-    That distinction is why the list can be shipped at all. The previous
-    revision left `structures_in_order` empty on the grounds that naming the
-    structures a sweep crosses is a clinical reading. Naming them is; measuring
-    which ones the fan actually intersects is arithmetic, and it is what the
-    scrubber needs in order to be annotated with anything at all. The provenance
-    block on every view says which of the two this is.
-
-    Ties are broken by structure size, so that when a sweep enters several
-    structures at the same sample the larger one is named first — a sweep
-    entering the left ventricle and clipping a vein stub in the same step is
-    better described as reaching the ventricle.
+    **The criterion is "any single surface vertex inside the sector", and that is
+    a known weakness.** `src/viewer/beamDim.ts` explicitly rejected the same
+    criterion for its highlight, on the grounds that it calls a whole chamber
+    crossed when the beam clips one corner of it — "which is precisely the
+    judgement the learner is trying to make". The two therefore disagree about
+    what "reached" means even now that they agree about the slab. Recorded in
+    `docs/observations.md`; not changed here, because changing it changes which
+    structures every shipped view claims to cross and that is a content
+    decision, not a cleanup.
     """
     first_seen: dict[str, tuple[int, int]] = {}
     for step in range(samples):
@@ -223,7 +245,57 @@ def structures_in_order(structures, sector: Sector, sweep: dict, samples: int = 
             reach = np.linalg.norm(in_plane, axis=1)
             if np.any((angle <= posed.half_angle) & (reach <= posed.depth_mm)):
                 first_seen[structure.slug] = (step, -structure.surface.triangle_count)
+    return first_seen
 
+
+def ordering_is_vacuous(first_seen: dict[str, tuple[int, int]]) -> bool:
+    """
+    Whether the "order" a sweep reaches structures in carries no information.
+
+    If every structure is first reached at the SAME sample, then nothing about
+    the sweep decided the order — the size tie-break did, and the result is
+    simply the structures sorted largest first. That is a fact about the mesh,
+    not about the sweep, and shipping it as `structures_in_order` would invite a
+    scrubber to annotate ticks that do not exist.
+
+    Measured on the shipped pack, `c2-parasternal-short-axis` is exactly this
+    case: its sector is wide enough that the first position of the sweep already
+    contains every named structure. `b1` and `c1` are not — they reach different
+    structures at different points along the tilt, which is what the annotation
+    is supposed to show.
+    """
+    if len(first_seen) < 2:
+        return True
+    return len({step for step, _ in first_seen.values()}) == 1
+
+
+def structures_in_order(structures, sector: Sector, sweep: dict, samples: int = 61) -> list[str]:
+    """
+    Which structures the sweep crosses, in the order it first reaches them.
+
+    **This is a measurement, not a reading.** It says: walk the sweep, and at
+    each position ask which labelled structures have geometry inside the sector.
+    Nothing here decides what is worth naming, what a sweep is *for*, or which
+    structures a clinician would call out — those are the canon's business and a
+    vetter's, and this pipeline may not assert them.
+
+    That distinction is why the list can be shipped at all. An earlier revision
+    left `structures_in_order` empty on the grounds that naming the structures a
+    sweep crosses is a clinical reading. Naming them is; measuring which ones
+    the fan actually intersects is arithmetic, and it is what the scrubber needs
+    in order to be annotated with anything at all.
+
+    **An ordering the sweep did not produce is not shipped.** Where every
+    structure is first reached at the same sample the order is entirely the size
+    tie-break — the structures sorted largest first, which says something about
+    the mesh and nothing about the sweep — and this returns an empty list rather
+    than a plausible one. The wave 1d scrubber is meant to take its ticks from
+    this list; ticks derived from a vacuous ordering would be annotations for
+    events that never happen.
+    """
+    first_seen = first_seen_samples(structures, sector, sweep, samples)
+    if ordering_is_vacuous(first_seen):
+        return []
     return [slug for slug, _ in sorted(first_seen.items(), key=lambda item: item[1])]
 
 
