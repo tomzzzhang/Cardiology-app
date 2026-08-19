@@ -13,10 +13,10 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_PACK_ID,
   PUBLISHED_PACK_IDS,
-  REJECTED_PACKS,
+  UNPUBLISHED_PACKS,
   UNVERIFIED_ORIENTATION_NOTE,
   isPublishedPack,
-  rejectionFor,
+  unpublishedReason,
 } from '../../src/packs/published.ts';
 import { LICENSE_STATES, mayBePublished, type LicenseState } from '../../src/schema/packV0.ts';
 
@@ -44,7 +44,7 @@ describe('the published allowlist', () => {
     // A pack that is neither published nor explicitly rejected would ship by
     // accident the moment someone adds it, which is how a licence breach happens.
     for (const packId of packIdsInRepo()) {
-      const accounted = isPublishedPack(packId) || rejectionFor(packId) !== undefined;
+      const accounted = isPublishedPack(packId) || unpublishedReason(packId) !== undefined;
       expect(accounted, `pack "${packId}" is neither published nor rejected`).toBe(true);
     }
   });
@@ -54,19 +54,26 @@ describe('the published allowlist', () => {
     expect(isPublishedPack('normal-vhl-heart0102')).toBe(false);
   });
 
-  it('records a substrate reason AND a licence reason for each rejection', () => {
-    // They fail differently: a substrate verdict can be revisited by re-reading
-    // the geometry; a licence block cannot be resolved from this repository.
-    for (const [packId, rejection] of Object.entries(REJECTED_PACKS)) {
-      expect(rejection.substrate.length, `${packId} substrate reason`).toBeGreaterThan(80);
-      expect(rejection.licence.length, `${packId} licence reason`).toBeGreaterThan(40);
+  it('records a publication reason for every unpublished pack', () => {
+    for (const [packId, entry] of Object.entries(UNPUBLISHED_PACKS)) {
+      expect(entry.licence.length, `${packId} licence reason`).toBeGreaterThan(40);
+    }
+  });
+
+  it('records a substrate reason as well wherever a verdict was reached', () => {
+    // The two reasons fail differently: a substrate verdict can be revisited by
+    // re-reading the geometry; a licence block cannot be resolved from this
+    // repository at all. A shelf model that was never in the wave 1a comparison
+    // has no substrate verdict to record, and inventing one would be worse.
+    for (const packId of WAVE_1A_REJECTS) {
+      expect(UNPUBLISHED_PACKS[packId].substrate?.length, packId).toBeGreaterThan(80);
     }
   });
 
   it('names the unreconciled grant for Alberta and the NC constraint for Heart0102', () => {
-    expect(REJECTED_PACKS['normal-alberta-neonatal'].licence).toMatch(/CC BY-NC/);
-    expect(REJECTED_PACKS['normal-alberta-neonatal'].licence).toMatch(/CC BY 4\.0/);
-    expect(REJECTED_PACKS['normal-vhl-heart0102'].licence).toMatch(/CC BY-NC 4\.0/);
+    expect(UNPUBLISHED_PACKS['normal-alberta-neonatal'].licence).toMatch(/CC BY-NC/);
+    expect(UNPUBLISHED_PACKS['normal-alberta-neonatal'].licence).toMatch(/CC BY 4\.0/);
+    expect(UNPUBLISHED_PACKS['normal-vhl-heart0102'].licence).toMatch(/CC BY-NC 4\.0/);
   });
 
   it('states that both rejected packs render in unverified orientations', () => {
@@ -74,18 +81,23 @@ describe('the published allowlist', () => {
   });
 });
 
+/** The wave 1a losers, as opposed to the shelf models that never competed. */
+const WAVE_1A_REJECTS = Object.keys(UNPUBLISHED_PACKS).filter(
+  (packId) => UNPUBLISHED_PACKS[packId].substrate !== undefined,
+);
+
 describe('rejected packs stay in the repository as evidence', () => {
   it('keeps their pack.json and assets on disk', () => {
     // Not published is not the same as deleted. The wave 1a comparison has to
     // stay reproducible.
-    for (const packId of Object.keys(REJECTED_PACKS)) {
+    for (const packId of WAVE_1A_REJECTS) {
       expect(existsSync(join(packsDir, packId, 'pack.json')), packId).toBe(true);
     }
   });
 
   it('carries the verdict inside each rejected pack own provenance', () => {
     // The reasoning must survive being read by someone holding only the pack.
-    for (const packId of Object.keys(REJECTED_PACKS)) {
+    for (const packId of WAVE_1A_REJECTS) {
       const pack = JSON.parse(readFileSync(join(packsDir, packId, 'pack.json'), 'utf8'));
       const note: string = pack.provenance.modified.note;
       expect(note, packId).toMatch(/REJECTED AS SUBSTRATE/);
@@ -94,7 +106,7 @@ describe('rejected packs stay in the repository as evidence', () => {
   });
 
   it('keeps their provenance and licence intact', () => {
-    for (const packId of Object.keys(REJECTED_PACKS)) {
+    for (const packId of WAVE_1A_REJECTS) {
       const pack = JSON.parse(readFileSync(join(packsDir, packId, 'pack.json'), 'utf8'));
       expect(pack.provenance.license.length).toBeGreaterThan(0);
       expect(pack.provenance.creator.length).toBeGreaterThan(0);
@@ -134,7 +146,7 @@ describe('the licence state gates publication (schema v0.1)', () => {
       if (isPublishedPack(packId)) continue;
       const pack = JSON.parse(readFileSync(join(packsDir, packId, 'pack.json'), 'utf8'));
       const reasoned =
-        rejectionFor(packId) !== undefined
+        unpublishedReason(packId) !== undefined
         || !mayBePublished(pack.provenance.license_state as LicenseState);
       expect(reasoned, `${packId} is unpublished with no recorded reason`).toBe(true);
     }

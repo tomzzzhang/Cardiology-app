@@ -1,0 +1,91 @@
+{
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 2179,
+   "max": [
+    58.4638557434082,
+    43.58180236816406,
+    42.616050720214844
+   ],
+   "min": [
+    -59.58524703979492,
+    -41.32170104980469,
+    -45.22875213623047
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 2179,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5125,
+   "count": 13002,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "generator": "Cardiology app ingest pipeline (pipeline/ingest.py)",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 26148,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 26148,
+   "byteOffset": 26148,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 52008,
+   "byteOffset": 52296,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 104304,
+   "uri": "frame-002.bin"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "surface",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0
+     },
+     "indices": 2,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "surface"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ]
+}

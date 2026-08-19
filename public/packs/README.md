@@ -3,17 +3,37 @@
 One directory per pack: `public/packs/<id>/pack.json`, with assets alongside under `assets/`.
 Asset paths inside `pack.json` are pack-relative; the loader rejects absolute URLs and `..`.
 
-Packs are validated against **content-pack schema v0 (PROVISIONAL)** — `src/schema/packV0.ts`,
-transcribed from `docs/build_plan.md` v1.2. Workers code against v0 and do not change it.
+Packs are validated against **content-pack schema v0.1 (PROVISIONAL)** — `src/schema/packV0.ts`.
+Code against it and change it only deliberately, with tests and documentation in the same commit.
 
-## Shipped packs
+A pack is one of two kinds, and the distinction decides which modes it can even offer:
 
-| Pack | What it is | Licence | Published? |
-| --- | --- | --- | --- |
-| `stub/` | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | yes |
-| `normal-rodero/` | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 | **yes — the selected substrate** |
-| `normal-alberta-neonatal/` | Normal neonatal heart, 3D Heart Project. Blood pool plus a separate myocardium. | CC BY 4.0 (contested) | **no** |
-| `normal-vhl-heart0102/` | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 | **no** |
+- **echo-capable** — it has a labelled `echo_volume` and at least one view, so Echo mode works;
+- **EXPLORE-ONLY** — geometry with no labelled volume and correspondingly no views. Echo mode is
+  refused for it, visibly and with the reason on screen.
+
+## The packs
+
+| Pack | Kind | What it is | Licence | Licence state | Published? |
+| --- | --- | --- | --- | --- | --- |
+| `stub/` | echo | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | confirmed | yes |
+| `normal-rodero/` | echo | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 | confirmed | **yes — the selected substrate** |
+| `normal-alberta-neonatal/` | echo | Normal neonatal heart, 3D Heart Project. Blood pool plus a separate myocardium. | CC BY 4.0 (contested) | unconfirmed | **no** |
+| `normal-vhl-heart0102/` | echo | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 | non_commercial | **no** |
+| `motion-biv-cinemri/` | explore | **Moving.** Ten biventricular cine-MRI segmentations, end-diastole to end-systole. Unlabelled. | CC BY 4.0 | confirmed | **no** |
+
+## Licence state, and what it decides
+
+Schema v0.1 requires every pack to record how well its grant is actually *known*, separately from
+what the grant says: `confirmed` (read at the rights holder's own page and quoted in the pack),
+`non_commercial` (confirmed, and NC, so it can never ship), `unconfirmed` (no authoritative
+statement found), `permission_pending` (an enquiry has gone out and no answer has come back).
+
+**Only `confirmed` may be published**, and that is a validator rule rather than a habit —
+`npm run check:provenance` fails a published pack whose state is anything else, and
+`tests/unit/publishedPacks.test.ts` applies the same rule under `npm run test`. A confirmed licence
+is necessary and not sufficient: `motion-biv-cinemri` is confirmed CC BY 4.0 and still does not
+ship, because nothing new ships in this build.
 
 ## The substrate verdict (2026-08-19)
 
@@ -40,6 +60,16 @@ says so in its own provenance. Verifying them is deliberately not done — they 
 
 Each rejected pack also carries its verdict inside its own `provenance.modified.note`, so the
 reasoning survives being read by someone holding only the pack.
+
+## The shelf: models brought in to be looked at
+
+Separate from the wave 1a comparison, and judged differently. A shelf model does not have to be
+labelled, segmented or pretty; it earns its place by looking good in the viewer, and that judgement
+is made by *looking*, with the verdict written into `docs/observations.md`. None of them ships.
+
+| Pack | Why it is here | What is wrong with it |
+| --- | --- | --- |
+| `motion-biv-cinemri/` | It **moves** — ten whole-mesh frames on a normalised phase axis, the first moving geometry in the repository. | No vertex correspondence between frames (2268 vertices in the first, 1712 in the last), so no deformation field is derivable. Half a cycle only, so playback bounces rather than loops. No labels, so no echo. Undocumented supplementary data of unverified quality. |
 
 ## What reaches the deployed site
 

@@ -5,11 +5,19 @@
  * CI check all read it, so a pack cannot be published by one route while being
  * rejected by another.
  *
- * The repository deliberately contains packs that are NOT published. They are
- * evidence: the wave 1a substrate survey compared three candidate Normal-heart
- * assets through one pipeline, and the two that lost are kept so the comparison
- * remains reproducible and auditable. Keeping them and shipping them are
- * different things.
+ * The repository deliberately contains packs that are NOT published, for two
+ * unrelated reasons.
+ *
+ * Some are EVIDENCE: the wave 1a substrate survey compared three candidate
+ * Normal-heart assets through one pipeline, and the two that lost are kept so
+ * the comparison remains reproducible and auditable.
+ *
+ * The rest are the SHELF: real models brought in to be looked at, judged by eye
+ * rather than by a metric. None of them ships. Every one carries a licence state
+ * (schema v0.1) and anything but `confirmed` is unpublishable by rule, checked
+ * in `scripts/check-provenance.ts` and again in the unit tests.
+ *
+ * Keeping a pack and shipping it are different things.
  *
  * Removal from the deployed site is enforced at BUILD time — the rejected packs
  * are absent from `dist/`, not merely hidden by a runtime flag — so no deep
@@ -28,19 +36,21 @@ export const DEFAULT_PACK_ID: PublishedPackId = 'normal-rodero';
 /**
  * Why a pack in this repository is not published.
  *
- * Two independent kinds of reason, and both are recorded because they fail
+ * Two independent kinds of reason, recorded separately because they fail
  * differently: a SUBSTRATE verdict can be revisited by re-reading the geometry,
  * whereas a LICENCE block cannot be resolved by anything in this repository at
- * all.
+ * all. `licence` is required because every unpublished pack has a publication
+ * reason even when its geometry was never in a comparison; `substrate` is
+ * present only where a verdict was actually reached.
  */
-export interface Rejection {
-  /** Why the geometry lost the wave 1a comparison. */
-  substrate: string;
-  /** Why it may not be published regardless of the substrate verdict. */
+export interface NotPublished {
+  /** Why it may not be published. Always recorded. */
   licence: string;
+  /** Why the geometry lost the wave 1a comparison, where it was in one. */
+  substrate?: string;
 }
 
-export const REJECTED_PACKS: Readonly<Record<string, Rejection>> = {
+export const UNPUBLISHED_PACKS: Readonly<Record<string, NotPublished>> = {
   'normal-alberta-neonatal': {
     substrate:
       'Rejected as substrate (2026-08-19). The blood pool and the myocardium interpenetrate ' +
@@ -66,9 +76,16 @@ export const REJECTED_PACKS: Readonly<Record<string, Rejection>> = {
       'CC BY-NC 4.0. Not published: a non-commercial pack binds the whole application to the ' +
       'non-commercial red lines, and that constraint is not accepted for the published build.',
   },
+  'motion-biv-cinemri': {
+    licence:
+      'CC BY 4.0, state "confirmed" — read from the Zenodo record\'s own licence field. ' +
+      'Not published anyway: this build is for the owner\'s own use, nothing new ships, and ' +
+      'the pack is undocumented supplementary data of unverified quality. It is here to be ' +
+      'LOOKED AT, which is the only claim made for it.',
+  },
 };
 
-/** Both rejected packs render in orientations that could not be verified. */
+/** Both wave 1a rejects render in orientations that could not be verified. */
 export const UNVERIFIED_ORIENTATION_NOTE =
   'Both rejected packs also render in UNVERIFIED orientations. Neither source carries chamber ' +
   'labels, so superior and patient-left cannot be derived from the geometry the way they are for ' +
@@ -79,6 +96,6 @@ export function isPublishedPack(packId: string): boolean {
   return (PUBLISHED_PACK_IDS as readonly string[]).includes(packId);
 }
 
-export function rejectionFor(packId: string): Rejection | undefined {
-  return REJECTED_PACKS[packId];
+export function unpublishedReason(packId: string): NotPublished | undefined {
+  return UNPUBLISHED_PACKS[packId];
 }

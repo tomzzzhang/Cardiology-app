@@ -3,8 +3,8 @@
  *
  *   npm run build && npm run check:published-packs
  *
- * Two of this repository's packs are licence-blocked and must never reach the
- * deployed site. `vite.config.ts` prunes them from `dist/`, but a build filter
+ * Most of this repository's packs may never reach the deployed site: two are
+ * licence-blocked, and the shelf models are unpublished by rule. `vite.config.ts` prunes them from `dist/`, but a build filter
  * is a piece of code like any other: it can be reordered, disabled by a plugin
  * change, or quietly skipped when `publicDir` handling changes upstream. The
  * failure would be silent and the consequence is a licence breach on a public
@@ -16,7 +16,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PUBLISHED_PACK_IDS, REJECTED_PACKS } from '../src/packs/published.ts';
+import { PUBLISHED_PACK_IDS, UNPUBLISHED_PACKS } from '../src/packs/published.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const distPacks = join(repoRoot, 'dist', 'packs');
@@ -35,7 +35,7 @@ const failures: string[] = [];
 
 for (const packId of shipped) {
   if ((PUBLISHED_PACK_IDS as readonly string[]).includes(packId)) continue;
-  const rejection = REJECTED_PACKS[packId];
+  const rejection = UNPUBLISHED_PACKS[packId];
   failures.push(
     `"${packId}" is in the build output but is not published.` +
       (rejection ? `\n    ${rejection.licence}` : ''),
@@ -49,7 +49,7 @@ for (const packId of PUBLISHED_PACK_IDS) {
 }
 
 // The pruning must be complete: no stray assets left behind under a pack id.
-for (const packId of Object.keys(REJECTED_PACKS)) {
+for (const packId of Object.keys(UNPUBLISHED_PACKS)) {
   const stray = join(distPacks, packId);
   if (existsSync(stray)) {
     failures.push(`"${packId}" left files behind at ${stray}`);
@@ -64,6 +64,6 @@ if (failures.length > 0) {
 
 console.log(`ok  build ships ${shipped.length} pack(s): ${shipped.join(', ')}`);
 console.log(
-  `ok  ${Object.keys(REJECTED_PACKS).length} unpublished pack(s) absent from the build: ` +
-    `${Object.keys(REJECTED_PACKS).join(', ')}`,
+  `ok  ${Object.keys(UNPUBLISHED_PACKS).length} unpublished pack(s) absent from the build: ` +
+    `${Object.keys(UNPUBLISHED_PACKS).join(', ')}`,
 );

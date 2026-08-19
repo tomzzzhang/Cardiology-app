@@ -6,7 +6,7 @@
  * unvalidated pack.
  */
 import { SCHEMA_VERSION, type Pack } from '../schema/packV0.ts';
-import { isPublishedPack, rejectionFor } from './published.ts';
+import { isPublishedPack, unpublishedReason } from './published.ts';
 import { formatIssues, readSchemaVersion, validatePack, type PackIssue } from '../schema/validate.ts';
 
 export class PackLoadError extends Error {
@@ -95,7 +95,7 @@ export async function loadPack(url: string, init?: RequestInit): Promise<LoadedP
  */
 export async function loadPackById(packId: string, init?: RequestInit): Promise<LoadedPack> {
   if (import.meta.env.PROD && !isPublishedPack(packId)) {
-    const rejection = rejectionFor(packId);
+    const rejection = unpublishedReason(packId);
     throw new PackLoadError(
       packUrl(packId),
       rejection

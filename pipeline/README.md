@@ -1,27 +1,33 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-19 05:11 EDT
+**Updated:** 2026-08-19 05:25 EDT
 
-Turns a raw anatomical source into a content pack: a decimated glTF plus a labelled
-echo volume conforming to schema v0.1, with complete provenance.
+Turns a raw anatomical source into a content pack conforming to schema v0.1, with
+complete provenance.
 
-One pipeline, run over every candidate substrate, so the slice review compares
-candidates on the same ruler instead of committing blind.
+**Two paths, one entry point.** A source that carries an anatomical reading —
+per-element tags, named glTF groups — goes through `ingest.py` and comes out as a
+full pack: decimated glTF, labelled echo volume, derived cardiac frame, clinical
+views. A source that is *just geometry* goes through `geometry.py` and comes out
+as an EXPLORE-ONLY pack: meshes, no echo, no views, and no frame claimed. Which
+path a source needs is a property of the source, so it is asked for the same way.
 
 ```bash
-conda env create -f ../environment.yml     # once
-npm run ingest -- --source rodero          # one source
-npm run ingest -- --source all             # all three
-npm run ingest -- --budget-table           # volume size against resolution
+conda env create -f ../environment.yml         # once
+npm run ingest -- --source rodero              # one labelled substrate
+npm run ingest -- --source cardiac-motion      # one geometry-only source
+npm run ingest -- --source all                 # everything in both registries
+npm run ingest -- --budget-table               # volume size against resolution
 ```
 
 ## Files
 
 | File | What it does |
 | --- | --- |
-| `sources.py` | The source registry: acquisition, licence, citation, publish policy. |
-| `fetch.py` | Checksum-verified download into the gitignored `.cache/`. |
-| `meshlib.py` | Readers (VTK tets, glTF, binary STL) and the glTF writer. |
+| `sources.py` | Two source registries: `SOURCES` (labelled substrates) and `GEOMETRY_SOURCES`. |
+| `fetch.py` | Checksum-verified download into the gitignored `.cache/`, one file or many. |
+| `meshlib.py` | Readers (VTK tets, VTK PolyData, VTU, glTF, STL, OBJ) and the glTF writer. |
+| `geometry.py` | The geometry-only path: plain surfaces in, an Explore-only pack out. |
 | `anatomy.py` | Valve identification by face adjacency, and the cardiac frame derived from it. |
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
@@ -44,6 +50,32 @@ The pipeline is source-shaped in exactly two places, both unavoidable and both e
   A leaky source shows up as a number rather than as silently missing tissue.
 
 Everything after that is shared.
+
+## The geometry-only path
+
+`geometry.py` exists because most material worth looking at carries no labels, no tags and
+no documentation, and schema v0.1 made those packs possible. It reads OBJ, STL, VTK PolyData
+and VTU; normalises units to millimetres by *measuring* the model against the range a whole
+heart can plausibly span, and records the reasoning; centres on the model bounds; emits one
+unnamed structure where the source has no labels and one per file where it is a directory of
+parts; and writes one glTF per frame where the source moves.
+
+Three things it deliberately does not do.
+
+- **It derives no anatomical frame and claims none.** No labels means no landmarks means no
+  measurable superior or patient-left. The pack declares the source's own axis order and says
+  in its own provenance that the orientation is unverified.
+- **It fills no holes.** `ingest.py` closes what decimation opens, because a tag-group
+  boundary is closed by construction and a hole there is damage. A geometry-only surface may
+  be genuinely open — a biventricular surface truncated at the valve plane is open on purpose
+  — so openness is measured and reported instead of repaired away.
+- **It centres every frame together, never each frame on itself.** Per-frame centring would
+  subtract exactly the bulk translation that makes a beating heart beat.
+
+Motion is carried as whole meshes per frame rather than as a deformation field. That follows
+the data: the frames of the one 4D source in hand differ in vertex *count*, so there is no
+correspondence a displacement could be expressed against. Each pack records
+`vertex_correspondence` so the question is answerable without re-reading the source.
 
 ## What gets named, and on what evidence
 
@@ -74,10 +106,22 @@ the deployed pack notices.
 
 ## What does not ship
 
-`sources.py` carries a `publishable` flag. A source whose licence is unresolved is still
-built and measured — the slice review needs the numbers — but it is written to `build/packs/`,
-which is gitignored, instead of `public/packs/`. Two of the three candidates are currently in
-that state; see the pack table in `public/packs/README.md`.
+Two independent mechanisms, because they protect against different things.
+
+`sources.py` carries a `publishable` flag deciding *where the pack is written*. A source whose
+licence forbids keeping the derived pack at all is written to `build/packs/`, which is
+gitignored, instead of `public/packs/`.
+
+`src/packs/published.ts` decides *what reaches the deployed site*. A pack under `public/packs/`
+loads in `npm run dev` and is pruned from `dist/` at build time unless it is on
+`PUBLISHED_PACK_IDS`. Every pack this pipeline currently writes is off that list, and any pack
+whose `license_state` is not `confirmed` is kept off it by `npm run check:provenance` rather
+than by anyone remembering to.
+
+**Raw sources are never committed.** The repository is public, so pushing a third-party asset
+to it would be distribution even if the deployed site never served it. Raw files live in the
+gitignored `.cache/`; only derived assets are committed, within a 15 MB per-pack budget that
+`geometry.py` enforces by aborting rather than writing an oversized pack.
 
 ## Credentials
 

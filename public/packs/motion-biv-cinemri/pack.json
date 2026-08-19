@@ -1,0 +1,222 @@
+{
+  "meta": {
+    "id": "motion-biv-cinemri",
+    "display_name": "Cardiac Motion \u2014 biventricular surfaces from cine-MRI",
+    "anatomy": "Biventricular surface, one adult subject, ten time steps",
+    "canonical_variant": "Single unnamed subject; ten cine-MRI segmentations from end-diastole to end-systole, which is HALF a cardiac cycle",
+    "pack_version": "0.1.0",
+    "schema_version": "0.1"
+  },
+  "provenance": {
+    "creator": "Zemzemi, Nejib",
+    "source": "Zenodo record 10548682, 'Cardiac Motion', ten biV-*.vtk time steps",
+    "source_url": "https://zenodo.org/records/10548682",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "license_state": "confirmed",
+    "modified": {
+      "flag": true,
+      "note": "Ingested by pipeline/geometry.py: surfaces read, Units normalised to mm (largest extent 119.7 source units; read as mm because 119.7 mm falls inside the 30-400 mm range a whole heart can plausibly span); centred on the bounds of all 10 input surface(s) together, a single translation of (-28.1, -8.1, -25.5) mm. Decimated for interactive display and exported to glTF. No geometry was added, sculpted, filled or invented \u2014 in particular no hole was closed, because an open surface here is the source's own truncation rather than damage. NO ANATOMICAL FRAME. This source carries no chamber labels or tags, so superior, anterior and patient-left cannot be derived from the geometry and none is claimed. The declared orientation is the SOURCE's own axis order, unverified, and must be established at vetting before any clinical use. EXPLORE-ONLY. There is no labelled echo volume and correspondingly no views: with a single unlabelled material an echo would be one uniform grey, which would claim more than this source supports. UNLABELLED. The source divides into no named parts, so the pack carries one structure with a generic label rather than an invented anatomical one. LICENCE AS READ AT THE SOURCE: the Zenodo record 10548682 declares license id \"cc-by-4.0\" (Creative Commons Attribution 4.0 International), read from the deposit's own record on 2026-08-19 NO VERTEX CORRESPONDENCE between frames: vertex counts differ (2268 in biV-032, 1712 in biV-302), so frame N+1 is not a displacement of frame N. This is why the schema carries whole meshes rather than a deformation field, and it means no per-vertex quantity can be tracked through the motion. HALF A CYCLE ONLY: end-diastole to end-systole. There is no relaxation, so playback must bounce rather than loop; a looping playback would show the heart snapping open. NO LABELS: one undivided surface per frame, so nothing can be shown or hidden per chamber and there is no echo volume. UNDOCUMENTED SUPPLEMENTARY DATA of unverified quality. The deposit is a bare collection of segmentations with a two-sentence description, no subject metadata, no segmentation protocol and no accuracy statement. Kept because it MOVES."
+    },
+    "derivation_chain": [
+      "https://zenodo.org/records/10548682",
+      "pipeline/fetch.py (checksum-recorded acquisition)",
+      "pipeline/geometry.py (read, unit-normalise, centre, decimate, export)"
+    ],
+    "vetted": {
+      "status": "draft",
+      "vetters": [],
+      "last_reviewed": null
+    }
+  },
+  "meshes": {
+    "gltf": "assets/model.gltf",
+    "structures": [
+      {
+        "id": "surface",
+        "mesh_node": "surface",
+        "display_label": "Biventricular surface (source carries no labels)",
+        "parent": null,
+        "blood_pool": false,
+        "stylized": false
+      }
+    ],
+    "canonical_pose": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler_xyz_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0
+    },
+    "units": "mm",
+    "orientation": {
+      "up": "+y",
+      "anterior": "+z",
+      "patient_left": "+x",
+      "handedness": "right"
+    },
+    "keyframes": {
+      "frames": [
+        {
+          "gltf": "assets/model.gltf",
+          "label": "biV-032",
+          "phase": 0.0
+        },
+        {
+          "gltf": "assets/frame-001.gltf",
+          "label": "biV-062",
+          "phase": 0.111111
+        },
+        {
+          "gltf": "assets/frame-002.gltf",
+          "label": "biV-092",
+          "phase": 0.222222
+        },
+        {
+          "gltf": "assets/frame-003.gltf",
+          "label": "biV-122",
+          "phase": 0.333333
+        },
+        {
+          "gltf": "assets/frame-004.gltf",
+          "label": "biV-152",
+          "phase": 0.444444
+        },
+        {
+          "gltf": "assets/frame-005.gltf",
+          "label": "biV-182",
+          "phase": 0.555556
+        },
+        {
+          "gltf": "assets/frame-006.gltf",
+          "label": "biV-212",
+          "phase": 0.666667
+        },
+        {
+          "gltf": "assets/frame-007.gltf",
+          "label": "biV-242",
+          "phase": 0.777778
+        },
+        {
+          "gltf": "assets/frame-008.gltf",
+          "label": "biV-272",
+          "phase": 0.888889
+        },
+        {
+          "gltf": "assets/frame-009.gltf",
+          "label": "biV-302",
+          "phase": 1.0
+        }
+      ],
+      "loop": false,
+      "vertex_correspondence": false,
+      "coverage": "end-diastole to end-systole; half a cycle, not a whole one"
+    }
+  },
+  "interaction": {
+    "pivot": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "views": [],
+  "display_flags": {
+    "pediatric_vertex_convention": true,
+    "plax_apex_left_exception": true,
+    "dextrocardia_indicator_profile": {
+      "enabled": false,
+      "profile": null
+    }
+  },
+  "volumetric_data": {
+    "geometry_report": {
+      "biV-032": {
+        "vertices": 2268,
+        "triangles": 4492,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 11,
+        "watertight": 1
+      },
+      "biV-062": {
+        "vertices": 2256,
+        "triangles": 4486,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 7,
+        "watertight": 1
+      },
+      "biV-092": {
+        "vertices": 2179,
+        "triangles": 4334,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 6,
+        "watertight": 1
+      },
+      "biV-122": {
+        "vertices": 2138,
+        "triangles": 4268,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 1
+      },
+      "biV-152": {
+        "vertices": 2078,
+        "triangles": 4150,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 1
+      },
+      "biV-182": {
+        "vertices": 2050,
+        "triangles": 4092,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 1
+      },
+      "biV-212": {
+        "vertices": 1814,
+        "triangles": 3624,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "biV-242": {
+        "vertices": 1806,
+        "triangles": 3608,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 1,
+        "watertight": 1
+      },
+      "biV-272": {
+        "vertices": 1747,
+        "triangles": 3486,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 2,
+        "watertight": 1
+      },
+      "biV-302": {
+        "vertices": 1712,
+        "triangles": 3414,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "components": 3,
+        "watertight": 1
+      }
+    }
+  }
+}

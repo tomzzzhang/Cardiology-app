@@ -47,7 +47,8 @@ from anatomy import (  # noqa: E402
     frame_record,
 )
 from meshlib import Surface, TetMesh, read_binary_stl, read_gltf_surfaces, read_vtk_tets, write_gltf  # noqa: E402
-from sources import SOURCES, Source  # noqa: E402
+from geometry import ingest_geometry, report as geometry_report  # noqa: E402
+from sources import GEOMETRY_SOURCES, SOURCES, Source  # noqa: E402
 from views import (  # noqa: E402
     BUILDERS,
     SKIPPED,
@@ -1126,7 +1127,8 @@ def budget_table() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", default="all", choices=[*SOURCES, "all"])
+    parser.add_argument("--source", default="all",
+                        choices=[*SOURCES, *GEOMETRY_SOURCES, "all"])
     parser.add_argument("--resolution", type=int, default=DEFAULT_RESOLUTION)
     parser.add_argument("--triangles", type=int, default=DEFAULT_TRIANGLE_BUDGET)
     parser.add_argument("--budget-table", action="store_true")
@@ -1135,9 +1137,21 @@ def main() -> int:
     if args.budget_table:
         budget_table()
 
+    # One entry point, two paths. A geometry-only source has no tags to split,
+    # no frame to derive and no volume to voxelise, so it goes through
+    # `geometry.py` — but it is asked for the same way, because which pipeline a
+    # source needs is a property of the source, not something a caller should
+    # have to know.
+    if args.source in GEOMETRY_SOURCES:
+        geometry_report(ingest_geometry(GEOMETRY_SOURCES[args.source]))
+        return 0
+
     keys = list(SOURCES) if args.source == "all" else [args.source]
     for key in keys:
         report(ingest(SOURCES[key], resolution=args.resolution, budget=args.triangles))
+    if args.source == "all":
+        for geometry in GEOMETRY_SOURCES.values():
+            geometry_report(ingest_geometry(geometry))
     return 0
 
 

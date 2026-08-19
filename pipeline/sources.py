@@ -5,8 +5,22 @@ One entry per candidate anatomical substrate. Everything licence-bearing lives
 here, so the pack's provenance block is generated from the same declaration that
 drives acquisition — a source cannot be ingested without its attribution.
 
-Raw sources are 20-190 MB and are NEVER committed. They are fetched into a
-gitignored cache and verified by checksum before use (`fetch.py`).
+Raw sources are 1-200 MB and are NEVER committed. They are fetched into a
+gitignored cache and verified by checksum before use (`fetch.py`). The
+repository is PUBLIC, so pushing a raw third-party asset to it would be
+distribution even if the deployed site never served it; only derived assets are
+committed, and only within the per-pack budget.
+
+Two registries, because two kinds of source need different things said about
+them:
+
+* `SOURCES` — substrates that carry an anatomical reading (tagged volumes, named
+  glTF groups). `ingest.py` derives a frame, clinical views and a labelled echo
+  volume from these.
+* `GEOMETRY_SOURCES` — plain surfaces with no labels and often no documentation.
+  `geometry.py` turns these into EXPLORE-ONLY packs. None of them is published;
+  what each one records instead is exactly how far its licence and its quality
+  are actually known.
 """
 from __future__ import annotations
 
@@ -202,3 +216,164 @@ VHL = Source(
 )
 
 SOURCES = {s.key: s for s in (RODERO, ALBERTA, VHL)}
+
+
+# --------------------------------------------------------------------------- #
+# geometry-only sources                                                        #
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class RemoteFile:
+    """One file to fetch, and what it should turn out to be."""
+
+    url: str
+    #: Filename inside the source's cache directory.
+    name: str
+    #: Published md5, where the host publishes one. Zenodo does; most do not.
+    md5: str | None
+    size_bytes: int | None
+    #: Extract into the cache directory after download.
+    unpack: bool = False
+
+
+@dataclass(frozen=True)
+class GeometrySource:
+    """
+    A source with geometry and nothing else: no labels, no tags, no frame.
+
+    The fields that carry the most weight here are the ones about UNCERTAINTY.
+    A geometry-only source is usually undocumented supplementary data, and the
+    pack's whole claim to honesty is that everything not established about it is
+    written down rather than smoothed over.
+    """
+
+    key: str
+    pack_id: str
+    display_name: str
+    anatomy: str
+    canonical_variant: str
+
+    # --- acquisition ------------------------------------------------------
+    files: tuple[RemoteFile, ...]
+    #: Glob patterns, in registry order, selecting what to read from the cache.
+    #: For a moving source this order IS the time axis.
+    members: tuple[str, ...]
+
+    # --- what the geometry is ---------------------------------------------
+    #: True when the members are FRAMES of one moving mesh rather than parts.
+    animated: bool
+    #: Frame rate, where the source states one. `None` means the pack carries a
+    #: normalised phase axis instead — which is all an unstated rate supports.
+    fps: float | None
+    #: Whether the frames span a whole cycle and may be looped seamlessly.
+    loop: bool
+    #: Whether vertex count and ordering hold across frames. Decides whether a
+    #: deformation-field representation could ever be derived from this source.
+    vertex_correspondence: bool
+    #: What part of the cycle the frames cover, in words.
+    coverage: str
+    #: Display label for the single structure of an unlabelled source.
+    structure_label: str
+    #: File stem -> display label, where the source names its parts.
+    part_labels: dict[str, str]
+
+    # --- attribution ------------------------------------------------------
+    creator: str
+    source_text: str
+    source_url: str
+    license: str
+    license_url: str
+    license_state: str
+    citation: str
+    #: The licence statement AS READ at the source, quoted into the pack so the
+    #: reading is preserved rather than trusted to still be there later.
+    license_quote: str
+
+    #: Everything known to be wrong with this source, recorded in the pack
+    #: rather than worked around. A model that looks bad should say so.
+    known_problems: tuple[str, ...] = ()
+    notes: list[str] = field(default_factory=list)
+
+
+ZENODO_FILE = "https://zenodo.org/api/records/{record}/files/{name}/content"
+
+#: The ten biventricular time steps, end-diastole to end-systole. Their md5s are
+#: Zenodo's own published checksums, pinned and checked on every fetch.
+_CARDIAC_MOTION_FILES = {
+    "biV-032.vtk": ("2eb90ff2cef6452e43b072d657b089b0", 129770),
+    "biV-062.vtk": ("b0e63e97bb66d7c125513bac5c29afcd", 129285),
+    "biV-092.vtk": ("d404149b11cb3ff253b199ec5b026c76", 124623),
+    "biV-122.vtk": ("5db250cc069ac9ee527a3674b4736f65", 123931),
+    "biV-152.vtk": ("d19d4a5a00fc26c2eae4d1aed6a9532d", 120314),
+    "biV-182.vtk": ("9a736d6d0e8d011587d8081cd2cba1ec", 116950),
+    "biV-212.vtk": ("938e84062180e992e9303382f32ad18e", 104545),
+    "biV-242.vtk": ("6a3979c688b5b9cd6484bd9e2c65a4a6", 104040),
+    "biV-272.vtk": ("21001e8b7608e3fb70157057f8721515", 100414),
+    "biV-302.vtk": ("71867439495825787afdb59b4193cebc", 98350),
+}
+
+CARDIAC_MOTION = GeometrySource(
+    key="cardiac-motion",
+    pack_id="motion-biv-cinemri",
+    display_name="Cardiac Motion — biventricular surfaces from cine-MRI",
+    anatomy="Biventricular surface, one adult subject, ten time steps",
+    canonical_variant=(
+        "Single unnamed subject; ten cine-MRI segmentations from end-diastole to "
+        "end-systole, which is HALF a cardiac cycle"
+    ),
+    files=tuple(
+        RemoteFile(
+            url=ZENODO_FILE.format(record="10548682", name=name),
+            name=name,
+            md5=md5,
+            size_bytes=size,
+        )
+        for name, (md5, size) in _CARDIAC_MOTION_FILES.items()
+    ),
+    members=tuple(_CARDIAC_MOTION_FILES),
+    animated=True,
+    # The deposit states no frame rate and no timing beyond the file names, so
+    # inventing one would be inventing a heart rate. The pack carries a
+    # normalised phase axis and the cine control plays it at a rate the LEARNER
+    # chooses, which claims nothing the source did not say.
+    fps=None,
+    loop=False,
+    vertex_correspondence=False,
+    coverage="end-diastole to end-systole; half a cycle, not a whole one",
+    structure_label="Biventricular surface (source carries no labels)",
+    part_labels={},
+    creator="Zemzemi, Nejib",
+    source_text="Zenodo record 10548682, 'Cardiac Motion', ten biV-*.vtk time steps",
+    source_url="https://zenodo.org/records/10548682",
+    license="CC-BY-4.0",
+    license_url="https://creativecommons.org/licenses/by/4.0/",
+    license_state="confirmed",
+    citation=(
+        "Zemzemi, N. (2024). Cardiac Motion [Data set]. Zenodo. "
+        "doi:10.5281/zenodo.10548682"
+    ),
+    license_quote=(
+        'the Zenodo record 10548682 declares license id "cc-by-4.0" '
+        "(Creative Commons Attribution 4.0 International), read from the deposit's own "
+        "record on 2026-08-19"
+    ),
+    known_problems=(
+        "NO VERTEX CORRESPONDENCE between frames: vertex counts differ (2268 in biV-032, "
+        "1712 in biV-302), so frame N+1 is not a displacement of frame N. This is why the "
+        "schema carries whole meshes rather than a deformation field, and it means no "
+        "per-vertex quantity can be tracked through the motion.",
+        "HALF A CYCLE ONLY: end-diastole to end-systole. There is no relaxation, so playback "
+        "must bounce rather than loop; a looping playback would show the heart snapping open.",
+        "NO LABELS: one undivided surface per frame, so nothing can be shown or hidden per "
+        "chamber and there is no echo volume.",
+        "UNDOCUMENTED SUPPLEMENTARY DATA of unverified quality. The deposit is a bare "
+        "collection of segmentations with a two-sentence description, no subject metadata, "
+        "no segmentation protocol and no accuracy statement. Kept because it MOVES.",
+    ),
+    notes=[
+        "Fetched by checksum against Zenodo's published md5s; about 1.15 MB in total.",
+    ],
+)
+
+GEOMETRY_SOURCES = {s.key: s for s in (CARDIAC_MOTION,)}
