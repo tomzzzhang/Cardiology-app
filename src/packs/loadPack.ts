@@ -71,7 +71,7 @@ export async function loadPack(url: string, init?: RequestInit): Promise<LoadedP
 
   const result = validatePack(raw);
   if (!result.ok) {
-    throw new PackLoadError(url, 'pack failed schema v0 validation:', result.issues);
+    throw new PackLoadError(url, `pack failed schema v${SCHEMA_VERSION} validation:`, result.issues);
   }
 
   return {

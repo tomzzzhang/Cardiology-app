@@ -22,7 +22,7 @@ import { poseAt } from './echo/probeFrame.ts';
 import { hasLeftTrack } from './viewer/freeProbe.ts';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
 import { DEFAULT_PACK_ID } from './packs/published.ts';
-import { SCHEMA_VERSION } from './schema/packV0.ts';
+import { SCHEMA_VERSION, isExploreOnly } from './schema/packV0.ts';
 
 /**
  * Which pack the shell shows. `?pack=` exists so the visual suite can hold the
@@ -75,6 +75,11 @@ function requestedMode(): ViewerMode {
     ? 'explore'
     : 'echo';
 }
+
+/** Said on the disabled control and again in words beneath it. */
+const EXPLORE_ONLY_REFUSAL =
+  'This pack is EXPLORE-ONLY: geometry with no labelled echo volume, so there is nothing '
+  + 'to image and Echo mode is unavailable for it.';
 
 type PackState =
   | { status: 'loading' }
@@ -158,6 +163,18 @@ export default function App() {
         const viewIndex = requestedViewIndex(pack);
         const view = pack.views[viewIndex];
         /*
+         * An EXPLORE-ONLY pack has no echo to enter, so Echo mode is REFUSED
+         * rather than entered and left blank — and the refusal is on screen
+         * with its reason, because a mode button that is pressable and inert
+         * is worse than one that is visibly unavailable.
+         *
+         * The refusal is enforced on the effective mode as well as on the
+         * button, so `?mode=echo` on an Explore-only pack lands in Explore
+         * instead of on a half-built screen.
+         */
+        const exploreOnly = isExploreOnly(pack);
+        const effectiveMode: ViewerMode = exploreOnly ? 'explore' : mode;
+        /*
          * Whether the probe has ACTUALLY left the track, not merely whether the
          * toggle is on. A learner can unlock the probe and never drag it, and
          * while the pose is still the view's pose the panel would be withdrawing
@@ -166,6 +183,7 @@ export default function App() {
          */
         const offTrack = freePose !== null && view !== undefined
           && hasLeftTrack(freePose, view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe);
+        const echoVolume = pack.echo_volume;
         return (
         <>
         {/*
@@ -179,29 +197,48 @@ export default function App() {
           {([
             ['echo', 'Echo', 'Anatomy beside the simulated echo, on one vetted probe pose'],
             ['explore', 'Explore', 'The heart model on its own — orbit, cut and inspect. No probe.'],
-          ] as [ViewerMode, string, string][]).map(([value, label, hint]) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={mode === value}
-              className={mode === value ? 'modes__button modes__button--on' : 'modes__button'}
-              onClick={() => setMode(value)}
-              title={hint}
-              data-testid={`mode-${value}`}
-            >
-              {label}
-            </button>
-          ))}
+          ] as [ViewerMode, string, string][]).map(([value, label, hint]) => {
+            const refused = exploreOnly && value === 'echo';
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={effectiveMode === value}
+                aria-disabled={refused}
+                disabled={refused}
+                className={
+                  effectiveMode === value ? 'modes__button modes__button--on' : 'modes__button'
+                }
+                onClick={() => { if (!refused) setMode(value); }}
+                title={refused ? EXPLORE_ONLY_REFUSAL : hint}
+                data-testid={`mode-${value}`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className={mode === 'explore' ? 'stage stage--solo' : 'stage'}>
+        {/*
+          * The reason, in words, next to the control it disables.
+          *
+          * A greyed button says "not now"; it does not say why, and the why is
+          * a property of the PACK rather than of anything the learner did.
+          */}
+        {exploreOnly && (
+          <p className="modes__refusal" data-testid="echo-refusal">
+            {EXPLORE_ONLY_REFUSAL}
+          </p>
+        )}
+
+        <div className={effectiveMode === 'explore' ? 'stage stage--solo' : 'stage'}>
           <PackViewer
             pack={packState.loaded.pack}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
             scrub={scrub}
-            viewIndex={requestedViewIndex(packState.loaded.pack)}
-            mode={mode}
+            viewIndex={viewIndex}
+            mode={effectiveMode}
             freePose={freePose}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
@@ -212,12 +249,12 @@ export default function App() {
             * in the footer stays in BOTH modes: it is not behind a toggle
             * (`contracts/app-shell.md` rule 4).
             */}
-          {mode === 'echo' && (
+          {effectiveMode === 'echo' && echoVolume !== undefined && (
             <EchoPanel
               pack={packState.loaded.pack}
-              volumeUrl={resolveAsset(packState.loaded, packState.loaded.pack.echo_volume.asset)}
+              volumeUrl={resolveAsset(packState.loaded, echoVolume.asset)}
               scrub={scrub}
-              viewIndex={requestedViewIndex(packState.loaded.pack)}
+              viewIndex={viewIndex}
               freePose={freePose}
               offTrack={offTrack}
               onScrubChange={setScrub}

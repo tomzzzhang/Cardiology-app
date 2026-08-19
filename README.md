@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-19 02:05 EDT
+**Updated:** 2026-08-19 05:11 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -43,7 +43,7 @@ npm run dev
 | `npm run verify` | Typecheck, lint, unit tests, pack schema, provenance — the normal gate |
 | `npm run test:visual` | Playwright suite (builds and previews the site) |
 | `npm run test:visual:update` | Write screenshot baselines for the current platform |
-| `npm run validate:packs` | Validate every pack against schema v0, including asset semantics |
+| `npm run validate:packs` | Validate every pack against schema v0.1, including asset semantics |
 | `npm run check:provenance` | Licence and attribution completeness |
 | `npm run check:base-path` | Build with a sentinel base path and assert the output is prefixed |
 | `npm run gen:stub-assets` | Regenerate the synthetic stub pack assets |
@@ -56,7 +56,7 @@ An **anatomy-agnostic engine** plus **self-contained versioned content packs**. 
 engine hardcodes lesion names or counts; adding a lesion means authoring a pack.
 
 ```
-src/schema/     content-pack schema v0 (provisional) and its validator
+src/schema/     content-pack schema v0.1 (provisional) and its validator
 src/packs/      pack-loader — the only place JSON becomes a typed pack
 src/viewer/     viewer-core: orbit, the free cutter and its handles, stencil caps,
                 the probe indicator and its control pad, the beam-dim highlight

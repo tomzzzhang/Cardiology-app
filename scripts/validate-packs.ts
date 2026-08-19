@@ -1,5 +1,5 @@
 /**
- * CI gate: every shipped pack validates against content-pack schema v0.
+ * CI gate: every shipped pack validates against content-pack schema v0.1.
  *
  *   npm run validate:packs
  *
@@ -51,24 +51,56 @@ for (const found of packs) {
   }
 
   const { pack } = result;
-  for (const asset of [pack.meshes.gltf, pack.echo_volume.asset]) {
+  const echoVolume = pack.echo_volume;
+  const referenced = [pack.meshes.gltf, ...(echoVolume ? [echoVolume.asset] : [])];
+  for (const asset of referenced) {
     if (!existsSync(join(found.dir, asset))) {
       failures.push(`${label}: referenced asset "${asset}" does not exist`);
     }
   }
 
-  const gltf = checkGltfReferences(
-    join(found.dir, pack.meshes.gltf),
-    pack.meshes.structures.map((structure) => structure.mesh_node),
-  );
+  const meshNodes = pack.meshes.structures.map((structure) => structure.mesh_node);
+  const gltf = checkGltfReferences(join(found.dir, pack.meshes.gltf), meshNodes);
   failures.push(...gltf.failures.map((failure) => `${label}: ${failure}`));
   notes.push(...gltf.skipped.map((skip) => `${label}: ${skip}`));
 
-  if (pack.echo_volume.format === 'raw-u8') {
+  /*
+   * EVERY keyframe is checked, not just the first.
+   *
+   * Motion multiplies the ways a pack can be half-built: a frame file that was
+   * never written, or one whose node names drifted, produces geometry that
+   * vanishes partway through playback. That reads as a renderer bug, and the
+   * cheapest place to catch it is here, where the frame list and the files are
+   * both in hand.
+   */
+  const keyframes = pack.meshes.keyframes;
+  if (keyframes) {
+    for (const [index, frame] of keyframes.frames.entries()) {
+      const framePath = join(found.dir, frame.gltf);
+      if (!existsSync(framePath)) {
+        failures.push(`${label}: keyframe ${index} ("${frame.label}") is missing "${frame.gltf}"`);
+        continue;
+      }
+      if (index === 0) continue; // already checked as meshes.gltf
+      const frameGltf = checkGltfReferences(framePath, meshNodes);
+      failures.push(
+        ...frameGltf.failures.map((failure) => `${label}: keyframe ${index}: ${failure}`),
+      );
+    }
+    console.log(
+      `ok  ${label}  keyframes: ${keyframes.frames.length} frames, ` +
+        `${keyframes.coverage}` +
+        `${keyframes.vertex_correspondence ? '' : ', no vertex correspondence'}`,
+    );
+  }
+
+  if (echoVolume === undefined) {
+    notes.push(`${label}: EXPLORE-ONLY — no echo_volume, and correspondingly no views`);
+  } else if (echoVolume.format === 'raw-u8') {
     const volume = checkRawVolume(
-      join(found.dir, pack.echo_volume.asset),
-      pack.echo_volume.resolution,
-      pack.echo_volume.labels.map((entry) => entry.id),
+      join(found.dir, echoVolume.asset),
+      echoVolume.resolution,
+      echoVolume.labels.map((entry) => entry.id),
     );
     failures.push(...volume.failures.map((failure) => `${label}: ${failure}`));
     notes.push(...volume.skipped.map((skip) => `${label}: ${skip}`));
@@ -80,17 +112,17 @@ for (const found of packs) {
     );
     const registration = checkVolumeRegistration(
       join(found.dir, pack.meshes.gltf),
-      join(found.dir, pack.echo_volume.asset),
-      pack.echo_volume.resolution,
-      pack.echo_volume.mesh_to_volume,
-      pack.echo_volume.labels,
+      join(found.dir, echoVolume.asset),
+      echoVolume.resolution,
+      echoVolume.mesh_to_volume,
+      echoVolume.labels,
       (structure) => meshNodeOf.get(structure),
     );
     failures.push(...registration.failures.map((failure) => `${label}: ${failure}`));
     notes.push(...registration.skipped.map((skip) => `${label}: ${skip}`));
   } else {
     notes.push(
-      `${label}: echo_volume format "${pack.echo_volume.format}" — contents not inspected in wave 0`,
+      `${label}: echo_volume format "${echoVolume.format}" — contents not inspected in wave 0`,
     );
   }
 

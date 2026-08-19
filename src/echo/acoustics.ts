@@ -223,7 +223,7 @@ export const DEFAULT_TUNING: Readonly<EchoTuning> = {
  * Merge a view's `echo_tuning` bag over the defaults.
  *
  * Unknown keys are IGNORED rather than rejected. The bag is open by design in
- * schema v0, and a pack authored against a later renderer must not fail to
+ * the schema, and a pack authored against a later renderer must not fail to
  * display on an earlier one — it should display with the knobs that renderer
  * has. Non-numeric values for numeric knobs are dropped for the same reason.
  */
@@ -299,5 +299,17 @@ export function describeVolume(echoVolume: EchoVolume): VolumeDescriptor {
 }
 
 export function describePack(pack: Pack): VolumeDescriptor {
+  /*
+   * An EXPLORE-ONLY pack reaching the echo renderer is a shell bug, not a
+   * content problem, so it throws rather than degrading into an empty image.
+   * The shell's job is to refuse Echo mode for these packs and SAY SO; a blank
+   * canvas would look like a broken renderer instead of a pack with no echo.
+   */
+  if (pack.echo_volume === undefined) {
+    throw new Error(
+      `pack "${pack.meta.id}" is EXPLORE-ONLY: it carries no echo_volume, so there is `
+        + 'nothing to render. Echo mode must be refused for it before reaching here.',
+    );
+  }
   return describeVolume(pack.echo_volume);
 }

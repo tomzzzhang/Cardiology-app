@@ -5,7 +5,7 @@
     "anatomy": "Normal heart, four-chamber, adult population average",
     "canonical_variant": "Population-average adult four-chamber mesh (mean shape of 19 subjects); not a single individual and not a paediatric heart",
     "pack_version": "0.1.0",
-    "schema_version": "0"
+    "schema_version": "0.1"
   },
   "provenance": {
     "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
@@ -13,6 +13,7 @@
     "source_url": "https://zenodo.org/records/4593738",
     "license": "CC-BY-4.0",
     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "license_state": "confirmed",
     "modified": {
       "flag": true,
       "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. Pose normalised into a CARDIAC frame measured from this mesh: +y from the left-ventricular apex (located by the source's universal ventricular coordinate) to the centroid of the four valve rings, +x from the right-atrial to the left-atrial centroid orthogonalised against it, +z completing a right-handed basis. The axes are cardiac, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. 9 of 9 independent anatomical checks pass; the full derivation is in meshes.anatomical_frame. Views docs/view_canon.md asks for that this substrate cannot support, and why: a3-subcostal-coronal: Subcostal coronal sweep. NOT AUTHORED: the subcostal family is defined by the beam entering from below the diaphragm, which is what puts the atrial septum near-perpendicular to it \u2014 the view's whole teaching payload. That direction is a BODY axis, and this heart-only mesh carries no spine, diaphragm or chest wall; the three defensible proxies for body superior-inferior disagree by up to 46 degrees on it. A guessed placement would render a plausible sector whose stated claim is false. a4-subcostal-sagittal: Subcostal sagittal (bicaval) sweep. NOT AUTHORED, for the same reason as A3. The bicaval PLANE is derivable here \u2014 the caval stubs and the right atrium are all measured landmarks \u2014 but the subcostal WINDOW is not, and approaching that plane from a guessed direction would misstate the angle every structure in it makes with the beam. The right parasternal bicaval view F1 reaches the same plane from a side this mesh can locate, and is the honest route to this content."
@@ -721,6 +722,7 @@
         "source_url": "https://zenodo.org/records/4593738",
         "license": "CC-BY-4.0",
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
         "modified": {
           "flag": true,
           "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex and BOTH atrioventricular ring centroids, which is the defining property of the view; probe standing off the apical epicardium along the plane, beam toward the midpoint of the two rings. Sweep tilts the plane posteriorly to anteriorly about the in-plane axis. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
@@ -871,6 +873,7 @@
         "source_url": "https://zenodo.org/records/4593738",
         "license": "CC-BY-4.0",
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
         "modified": {
           "flag": true,
           "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex, the mitral ring centroid and the aortic ring centroid \u2014 the long axis of the left ventricle together with the aortic root. Probe standing off the anterior epicardium along the measured anterior axis. Screen-x runs toward the base so the apex falls on screen-left. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
@@ -1006,6 +1009,7 @@
         "source_url": "https://zenodo.org/records/4593738",
         "license": "CC-BY-4.0",
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
         "modified": {
           "flag": true,
           "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane perpendicular to the long axis measured between the left-ventricular apex and the centroid of the four valve rings, translated along that axis from the aortic ring's level to 88 percent of the distance to the apex. Probe standing off the anterior epicardium. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is DELIBERATELY EMPTY: every named structure is first reached at the same sample of this sweep, so the only thing ordering them would be the size tie-break \u2014 the structures sorted largest first, which is a fact about the mesh and not about the sweep. An ordering the sweep did not produce is not shipped, because the sweep scrubber takes its ticks from this list and would otherwise annotate events that do not happen."
@@ -1138,6 +1142,7 @@
         "source_url": "https://zenodo.org/records/4593738",
         "license": "CC-BY-4.0",
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
         "modified": {
           "flag": true,
           "note": "Pose generated mechanically from model bounds by pipeline/ingest.py. Not a clinical view, not vetted, and not derived from any imaging protocol."

@@ -1,13 +1,30 @@
 /**
- * Content pack schema — v0 PROVISIONAL.
+ * Content pack schema — v0.1 PROVISIONAL.
  *
  * Transcribed from `docs/build_plan.md` (v1.2) "Content pack schema — v0
  * PROVISIONAL", with the per-view field list from `docs/view_canon.md`
  * "Per-view schema (feeds pack schema)".
  *
- * STABILITY: v0 is provisional. Do not freeze, simplify, or extend it casually.
+ * STABILITY: still provisional. Do not freeze, simplify, or extend it casually.
  * A v1 revision is expected once the technical slice supplies evidence; make
  * that change deliberately, updating tests and documentation in the same commit.
+ *
+ * WHAT v0.1 ADDED, and why each was cheap enough to do before the clinical
+ * review rather than after it:
+ *
+ * * **`echo_volume` is OPTIONAL.** A pack without one is EXPLORE-ONLY: meshes
+ *   and no echo. Requiring it meant that nothing unlabelled could validate,
+ *   which excluded every geometry-only source — and a model does not have to be
+ *   labelled or segmented to be worth looking at.
+ * * **`provenance.license_state` is REQUIRED.** Licence questions on the new
+ *   sources are deferred, not ignored: each pack records how well its grant is
+ *   actually known, so the deferral is reversible and auditable. Anything other
+ *   than `confirmed` cannot be published, and that is a validator rule rather
+ *   than a habit.
+ * * **`meshes.keyframes` carries MOTION.** Frames are whole meshes, not
+ *   deformation fields. That is deliberate: the one 4D asset in hand has no
+ *   vertex correspondence between frames, so it could not use a deformation
+ *   field even if one existed here.
  *
  * BOUNDARY (build_plan v1.2, "Viewer interaction contract"): the free
  * anatomical cutter and the vetted echo wedge are different objects on
@@ -31,7 +48,7 @@ import {
 } from './primitives.ts';
 
 /** Packs declaring any other value are rejected outright rather than coerced. */
-export const SCHEMA_VERSION = '0' as const;
+export const SCHEMA_VERSION = '0.1' as const;
 
 /* -------------------------------------------------------------------------- */
 /* meta                                                                       */
@@ -90,6 +107,48 @@ export const VettingState = z
 export type VettingState = z.infer<typeof VettingState>;
 
 /**
+ * How well the licence on this material is actually KNOWN.
+ *
+ * `license` names a grant. It says nothing about where that name came from, and
+ * the difference is the whole risk: a licence copied off a mirror, or inferred
+ * from a sibling deposit, reads identically to one quoted from the rights
+ * holder's own page. Recording the difference is what makes deferring the
+ * licence questions reversible rather than merely postponed.
+ *
+ * * `confirmed` — read from the rights holder's own page, and quoted in the
+ *   pack's `modified.note` so the reading is preserved rather than trusted.
+ * * `non_commercial` — confirmed, and NC. It can never ship: an NC pack binds
+ *   the whole application to the NC red lines (`contracts/provenance-ui.md`).
+ * * `unconfirmed` — no licence statement was found at the source at all, or the
+ *   statements found contradict each other and none is authoritative.
+ * * `permission_pending` — an enquiry has gone to the rights holder and no
+ *   answer has come back.
+ *
+ * Only `confirmed` may be published, and that is enforced — see
+ * `mayBePublished` and `scripts/check-provenance.ts`.
+ */
+export const LICENSE_STATES = [
+  'confirmed',
+  'non_commercial',
+  'unconfirmed',
+  'permission_pending',
+] as const;
+
+export const LicenseState = z.enum(LICENSE_STATES);
+export type LicenseState = z.infer<typeof LicenseState>;
+
+/**
+ * The publication rule, in one place.
+ *
+ * A licence that is merely probable is not a licence. Everything but
+ * `confirmed` — including `non_commercial`, which IS confirmed but forbids the
+ * use — stays off the deployed site.
+ */
+export function mayBePublished(state: LicenseState): boolean {
+  return state === 'confirmed';
+}
+
+/**
  * Attribution surface. CI fails the build on any missing provenance or license
  * field (build_plan, "Licensing plan"); the credits screen renders creator,
  * source URL, license + URL, and the modified note per model.
@@ -100,6 +159,8 @@ export const Provenance = z.strictObject({
   source_url: HttpUrl,
   license: z.string().min(1),
   license_url: HttpUrl,
+  /** How the grant named in `license` is known. Required since schema v0.1. */
+  license_state: LicenseState,
   modified: z.strictObject({
     flag: z.boolean(),
     note: z.string(),
@@ -366,6 +427,102 @@ export const AnatomicalFrame = z
   });
 export type AnatomicalFrame = z.infer<typeof AnatomicalFrame>;
 
+/* -------------------------------------------------------------------------- */
+/* keyframed geometry — motion, deliberately minimal                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One geometry frame: a WHOLE mesh, not a displacement of another one.
+ *
+ * That is the deliberate limit of this block. A deformation field is the right
+ * representation for motion and is a fraction of the size — and it requires
+ * vertex correspondence between frames, which the one 4D asset actually in hand
+ * does not have (its frames differ in vertex COUNT, 2268 against 1712). A
+ * schema field nothing can populate is worse than an absent one, so the
+ * representation follows the data rather than the ambition. See
+ * `keyframes.vertex_correspondence`, which records per pack whether a future
+ * deformation-field representation could even be derived.
+ */
+export const GeometryFrame = z.strictObject({
+  gltf: AssetPath,
+  /**
+   * Position on the cardiac cycle, normalised to [0, 1].
+   *
+   * Optional only because a source may instead state a real frame rate. One of
+   * the two must be present — see the refinement on `GeometryKeyframes` — or
+   * the frames are an ordered list with no time axis at all, which cannot be
+   * played back honestly.
+   */
+  phase: z.number().min(0).max(1).optional(),
+  /** Source frame name, so a frame traces back to the file it came from. */
+  label: z.string().min(1),
+});
+export type GeometryFrame = z.infer<typeof GeometryFrame>;
+
+export const GeometryKeyframes = z
+  .strictObject({
+    /** Ordered frames. Two is the minimum that can be called motion. */
+    frames: z.array(GeometryFrame).min(2),
+    /** Playback rate, where the source states one. */
+    fps: z.number().positive().optional(),
+    /**
+     * Whether the frames span one whole cycle and the ends meet.
+     *
+     * False means playback must bounce rather than wrap: half a cycle played on
+     * a loop would show the heart snapping from end-systole back to
+     * end-diastole, which is not a motion any heart makes.
+     */
+    loop: z.boolean(),
+    /**
+     * Whether vertex count AND ordering are constant across frames.
+     *
+     * Recorded rather than assumed. It is the single fact that decides whether
+     * this pack could ever carry a deformation field, and it is invisible from
+     * anything else in the pack.
+     */
+    vertex_correspondence: z.boolean(),
+    /** What part of the cycle these frames actually cover, in words. */
+    coverage: z.string().min(1),
+  })
+  .superRefine((value, ctx) => {
+    const phased = value.frames.filter((frame) => frame.phase !== undefined);
+    if (value.fps === undefined && phased.length !== value.frames.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fps'],
+        message:
+          'keyframes need a time axis: declare fps, or give every frame a phase',
+      });
+    }
+
+    // A phase axis that is not monotonic is not an axis. Checked rather than
+    // sorted at load, because reordering authored frames would silently change
+    // which mesh is end-systole.
+    for (let index = 1; index < phased.length; index += 1) {
+      if (phased[index].phase! <= phased[index - 1].phase!) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['frames', index, 'phase'],
+          message: 'frame phases must strictly increase',
+        });
+        break;
+      }
+    }
+
+    const labels = new Set<string>();
+    value.frames.forEach((frame, index) => {
+      if (labels.has(frame.label)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['frames', index, 'label'],
+          message: `duplicate frame label "${frame.label}"`,
+        });
+      }
+      labels.add(frame.label);
+    });
+  });
+export type GeometryKeyframes = z.infer<typeof GeometryKeyframes>;
+
 export const Meshes = z.strictObject({
   gltf: AssetPath,
   structures: z.array(Structure).min(1),
@@ -391,7 +548,26 @@ export const Meshes = z.strictObject({
     }),
   /** Evidence for `orientation`. Absent where the source cannot support one. */
   anatomical_frame: AnatomicalFrame.optional(),
-});
+  /**
+   * Motion, where the source has any. Absent means a single static geometry.
+   *
+   * `gltf` above stays the pack's one static mesh and must be the FIRST frame,
+   * so a consumer that knows nothing about motion still renders a real frame of
+   * this heart rather than a mesh nothing else references.
+   */
+  keyframes: GeometryKeyframes.optional(),
+})
+  .superRefine((meshes, ctx) => {
+    if (meshes.keyframes && meshes.keyframes.frames[0].gltf !== meshes.gltf) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['keyframes', 'frames', 0, 'gltf'],
+        message:
+          `the first keyframe must be meshes.gltf ("${meshes.gltf}"), so the static `
+          + 'mesh and frame 0 cannot drift apart',
+      });
+    }
+  });
 export type Meshes = z.infer<typeof Meshes>;
 
 /* -------------------------------------------------------------------------- */
@@ -708,8 +884,15 @@ const PackShape = z.strictObject({
   provenance: Provenance,
   meshes: Meshes,
   interaction: InteractionDefaults.optional(),
-  echo_volume: EchoVolume,
-  views: z.array(PackView).min(1),
+  /**
+   * The labelled volume, where the source can support one.
+   *
+   * OPTIONAL since v0.1. A pack without it is EXPLORE-ONLY — see
+   * `isExploreOnly`. Requiring it meant nothing unlabelled could validate, and
+   * an unlabelled mesh is still a heart worth turning over.
+   */
+  echo_volume: EchoVolume.optional(),
+  views: z.array(PackView),
   display_flags: DisplayFlags,
   /**
    * The schema tolerates a future volumetric-data reference (CT/CMR-derived
@@ -720,6 +903,53 @@ const PackShape = z.strictObject({
 
 /** Cross-field integrity: every id referenced anywhere must resolve. */
 export const Pack = PackShape.superRefine((pack, ctx) => {
+  /*
+   * EXPLORE-ONLY is one fact, not two that have to agree.
+   *
+   * A view exists to be imaged from: it is a probe pose, a fan and an echo
+   * tuning. With no volume there is nothing for that pose to image, so a pack
+   * carrying views and no `echo_volume` is describing an echo it cannot
+   * produce. Refusing the combination outright means `echo_volume === undefined`
+   * and `views.length === 0` are the SAME condition, and the app can key the
+   * Echo-mode refusal off either without them ever disagreeing.
+   */
+  if (pack.echo_volume === undefined) {
+    if (pack.views.length > 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['views'],
+        message:
+          'an EXPLORE-ONLY pack (no echo_volume) cannot carry views: a view is a pose to '
+          + 'image from, and there is nothing here to image',
+      });
+    }
+  } else if (pack.views.length === 0) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['views'],
+      message: 'a pack with an echo_volume must carry at least one view',
+    });
+  }
+
+  /*
+   * One pack, one licence state. The per-view provenance blocks exist so a view
+   * can carry its own vetting and modification note, not so a pack can hold two
+   * answers to "may this be published" — and the publication rule reads the
+   * pack-level state, so a view disagreeing with it would be a rule silently
+   * evaluated against the wrong field.
+   */
+  pack.views.forEach((view, index) => {
+    if (view.provenance.license_state !== pack.provenance.license_state) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['views', index, 'provenance', 'license_state'],
+        message:
+          `view license_state "${view.provenance.license_state}" contradicts the pack's `
+          + `"${pack.provenance.license_state}"`,
+      });
+    }
+  });
+
   const structureIds = new Set<string>();
   pack.meshes.structures.forEach((structure, index) => {
     if (structureIds.has(structure.id)) {
@@ -781,7 +1011,7 @@ export const Pack = PackShape.superRefine((pack, ctx) => {
   });
 
   const labelIds = new Set<number>();
-  pack.echo_volume.labels.forEach((label, index) => {
+  pack.echo_volume?.labels.forEach((label, index) => {
     if (labelIds.has(label.id)) {
       ctx.addIssue({
         code: 'custom',
@@ -831,3 +1061,19 @@ export const Pack = PackShape.superRefine((pack, ctx) => {
 });
 
 export type Pack = z.infer<typeof Pack>;
+
+/**
+ * A pack with meshes and no echo.
+ *
+ * The app must REFUSE to enter Echo mode for one of these, and say why rather
+ * than doing nothing: a mode control that is present, pressable and inert is a
+ * bug report waiting to be filed.
+ */
+export function isExploreOnly(pack: Pack): boolean {
+  return pack.echo_volume === undefined;
+}
+
+/** Whether this pack carries motion the Explore cine control can play. */
+export function hasKeyframes(pack: Pack): boolean {
+  return pack.meshes.keyframes !== undefined;
+}

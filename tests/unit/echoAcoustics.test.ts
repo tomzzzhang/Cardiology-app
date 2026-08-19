@@ -222,14 +222,14 @@ describe('the shipped pack', () => {
 
   it('orders myocardium above blood', () => {
     const p = pack('normal-rodero');
-    const ordering = greyOrdering(p.echo_volume.labels);
+    const ordering = greyOrdering(p.echo_volume!.labels);
     const lv = ordering.find((entry) => entry.structure === 'lv-myocardium');
     expect(lv).toBeDefined();
     expect(lv!.echogenicity).toBeGreaterThan(BLOOD.echogenicity);
   });
 
   it('gives every declared label an echogenicity inside the authored range', () => {
-    for (const label of pack('normal-rodero').echo_volume.labels) {
+    for (const label of pack('normal-rodero').echo_volume!.labels) {
       expect(label.echogenicity).toBeGreaterThanOrEqual(0);
       expect(label.echogenicity).toBeLessThanOrEqual(1);
       expect(label.attenuation).toBeGreaterThanOrEqual(0);
@@ -237,7 +237,7 @@ describe('the shipped pack', () => {
   });
 
   it('never assigns a label to the reserved background value', () => {
-    for (const label of pack('normal-rodero').echo_volume.labels) {
+    for (const label of pack('normal-rodero').echo_volume!.labels) {
       expect(label.id).not.toBe(BACKGROUND_LABEL);
     }
   });

@@ -18,6 +18,7 @@ import {
   isPublishedPack,
   rejectionFor,
 } from '../../src/packs/published.ts';
+import { LICENSE_STATES, mayBePublished, type LicenseState } from '../../src/schema/packV0.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packsDir = join(repoRoot, 'public', 'packs');
@@ -98,6 +99,44 @@ describe('rejected packs stay in the repository as evidence', () => {
       expect(pack.provenance.license.length).toBeGreaterThan(0);
       expect(pack.provenance.creator.length).toBeGreaterThan(0);
       expect(pack.provenance.vetted.status).toBe('draft');
+    }
+  });
+});
+
+describe('the licence state gates publication (schema v0.1)', () => {
+  /*
+   * The rule enforced here is the same one `scripts/check-provenance.ts`
+   * applies, over the same real packs. It is duplicated deliberately: the CI
+   * script runs at build time and this runs in `npm run test`, so removing the
+   * script would not silently remove the rule.
+   */
+  it('publishes no pack whose licence is anything but confirmed', () => {
+    for (const packId of packIdsInRepo()) {
+      const pack = JSON.parse(readFileSync(join(packsDir, packId, 'pack.json'), 'utf8'));
+      const state = pack.provenance.license_state as LicenseState;
+      if (!mayBePublished(state)) {
+        expect(isPublishedPack(packId), `${packId} is "${state}" and must not ship`).toBe(false);
+      }
+    }
+  });
+
+  it('gives every pack in the repository a licence state', () => {
+    for (const packId of packIdsInRepo()) {
+      const pack = JSON.parse(readFileSync(join(packsDir, packId, 'pack.json'), 'utf8'));
+      expect(LICENSE_STATES, packId).toContain(pack.provenance.license_state);
+    }
+  });
+
+  it('records the reason each unpublished pack cannot ship', () => {
+    // A pack can be off the list for a substrate verdict, a licence, or both.
+    // What it may not be is off the list for no recorded reason.
+    for (const packId of packIdsInRepo()) {
+      if (isPublishedPack(packId)) continue;
+      const pack = JSON.parse(readFileSync(join(packsDir, packId, 'pack.json'), 'utf8'));
+      const reasoned =
+        rejectionFor(packId) !== undefined
+        || !mayBePublished(pack.provenance.license_state as LicenseState);
+      expect(reasoned, `${packId} is unpublished with no recorded reason`).toBe(true);
     }
   });
 });

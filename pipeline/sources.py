@@ -42,6 +42,12 @@ class Source:
     source_url: str
     license: str
     license_url: str
+    #: How well the grant named in `license` is actually KNOWN. One of
+    #: "confirmed", "non_commercial", "unconfirmed", "permission_pending" --
+    #: `LicenseState` in src/schema/packV0.ts is the definition. A state other
+    #: than "confirmed" cannot be published, and CI enforces that rather than
+    #: trusting the `publishable` flag below to agree with it.
+    license_state: str
     citation: str
 
     # --- policy -----------------------------------------------------------
@@ -84,6 +90,8 @@ RODERO = Source(
     source_url="https://zenodo.org/records/4593738",
     license="CC-BY-4.0",
     license_url="https://creativecommons.org/licenses/by/4.0/",
+    # Read from the Zenodo record's own licence field.
+    license_state="confirmed",
     citation=(
         "Rodero C, Strocchi M, Marciniak M, Longobardi S, Whitaker J, O'Neill MD, "
         "Gillette K, Augustin C, Plank G, Vigmond EJ, Lamata P, Niederer SA. "
@@ -116,6 +124,10 @@ ALBERTA = Source(
     source_url="https://sketchfab.com/3d-models/normal-neonatal-heart-7869b91a0c0744e9a3a2035eb3a72236",
     license="CC-BY-4.0",
     license_url="https://creativecommons.org/licenses/by/4.0/",
+    # Two grants from the same rights holder contradict each other and neither
+    # is authoritative. That is not a confirmed licence, whichever reading the
+    # owner elected for the purposes of keeping the pack.
+    license_state="unconfirmed",
     citation=(
         "This work is based on \"Normal Neonatal Heart\" by 3D Heart Project "
         "(https://sketchfab.com/3DHeartProject), licensed under CC-BY-4.0."
@@ -162,6 +174,8 @@ VHL = Source(
     source_url="https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
     license="CC-BY-NC-4.0",
     license_url="https://creativecommons.org/licenses/by-nc/4.0/",
+    # Read from the Sketchfab model page's own licence field.
+    license_state="non_commercial",
     citation=(
         "This work is based on \"Healthy Pediatric Heart Model- Heart0102\" by VisibleHeartLabs "
         "(https://sketchfab.com/VisibleHeartLabs), licensed under CC-BY-NC-4.0."

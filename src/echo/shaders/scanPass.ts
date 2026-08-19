@@ -51,7 +51,7 @@ uniform int   uAttenSteps;   // samples used for the attenuation integral
 /* ------------------------------------------------------------------ */
 
 /*
- * The scatterer field is NOT shipped (schema v0 has no baked channel); it is
+ * The scatterer field is NOT shipped (the schema has no baked channel); it is
  * generated here from the pack's scatterer_seed, deterministically, so the same
  * pack renders identically on every device and across reloads.
  *

@@ -5,7 +5,7 @@
     "anatomy": "Normal paediatric heart",
     "canonical_variant": "Single 14-year-old specimen, MR-segmented tissue, no known cardiac history",
     "pack_version": "0.1.0",
-    "schema_version": "0"
+    "schema_version": "0.1"
   },
   "provenance": {
     "creator": "Visible Heart Laboratories (University of Minnesota)",
@@ -13,6 +13,7 @@
     "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
     "license": "CC-BY-NC-4.0",
     "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "license_state": "non_commercial",
     "modified": {
       "flag": true,
       "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. ORIENTATION UNVERIFIED. This source carries no chamber labels, so anterior and patient-left cannot be derived from the geometry. The declared convention is the glTF default (+y up) with the remaining axes unconfirmed, and must be set at vetting before any clinical use. REJECTED AS SUBSTRATE (2026-08-19). A single undivided tissue body: one material, one echo label, no per-chamber structures, so nothing can be shown or hidden per chamber and a sweep has no ordered structure list to read out. Interior endocardial surfaces are genuinely present, but 1,026 connected components \u2014 trabecular islands and segmentation debris \u2014 render as voids through the tissue. NOT PUBLISHED, and independently licence-constrained as CC BY-NC 4.0. Retained in the repository as evidence. Renders in an UNVERIFIED orientation. NON-COMMERCIAL. Shipping this pack binds the whole app: build_plan.md's NC red lines are ads, paid sponsorship tied to content, paid tiers including NC content, and selling institutional access. A free educational app with zero revenue is squarely permitted. Kept logically separable so it can be dropped without touching the others."
@@ -176,6 +177,7 @@
         "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
         "license": "CC-BY-NC-4.0",
         "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "license_state": "non_commercial",
         "modified": {
           "flag": true,
           "note": "Pose generated mechanically from model bounds by pipeline/ingest.py. Not a clinical view, not vetted, and not derived from any imaging protocol."

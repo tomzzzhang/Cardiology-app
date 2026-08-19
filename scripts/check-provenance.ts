@@ -15,10 +15,20 @@
  *   - vetter NAMES are consent-gated, so an unnamed vetter is fine but a named
  *     one must still carry a role label for the provenance strip;
  *   - `modified.flag` implies a non-empty modified note (the CC "reasonable
- *     manner" requirement) and a non-empty derivation chain.
+ *     manner" requirement) and a non-empty derivation chain;
+ *   - `license_state` is present and non-empty, and ONLY a `confirmed` state may
+ *     appear on a published pack.
+ *
+ * That last rule is the reason this check exists at all rather than being left
+ * to the schema. The schema can require a state to be declared; it cannot see
+ * the published allowlist, so it cannot tell whether declaring `unconfirmed`
+ * contradicts shipping the pack. Enforcing it here makes "an unconfirmed
+ * licence does not ship" a rule the build applies rather than a habit somebody
+ * has to remember at the moment they edit the allowlist.
  */
 import { validatePack } from '../src/schema/validate.ts';
-import type { Provenance } from '../src/schema/packV0.ts';
+import { mayBePublished, type Provenance } from '../src/schema/packV0.ts';
+import { isPublishedPack } from '../src/packs/published.ts';
 import { discoverPacks, relativeToRepo } from './lib/discoverPacks.ts';
 import { isPlaceholder } from './lib/placeholders.ts';
 
@@ -54,6 +64,13 @@ function checkProvenance(where: string, provenance: Provenance): void {
     }
   }
 
+  // The schema types this as an enum, so a bad value cannot reach here — but a
+  // pack that never went through the schema (a hand-edit under review) can, and
+  // an empty state must fail as loudly as a missing one.
+  if (String(provenance.license_state ?? '').trim().length === 0) {
+    fail('license_state is missing or empty');
+  }
+
   const { vetted } = provenance;
   if (vetted.status === 'vetted') {
     if (vetted.vetters.length === 0) fail('status is "vetted" but no vetters are recorded');
@@ -82,7 +99,7 @@ for (const found of packs) {
 
   const result = validatePack(found.raw);
   if (!result.ok) {
-    failures.push(`${label}: does not validate against schema v0; run "npm run validate:packs"`);
+    failures.push(`${label}: does not validate against schema v0.1; run "npm run validate:packs"`);
     continue;
   }
 
@@ -92,10 +109,24 @@ for (const found of packs) {
     checkProvenance(`${label} [views.${index} "${view.view_id}"]`, view.provenance);
   });
 
+  /*
+   * The licence gate. `mayBePublished` is the one definition of the rule; this
+   * is the one place it meets the allowlist.
+   */
+  const state = pack.provenance.license_state;
+  if (isPublishedPack(pack.meta.id) && !mayBePublished(state)) {
+    failures.push(
+      `${label}: pack "${pack.meta.id}" is on the published list but its license_state is ` +
+        `"${state}". Only "confirmed" may be published — either confirm the licence at the ` +
+        'rights holder, or remove the pack from PUBLISHED_PACK_IDS.',
+    );
+  }
+
   const draftViews = pack.views.filter((view) => view.provenance.vetted.status === 'draft');
   console.log(
-    `ok  ${label}  (anatomy: ${pack.provenance.license}; ` +
-      `${draftViews.length}/${pack.views.length} views draft-flagged)`,
+    `ok  ${label}  (anatomy: ${pack.provenance.license}, ${state}; ` +
+      `${draftViews.length}/${pack.views.length} views draft-flagged; ` +
+      `${pack.echo_volume === undefined ? 'EXPLORE-ONLY' : 'echo-capable'})`,
   );
 }
 

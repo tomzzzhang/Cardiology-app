@@ -97,7 +97,7 @@ describe('loadPack failure paths', () => {
     const error = (await loadPack(PACK_URL).catch((caught: unknown) => caught)) as PackLoadError;
     expect(error).toBeInstanceOf(PackLoadError);
     expect(error.issues.map((issue) => issue.path)).toContain('provenance.license_url');
-    expect(error.message).toMatch(/failed schema v0 validation/);
+    expect(error.message).toMatch(/failed schema v0\.1 validation/);
     expect(error.url).toBe(PACK_URL);
   });
 });

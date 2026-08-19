@@ -609,6 +609,7 @@ def provenance_block(source: Source, *, note: str, chain: list[str]) -> dict:
         "source_url": source.source_url,
         "license": source.license,
         "license_url": source.license_url,
+        "license_state": source.license_state,
         "modified": {"flag": True, "note": note},
         "derivation_chain": chain,
         "vetted": {"status": "draft", "vetters": [], "last_reviewed": None},
@@ -825,7 +826,7 @@ def build_pack(
     low = np.min([s.surface.vertices.min(axis=0) for s in structures], axis=0)
     high = np.max([s.surface.vertices.max(axis=0) for s in structures], axis=0)
 
-    # Model space -> volume space, 4x4 column-major, as schema v0 requires.
+    # Model space -> volume space, 4x4 column-major, as the schema requires.
     scale = 1.0 / pitch
     mesh_to_volume = [
         scale, 0.0, 0.0, 0.0,
@@ -881,7 +882,7 @@ def build_pack(
             "anatomy": source.anatomy,
             "canonical_variant": source.canonical_variant,
             "pack_version": "0.1.0",
-            "schema_version": "0",
+            "schema_version": "0.1",
         },
         "provenance": provenance_block(
             source,

@@ -380,6 +380,21 @@ body {
   font-weight: 600;
 }
 
+.modes__button:disabled {
+  color: #4c5b6b;
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+/* The reason a mode is unavailable, next to the control that is unavailable.
+   Amber rather than red: nothing has gone wrong, this pack simply has no echo. */
+.modes__refusal {
+  margin: 0.4rem 0 0;
+  max-width: 60ch;
+  font-size: 0.8rem;
+  color: #d8b271;
+}
+
 /* Explore has no echo panel, so the anatomy takes the whole stage rather than
    half of it with a hole beside it. */
 .stage--solo {

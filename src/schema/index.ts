@@ -1,7 +1,7 @@
 /**
- * Content pack schema v0 (PROVISIONAL) — public surface.
+ * Content pack schema v0.1 (PROVISIONAL) — public surface.
  *
- * See `contracts/pack-loader.md`. Code against v0;
+ * See `contracts/pack-loader.md`. Code against v0.1;
  * one controlled revision to v1 is expected after the wave 1 slice review.
  */
 export * from './primitives.ts';
