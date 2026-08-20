@@ -937,18 +937,21 @@ export default function PackViewer({
     const syncProbeObjects = () => {
       const view = pack.views[viewIndex];
       /*
-       * AUTHORING: a placed pose is a probe, whatever mode is on and whether or
-       * not the pack has a view yet.
+       * EXPLORE HAS NO PROBE. Not in authoring either.
        *
-       * Five of the nine packs carry no `views[]` at all — the schema forbids
-       * views without an `echo_volume`, and those five have none — so on
-       * exactly the packs this unit exists to place probes on, the learner path
-       * never shows a probe. Without this an author would anchor a pose and see
-       * nothing. Folded out with the flag off, so the learner rule is untouched:
-       * Explore has no probe.
+       * This briefly did allow one, so that a pose placed on a pack with no
+       * `views[]` — the five that carry no `echo_volume`, which are the packs
+       * this tool exists for — would be visible somewhere. The owner stopped
+       * it, and the rule is theirs: Explore is the heart on its own, and a
+       * transducer floating beside it in a mode that has no probe is a mode
+       * saying two things at once.
+       *
+       * The cost is real and is recorded in `docs/observations.md`: on those
+       * five packs an author can place and store a pose and cannot SEE it,
+       * because the only mode that draws a probe is the one those packs cannot
+       * enter. How to close that is the owner's call.
        */
-      const authoringPose = AUTHORING_ENABLED && freePoseRef.current !== null;
-      const wanted = loaded && (authoringPose || (viewerMode === 'echo' && view !== undefined));
+      const wanted = viewerMode === 'echo' && view !== undefined && loaded;
 
       if (!wanted) {
         if (probe) {
@@ -956,6 +959,7 @@ export default function PackViewer({
           probe.dispose();
           probe = null;
         }
+        host.dataset.probe = 'absent';
         return;
       }
 
@@ -963,6 +967,13 @@ export default function PackViewer({
         probe = new ProbeIndicator(currentFrame);
         scene.add(probe.object);
       }
+      /*
+       * A test seam, for the same reason the cut handles and the structure
+       * count have one: "Explore draws no probe" is a rule, and checking it by
+       * reading pixels out of a WebGL canvas measures the readback as much as
+       * the scene. This is the scene's own answer.
+       */
+      host.dataset.probe = probe ? 'present' : 'absent';
     };
 
     /* --- input ------------------------------------------------------------ */
@@ -1477,16 +1488,6 @@ export default function PackViewer({
       },
       setFrame: (frame) => {
         currentFrame = frame;
-        /*
-         * AUTHORING: the probe indicator may not exist yet.
-         *
-         * On a pack with no `views[]` — the five this unit exists for — nothing
-         * has ever built one, because the learner path only ever wants a probe
-         * where a view supplies the first frame. A placed pose IS that first
-         * frame, so the indicator is created here on the way past. Folded out
-         * with the flag off, where a frame without a probe cannot happen.
-         */
-        if (AUTHORING_ENABLED) syncProbeObjects();
         probe?.update(frame);
         // One frame drives the probe geometry AND the highlight, for the same
         // reason the wedge and the echo share it: they cannot be allowed to
@@ -1797,12 +1798,7 @@ export default function PackViewer({
    */
   useEffect(() => {
     const view = pack.views[viewIndex];
-    if (!view) {
-      // AUTHORING: a pose placed on a pack that has no views yet still drives
-      // the wedge. Folded out with the flag off.
-      if (AUTHORING_ENABLED && freePose) apiRef.current?.setFrame(imagingFrame(freePose));
-      return;
-    }
+    if (!view) return;
     apiRef.current?.setFrame(
       freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
     );

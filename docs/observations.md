@@ -1965,3 +1965,43 @@ affordances drawn INSIDE the canvas — the cut-plane handles and the probe arro
 draggable things whose function is least obvious. Reaching them needs the scene
 to publish what is under the pointer, which it already does for structure
 hover; not built, and it is the obvious next thing.
+
+---
+
+## 55. Explore has no probe, and the cost of that on five packs
+
+**The owner's correction, mid-session, and the second time this round a rule of
+theirs overrode something I had built.** The authoring build briefly drew the
+transducer and its fan in Explore, so that a pose placed on a pack with no
+`views[]` would be visible somewhere. It is now gone, on the rule that Explore
+is the heart on its own — a transducer floating beside it is a mode saying two
+things at once, and that is exactly the disagreement entry 41 removed when
+isolate was made Explore-only.
+
+**Asserted rather than trusted.** The scene publishes `data-probe` on the host
+and the Playwright suite reads it on `normal-rodero` and `stub` in Explore, and
+in Echo to prove the assertion is about the mode rather than about a probe that
+was never built. Verified to fail when the mode condition is removed.
+
+**The cost, stated plainly, because it is the owner's to weigh.** Five packs —
+`anatomy-bodyparts3d-heart`, `motion-biv-cinemri`, `motion-straus-us-patient01`,
+`normal-kit-four-chamber`, `tof-cobivecox-chd0017001` — have no `echo_volume`,
+therefore no views, therefore **no Echo mode at all**. Explore is the only mode
+they have, and Explore draws no probe. So on the five packs this whole unit
+exists for, **an author can place a pose, store it, derive the axes from it and
+export it — and cannot see the probe or the fan while doing any of it.** The
+numbers are right; the placement is blind.
+
+**Three ways to close it, none taken, because the choice is the owner's:**
+
+1. **Let authoring reach Echo on a volume-less pack.** The 3D panel draws the
+   model, probe and wedge; the echo panel shows the refusal it already has for
+   these packs. Honest — "Echo" means there is a probe, and the IMAGE is what is
+   unavailable — and it touches the learner mode gating, which is why it was not
+   done unilaterally.
+2. **An authoring-only third mode**, so Explore's rule is untouched and the
+   probe has somewhere to live.
+3. **Leave it blind and place by the numbers**, using the derived-axis readout
+   and the standoff report as the only feedback. Workable for the four-chamber,
+   where the camera angle IS the placement, and poor for anything needing a
+   nudge.

@@ -1469,6 +1469,36 @@ test('a hint appears only after a pause, and never under the pointer', async ({ 
   await expect(titled).toHaveAttribute('title', before ?? '');
 });
 
+/**
+ * Explore has no probe, and no build flag changes that.
+ *
+ * Reported from the app: the authoring build briefly drew the transducer and
+ * its wedge in Explore, so that a pose placed on a pack with no `views[]` would
+ * be visible somewhere. It is a mode that says "the heart on its own"; a
+ * transducer floating beside it says two things at once.
+ *
+ * Asserted against the SCENE rather than against a screenshot: the viewer
+ * publishes what it has drawn, and reading pixels out of a WebGL canvas
+ * measures the readback as much as the scene.
+ */
+test('Explore draws no probe, on a pack that has views and on one that has none', async ({ page }) => {
+  for (const pack of ['normal-rodero', 'stub']) {
+    await page.goto(`/?freeze=1&pack=${pack}&mode=explore`);
+    const viewer = page.getByTestId('anatomy-viewer');
+    await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+
+    await expect(viewer).toHaveAttribute('data-probe', 'absent');
+    await expect(page.getByTestId('probe-pad')).toHaveCount(0);
+  }
+
+  // And it comes back in Echo, so the assertion above is about the mode rather
+  // than about a probe that was never built.
+  await page.goto('/?freeze=1&pack=normal-rodero');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await expect(viewer).toHaveAttribute('data-probe', 'present');
+});
+
 test('app shell screenshot', async ({ page }, testInfo) => {
   const baseline = testInfo.snapshotPath('app-shell.png');
   const seeding = !['none', 'missing'].includes(testInfo.config.updateSnapshots);
