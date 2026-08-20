@@ -1,7 +1,12 @@
 # Contract: authoring mode
 
 **Owns:** `src/authoring/**`
-**Status:** contract only. Implementation lands after wave 2.
+**Status:** contract only, except for the PROBE PLACEMENT slice — view-axis anchoring, the
+derived standoff, the centre button, and saved position slots with export — pulled forward and
+landed 2026-08-19 at the owner's decision. Nothing else here is built. The gating rule below is
+NOT relaxed by the slice: it is off by default, unreachable from the learner UI, and no learner
+path became editable because it exists (`scripts/check-authoring-absent.ts` asserts the built
+bundle carries none of it). The rest lands after wave 2.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (6); vetting checklist in `docs/view_canon.md`.
 
 ## Responsibility

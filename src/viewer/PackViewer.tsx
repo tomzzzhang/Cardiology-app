@@ -75,6 +75,9 @@ import { hitRadiusPx, isCoarsePointer, revealFor, watchPointerClass } from './po
 import { projectToScreen, unitsPerPixel } from './screen.ts';
 import { cineIntervalMs, nextCineState } from './cine.ts';
 import { structureColour } from './palette.ts';
+import { AUTHORING_ENABLED } from '../authoring/flag.ts';
+import type { ViewAnchor } from '../authoring/anchor.ts';
+import AuthoringControls from '../authoring/AuthoringControls.tsx';
 
 /**
  * What the cut plane is, stated on screen at all times.
@@ -219,6 +222,17 @@ interface ViewerApi {
   resetCamera: () => void;
   matchEchoOrientation: (frame: ImagingFrame) => void;
   resetCutPlane: () => void;
+  /**
+   * AUTHORING ONLY: the camera ray and the model's bounding sphere, in MODEL
+   * space.
+   *
+   * Read-only, and it exists so `src/authoring/anchor.ts` never has to know
+   * about three.js, the canonical pose, or which space anything is in — the
+   * conversion happens here, where the matrix is. With the authoring flag off
+   * this is the constant `() => null` and the implementation below folds out of
+   * the bundle, so a learner build carries no path to it at all.
+   */
+  viewAnchor: () => ViewAnchor | null;
 }
 
 export default function PackViewer({
@@ -402,6 +416,16 @@ export default function PackViewer({
     let ghostOn = false;
     scene.add(ghosts);
     let bounds = new THREE.Box3();
+    /**
+     * The loaded glTF root, kept so model space can be recovered later.
+     *
+     * `meshes.canonical_pose` sits between model space and world space, and a
+     * `ProbePose` is authored in MODEL space — so anything that reads the scene
+     * and hands back a pose has to undo the pose matrix. Every shipped pack
+     * poses by identity, which is exactly why doing it wrong here would go
+     * unnoticed until the first posed pack.
+     */
+    let modelRoot: THREE.Object3D | null = null;
     /** Enclosing radius about `C`: frames the camera and bounds the slider. */
     let reach = 0;
     /**
@@ -899,7 +923,19 @@ export default function PackViewer({
     /** The probe and its arrow exist only in echo mode, and only with a sweep. */
     const syncProbeObjects = () => {
       const view = pack.views[viewIndex];
-      const wanted = viewerMode === 'echo' && view !== undefined && loaded;
+      /*
+       * AUTHORING: a placed pose is a probe, whatever mode is on and whether or
+       * not the pack has a view yet.
+       *
+       * Five of the nine packs carry no `views[]` at all — the schema forbids
+       * views without an `echo_volume`, and those five have none — so on
+       * exactly the packs this unit exists to place probes on, the learner path
+       * never shows a probe. Without this an author would anchor a pose and see
+       * nothing. Folded out with the flag off, so the learner rule is untouched:
+       * Explore has no probe.
+       */
+      const authoringPose = AUTHORING_ENABLED && freePoseRef.current !== null;
+      const wanted = loaded && (authoringPose || (viewerMode === 'echo' && view !== undefined));
 
       if (!wanted) {
         if (probe) {
@@ -1294,6 +1330,7 @@ export default function PackViewer({
           }
         });
         scene.add(gltf.scene);
+        modelRoot = gltf.scene;
 
         bounds = new THREE.Box3().setFromObject(gltf.scene);
         const centre = bounds.getCenter(new THREE.Vector3());
@@ -1534,6 +1571,42 @@ export default function PackViewer({
         applyCut();
         schedule();
       },
+      /*
+       * AUTHORING ONLY. Folded to `() => null` with the flag off, which drops
+       * the body — and with it every reference the authoring modules have into
+       * the scene — out of the learner bundle.
+       *
+       * The radius is the EXACT enclosing radius about the bounds centre, the
+       * same walk `reach` uses about `C`, rather than the half-diagonal of the
+       * bounding box. The box diagonal overstates an elongated heart by a long
+       * way, and a standoff derived from an overstated radius parks the
+       * transducer needlessly far out.
+       */
+      viewAnchor: AUTHORING_ENABLED
+        ? () => {
+          if (!loaded || !modelRoot || bounds.isEmpty()) return null;
+          const centreWorld = bounds.getCenter(new THREE.Vector3());
+          const radiusWorld = enclosingRadius(modelRoot, centreWorld);
+
+          const toModel = new THREE.Matrix4().copy(modelRoot.matrixWorld).invert();
+          const centre = centreWorld.clone().applyMatrix4(toModel);
+          const forward = new THREE.Vector3(0, 0, -1)
+            .applyQuaternion(camera.quaternion).transformDirection(toModel);
+          const right = new THREE.Vector3(1, 0, 0)
+            .applyQuaternion(camera.quaternion).transformDirection(toModel);
+
+          // `canonical_pose.scale` is a single uniform number by schema, so one
+          // division carries a world length back into model units.
+          const scale = pack.meshes.canonical_pose.scale || 1;
+
+          return {
+            forward: [forward.x, forward.y, forward.z],
+            right: [right.x, right.y, right.z],
+            centre: [centre.x, centre.y, centre.z],
+            radius: radiusWorld / scale,
+          };
+        }
+        : () => null,
       setGhost: (on) => {
         ghostOn = on;
         ghosts.visible = cutActive && ghostOn;
@@ -1673,7 +1746,12 @@ export default function PackViewer({
    */
   useEffect(() => {
     const view = pack.views[viewIndex];
-    if (!view) return;
+    if (!view) {
+      // AUTHORING: a pose placed on a pack that has no views yet still drives
+      // the wedge. Folded out with the flag off.
+      if (AUTHORING_ENABLED && freePose) apiRef.current?.setFrame(imagingFrame(freePose));
+      return;
+    }
     apiRef.current?.setFrame(
       freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
     );
@@ -2361,6 +2439,29 @@ export default function PackViewer({
             Reset
           </button>
         </div>
+
+        {/*
+          * AUTHORING. Behind a build-time literal, so with the flag off this
+          * folds to `false` and the module reference goes with it — there is no
+          * disabled control in a learner build, and no module either.
+          *
+          * It sits with the other buttons rather than inside the probe pad,
+          * which is deliberate: its destructive control writes over a saved
+          * slot, and a destructive control must not be adjacent to buttons that
+          * are pressed repeatedly.
+          */}
+        {AUTHORING_ENABLED && (
+          <AuthoringControls
+            packId={pack.meta.id}
+            template={view ? { fan: view.probe.fan, display: view.probe.display } : undefined}
+            standoffOverrideMm={pack.interaction?.authoring_standoff_mm}
+            readAnchor={() => apiRef.current?.viewAnchor() ?? null}
+            onPose={(pose) => {
+              freePoseRef.current = pose;
+              onFreePoseChange?.(pose);
+            }}
+          />
+        )}
 
         {/*
           * The cine row: a SEPARATE control from the sweep scrubber, on a

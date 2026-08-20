@@ -746,6 +746,26 @@ export const InteractionDefaults = z.strictObject({
   camera: CameraState.optional(),
   /** Initial free-cut state. Absent means "start with the free cutter disabled". */
   free_cut: FreeCutState.optional(),
+  /**
+   * Per-pack override for the AUTHORING standoff, in model units, or absent.
+   *
+   * Added 2026-08-19 for the probe-placement slice of authoring mode. Where the
+   * anchor button puts the transducer is derived from the model's bounding
+   * sphere and the view's fan angle (`src/authoring/standoff.ts`), which gives
+   * every pack a usable default and no pack a hand-tuned one. This is the
+   * escape hatch for a pack the derivation gets wrong.
+   *
+   * It lives under `interaction` because it is not medical view metadata and
+   * carries no clinical claim: it says how far back a PLACEMENT TOOL starts the
+   * probe, not what any view images. The pose an author saves is an ordinary
+   * `ProbePose` either way, and nothing downstream can tell which standoff
+   * produced it.
+   *
+   * OPTIONAL, and no shipped pack sets it. A derivation that needs an override
+   * to work on a normal pack is a failed derivation and should be fixed rather
+   * than overridden.
+   */
+  authoring_standoff_mm: z.number().positive().optional(),
 });
 export type InteractionDefaults = z.infer<typeof InteractionDefaults>;
 

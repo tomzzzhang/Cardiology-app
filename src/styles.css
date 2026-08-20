@@ -1102,3 +1102,85 @@ body {
 .anatomy-panel > :last-child {
   padding-bottom: 0.75rem;
 }
+
+/* --------------------------------------------------------------------------
+   Authoring (flag-gated)
+
+   Never present in a published build: `AUTHORING_ENABLED` is a build-time
+   literal, so the markup these rules describe does not exist there. They are
+   kept in the one stylesheet anyway rather than in a separate file loaded
+   conditionally — CSS for markup that is absent costs nothing, and splitting
+   the stylesheet would put the authoring surface visually out of step with the
+   controls it sits beside, which is the one thing it must not be.
+
+   It reads as a distinct BLOCK rather than as one more row of the learner's
+   controls, because it is a different kind of thing: the row above changes what
+   is on screen, and this one changes what will be saved.
+   -------------------------------------------------------------------------- */
+
+.authoring {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px dashed #4a3f5c;
+  border-radius: 8px;
+  background: #171320;
+  font-size: 0.85rem;
+}
+
+.authoring__title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b9a6d4;
+}
+
+/* Says what it is at a glance: a surface that exists because a flag is on. */
+.authoring__badge {
+  padding: 0.05rem 0.35rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  color: #0b0f14;
+  background: #b9a6d4;
+  border-radius: 999px;
+}
+
+.authoring__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Same metrics as `.cutter button`, so the two rows read as one system rather
+   than as a control panel with a bolt-on. */
+.authoring__button {
+  padding: 0.2rem 0.55rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #cfe0f2;
+  background: #1a2430;
+  border: 1px solid #3a3050;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.authoring__button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.authoring__note {
+  margin: 0;
+  color: #9aa7b4;
+  font-variant-numeric: tabular-nums;
+}
+
+.authoring__note--bad {
+  color: var(--danger);
+}

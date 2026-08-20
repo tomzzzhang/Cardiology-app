@@ -20,6 +20,7 @@ import EchoPanel from './echo/EchoPanel.tsx';
 import type { ProbePose } from './schema/packV0.ts';
 import { poseAt } from './echo/probeFrame.ts';
 import { hasLeftTrack } from './viewer/freeProbe.ts';
+import { AUTHORING_ENABLED } from './authoring/flag.ts';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
 import {
   DEFAULT_PACK_ID,
@@ -149,8 +150,15 @@ export default function App() {
    * the way in means coming back to Echo lands on the saved view rather than on
    * whatever pose was left behind in another mode.
    */
+  /*
+   * AUTHORING keeps the pose across the mode switch, and only authoring does.
+   * Five packs carry no views, so placing a probe on them happens in Explore —
+   * which is the only mode they have — and dropping the pose on the way in
+   * would throw away the thing the author just placed. Folded out with the flag
+   * off, so the learner rule above stands unchanged.
+   */
   useEffect(() => {
-    if (mode === 'explore') setFreePose(null);
+    if (mode === 'explore' && !AUTHORING_ENABLED) setFreePose(null);
   }, [mode]);
 
   /*

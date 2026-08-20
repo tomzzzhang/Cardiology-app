@@ -17,6 +17,22 @@ import { PUBLISHED_PACK_IDS } from './src/packs/published.ts';
 const base = process.env.BASE_PATH ?? '/';
 
 /**
+ * The authoring flag, as a build-time literal.
+ *
+ * `contracts/authoring-mode.md` requires authoring mode to be off by default
+ * and unreachable from the learner UI. A `define` is what makes that structural
+ * rather than conditional: `__AUTHORING__` is substituted before Rollup runs,
+ * so with the flag off every authoring branch folds to a constant `false` and
+ * the modules behind it are dropped from the bundle entirely. A runtime toggle
+ * would ship the whole surface and hide it behind a string.
+ *
+ * `scripts/check-authoring-absent.ts` asserts the outcome against the built
+ * output, because a build-time guarantee is still a piece of code that can be
+ * reordered or broken by an upstream change.
+ */
+const authoring = process.env.VITE_AUTHORING === '1';
+
+/**
  * Remove unpublished packs from the build output.
  *
  * The repository keeps the rejected wave 1a candidates as evidence, and they stay
@@ -54,6 +70,7 @@ function publishedPacksOnly(): Plugin {
 
 export default defineConfig({
   base,
+  define: { __AUTHORING__: JSON.stringify(authoring) },
   plugins: [react(), publishedPacksOnly()],
   build: {
     target: 'es2022',
