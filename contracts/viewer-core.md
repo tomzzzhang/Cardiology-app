@@ -9,7 +9,7 @@ page and the code disagree, the code is what shipped and this page is what was f
 
 Scene, camera, and orbit. Per-structure show/hide, labels, blood-pool colouring. The independent free
 anatomical cut plane with solid caps. A separate translucent sector-wedge probe indicator driven by
-the same vetted probe pose and fan params as the echo panel.
+the same saved probe pose and fan params as the echo panel.
 
 ## Coordinate frames — keep all three explicit
 
@@ -76,10 +76,9 @@ every movable object is drawn. A cut handle tips the plane, the probe's arrow sc
 anywhere else orbits the camera. There is no target selector, and no state a learner has to have
 set before a drag does what they meant.
 
-**Depth along the plane normal.** With the free cutter active, a visible slider and a modifier-wheel
-translate it along plane-local `N`. **Wheel without the modifier always zooms** — no exceptions. The
-slider, the wheel, the depth/offset readout, and reset stay synchronized: they are views of one `s`.
-Sensitivity and direction inversion are user preferences if inexpensive.
+**Depth along the plane normal.** With the free cutter active, a visible arrow on the plane and
+Shift-wheel translate it along plane-local `N`. **Wheel without the modifier always zooms** — no
+exceptions. The arrow, wheel, depth/offset readout, and reset are views of one `s`.
 
 **Rotation.** Four handles at the edge midpoints of the rendered rectangle, one per edge direction.
 Rotation holds `s` constant while rotating `N` around the heart, and a gesture **freezes its start
@@ -97,7 +96,7 @@ of two named modes, and the name is on screen at all times:
 
 - **Echo plane** — the cutter continuously follows the selected view's imaging plane as the sweep
   scrubs. The rectangle is not drawn and the handles are neither rendered nor hittable: the plane is
-  not the learner's to move, and the wedge already shows where it is. The depth slider is disabled,
+  not the learner's to move, and the wedge already shows where it is. The depth arrow is absent,
   because in this mode there is no depth to choose.
 - **Free** — the cutter is the learner's, handles active, no relationship to the view claimed.
 
@@ -111,13 +110,13 @@ default and behind a toggle. It shares geometry with the anatomy and carries the
 plane, so the two halves are complementary by construction. The kept half stays near-opaque, or the
 ghost shows through it and blurs the one distinction it exists to draw.
 
-**Touch.** Phone controls use visible handles and the depth slider, not hidden modifier gestures.
-The fine/coarse rule lives in ONE module (`src/viewer/pointerClass.ts`) rather than per control: a
-fine pointer reveals a handle on approach, a coarse pointer shows every handle permanently at a
-thumb-sized target, because a touch screen has no hover and a proximity-revealed handle there is
-simply an invisible control. Pinch-zoom and two-finger pan remain outstanding.
+**Touch (deferred).** Existing coarse-pointer behavior remains in
+`src/viewer/pointerClass.ts` as prototype evidence, but phone gesture and affordance design are
+paused. It does not constrain the active mouse/trackpad interface or gate platform/release work.
+Pinch zoom, two-finger pan, target sizing, and real-device behavior must be reconsidered together
+when the phone/touch workstream resumes.
 
-## The vetted echo wedge
+## The saved echo wedge
 
 A separate object with a separate data path. Built from `views[].probe`: anchor = `probe.origin`,
 basis = `beam_axis`/`lateral_axis`, extent from `probe.fan`. One source of truth, so the wedge on the
@@ -137,7 +136,7 @@ down, aim left and right — with roll in the top corners and stand-off in the b
 shows only the fan pair, because the other five have no on-track meaning.
 
 **The one exception, and it is explicit.** *(Owner decision, 2026-08-19; supersedes "viewer-core
-exposes no learner-facing control that repositions a vetted wedge".)* A **Free probe** toggle
+exposes no learner-facing control that repositions a saved wedge".)* A **Free probe** toggle
 unlocks the probe. It then turns about its own axes and slides along its own beam:
 
 | Control | Axis | What is preserved |
@@ -169,7 +168,7 @@ the probe to `frameAt(probe, sweep, t)` exactly.
 *(Owner decision, 2026-08-19. `docs/observations.md` entries 24, 25 and 31 are the reasoning: two
 of the best packs on the shelf could not be looked at at all.)*
 
-**EXPLORE ONLY** *(owner decision, 2026-08-19)*. Echo is a claim about one vetted probe pose
+**EXPLORE ONLY** *(owner decision, 2026-08-19)*. Echo is a claim about one saved probe pose
 imaging a whole heart: the wedge, the beam dim and the echo raster are all statements about what the
 beam crosses, and a learner who had isolated one coronary branch would be reading an echo of a heart
 that is not the heart beside it. So in Echo the structure list does not render, nothing is hidden,
@@ -195,8 +194,8 @@ Direct manipulation, settled design decision 13: the list is the index and the m
 and a sidebar-only control would be the one part of this app that acted at a distance. A click is a
 press that travelled four pixels or less and would otherwise have orbited — a press that grabbed a
 cut handle was aiming at the handle. Hover PRE-HIGHLIGHTS what a click would take, under the same
-rule the cut handles follow and with the same exception: a coarse pointer gets no pre-highlight,
-because a touch screen has no hover.
+rule the cut handles follow. The retained coarse-pointer prototype omits pre-highlight because
+touch has no hover, but that behavior is not a current acceptance criterion.
 
 Two limits, both known rather than designed. The raycast does not honour clipping planes, so with
 the cutter on a click can reach a structure whose near half has been clipped away. And the structure
@@ -302,4 +301,5 @@ Orbit/zoom around `C` with no polar clamp; positional drag dispatch with every m
 infinite clipping with solid caps and an optional ghost of the removed half; two named cutter modes;
 depth control synchronized across slider, wheel and readout; pointer-class handling in one place.
 Works against the stub pack — viewer-core does not depend on the wave 1 model-pipeline slice.
-Outstanding: pinch-zoom and two-finger pan, labels, measurement.
+Outstanding for the desktop platform: labels and measurement. Pinch zoom, two-finger pan, and
+coarse-pointer interaction belong to the deferred phone/touch workstream.

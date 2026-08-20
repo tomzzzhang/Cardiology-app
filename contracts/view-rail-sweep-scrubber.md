@@ -9,7 +9,7 @@ superseded by the 2026-08-19 interaction pass and are marked below.
 ## Responsibility
 
 The view family rail, per-view presets, and the scrub control that animates the plane wedge and the
-echo image **together**. This module is the **only** learner-facing driver of the vetted echo wedge.
+echo image **together**. This module is the **only** learner-facing driver of the saved echo wedge.
 
 ## Interface shape
 
@@ -40,7 +40,7 @@ order by pack order.
    amount (2 degrees, or 2 mm) rather than a gesture whose gain depends on the camera. Locked it
    offers only that one pair of buttons; a view with no sweep gets no pad.
 
-   Learner mode still cannot reposition a vetted wedge **except** through the explicit **Free
+   Learner mode still cannot reposition a saved wedge **except** through the explicit **Free
    probe** unlock, which is an owner decision of the same date and is paid for by the echo panel
    withdrawing the view's name. Arbitrary probe-pose AUTHORING still belongs to authoring mode:
    nothing a learner can do writes to `views[]`.
@@ -65,9 +65,9 @@ order by pack order.
    orient to the image on screen rather than to the one the pack authored. Settled together with the
    horizon lock (`contracts/viewer-core.md`), because they are the same question about what "up"
    means and answering them apart produces two controls that disagree.
-7. **Every view family ships at least one scrubbable sweep** (`docs/mvp_scope.md`, non-negotiable).
-   A view without a sweep is valid in the schema; a *family* with no sweep anywhere is a content gap
-   and should be visible as one.
+7. **MVP release target:** every shipped view family has at least one scrubbable sweep
+   (`docs/mvp_scope.md`). A view without a sweep is valid in the schema; during platform work, a
+   family with no sweep is a visible content gap, not a blocker on the rail or scrubber mechanics.
 8. **Draft content is visibly draft-flagged** in the rail, from `views[i].provenance.vetted.status`.
 
 ## Definition of done

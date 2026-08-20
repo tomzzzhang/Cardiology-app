@@ -56,7 +56,7 @@ test('the echo does not depend on the renderer\'s internal sampling', async ({ p
   const ratios: { scale: number; ratio: number; rim: number; core: number }[] = [];
 
   for (const scale of SCALES) {
-    await page.goto(`/?freeze=1&pack=normal-rodero&polar=${scale}`);
+    await page.goto(`?freeze=1&pack=normal-rodero&polar=${scale}`);
     await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
       timeout: 60_000,
     });

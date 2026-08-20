@@ -7,7 +7,7 @@
  * `imagingFrame` accepts it UNCHANGED: the orthogonalisation went through
  * `probeFrame.ts` on the way out, so running it again is a no-op, which is what
  * makes the wedge and the echo derive from this pose exactly as they do from a
- * vetted one.
+ * saved one.
  */
 import { describe, expect, it } from 'vitest';
 import { anchoredPose, defaultTemplate, type ViewAnchor } from '../../src/authoring/anchor.ts';

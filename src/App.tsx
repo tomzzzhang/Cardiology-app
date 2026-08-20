@@ -260,7 +260,7 @@ export default function App() {
       <header className="shell__header">
         <h1>Cardiology app</h1>
         <p className="shell__tagline">
-          Anatomy and simulated echo from one vetted probe pose. Content-pack schema v
+          Anatomy and simulated echo from one saved probe pose. Content-pack schema v
           {SCHEMA_VERSION} (provisional).
         </p>
       </header>
@@ -308,7 +308,7 @@ export default function App() {
         /*
          * EXPLORE ONLY, and structurally rather than by hiding a button.
          *
-         * Echo is a claim about one vetted probe pose imaging a whole heart:
+         * Echo is a claim about one saved probe pose imaging a whole heart:
          * the wedge, the beam dim and the echo raster are all statements about
          * what the beam crosses, and a learner who has isolated one coronary
          * branch would be looking at an echo of a heart that is not the heart
@@ -339,7 +339,7 @@ export default function App() {
           */}
         <div className="modes" role="radiogroup" aria-label="What this screen is" data-testid="viewer-mode">
           {([
-            ['echo', 'Echo', 'Anatomy beside the simulated echo, on one vetted probe pose'],
+            ['echo', 'Echo', 'Anatomy beside the simulated echo, on one saved probe pose'],
             ['explore', 'Explore', 'The heart model on its own — orbit, cut and inspect. No probe.'],
           ] as [ViewerMode, string, string][]).map(([value, label, hint]) => {
             const refused = exploreOnly && value === 'echo' && !AUTHORING_ENABLED;

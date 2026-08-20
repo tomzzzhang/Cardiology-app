@@ -1,0 +1,58 @@
+name: Content checks
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - public/packs/**
+      - src/packs/**
+      - src/schema/**
+      - pipeline/**
+      - scripts/validate-packs.ts
+      - scripts/check-provenance.ts
+      - scripts/make-stub-assets.mjs
+      - scripts/lib/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/content.yml
+  pull_request:
+    paths:
+      - public/packs/**
+      - src/packs/**
+      - src/schema/**
+      - pipeline/**
+      - scripts/validate-packs.ts
+      - scripts/check-provenance.ts
+      - scripts/make-stub-assets.mjs
+      - scripts/lib/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/content.yml
+  workflow_dispatch:
+
+concurrency:
+  group: content-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  content:
+    name: Pack integrity and provenance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Content gate
+        run: npm run check:content
+
+      - name: Stub assets are reproducible
+        run: npm run check:stub-assets

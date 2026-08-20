@@ -19,7 +19,7 @@ The structured, machine-encodable canon of standard pediatric TTE views and swee
   - Apex-up/apex-down is a user toggle (2023 ASE pediatric cardiac POCUS statement permits either by local practice); pediatric default as above.
   - Dextrocardia = alternate indicator profile (Table 11), stored per pack, default off in MVP.
 - Plane encoding: the cut plane is DERIVED from the pack's full probe pose (see `docs/build_plan.md` schema: probe origin, beam/lateral axes, fan geometry). A sweep is a swept pose: `{mode, axis, range, interpolation, ordered structure list crossed}`.
-- The learner's free anatomical cutter is a separate runtime inspection object (`{N, s}` in `docs/build_plan.md`), not a view definition. **Align free cut to echo view** copies geometry into the cutter without modifying this vetted canon.
+- The learner's free anatomical cutter is a separate runtime inspection object (`{N, s}` in `docs/build_plan.md`), not a view definition. **Align free cut to echo view** copies geometry into the cutter without modifying the saved draft definition.
 
 ## Per-view schema (feeds pack schema)
 

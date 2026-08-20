@@ -22,6 +22,11 @@ import { extname, join, normalize, resolve } from 'node:path';
 
 const port = Number(process.argv[2] ?? 4173);
 const root = resolve('dist');
+const basePath = (() => {
+  const raw = process.env.BASE_PATH?.trim() || '/';
+  const leading = raw.startsWith('/') ? raw : `/${raw}`;
+  return leading.endsWith('/') ? leading : `${leading}/`;
+})();
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -40,10 +45,21 @@ const TYPES = {
 createServer((request, response) => {
   const requested = decodeURIComponent((request.url ?? '/').split('?')[0]);
 
+  if (basePath !== '/' && requested !== basePath.slice(0, -1) && !requested.startsWith(basePath)) {
+    response.writeHead(404, { 'content-type': 'text/plain' }).end('Not found');
+    return;
+  }
+
+  const mounted = basePath === '/'
+    ? requested
+    : requested === basePath.slice(0, -1)
+      ? '/'
+      : `/${requested.slice(basePath.length)}`;
+
   // Resolve inside the root, then verify: a normalized path can still escape
   // via `..`, and this server is handed URLs by tests that deliberately probe
   // for files that should not exist.
-  const candidate = resolve(join(root, normalize(requested)));
+  const candidate = resolve(join(root, normalize(mounted)));
   if (!candidate.startsWith(root)) {
     response.writeHead(403).end('Forbidden');
     return;
@@ -71,5 +87,5 @@ createServer((request, response) => {
   });
   createReadStream(target).pipe(response);
 }).listen(port, '127.0.0.1', () => {
-  console.log(`serving dist/ at http://127.0.0.1:${port}`);
+  console.log(`serving dist/ at http://127.0.0.1:${port}${basePath}`);
 });

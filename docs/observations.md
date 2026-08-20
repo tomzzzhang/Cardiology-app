@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 23:15 EDT
+**Last Updated:** 2026-08-20 14:40 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -1546,7 +1546,7 @@ option reading "Not in this list — reached by ?pack=". The fixture stays publi
 **What changed.** The structure list, the filter, click-to-isolate and hide were built for both
 modes. The owner stopped it: they are Explore-only now.
 
-**Why that is right.** Echo is a claim about one vetted probe pose imaging a whole heart. The wedge,
+**Why that is right.** Echo is a claim about one saved probe pose imaging a whole heart. The wedge,
 the beam dim and the raster are all statements about what the beam crosses, and a learner who had
 isolated one coronary branch would be reading an echo of a heart that is not the heart beside it.
 The echo renderer samples a labelled VOLUME, which per-structure visibility does not touch at all,

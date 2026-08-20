@@ -148,9 +148,9 @@ describe('nudgedPose — the three ways a transducer turns', () => {
   it('never mutates the pose it was handed', () => {
     /*
      * The pose it is handed is, on the live path, the one seeded from the
-     * pack's own `views[i].probe`. Mutating it in place would edit the vetted
+     * pack's own `views[i].probe`. Mutating it in place would edit the saved
      * view through a shared reference — the exact write the whole free-cutter /
-     * vetted-wedge separation exists to prevent — and would do it invisibly.
+     * saved-wedge separation exists to prevent — and would do it invisibly.
      */
     const start = probe();
     const snapshot = JSON.parse(JSON.stringify(start));

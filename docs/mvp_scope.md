@@ -2,7 +2,10 @@
 
 > **Product scope.** Clinical collaborators are referred to by role, not name; interview documents stay in the owner's planning folder.
 
-**LOCKED 2026-08-15** (factual annotations and UI/UX clarifications 2026-08-16; the scope itself is unchanged since lock). Locked by the project owner immediately after reviewing the clinical vetter's discovery interview. Inputs: the clinical vetter's feature force-ranking, hardest-lesion and hardest-view lists, the feasibility evaluation, and a model-availability check against the Alberta 3D Heart Library (2026-08-15). Changing this document is a scope change, and is recorded in the progress log first.
+**MVP RELEASE TARGET LOCKED 2026-08-15.** This describes the eventual product destination, not
+the acceptance criteria for ordinary platform checkpoints. It was informed by a clinical discovery
+interview, feasibility work, and model availability; those inputs guide later productization but do
+not silently become platform restrictions. Scope changes still belong in the planning record.
 
 ## Product in one sentence
 
@@ -11,12 +14,18 @@ A free, browser-based teaching tool where a pediatric cardiology trainee picks a
 ## Decisions locked 2026-08-15
 
 1. **Anatomy set, the "foundation slice":** Normal heart + ASD module (secundum and sinus venosus) + d-TGA. DORV with subpulmonary VSD is the first post-MVP anatomy, then DILV (S,L,L).
-2. **Echo image posture: simulated, and invested in.** Echo-styled rendering from the labeled model; honest "simulated" labeling everywhere; per-view slot reserved for real clips later. No PHI/IRB/licensing workstream in v1.
+2. **Echo image posture: simulated, and invested in.** Echo-styled rendering from the labeled model;
+   honest "simulated" labeling everywhere; per-view slot reserved for real clips later. v1 has no
+   patient-image workstream. Third-party asset rights still apply to every source used now.
 3. **Sequencing: scope locked on the clinical vetter's signal.** Co-fellow interviews stay open and can re-weight content priorities; they do not gate the build.
-4. **Platform: web-first confirmed.** One shareable URL, no install, phone-portrait usable; hospital desktop and laptop fully supported. Native/visionOS stays a later showcase.
+4. **Platform: web-first confirmed.** One shareable URL, no install. The active platform and first
+   release target are hospital desktop and laptop. Phone/touch UX is paused for a separate later
+   design pass; Native/visionOS stays a later showcase.
 5. **Variant policy:** one canonical variant per lesion, named and disclosed in-app; further variants are later content rows through the same pipeline.
 6. **Trust architecture direction:** visible provenance per anatomy and per view mapping (model source and license, who vetted, last-reviewed date); unvetted content is visibly draft-flagged. Vetter names appear only with recorded consent; role labels otherwise.
-7. **Modular content architecture:** the app is an anatomy-agnostic engine plus self-contained content packs. New lesions come from any source, directly or converted, by conforming them to the pack schema; nothing in the engine hardcodes lesion names or counts. See "Modularity and expansion" below.
+7. **Modular content direction:** the release should make new lesions self-contained content rather
+   than one-off engine code. The current engine-plus-pack split is the starting hypothesis and may
+   evolve during platform construction. See "Modularity and expansion" below.
 8. **Build toolchain:** planning happens in ChatGPT or Claude Cowork; implementation happens in one local checkout. *[Update 2026-08-16: repo + hosting resolved — public GitHub repo `tomzzzhang/Cardiology-app`, GitHub Pages; see `docs/build_plan.md`.]*
 
 ## Why this anatomy set
@@ -29,9 +38,10 @@ The slice is chosen so each piece pays for itself:
 - **ASD module** (custom sculpt from the normal model): secundum ASD and sinus venosus ASD with typical RUPV PAPVR. Sinus venosus is on the hardest list; the module carries the "simple lesion intricacy" teaching the vetter called out (retro-aortic rim in PSAX with the aortic valve en face; septal anatomy from the RA side); and it is the cheapest credible custom-lesion sculpt, so it proves the custom pipeline before the expensive DORV build.
 - **d-TGA** (library model). The great-artery-relationship lesion with a model already in hand: a stated hard theme (segmental designations, great-artery relationships) plus a board classic. Foundation for the DORV/DILV family later.
 
-Queued next, in order: DORV with subpulmonary VSD (the vetter's #1 hardest) once the ASD sculpt clears vetting; then DILV (S,L,L). Model sourcing for these is in progress (shortlist exists; outreach pending).
+Queued after the MVP: DORV with subpulmonary VSD (the vetter's #1 hardest), then DILV (S,L,L).
+Source outreach remains deferred until the integrated prototype is substantially complete.
 
-## View coverage floor (per the clinical vetter, non-negotiable)
+## MVP release coverage floor
 
 Every anatomy ships with ALL standard TTE views, not a curated subset: parasternal long-axis (including RV inflow/outflow) and short-axis sweep levels, apical 4C/5C and variants, subcostal long and short, suprasternal long and short, and high left parasternal/ductal as appropriate. Plus lesion-specific non-standard views where the lesion demands them (for the queued DORV: subcostal RAO and the TET view). Sweeps are first-class: each view family has at least one canonical sweep, scrubbable, with the plane animating on the model.
 
@@ -39,7 +49,7 @@ Per-lesion view emphasis (which views matter most for this lesion) is content me
 
 ## Feature set
 
-**In, build order:**
+**MVP release feature set:**
 
 1. View-to-plane correlation including sweeps (ranked #1 by the vetter; the differentiator nobody ships for CHD).
 2. Simulated echo rendering per view (ranked #2; bar defined below).
@@ -60,48 +70,76 @@ Per-lesion view emphasis (which views matter most for this lesion) is content me
 
 Raycast/slice through the labeled model, rendered echo-style: sector-fan geometry, speckle, depth-dependent gain feel, per-view orientation conventions (probe marker, standard display orientation). Static in v1. Every simulated frame is labeled as simulated, with provenance one tap away.
 
-The realism bar is functional, not cosmetic: the clinical vetter should judge each shipped view "good enough to learn reading from." Her per-view vetting verdict is the pass/fail. The content schema reserves a per-view slot for a real de-identified clip, so real clips become an additive upgrade later (with their own licensing/IRB decision), never a rearchitecture.
+The realism bar is functional, not cosmetic: during integration/release, clinical reviewers should
+judge each candidate shipped view "good enough to learn reading from." That review is not a gate on
+platform construction. The content schema reserves a per-view slot for a real de-identified clip,
+so real clips remain an additive upgrade later, never a rearchitecture.
 
 ## Design direction (core screen)
 
 One screen is the product: 3D viewport + echo panel + view rail.
 
-- Phone portrait stacks echo panel and viewport; desktop puts them side by side with the view rail persistent.
+- Desktop puts the echo panel and viewport side by side with the view rail persistent. The existing
+  stacked narrow layout is not a supported phone design until the phone/touch workstream resumes.
 - The didactics path is sacred: open link, pick anatomy, pick view, scrub. Target under 15 seconds to "oh, THAT is where that plane sits."
 - Two different plane tools coexist and must never be conflated:
   - **Free anatomical cut:** an independent, infinite clipping plane for inspecting the model. It can translate and rotate freely, renders solid caps at cut surfaces, and makes no claim to be a reachable or clinically useful echo view.
-  - **Vetted echo wedge:** a finite sector from the saved probe pose for the selected named view or sweep. In learner mode it is controlled only by the view rail/scrubber and matches the echo-side fan one-to-one.
-- Bridge actions may copy a vetted echo plane into the free cutter (for example, **Align free cut to echo view**) without editing or de-vetting the saved echo pose.
-- Interaction should feel familiar: drag to orbit, pan separately, wheel/pinch to zoom, and reset to the pack's standard orientation. The selected object (heart/camera, free cut, or echo view) is always explicit. When the free cutter is selected, a visible slider plus modifier-wheel translates it along its own normal; wheel alone remains camera zoom.
+  - **Saved echo wedge:** a finite sector from an authored probe pose for the selected named view or
+    sweep. It may still be `draft`; review state is metadata. The wedge and echo-side fan match
+    one-to-one.
+- Free or unlocked poses may be explored, but they do not overwrite the saved pose and must not
+  inherit its view name or review badge.
+- Interaction should feel familiar: dragging the model orbits, dragging the visible cutter geometry
+  manipulates the cutter, wheel/pinch zooms, and reset restores the pack's standard orientation.
 - Per-view show/hide presets (suprasternal defaults to veins + arch, for example) instead of a raw structure checkbox forest; full manual control remains available.
 - Provenance strip: one line at the bottom (source, vetter, date), tap to expand.
 
 ## Content pipeline (the real cost center)
 
-Per anatomy: (1) acquire or sculpt the model, normalize to canonical pose; (2) segment and label substructures (known bottleneck: library models are fused meshes); (3) place all standard view planes and author sweeps; (4) tune simulated echo per view; (5) vetting pass (fellow + attending), provenance stamped, draft flag cleared. *[Update 2026-08-16: step 2 has a deeper risk than fusion — bloodpool casts lack myocardium/pericardium/leaflets entirely; see `docs/build_plan.md` "Anatomical substrate risk." The pre-content technical slice tests the full pipeline on one real asset first.]*
+Per anatomy: (1) acquire or sculpt the model, normalize to canonical pose; (2) segment and label
+substructures; (3) place view planes and author sweeps; (4) tune simulated echo; and, during
+integration/release, (5) complete clinical review and publication provenance. Platform work may
+exercise any earlier step with draft or synthetic content without waiting for step 5.
 
-MVP content budget: 3 anatomies x (~10-12 view families + sweeps). Vetting capacity: the clinical vetter plus imaging attendings being scouted.
+MVP content budget: 3 anatomies x (~10-12 view families + sweeps). Review participants and capacity
+will be confirmed during integration; discovery work supplied product direction, not a development
+staffing commitment.
 
-## Modularity and expansion (locked)
+## Modularity and expansion (release direction)
 
-Engine and content are strictly separated:
+The intended release architecture keeps engine and content cleanly separated. During platform
+construction this is a testable design direction, not a gate: change the seam when implementation
+evidence calls for it, then document the settled interface.
 
-- **Engine** (the web app): rendering, view rail, plane and sweep playback, simulated echo renderer, provenance display. Anatomy-agnostic; contains no lesion-specific logic.
-- **Content pack** (one per anatomy, versioned): labeled mesh set in canonical pose, substructure hierarchy, view-plane and sweep definitions, per-view echo tuning, per-view real-clip slot, provenance/license metadata, draft/vetted status. Adding a lesion means authoring a pack, never touching the engine.
+- **Engine direction** (the web app): rendering, view rail, plane and sweep playback, simulated echo
+  renderer, and provenance display should be broadly anatomy-agnostic.
+- **Content-pack direction** (one per anatomy, versioned): labeled mesh set in canonical pose,
+  substructure hierarchy, view-plane and sweep definitions, per-view echo tuning, per-view real-clip
+  slot, provenance/license metadata, and review status. New lesions should primarily be authored as
+  content; a justified engine change during platform work is allowed.
 - **Ingest adapters** normalize any source into packs: Alberta library downloads, other open collections (UMCG Sketchfab, embodi3D, published case-report STLs; license checked per item), custom sculpts (the ASD module), and later CT/CMR-derived segmentations. The pack format should tolerate a future volumetric-data reference.
-- Practical consequence: the MVP ships the first three packs; DORV and DILV land as packs four and five with zero engine changes. The pack schema is a milestone-1 deliverable. *[Update 2026-08-16: schema v0 drafted in `docs/build_plan.md`, provisional until the technical slice review.]*
+- Intended consequence: the MVP ships the first three packs, and later lesions should require little
+  or no engine-specific work. Schema v0 remains provisional throughout platform construction;
+  schema v1 freezes only after review of the integrated prototype.
 
 ## Build workflow
 
-- **Planning and product docs:** the owner's planning folder is the source of truth for product intent, clinical context, decisions, and progress.
-- **Implementation:** Claude Code, working from this doc plus `docs/build_plan.md` and `docs/view_canon.md`; the handoff prompt points at the plan first and requires acknowledging the approach before writing code. GPT Codex assists on code as directed.
-- **Code ground truth:** this repository. Scope changes are recorded before implementation follows. Development loop: `WORKFLOW.md`.
+[`WORKFLOW.md`](../WORKFLOW.md) is the sole authority for platform development and the later
+integration, release, and clinical gates.
 
 ## Licensing and regulatory
 
-- Alberta 3D Heart Library models: CC BY-NC; attribution shown in-app on the provenance strip. NC constrains future commercialization; acceptable for a free educational v1. *[Update 2026-08-16: attribution requirements + credit template + NC red lines pinned in `docs/build_plan.md` licensing plan; the AB2 sinus venosus model is CC BY 4.0.]*
+- Third-party licensing is item-specific and must be reverified at use; do not infer one grant from
+  a collection or sibling model. The current Alberta Normal pack has contradictory source statements
+  and is `unconfirmed`; AB2 remains a later candidate whose recorded per-model grant must be checked
+  again before use. Confirmed NC content remains separable and constrains commercialization.
 - Education only, not diagnostic; no interpretation of arbitrary patient images. Stays outside FDA SaMD territory; that line holds unless deliberately re-decided.
 
 ## Definition of done (MVP)
 
-A shareable URL where the clinical vetter, on a phone, can: pick Normal, ASD (secundum or sinus venosus), or d-TGA; rotate and cut the labeled model; pick any standard view; see the plane wedge on the model with the simulated echo alongside; scrub at least one sweep per view family; and see provenance on every view. Done means every shipped view is rated "learnable-from" by the clinical vetter, and at least one co-fellow uses the link unprompted after she shares it.
+A shareable desktop/laptop URL where a clinical reviewer can: pick Normal, ASD (secundum or sinus
+venosus), or d-TGA; rotate and cut the labeled model; pick any standard view; see the plane wedge on
+the model with the simulated echo alongside; scrub at least one sweep per view family; and see
+provenance on every view. Phone readiness is a later milestone. Done means every shipped view is
+rated "learnable-from" by the clinical reviewer, and at least one co-fellow uses the link unprompted
+after it is shared.

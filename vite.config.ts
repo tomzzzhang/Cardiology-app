@@ -9,7 +9,8 @@ import { PUBLISHED_PACK_IDS } from './src/packs/published.ts';
  *
  * GitHub Pages serves a project site under `/<repository-name>/`, so
  * `.github/workflows/pages.yml` sets `BASE_PATH=/${{ github.event.repository.name }}/`.
- * Local dev, `vite preview`, and the Playwright harness all run at `/`.
+ * Local dev and `vite preview` normally run at `/`; release checks and Pages
+ * supply a non-root path explicitly.
  *
  * Runtime code must resolve pack and asset URLs through `import.meta.env.BASE_URL`
  * rather than assuming either value.
@@ -30,8 +31,6 @@ const base = process.env.BASE_PATH ?? '/';
  * output, because a build-time guarantee is still a piece of code that can be
  * reordered or broken by an upstream change.
  */
-const authoring = process.env.VITE_AUTHORING === '1';
-
 /**
  * Remove unpublished packs from the build output.
  *
@@ -68,12 +67,19 @@ function publishedPacksOnly(): Plugin {
   };
 }
 
-export default defineConfig({
-  base,
-  define: { __AUTHORING__: JSON.stringify(authoring) },
-  plugins: [react(), publishedPacksOnly()],
-  build: {
-    target: 'es2022',
-    sourcemap: true,
-  },
+export default defineConfig(({ mode }) => {
+  // Vite modes are shell-independent, so `npm run dev:authoring` and
+  // `npm run build:authoring` work on both macOS and Windows. Keep the
+  // environment flag as a compatible override for external tooling.
+  const authoring = mode === 'authoring' || process.env.VITE_AUTHORING === '1';
+
+  return {
+    base,
+    define: { __AUTHORING__: JSON.stringify(authoring) },
+    plugins: [react(), publishedPacksOnly()],
+    build: {
+      target: 'es2022',
+      sourcemap: true,
+    },
+  };
 });

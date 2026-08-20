@@ -14,7 +14,7 @@ import { UNPUBLISHED_PACKS, cataloguedPacks } from '../../src/packs/published.ts
  * `?freeze=1` stops the hello-world animation so frames are reproducible.
  */
 test.beforeEach(async ({ page }) => {
-  await page.goto('/?freeze=1');
+  await page.goto('?freeze=1');
   await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,
   });
@@ -50,7 +50,7 @@ test('loads and validates the stub content pack', async ({ page }) => {
   // explicitly. Keeping a stub-backed assertion is deliberate: it is the only
   // pack whose contents are fixed by this repository, so it is the only one
   // that can pin loader behaviour without depending on ingest output.
-  await page.goto('/?freeze=1&pack=stub');
+  await page.goto('?freeze=1&pack=stub');
   const status = page.getByTestId('pack-status');
   await expect(status).toHaveAttribute('data-status', 'ok', { timeout: 15_000 });
   await expect(status).toContainText('Synthetic stub pack');
@@ -236,7 +236,7 @@ test('"Match echo" turns the model to the echo plane, and moves nothing else', a
    * slice of this model, taken on this plane. So it has to turn the model to
    * face that plane — and it has to do that WITHOUT touching the wedge, the
    * selected view or any pack data. `contracts/README.md`: the free cutter and
-   * the vetted wedge may coincide visually and never merge.
+   * the saved wedge may coincide visually and never merge.
    *
    * Both halves are asserted here, because "camera only" is exactly the kind of
    * claim that decays quietly.
@@ -302,11 +302,10 @@ test('"Match echo" turns the model to the echo plane, and moves nothing else', a
 
 /**
  * The affordances publish their own screen positions on the viewer's host
- * element. That is a deliberate test seam: "the handles and the tilt arrow are
- * present and hittable under a coarse pointer" is a gate, and a gate that can
- * only be checked by guessing pixel coordinates is not a gate. These are the
- * same numbers the hit test uses, so dragging to them exercises the real
- * dispatch rather than a parallel one.
+ * element. That is a deliberate test seam: hit testing against guessed pixel
+ * coordinates would be a parallel implementation. These are the same numbers
+ * the real dispatch uses. The desktop suite is active; the retained phone
+ * project exercises the coarse branch only when run manually.
  */
 async function handlePositions(page: import('@playwright/test').Page) {
   const raw = await page.getByTestId('anatomy-viewer').getAttribute('data-cut-handles');
@@ -483,7 +482,7 @@ test('the probe control pad steps the sweep, and writes nothing else', async ({ 
     expect(t).toBeLessThanOrEqual(1);
   }
 
-  // The vetted view is untouched: same name, same draft flag, and the cutter
+  // The saved view is untouched: same name, same draft flag, and the cutter
   // did not move either. Nothing a learner can do writes to `views[]`.
   await expect(page.getByTestId('echo-view-name')).toHaveText(viewName!);
   await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
@@ -546,20 +545,17 @@ test('the echo-synced cutter follows the sweep, and the view is identical after'
   await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready');
   await expect(page.getByTestId('echo-canvas')).toBeVisible();
 
-  // And through all of it, the vetted view is untouched.
+  // And through all of it, the saved view is untouched.
   await expect(page.locator('.echo__header h2')).toHaveText(viewName!);
   await expect(page.getByTestId('echo-scrub')).toHaveValue(sweepBefore);
   await expect(page.getByTestId('echo-provenance')).toContainText('Draft');
 });
 
-test('the affordances are present and hittable under a coarse pointer', async ({ page }, testInfo) => {
+test('the affordances are present and hittable for the active pointer class', async ({ page }, testInfo) => {
   test.slow();
   /*
-   * The gate. A coarse pointer has no hover, so a proximity-revealed handle is
-   * simply an invisible control: the first contact a finger makes with the
-   * screen is already the press. Both pointer classes are asserted here — the
-   * suite runs a desktop project and a phone project — because the interesting
-   * failure is the two diverging.
+   * Normal CI and release runs select the desktop project. The coarse branch is
+   * retained for the explicit manual phone harness and is not a current gate.
    */
   const expected = testInfo.project.name === 'phone-portrait' ? 'coarse' : 'fine';
   await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-pointer-class', expected);
@@ -570,7 +566,7 @@ test('the affordances are present and hittable under a coarse pointer', async ({
 
   // The probe control pad is buttons, so it is hittable by construction — but
   // it has to be BIG ENOUGH, and that is a rule the CSS carries rather than the
-  // code. A coarse pointer gets a larger cell than a mouse does.
+  // code. The manual phone harness still records its larger prototype cell.
   const cell = await page.getByTestId('probe-fan-up').boundingBox();
   expect(cell).not.toBeNull();
   const minimum = testInfo.project.name === 'phone-portrait' ? 30 : 22;
@@ -666,7 +662,7 @@ test('unlocking the probe withdraws the view\'s claim, and locking restores it',
 
   await expect(page.getByTestId('echo-view-name')).toContainText('not a saved view');
   await expect(page.getByTestId('echo-provenance')).toContainText('Unvetted plane');
-  // The image really did move: an unvetted plane that rendered the vetted one
+  // The image really did move: a free plane that rendered the saved one
   // would be the worst of both.
   await page.waitForTimeout(600);
   expect(changed(echoBefore!, (await sampleCanvas(page, '[data-testid="echo-canvas"]'))!))
@@ -918,15 +914,15 @@ test('no unpublished pack is reachable in the production build', async ({ page }
   // The list comes from `published.ts` rather than being spelled out here, so a
   // pack added to the shelf is covered by this test the moment it is added.
   for (const packId of Object.keys(UNPUBLISHED_PACKS)) {
-    const response = await page.request.get(`/packs/${packId}/pack.json`);
+    const response = await page.request.get(`packs/${packId}/pack.json`);
     expect(response.status(), `${packId} pack.json must not be served`).toBe(404);
 
-    const directory = await page.request.get(`/packs/${packId}/assets/model.gltf`);
+    const directory = await page.request.get(`packs/${packId}/assets/model.gltf`);
     expect(directory.status(), `${packId} assets must not be served`).toBe(404);
   }
 
   // And a deep link to one fails visibly rather than rendering a blank screen.
-  await page.goto('/?freeze=1&pack=normal-alberta-neonatal');
+  await page.goto('?freeze=1&pack=normal-alberta-neonatal');
   await expect(page.getByTestId('pack-status')).toHaveAttribute('data-status', 'error', {
     timeout: 15_000,
   });
@@ -996,8 +992,8 @@ test('the picker offers exactly what the build ships', async ({ page }) => {
    * published and reachable by `?pack=`, which is how this suite and anyone
    * debugging the loader get to it.
    */
-  expect((await page.request.get('/packs/stub/pack.json')).status()).toBe(200);
-  await page.goto('/?freeze=1&pack=stub');
+  expect((await page.request.get('packs/stub/pack.json')).status()).toBe(200);
+  await page.goto('?freeze=1&pack=stub');
   await expect(page.getByTestId('pack-status')).toContainText('Synthetic stub pack', {
     timeout: 15_000,
   });
@@ -1012,7 +1008,7 @@ test('no console errors on load', async ({ page }) => {
   });
   page.on('pageerror', (error) => errors.push(error.message));
 
-  await page.goto('/?freeze=1');
+  await page.goto('?freeze=1');
   await expect(page.getByTestId('pack-status')).toHaveAttribute('data-status', 'ok', {
     timeout: 15_000,
   });
@@ -1172,7 +1168,7 @@ test('the structure list is operable from the keyboard', async ({ page }) => {
 /*
  * EXPLORE ONLY.
  *
- * Echo is a claim about one vetted probe pose imaging a whole heart, and a
+ * Echo is a claim about one saved probe pose imaging a whole heart, and a
  * learner who had isolated one coronary branch would be looking at an echo of a
  * heart that is not the heart on screen. The restriction is structural rather
  * than a hidden button: in Echo the list does not exist and a click on the model
@@ -1382,7 +1378,7 @@ test('the two panels are one pair, to the pixel', async ({ page }, testInfo) => 
  * is added.
  */
 test('every control has a hint, and every hint is short', async ({ page }) => {
-  for (const url of ['/?freeze=1', '/?freeze=1&mode=explore']) {
+  for (const url of ['?freeze=1', '?freeze=1&mode=explore']) {
     await page.goto(url);
     await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
       timeout: 30_000,
@@ -1483,7 +1479,7 @@ test('a hint appears only after a pause, and never under the pointer', async ({ 
  */
 test('Explore draws no probe, on a pack that has views and on one that has none', async ({ page }) => {
   for (const pack of ['normal-rodero', 'stub']) {
-    await page.goto(`/?freeze=1&pack=${pack}&mode=explore`);
+    await page.goto(`?freeze=1&pack=${pack}&mode=explore`);
     const viewer = page.getByTestId('anatomy-viewer');
     await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
 
@@ -1493,7 +1489,7 @@ test('Explore draws no probe, on a pack that has views and on one that has none'
 
   // And it comes back in Echo, so the assertion above is about the mode rather
   // than about a probe that was never built.
-  await page.goto('/?freeze=1&pack=normal-rodero');
+  await page.goto('?freeze=1&pack=normal-rodero');
   const viewer = page.getByTestId('anatomy-viewer');
   await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
   await expect(viewer).toHaveAttribute('data-probe', 'present');
@@ -1570,7 +1566,7 @@ test('app shell screenshot', async ({ page }, testInfo) => {
  * the point of having three.
  */
 test('the learner build has no authoring surface, in either mode', async ({ page }) => {
-  for (const url of ['/?freeze=1', '/?freeze=1&mode=explore', '/?freeze=1&pack=stub']) {
+  for (const url of ['?freeze=1', '?freeze=1&mode=explore', '?freeze=1&pack=stub']) {
     await page.goto(url);
     await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
       timeout: 30_000,
@@ -1587,7 +1583,7 @@ test('the learner build has no authoring surface, in either mode', async ({ page
 });
 
 test('the learner build opens no IndexedDB database at all', async ({ page }) => {
-  await page.goto('/?freeze=1');
+  await page.goto('?freeze=1');
   await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,
   });

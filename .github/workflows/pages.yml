@@ -41,50 +41,49 @@ jobs:
 
       - run: npm ci
 
-      # Gate the deploy on the quality checks, not just the pack checks. `ci.yml`
-      # runs on push to `main` concurrently with this workflow and does not block
-      # it, so without these steps a commit that regresses on `main` would still
-      # publish. Reproduced here rather than chained on `workflow_run` so the
-      # deploy stays a single, readable pipeline.
-      #
-      # Deliberately NOT reproduced: the Playwright visual suite (needs a browser
-      # download, and its screenshot comparison is skipped until baselines land)
-      # and the pull-request-only docs/ guard. Whether the deploy should also
-      # wait on the full CI workflow is an open owner decision.
-      - name: Typecheck
-        run: npm run typecheck
+      # `ci.yml` is intentionally lightweight on `dev`. This workflow is the
+      # release boundary and must pass the complete gate before anything reaches
+      # the public URL.
+      - name: Fast platform gate
+        run: npm run check:fast
 
-      - name: Lint
-        run: npm run lint
+      - name: Content gate
+        run: npm run check:content
 
-      - name: Unit tests
-        run: npm run test
+      - name: Stub assets are reproducible
+        run: npm run check:stub-assets
 
-      - name: Validate packs against schema v0
-        run: npm run validate:packs
+      - name: Production base path
+        run: npm run check:base-path
 
-      - name: Licence and attribution completeness
-        run: npm run check:provenance
+      - name: No local absolute paths committed
+        run: npm run check:absolute-paths
 
-      # A project site is served from /<repository-name>/. The repository name
-      # is read from the event so no path is hardcoded anywhere in the repo.
-      - name: Build
-        run: npm run build
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Desktop browser suite
+        run: npm run test:visual
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 
+      - name: Upload browser report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-playwright-report
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
       # The deploy is the one place a licence-blocked pack could reach a public
       # URL, so the build output is asserted here rather than trusted. Runs
-      # AFTER the build and before the artifact is uploaded.
+      # against the exact base-path artifact the browser suite exercised.
       - name: Only published packs are in the build
         run: npm run check:published-packs
 
-      # Pages serves static files only: an unknown path 404s instead of falling
-      # back to index.html. Deep links use query params (?a=&v=&s=) so the SPA
-      # never needs a path fallback; this copy is belt-and-braces for a
-      # mistyped URL landing on a styled page rather than the stock 404.
-      - name: Add 404 fallback
-        run: cp dist/index.html dist/404.html
+      - name: Authoring is absent from the learner build
+        run: npm run check:authoring-absent
 
       - uses: actions/upload-pages-artifact@v3
         with:

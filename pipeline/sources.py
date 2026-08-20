@@ -7,9 +7,10 @@ drives acquisition — a source cannot be ingested without its attribution.
 
 Raw sources are 1-200 MB and are NEVER committed. They are fetched into a
 gitignored cache and verified by checksum before use (`fetch.py`). The
-repository is PUBLIC, so pushing a raw third-party asset to it would be
-distribution even if the deployed site never served it; only derived assets are
-committed, and only within the per-pack budget.
+repository is PUBLIC, so pushing a raw or derived third-party asset is
+distribution even if Pages never serves it. Only derivatives with established
+redistribution and modification rights may be committed; uncertain-rights
+outputs stay under the gitignored build workspace.
 
 Two registries, because two kinds of source need different things said about
 them:
@@ -18,9 +19,9 @@ them:
   glTF groups). `ingest.py` derives a frame, clinical views and a labelled echo
   volume from these.
 * `GEOMETRY_SOURCES` — plain surfaces with no labels and often no documentation.
-  `geometry.py` turns these into EXPLORE-ONLY packs. None of them is published;
-  what each one records instead is exactly how far its licence and its quality
-  are actually known.
+  `geometry.py` turns these into EXPLORE-ONLY packs. None currently reaches
+  Pages; rights-cleared evidence may still live in public Git. What each one
+  records is exactly how far its licence and its quality are actually known.
 """
 from __future__ import annotations
 
@@ -29,6 +30,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from bodyparts3d import hierarchy as bodyparts3d_hierarchy, select_heart
+
+
+# Public Git may hold material with established redistribution terms, including
+# a known non-commercial grant. Unconfirmed and permission-pending derivatives
+# stay under build/packs regardless of a source's historical routing flag.
+PUBLIC_GIT_LICENSE_STATES = frozenset({"confirmed", "non_commercial"})
 
 
 @dataclass(frozen=True)
@@ -63,17 +70,16 @@ class Source:
     #: How well the grant named in `license` is actually KNOWN. One of
     #: "confirmed", "non_commercial", "unconfirmed", "permission_pending" --
     #: `LicenseState` in src/schema/packV0.ts is the definition. A state other
-    #: than "confirmed" cannot be published, and CI enforces that rather than
-    #: trusting the `publishable` flag below to agree with it.
+    #: than "confirmed" cannot reach Pages. Public-Git routing separately
+    #: requires an established grant and never trusts this flag alone.
     license_state: str
     citation: str
 
     # --- policy -----------------------------------------------------------
-    #: False keeps the derived pack out of `public/packs/` entirely. Used where
-    #: the licence is unresolved: the pack is still built and measured, but it
-    #: cannot ship. See `pipeline/README.md`.
-    publishable: bool
-    unpublishable_reason: str = ""
+    #: Explicit source-policy decision that the known grant permits public
+    #: derived files. False keeps output under gitignored `build/packs/`.
+    public_repo_eligible: bool
+    non_public_reason: str = ""
 
     #: Free-text notes surfaced in the substrate report.
     notes: list[str] = field(default_factory=list)
@@ -117,7 +123,7 @@ RODERO = Source(
         "adult human heart. PLOS Computational Biology 17(4): e1008851 (2021). "
         "doi:10.1371/journal.pcbi.1008851"
     ),
-    publishable=True,
+    public_repo_eligible=True,
     notes=[
         "Volumetric tetrahedral mesh with per-element tissue tags: myocardium is native, not shelled.",
         "Adult and averaged. Paediatric applicability is a clinical-vetting question, not a technical one.",
@@ -150,8 +156,11 @@ ALBERTA = Source(
         "This work is based on \"Normal Neonatal Heart\" by 3D Heart Project "
         "(https://sketchfab.com/3DHeartProject), licensed under CC-BY-4.0."
     ),
-    publishable=True,
-    unpublishable_reason="",
+    public_repo_eligible=False,
+    non_public_reason=(
+        "The source carries contradictory licence statements and no authoritative resolution; "
+        "new derivatives stay in build/packs pending written confirmation."
+    ),
     rejection=(
         "REJECTED AS SUBSTRATE (2026-08-19). The blood pool and the myocardium interpenetrate "
         "rather than nesting: they are not a cast-and-shell pair, so wall thickness cannot be "
@@ -198,8 +207,8 @@ VHL = Source(
         "This work is based on \"Healthy Pediatric Heart Model- Heart0102\" by VisibleHeartLabs "
         "(https://sketchfab.com/VisibleHeartLabs), licensed under CC-BY-NC-4.0."
     ),
-    publishable=True,
-    unpublishable_reason="",
+    public_repo_eligible=True,
+    non_public_reason="",
     rejection=(
         "REJECTED AS SUBSTRATE (2026-08-19). A single undivided tissue body: one material, one "
         "echo label, no per-chamber structures, so nothing can be shown or hidden per chamber and "
@@ -289,6 +298,10 @@ class GeometrySource:
     license: str
     license_url: str
     license_state: str
+    #: Explicit source-policy decision: the known grant permits storing derived
+    #: files in this public repository. Licence state alone cannot answer this
+    #: for a custom, no-derivatives, or research-only grant.
+    public_repo_eligible: bool
     citation: str
     #: The licence statement AS READ at the source, quoted into the pack so the
     #: reading is preserved rather than trusted to still be there later.
@@ -410,6 +423,7 @@ CARDIAC_MOTION = GeometrySource(
     license="CC-BY-4.0",
     license_url="https://creativecommons.org/licenses/by/4.0/",
     license_state="confirmed",
+    public_repo_eligible=True,
     citation=(
         "Zemzemi, N. (2024). Cardiac Motion [Data set]. Zenodo. "
         "doi:10.5281/zenodo.10548682"
@@ -525,6 +539,7 @@ BODYPARTS3D = GeometrySource(
     license="CC-BY-4.0",
     license_url="https://creativecommons.org/licenses/by/4.0/",
     license_state="confirmed",
+    public_repo_eligible=True,
     citation=(
         "BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution "
         "4.0 International. Mitsuhashi N, Fujieda K, Tamura T, Kawamoto S, Takagi T, Okubo K. "
@@ -697,6 +712,7 @@ KIT_FOUR_CHAMBER = GeometrySource(
     license="CC-BY-NC-4.0",
     license_url="https://creativecommons.org/licenses/by-nc/4.0/",
     license_state="non_commercial",
+    public_repo_eligible=True,
     citation=(
         "Gerach T, Schuler S, Wachter A, Loewe A. Four-Chamber Human Heart Model for the "
         "Simulation of Cardiac Electrophysiology and Cardiac Mechanics [Data set]. Zenodo "
@@ -843,6 +859,7 @@ STRAUS_US = GeometrySource(
     license="No licence stated at the source",
     license_url="https://humanheart-project.creatis.insa-lyon.fr/multimodalityStraus.html",
     license_state="unconfirmed",
+    public_repo_eligible=False,
     citation=(
         "Alessandrini M, De Craene M, Bernard O, Giffard-Roisin S, Allain P, Waechter-Stehle "
         "I, Weese J, Saloux E, Delingette H, Sermesant M, D'hooge J. A pipeline for the "
@@ -946,6 +963,7 @@ COBIVECO_TOF = GeometrySource(
     license="CC-BY-4.0",
     license_url="https://creativecommons.org/licenses/by/4.0/",
     license_state="confirmed",
+    public_repo_eligible=True,
     citation=(
         "Pankewitz LR, Hustad KG, Govil S, Perry JC, Hegde S, Tang R, McCulloch AD, Omens JH, "
         "Young AA, Maleckar MM, Wang VY. A universal biventricular coordinate system "

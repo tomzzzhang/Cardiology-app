@@ -59,7 +59,7 @@ from meshlib import (
     read_vtu,
     write_gltf,
 )
-from sources import GeometrySource
+from sources import GeometrySource, PUBLIC_GIT_LICENSE_STATES
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -698,7 +698,11 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
     surfaces = [placement.apply(surface) for surface in surfaces]
     notes.append(placement.note)
 
-    out_dir = REPO / "public" / "packs" / source.pack_id
+    public_repo_eligible = (
+        source.public_repo_eligible and source.license_state in PUBLIC_GIT_LICENSE_STATES
+    )
+    out_root = "public" if public_repo_eligible else "build"
+    out_dir = REPO / out_root / "packs" / source.pack_id
     assets = out_dir / "assets"
     assets.mkdir(parents=True, exist_ok=True)
 
@@ -858,11 +862,13 @@ def ingest_geometry(source: GeometrySource) -> GeometryResult:
 
 def report(result: GeometryResult) -> None:
     source = result.source
+    relative_output = result.out_dir.relative_to(REPO)
+    in_public_repo = relative_output.parts[0] == "public"
     print(f"\n{'=' * 78}\n{source.display_name}\n{'=' * 78}")
     print(f"  pack id           {source.pack_id}")
     print(f"  licence           {source.license} ({source.license_state})")
-    print(f"  published         NO (Explore-only, unpublished by rule) -> "
-          f"{result.out_dir.relative_to(REPO)}")
+    print(f"  public Git output {'yes' if in_public_repo else 'NO'} -> {relative_output}")
+    print("  Pages             NO (Explore-only research pack)")
     print(f"  structures        {len(result.structures)}: {', '.join(result.structures)}")
     print(f"  frames            {result.frames or 'static'}")
     print(f"  triangles         {result.triangles:,}")

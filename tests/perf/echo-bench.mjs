@@ -49,7 +49,7 @@ for (const profile of VIEWPORTS) {
     const scrub = document.querySelector('[data-testid="echo-scrub"]');
 
     // Drive the sweep end to end through the real control, so the numbers cover
-    // the whole vetted range rather than one convenient pose.
+    // the whole saved range rather than one convenient pose.
     const set = (value) => {
       const setter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype, 'value',

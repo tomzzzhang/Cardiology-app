@@ -48,7 +48,7 @@ from anatomy import (  # noqa: E402
 )
 from meshlib import Surface, TetMesh, read_binary_stl, read_gltf_surfaces, read_vtk_tets, write_gltf  # noqa: E402
 from geometry import ingest_geometry, report as geometry_report  # noqa: E402
-from sources import GEOMETRY_SOURCES, SOURCES, Source  # noqa: E402
+from sources import GEOMETRY_SOURCES, PUBLIC_GIT_LICENSE_STATES, SOURCES, Source  # noqa: E402
 from views import (  # noqa: E402
     BUILDERS,
     SKIPPED,
@@ -146,7 +146,7 @@ class Structure:
 class IngestResult:
     source: Source
     out_dir: Path
-    published: bool
+    in_public_repo: bool
     structures: list[Structure]
     triangles_before: int
     triangles_after: int
@@ -649,8 +649,8 @@ def reference_view(structures: list[Structure], bounds: tuple[np.ndarray, np.nda
     One ingest reference pose, so the pack satisfies `views[].min(1)`.
 
     This is NOT a clinical view and does not pretend to be. Schema v0 requires at
-    least one view; wave 1a authors no clinical content, and vetted probe poses
-    are wave 1d's job with a clinical vetter. The pose is derived mechanically
+    least one view; wave 1a authors no clinical content, and saved probe poses
+    belong to later authoring work. The pose is derived mechanically
     from the model bounds — an anterior probe aimed at the model centre — and is
     named, flagged, and provenance-stamped as a pipeline artefact.
     """
@@ -1087,7 +1087,10 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
             )
             structure.label_id = 0
 
-    out_dir = (REPO / "public" / "packs" / source.pack_id) if source.publishable \
+    public_repo_eligible = (
+        source.public_repo_eligible and source.license_state in PUBLIC_GIT_LICENSE_STATES
+    )
+    out_dir = (REPO / "public" / "packs" / source.pack_id) if public_repo_eligible \
         else (REPO / "build" / "packs" / source.pack_id)
     assets = out_dir / "assets"
     assets.mkdir(parents=True, exist_ok=True)
@@ -1114,11 +1117,14 @@ def ingest(source: Source, *, resolution: int, budget: int) -> IngestResult:
     sizes["total_raw"] = sizes["gltf"] + sizes["bin"] + sizes["volume_raw"] + sizes["pack_json"]
     sizes["total_wire"] = sizes["gltf"] + sizes["bin"] + sizes["volume_gzip"] + sizes["pack_json"]
 
-    if not source.publishable:
-        notes.append(f"NOT PUBLISHED: {source.unpublishable_reason}")
+    if not public_repo_eligible:
+        reason = source.non_public_reason or (
+            f"license_state={source.license_state!r} does not establish public-Git rights"
+        )
+        notes.append(f"NOT WRITTEN TO PUBLIC REPOSITORY: {reason}")
 
     return IngestResult(
-        source=source, out_dir=out_dir, published=source.publishable, structures=structures,
+        source=source, out_dir=out_dir, in_public_repo=public_repo_eligible, structures=structures,
         triangles_before=triangles_before, triangles_after=triangles_after,
         resolution=resolution, voxel_mm=pitch, sizes=sizes, timings=timings, notes=notes,
     )
@@ -1129,7 +1135,10 @@ def report(result: IngestResult) -> None:
     print(f"\n{'=' * 78}\n{source.display_name}\n{'=' * 78}")
     print(f"  pack id           {source.pack_id}")
     print(f"  licence           {source.license}")
-    print(f"  published         {'yes' if result.published else 'NO'} -> {result.out_dir.relative_to(REPO)}")
+    print(
+        f"  public Git output {'yes' if result.in_public_repo else 'NO'} -> "
+        f"{result.out_dir.relative_to(REPO)}"
+    )
     print(f"  triangles         {result.triangles_before:,} -> {result.triangles_after:,}")
     print(f"  structures        {len(result.structures)}")
     print(f"  echo labels       {sum(1 for s in result.structures if s.label_id > 0)}")

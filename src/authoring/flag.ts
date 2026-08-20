@@ -21,7 +21,7 @@
  *
  * Turn it on for a placing session with:
  *
- *     VITE_AUTHORING=1 npm run dev
+ *     npm run dev:authoring
  */
 declare const __AUTHORING__: boolean;
 

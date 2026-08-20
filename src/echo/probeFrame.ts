@@ -88,7 +88,7 @@ export interface ImagingFrame {
 }
 
 /**
- * Derive the imaging frame from a vetted probe pose.
+ * Derive the imaging frame from a saved probe pose.
  *
  * The schema already guarantees `beam_axis` and `lateral_axis` are unit and
  * orthogonal to a tolerance. Re-orthogonalising here anyway is deliberate: the

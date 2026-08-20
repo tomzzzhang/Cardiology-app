@@ -5,6 +5,12 @@ on:
     branches: [dev, main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      seed_visual_baselines:
+        description: Generate Linux screenshot baselines instead of running the comparison suite
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -15,7 +21,7 @@ permissions:
 
 jobs:
   quality:
-    name: Typecheck, lint, tests
+    name: Platform checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,61 +33,20 @@ jobs:
 
       - run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Unit tests
-        run: npm run test
+      - name: Fast platform gate
+        run: npm run check:fast
 
       - name: Build
         run: npm run build
 
-      # Unpublished packs are licence-blocked. The build filter removes them;
-      # this asserts it worked, so a regression is caught on `dev` rather than
-      # first appearing on a public URL.
-      - name: Only published packs are in the build
-        run: npm run check:published-packs
-
-      # Every other check builds at `/`; Pages builds at `/<repository-name>/`.
-      # Without this step a hardcoded root-absolute URL would only surface on
-      # the deployed site, after a merge to `main`.
-      - name: Production base path
-        run: npm run check:base-path
-
-  packs:
-    name: Pack schema and provenance
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - run: npm ci
-
-      - name: Validate packs against schema v0
-        run: npm run validate:packs
-
-      - name: Licence and attribution completeness
-        run: npm run check:provenance
-
-      - name: Stub assets are reproducible
-        run: |
-          npm run gen:stub-assets
-          if ! git diff --quiet -- public/packs; then
-            echo "::error::Regenerating stub assets changed the working tree."
-            echo "Run 'npm run gen:stub-assets' and commit the result."
-            git --no-pager diff --stat -- public/packs
-            exit 1
-          fi
+      - name: Build primary authoring surface
+        run: npm run build:authoring
 
   visual:
-    name: Visual regression
+    name: Desktop browser suite
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,8 +61,15 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run visual suite
+      - name: Run desktop browser suite
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.seed_visual_baselines }}
         run: npm run test:visual
+
+      # Desktop baselines are platform-specific and none are committed yet.
+      # Phone/touch is a separate paused workstream, not a current gate.
+      - name: Seed Linux desktop screenshot baselines (manual runs only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_visual_baselines }}
+        run: npm run test:visual:update
 
       - name: Upload report
         if: ${{ !cancelled() }}
@@ -108,18 +80,8 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      # Baselines are platform-specific and none are committed yet, so the
-      # screenshot comparison skips itself (see playwright.config.ts). This
-      # publishes Linux references generated on demand, so a later checkpoint can
-      # commit a set produced by the same runner image that will check it.
-      # No `|| true`: a partial or failed seed must not be uploaded as if it
-      # were a usable baseline set.
-      - name: Seed Linux screenshot baselines (manual runs only)
-        if: github.event_name == 'workflow_dispatch'
-        run: npm run test:visual:update
-
       - name: Upload generated baselines
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_visual_baselines }}
         uses: actions/upload-artifact@v4
         with:
           name: visual-baselines-linux
@@ -133,13 +95,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # A committed absolute path breaks the build on every other machine, and
-      # leaks the layout of whoever committed it.
       - name: No local absolute paths committed
-        run: |
-          if git grep -nIE '(/Users/[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\|/home/[A-Za-z0-9._-]+/)' \
-               -- . ':(exclude)package-lock.json' ':(exclude).github/workflows/ci.yml'; then
-            echo "::error::A machine-specific absolute path is committed. Remove it."
-            exit 1
-          fi
-          echo "No local absolute paths found."
+        run: node scripts/check-absolute-paths.mjs

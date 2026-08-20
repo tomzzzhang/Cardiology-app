@@ -13,7 +13,7 @@
  * drawn, and it never participates in the clipping decision.
  *
  * This is the free cutter, which is runtime inspection state on its own data
- * path. The vetted echo wedge is elsewhere (`wedge.ts`, from `views[].probe`)
+ * path. The saved echo wedge is elsewhere (`wedge.ts`, from `views[].probe`)
  * and the two never merge — `contracts/README.md`.
  */
 import * as THREE from 'three';
@@ -250,7 +250,7 @@ export function draggedOffset(
 }
 
 /**
- * The free cutter's state that reproduces a vetted view's imaging plane.
+ * The free cutter's state that reproduces a saved view's imaging plane.
  *
  * The ONE permitted bridge, and it is one-way and copy-only: geometry is read
  * out of the frame and written into cutter state. Nothing here can write back,
@@ -274,8 +274,8 @@ export function alignedToPlane(
  * CORNER is generally empty space — on the Rodero heart it sits 106 units from
  * the pivot while the furthest actual vertex is 77, a 37% over-estimate — and
  * both consumers of this number pay for that error: the camera frames a small
- * heart in a large panel, and the depth slider spends a third of its travel
- * outside the model where nothing changes.
+ * heart in a large panel, and the interactive depth range spends a third of its
+ * travel outside the model where nothing changes.
  *
  * The walk is over position attributes at load time, once. At this model's
  * ~180k vertices that is well under a millisecond, and it is exact.

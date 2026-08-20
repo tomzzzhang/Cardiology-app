@@ -3,9 +3,8 @@
  *
  * ## Standard slots are content. Custom slots are the author's.
  *
- * A standard slot is one of the pack's authored `views[]` — a vetted or
- * draft-flagged clinical view with a review state, provenance and a name that
- * means something. **Saving over one never edits the pack.** It writes a
+ * A standard slot is a configured draft starter or one of the pack's authored
+ * `views[]`; review status is independent. **Saving over one never edits the pack.** It writes a
  * clearly labelled LOCAL OVERRIDE that lives beside the authored value rather
  * than on top of it, the UI says the slot is overridden, and reverting restores
  * the authored pose exactly. `views[]` is content with a review state and the
@@ -150,10 +149,11 @@ export function seedsFromViews(
   const authored = new Map(views.map((view) => [view.view_id, view]));
 
   /*
-   * The canon first, in the canon's own order, whether or not the pack has
-   * authored any of it. A slot with nothing in it is the work list: it is what
-   * the pack OUGHT to have, and a pack with no views used to offer no slots at
-   * all — which is every pack this tool exists for.
+   * The current draft starter list first, whether or not the pack has authored
+   * any of it. Empty rows are conveniences for today's placing session, not a
+   * platform completeness gate. A pack with no views used to offer no slots at
+   * all, so the starter list keeps the tool immediately usable alongside
+   * arbitrary custom slots.
    */
   const canon: SlotSeed[] = VIEW_CANON.map((view) => {
     const match = authored.get(view.viewId);

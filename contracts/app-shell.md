@@ -22,8 +22,10 @@ the earlier note that the free cutter is a tool rather than a global mode)*. The
 heart-model explorer as well as an echo trainer. Echo remains the default on a cold link with no
 param, so the open-link-to-an-oriented-view path is unchanged for someone arriving cold.
 
-- **Desktop / hospital desktop:** viewport and echo panel side by side, view rail persistent.
-- **Phone portrait:** echo panel and viewport stacked. Usable, not an afterthought.
+- **Desktop / hospital desktop:** viewport and echo panel side by side, view rail persistent. This
+  is the active interface target.
+- **Phone portrait (deferred):** the current stacked layout is retained as a prototype, but phone
+  and touch UX are paused and are not contract acceptance criteria.
 - **The didactics path is sacred:** open link → pick anatomy → pick view → scrub. Target is under
   15 seconds to "oh, THAT is where that plane sits". Anything that lengthens this path needs a
   reason.
@@ -50,17 +52,17 @@ pack cannot produce.
   something different here than everywhere else.
 - A link encodes anatomy + view + camera state. This is distribution mechanics, explicitly **not** a
   notes or session-export feature (`docs/mvp_scope.md` puts those out of MVP).
-- **Free-cut state is not a clinical claim and is not part of the vetted view.** If free-cut state is
-  ever encoded in a URL it is viewer state, and restoring it must not imply the plane is a vetted
-  view or alter `views[]`.
+- **Free-cut state is not a clinical claim and is not part of the saved view.** If free-cut state is
+  ever encoded in a URL it is viewer state, and restoring it must not imply the plane is a saved
+  view or inherit any review state, or alter `views[]`.
 
 ## Hosting constraints
 
 - Fully static: **no backend, no accounts**, no server-side rendering.
 - GitHub Pages serves the site under `/<repository-name>/`. The base path is supplied by the Pages
   workflow as `BASE_PATH` and read by `vite.config.ts`; runtime code resolves URLs through
-  `import.meta.env.BASE_URL`. **Never hardcode either value** — local dev, `vite preview`, and the
-  Playwright harness all run at `/`.
+  `import.meta.env.BASE_URL`. **Never hardcode either value** — local development normally runs at
+  `/`, while release and Pages browser checks intentionally exercise a non-root path.
 - Pack budget is ~15–20 MB per pack, so pack and asset loading is async and must not block first
   paint.
 
@@ -101,7 +103,7 @@ pack cannot produce.
 Echo and Explore modes with a visible toggle; the model picker, grouped by pack kind, with licence
 state and publication state on each chip; `?mode=`, `?view=`, `?pack=`, `?freeze=1` and `?polar=`
 read on load, with `?mode=` and `?pack=` written back; the anatomy viewer beside the echo panel on a
-wide viewport and stacked on a phone; the pack-status panel; and the non-diagnostic notice in the
+wide viewport, plus an unsupported retained narrow stack; the pack-status panel; and the non-diagnostic notice in the
 footer, present in both modes and not behind a toggle.
 
 Switching pack is state, not a page load: the viewer's scene effect already keys on the pack and its

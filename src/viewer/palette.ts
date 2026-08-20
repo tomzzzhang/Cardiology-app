@@ -186,7 +186,7 @@ export function derivedColour(id: string): number {
  * THREE states, not two (owner decision, 2026-08-19; `docs/observations.md`
  * entry 24 is the reasoning).
  *
- * 1. **Named, and in the palette** — the palette's colour. This is the vetted
+ * 1. **Named, and in the palette** — the palette's colour. This is the selected
  *    substrate and the colours carry meaning: left heart red, right heart blue.
  * 2. **Identified, but not in the palette** — a derived muted colour, stable
  *    for that structure forever. All 86 BodyParts3D parts are here: every one

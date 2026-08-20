@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-authoring/
 
 # Ingest pipeline: raw source assets (20-190 MB) and unpublishable derived packs
 pipeline/.cache/

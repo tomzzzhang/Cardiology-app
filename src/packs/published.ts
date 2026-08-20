@@ -5,8 +5,10 @@
  * CI check all read it, so a pack cannot be published by one route while being
  * rejected by another.
  *
- * The repository deliberately contains packs that are NOT published, for two
- * unrelated reasons.
+ * The repository contains packs that are NOT deployed to Pages, for two
+ * unrelated reasons. This file controls the deployed site only. Git history is
+ * itself public distribution, so inclusion here never authorises committing an
+ * asset whose redistribution or modification rights are unresolved.
  *
  * Some are EVIDENCE: the wave 1a substrate survey compared three candidate
  * Normal-heart assets through one pipeline, and the two that lost are kept so
@@ -17,7 +19,7 @@
  * (schema v0.1) and anything but `confirmed` is unpublishable by rule, checked
  * in `scripts/check-provenance.ts` and again in the unit tests.
  *
- * Keeping a pack and shipping it are different things.
+ * Tracking a rights-cleared pack and deploying it are different decisions.
  *
  * Removal from the deployed site is enforced at BUILD time — the rejected packs
  * are absent from `dist/`, not merely hidden by a runtime flag — so no deep

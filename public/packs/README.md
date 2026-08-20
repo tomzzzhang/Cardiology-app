@@ -3,6 +3,11 @@
 One directory per pack: `public/packs/<id>/pack.json`, with assets alongside under `assets/`.
 Asset paths inside `pack.json` are pack-relative; the loader rejects absolute URLs and `..`.
 
+`public/packs/` is public Git distribution, not a private staging area. New or regenerated
+third-party derivatives belong here only after an explicit source-policy decision confirms that
+redistribution and modification rights cover the files. Unresolved work goes to the gitignored
+`build/packs/` workspace. The Pages allowlist is a separate, later decision.
+
 Packs are validated against **content-pack schema v0.1 (PROVISIONAL)** — `src/schema/packV0.ts`.
 Code against it and change it only deliberately, with tests and documentation in the same commit.
 
@@ -14,7 +19,7 @@ A pack is one of two kinds, and the distinction decides which modes it can even 
 
 ## The packs
 
-| Pack | Kind | What it is | Licence | Licence state | Published? |
+| Pack | Kind | What it is | Licence | Licence state | On Pages? |
 | --- | --- | --- | --- | --- | --- |
 | `stub/` | echo | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | confirmed | yes, but never offered in the picker |
 | `normal-rodero/` | echo | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 | confirmed | **yes — the selected substrate** |
@@ -43,11 +48,17 @@ what the grant says: `confirmed` (read at the rights holder's own page and quote
 `non_commercial` (confirmed, and NC, so it can never ship), `unconfirmed` (no authoritative
 statement found), `permission_pending` (an enquiry has gone out and no answer has come back).
 
-**Only `confirmed` may be published**, and that is a validator rule rather than a habit —
+**Only `confirmed` may reach Pages**, and that is a validator rule rather than a habit —
 `npm run check:provenance` fails a published pack whose state is anything else, and
 `tests/unit/publishedPacks.test.ts` applies the same rule under `npm run test`. A confirmed licence
 is necessary and not sufficient: `motion-biv-cinemri` is confirmed CC BY 4.0 and still does not
 ship, because nothing new ships in this build.
+
+The repository also contains two **frozen legacy public-Git exceptions**:
+`motion-straus-us-patient01` and `normal-alberta-neonatal`. Their rights are unresolved, their exact
+existing asset trees are fingerprinted by `npm run check:provenance`, and they remain off Pages.
+This records an existing exposure; it does not authorise changing those assets or adding another
+unresolved pack. Disposition is an owner decision recorded in the planning folder as Q29.
 
 ## The substrate verdict (2026-08-19)
 
@@ -112,19 +123,24 @@ deliberately not identical to the mesh extents: the core label matches its mesh,
 label stops short of the shell mesh so the fixture keeps a rim of background voxels. Without any
 background the validator's reserved-background rule would go unexercised.
 
-## Adding a pack
+## Adding or regenerating a pack
 
-1. `public/packs/<id>/pack.json` plus assets.
-2. `npm run validate:packs` — schema, cross-references, and asset *semantics*: referenced files
+1. Run the pipeline into `build/packs/<id>/` while source rights are unresolved. Move or regenerate
+   into `public/packs/<id>/` only when the source registry explicitly records that the known grant
+   permits public derived files. Do not hand-copy a research download into Git.
+2. Add `public/packs/<id>/pack.json` plus its derived assets only after that decision.
+3. `npm run validate:packs` — schema, cross-references, and asset *semantics*: referenced files
    exist, every `mesh_node` resolves to a named node inside the glTF, the glTF's own external
    resources are embedded or present on disk, and a `raw-u8` volume matches its declared resolution
    and declares every voxel value it contains. **Voxel value `0` is reserved for background** and
    must not appear in `echo_volume.labels`; every other value present must be declared, and every
    declared label must actually appear. Binary containers (`.glb`, KTX2) are reported as skipped
    rather than silently passed — inspecting them is a tracked technical-slice gap.
-3. `npm run check:provenance` — licence and attribution completeness, per anatomy **and** per view.
+4. `npm run check:provenance` — licence, attribution, public-Git policy, and legacy-exception
+   integrity, per anatomy **and** per view.
 
-Both run in CI, and the Pages deploy runs them too, so a bad pack cannot reach the published site.
+`npm run check:content` runs both. Selective content CI runs when pack/schema/pipeline material
+changes, and the Pages release runs them again before deployment.
 
 ## Provenance is not optional
 

@@ -3,7 +3,7 @@
  * 3D scene from the pose the echo panel is rendering.
  *
  * `contracts/viewer-core.md` calls for "a separate translucent sector-wedge
- * probe indicator driven by the same vetted probe pose and fan params as the
+ * probe indicator driven by the same saved probe pose and fan params as the
  * echo panel (one-to-one match)". The one-to-one match is not achieved by
  * carefully keeping two things in step — it is achieved by there being one
  * thing. This module takes the SAME `ImagingFrame` the renderer rasterises and

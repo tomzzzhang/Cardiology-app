@@ -2,11 +2,9 @@
  * The reveal rule every direct-manipulation handle obeys, and the world-to-
  * screen arithmetic that hit-tests them.
  *
- * The rule is one rule in one place on purpose. Restated per control it decays
- * per control, and the decay is invisible on the machine doing the restating: a
- * handle that reveals on hover is perfectly usable with a mouse and is an
- * invisible control on a phone, where the pointer's first contact with the
- * screen is already the press.
+ * Fine-pointer behavior remains an active desktop invariant. The retained
+ * coarse-pointer policy is preserved below as skipped evidence until the
+ * separate phone/touch workstream is resumed.
  */
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
@@ -19,19 +17,7 @@ import {
 } from '../../src/viewer/pointerClass.ts';
 import { projectToScreen, unitsPerPixel } from '../../src/viewer/screen.ts';
 
-describe('revealFor — proximity on a fine pointer, always on a coarse one', () => {
-  it('shows a coarse-pointer handle at any distance, including none at all', () => {
-    /*
-     * The gate: "handles and the tilt arrow are present and hittable under a
-     * coarse pointer". A finger has no hover, so `Infinity` — the distance
-     * reported when no pointer is over the panel — is the NORMAL state on a
-     * touch screen, and it must still be fully visible.
-     */
-    for (const distance of [0, 10, 500, Infinity, Number.NaN]) {
-      expect(revealFor(distance, true)).toBe(1);
-    }
-  });
-
+describe('revealFor — active fine-pointer behavior', () => {
   it('hides a fine-pointer handle until the pointer approaches', () => {
     expect(revealFor(Infinity, false)).toBe(0);
     expect(revealFor(PROXIMITY_RADIUS_PX, false)).toBe(0);
@@ -57,15 +43,24 @@ describe('revealFor — proximity on a fine pointer, always on a coarse one', ()
   });
 });
 
-describe('hitRadiusPx', () => {
-  it('sizes the coarse target for a thumb', () => {
-    // A radius, so the target is ~52 px across — inside the 44 px minimum every
-    // touch guideline agrees on, with margin, because these targets sit over a
-    // scene the same finger also drags to orbit.
+describe('deferred phone/touch pointer policy', () => {
+  it.skip('shows a coarse-pointer handle without hover', () => {
+    for (const distance of [0, 10, 500, Infinity, Number.NaN]) {
+      expect(revealFor(distance, true)).toBe(1);
+    }
+  });
+
+  it.skip('sizes the coarse target for a thumb', () => {
     expect(HIT_RADIUS_COARSE_PX * 2).toBeGreaterThanOrEqual(44);
     expect(hitRadiusPx(true)).toBe(HIT_RADIUS_COARSE_PX);
     expect(hitRadiusPx(false)).toBe(HIT_RADIUS_FINE_PX);
     expect(hitRadiusPx(true)).toBeGreaterThan(hitRadiusPx(false));
+  });
+});
+
+describe('hitRadiusPx — active desktop policy', () => {
+  it('uses the fine-pointer radius', () => {
+    expect(hitRadiusPx(false)).toBe(HIT_RADIUS_FINE_PX);
   });
 });
 

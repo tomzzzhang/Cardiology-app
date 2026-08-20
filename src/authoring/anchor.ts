@@ -20,7 +20,7 @@
  * authored axes — rather than by a private orthogonalisation here. Going
  * through `probeFrame.ts` is the point: the pose this emits is one
  * `imagingFrame` accepts unchanged, so the wedge on the model and the echo fan
- * derive from it exactly as they do from a vetted pose, and the schema's unit
+ * derive from it exactly as they do from a saved pose, and the schema's unit
  * and orthogonality refinements pass with a great deal of room to spare.
  *
  * ## Units

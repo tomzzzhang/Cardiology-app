@@ -1,10 +1,9 @@
 # Project workflow
 
-**Updated:** 2026-08-19 23:15 EDT
+**Updated:** 2026-08-20 14:40 EDT
 
-How work happens in this repository. Product intent, clinical context, decisions, and the
-progress log live in the owner's planning folder; this file is the code-side operating rule
-and matches the planning folder's `WORKFLOW.md`.
+How work happens in this repository. Product intent, clinical context, decisions, and progress
+live in the owner's planning folder. Code and executable checks live here.
 
 ## Sources of truth
 
@@ -12,53 +11,78 @@ and matches the planning folder's `WORKFLOW.md`.
 |---|---|
 | Product intent, clinical context, decisions, research, progress | The planning folder |
 | Code, tests, schemas, technical contracts, build configuration | This repository and its pushed history |
-| Published app | `main`, after an intentional stable release |
-| Active development | The persistent `dev` branch |
+| Published app | `main`, after an intentional release |
+| Active platform development | The persistent `dev` branch |
 
-The Git checkout stays outside any file-sync tree.
+The Git checkout stays outside file-sync trees.
 
-## One work cycle
+## Current mode: platform first
 
-1. **Plan.** Define one bounded task: goal, relevant files, constraints, acceptance checks,
-   and what is deferred.
-2. **Inspect.** Check `git status` and read the relevant code and tests before editing.
-3. **Build.** Work directly on `dev`. Keep the change coherent. Do not manufacture issues,
-   branches, review artifacts, or handoff documents unless they genuinely help.
-4. **Verify.** Run the checks the change deserves. `npm run verify` is the normal gate; run
-   `npm run test:visual` and look at the app in a browser when rendering or UI changed.
-5. **Record.** Commit and push the checkpoint, then add one concise newest-first entry to the
-   planning folder's `progress_log.md`: outcome, commit SHA, verification, next step.
+Build reusable platform capability before fitting it to final clinical workflow. Clinical
+interviews, draft view definitions, and the MVP are future product inputs. They do not silently
+become platform constraints.
 
-A good checkpoint is small enough to understand, complete enough to revert, and pushed before
-the session ends.
+Prototype work may use schema v0, synthetic fixtures, draft content, provisional metadata,
+experimental controls, and unverified poses. Do not wait for clinical review, full content,
+schema v1, final echo tuning, learner restrictions, or a finished provenance UI.
+
+Desktop and laptop are the active interface and release target. Phone/touch UX is paused as a
+separate later design project; retained responsive code and tests are evidence, not a current gate.
+
+The current engine-plus-content-pack split is a useful platform architecture, not an irreversible
+safeguard. Change reversible architecture when build evidence supports it; record the decision once
+the replacement settles.
+
+## Platform-build loop (`dev`)
+
+1. Define one coherent capability or fix.
+2. Inspect the relevant code and tests. Consult product or clinical documents only when the
+   change touches their subject.
+3. Build directly on `dev` and keep the change easy to revert.
+4. Run the smallest gate that matches the change.
+5. Commit and push a useful completed checkpoint. Update the planning log only when project
+   state, a blocker, or the next step changed.
+
+## Gates
+
+| Situation | Gate |
+|---|---|
+| Ordinary platform work | `npm run check:fast` |
+| Coherent platform milestone | `npm run verify` |
+| Pack, schema, source, licence, or provenance change | Add `npm run check:content` |
+| Desktop UI or rendering change | Run the relevant targeted browser test and inspect that surface |
+| Explicit desktop release candidate | `npm run verify:release` |
+| Deferred phone/touch investigation | `npm run test:phone` only when explicitly resumed |
+| Clinical content/status promotion | Manual clinical review gate; not a code checkpoint |
+
+Tests protect stable mechanics, persistence and exports, data integrity, and observed
+regressions. Temporary product choices should remain easy to change rather than being encoded as
+permanent acceptance tests.
+
+## Integration and release (`dev` to `main`)
+
+Before advancing `main`, run the full automated and desktop browser suite, verify the deployable learner
+bundle, complete applicable source/licence/provenance records, and inspect the release artifact.
+Clinical review and schema freeze happen against an integrated prototype, not against each
+engineering slice. Platform releases may contain honestly labelled `Draft` content; the later
+review policy, not platform code, decides when `vetted` is truthful.
 
 ## Git rules
 
-- One persistent `dev` branch for ongoing work.
-- Push useful checkpoints straight to `origin/dev`. GitHub is the backup and audit trail.
-- Pull requests and issues are optional, never mandatory.
-- Do not force-push shared history. Prefer `git revert <sha>` to roll back.
-- Advance `main` only for a stable publication checkpoint — normally a local fast-forward
-  merge from `dev`, then a direct push.
-- CI runs on pushes to both `dev` and `main`. GitHub Pages deploys only from `main`.
+- Use one persistent `dev` branch for ongoing work and push useful checkpoints directly.
+- Pull requests and issues are optional tools, never mandatory ceremony.
+- Do not force-push shared history. Prefer `git revert <sha>` for rollback.
+- Advance `main` only for an intentional publication checkpoint.
+- Lightweight CI runs on `dev`. The full release gate runs before a `main` deployment.
 
-## Checks
+## Safeguards that always apply
 
-| Command | What it covers |
-|---|---|
-| `npm run verify` | typecheck, lint, unit tests, pack schema, provenance |
-| `npm run test:visual` | Playwright suite against a production build |
-| `npm run build` | production build |
-| `npm run check:base-path` | the deployed sub-path the Pages build uses |
-
-## Safeguards that do not lapse
-
-- The engine stays anatomy-agnostic; lesions are versioned content packs.
-- The free anatomical cutter and the vetted echo wedge remain separate data and interaction
-  paths. See `contracts/README.md`.
-- Every model and view keeps source, licence, modification, and review provenance.
-- Review states mean what they say: `draft` → `fellow_reviewed` → `vetted`. `vetted` requires
-  both a pediatric-cardiology fellow and an imaging attending.
-- Simulated echo is labelled simulated, and is judged by whether a trainee can learn from it.
-- No PHI, and no interpretation of arbitrary patient images.
-- Never publish collaborator identities or private context without consent.
+- Treat the repository itself as public distribution. Only commit assets whose redistribution and
+  modification rights are established and compatible; uncertain-rights material stays local and
+  ignored. A Pages allowlist does not make a Git commit private.
+- Keep source, licence, attribution, and derivation records for every committed third-party asset.
+- No PHI, patient uploads, secrets, or private collaborator context in the repository.
+- Label synthetic output `Simulated` and unreviewed content `Draft`. A free or arbitrary pose may
+  not inherit a saved view's name or review state.
+- Saved imaging views and runtime free poses stay distinct data states so experiments cannot
+  overwrite authored content or inherit a review claim.

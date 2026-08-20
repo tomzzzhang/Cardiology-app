@@ -1,37 +1,38 @@
 # Module contracts
 
-**Updated:** 2026-08-19 23:15 EDT
+**Updated:** 2026-08-20 14:40 EDT
 
 One page per engine module, from `docs/build_plan.md` ("Architecture: engine + content packs").
 They describe the interface and behaviour each module owes the rest of the system.
 
-Change a contract deliberately, with evidence, updating tests and documentation in the same
-commit. Do not change one silently, and do not let an implementation drift away from one without
-saying so.
+These are current interface notes, not immutable product requirements. During platform-first
+development, code and focused tests may lead while behavior is being explored. Update the touched
+contract once an interface or behavior settles in a coherent checkpoint; do not turn provisional
+clinical or UX choices into permanent contract gates.
 
 | Module | Contract | Status |
 | --- | --- | --- |
 | pack-loader | [`pack-loader.md`](pack-loader.md) | implemented; revisit at schema v1 |
-| viewer-core | [`viewer-core.md`](viewer-core.md) | implemented for the slice: free orbit (no polar clamp), framing, direct-manipulation cut handles on a rendered rectangle, echo-synced and free cutter modes, solid stencil caps, ghost cutaway, probe indicator, probe control pad, beam-dim highlight, animated match-echo camera. Outstanding: pinch-zoom and two-finger pan, per-structure show/hide, labels, measurement |
+| viewer-core | [`viewer-core.md`](viewer-core.md) | implemented for the desktop slice: free orbit, framing, direct-manipulation cut handles, echo-synced and free cutter modes, solid stencil caps, ghost cutaway, probe indicator and control pad, beam dim, match-echo camera, and per-structure isolate/hide/filter controls. Outstanding now: labels and measurement. Phone gestures are a separate deferred workstream. |
 | echo-renderer | [`echo-renderer.md`](echo-renderer.md) | implemented: scan, separable PSF, display passes over the labelled volume, per-view tuning, simulated labelling. Outstanding: motion, secondary rays, per-view `echo_tuning` authored rather than defaulted |
 | view rail + sweep scrubber | [`view-rail-sweep-scrubber.md`](view-rail-sweep-scrubber.md) | not built — wave 1d. One sweep slider and the probe control pad stand in; views are reachable only by `?view=` |
 | provenance UI | [`provenance-ui.md`](provenance-ui.md) | partial: the echo panel carries the simulated badge, the draft flag and the licence line. The pinned expandable strip is not built |
-| authoring mode | [`authoring-mode.md`](authoring-mode.md) | not built |
+| authoring mode | [`authoring-mode.md`](authoring-mode.md) | initial flag-gated slice built: camera placement, local overrides, IndexedDB persistence, export/import, and four-chamber axis capture. Outstanding: export-to-pack ingestion and broader authoring workflow |
 | app shell | [`app-shell.md`](app-shell.md) | partial: Echo/Explore modes, `?mode=`/`?view=`/`?pack=` deep links, responsive two-panel stage, the undismissible non-diagnostic notice. Outstanding: the view rail, the provenance strip, the full `?a=`/`?v=`/`?s=` scheme |
 
 ## The boundary every contract has to respect
 
 `docs/build_plan.md` pins one separation, and most of these contracts exist to hold it:
 
-> The free anatomical cutter and the vetted echo wedge are **different objects on different data
+> The free anatomical cutter and the saved echo wedge are **different objects on different data
 > paths.** They may coincide visually. They never merge.
 
-| | Free anatomical cutter | Vetted echo wedge |
+| | Free anatomical cutter | Saved echo wedge |
 | --- | --- | --- |
 | What it is | Infinite oriented plane `{N, s}` relative to pivot `C` | Finite sector derived from a saved probe pose |
 | Where it lives | Runtime inspection state; seeded from optional `interaction.free_cut` | `views[].probe` in the pack |
 | Who moves it | The learner, freely | The sweep, through the scrubber or the probe control pad; or the learner directly, once the probe is explicitly unlocked |
-| Clinical claim | None | Reviewed, provenance-stamped |
+| Clinical claim | None | Whatever its metadata truthfully states; it may be `draft` |
 | Serialized into `views[]` | **Never** | It *is* the view |
 
 ## What the link is, now that the build has been used
@@ -69,5 +70,5 @@ rather than by hiding**:
   aperture reaches tissue. Which window a view uses is authored content; how far the transducer
   stands off it is not.
 
-Rendering an arbitrary plane under a vetted view's name remains forbidden. That is the failure the
+Rendering an arbitrary plane under a saved view's name remains forbidden. That is the failure the
 pack's refusal to author A3 and A4 exists to avoid, and unlocking the probe does not licence it.

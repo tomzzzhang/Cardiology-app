@@ -11,7 +11,7 @@
  * Unlocking it is an explicit owner decision, taken on 2026-08-19, and it is
  * paid for by LABELLING rather than by hiding: while the probe is free the echo
  * panel stops claiming to be the saved view and says so on the image. The
- * alternative — rendering an arbitrary plane under a vetted view's name — is
+ * alternative — rendering an arbitrary plane under a saved view's name — is
  * exactly the failure the pack's refusal to author A3 and A4 exists to avoid,
  * and it is the one thing that stays forbidden.
  *

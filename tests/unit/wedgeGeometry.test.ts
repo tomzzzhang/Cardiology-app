@@ -1,7 +1,7 @@
 /**
  * The wedge and the echo must be the same fan.
  *
- * `contracts/viewer-core.md` asks for a wedge "driven by the same vetted probe
+ * `contracts/viewer-core.md` asks for a wedge "driven by the same saved probe
  * pose and fan params as the echo panel (one-to-one match)". These tests assert
  * the geometric consequences of that: the sector is planar, its apex is the
  * probe origin, its half-angle and depth are the pose's, and it moves with a

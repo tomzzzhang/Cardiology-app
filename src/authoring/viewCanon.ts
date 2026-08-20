@@ -1,6 +1,6 @@
 /**
- * The clinical view slots, from `docs/view_canon.md`, present whether a pack
- * has authored them or not.
+ * Temporary starter slots copied from the DRAFT `docs/view_canon.md`, present
+ * whether a pack has authored them or not.
  *
  * ## Why the slots exist before the poses do
  *
@@ -9,8 +9,8 @@
  * author opens the tool to work on. `normal-vhl-heart0102` carries one view and
  * it is the ingest reference pose, so the apical four-chamber the author wanted
  * to place was not offered anywhere. A slot with nothing in it is not an empty
- * gesture: it is the canon's list of what a pack OUGHT to have, which is the
- * work list.
+ * gesture: it is a convenient current work list. It is not the platform's
+ * definition of completeness, and custom slots remain available.
  *
  * An empty canon slot is not pack content and claims nothing. It holds no pose,
  * `Restore` is dead on it, and saving into it writes an ordinary local slot
@@ -42,7 +42,7 @@ export interface CanonView {
 }
 
 /**
- * The taxonomy, in the canon's own order.
+ * The provisional starter taxonomy, in the draft canon's current order.
  *
  * Names are the canon's, shortened only where the canon's own heading carries a
  * parenthetical. `view_id` follows the ids the Rodero pack already uses

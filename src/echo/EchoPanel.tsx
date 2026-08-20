@@ -16,7 +16,7 @@
  * panel keeps rendering — but the moment the pose has actually left the track it
  * stops CLAIMING to be the view: the name goes, the draft flag goes, and the
  * provenance line says the plane is unvetted. Rendering an arbitrary plane under
- * a vetted view's name is the failure the pack's refusal to author A3 and A4
+ * a saved view's name is the failure the pack's refusal to author A3 and A4
  * exists to avoid, and it stays forbidden.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -44,7 +44,7 @@ interface EchoPanelProps {
    *
    * The image still renders — seeing what a plane images is the whole point of
    * being able to move it — but the panel stops CLAIMING to be the saved view
-   * while it is set. Rendering an arbitrary plane under a vetted view's name is
+   * while it is set. Rendering an arbitrary plane under a saved view's name is
    * the one thing this must not do.
    */
   freePose?: ProbePose | null;

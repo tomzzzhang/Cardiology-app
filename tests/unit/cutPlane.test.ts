@@ -405,7 +405,7 @@ describe('alignedToPlane — the one permitted bridge', () => {
   it('returns plain cutter state, with no way back to a view', () => {
     // The shape of the return value IS the guarantee: `{normal, offset}` is the
     // free cutter's own state and carries no identity, so nothing downstream
-    // can mistake an aligned cutter for the vetted view it was copied from.
+    // can mistake an aligned cutter for the saved view it was copied from.
     const copied = alignedToPlane(
       new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 5, 0), PIVOT,
     );

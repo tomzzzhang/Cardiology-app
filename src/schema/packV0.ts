@@ -27,7 +27,7 @@
  *   field even if one existed here.
  *
  * BOUNDARY (build_plan v1.2, "Viewer interaction contract"): the free
- * anatomical cutter and the vetted echo wedge are different objects on
+ * anatomical cutter and the saved echo wedge are different objects on
  * different data paths. The free cutter appears in this file exactly once, as
  * the optional `interaction.free_cut` viewer default. It must never appear in
  * `views[]`.
@@ -825,11 +825,11 @@ export const EchoVolume = z.strictObject({
 export type EchoVolume = z.infer<typeof EchoVolume>;
 
 /* -------------------------------------------------------------------------- */
-/* views[] — vetted clinical content                                          */
+/* views[] — authored imaging content                                         */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Full vetted probe pose. This is the ONE source of truth for a clinical view:
+ * Full saved probe pose. This is the ONE source of truth for an authored view:
  * the cut plane `{anchor, basis_u, basis_v}` is DERIVED from it
  * (anchor = origin, basis = beam/lateral axes), so the wedge drawn on the model
  * and the echo fan cannot disagree.
@@ -943,7 +943,7 @@ export const PackView = z.strictObject({
   placement_landmark: z.string().min(1),
   indicator_clock: IndicatorClock,
 
-  /* --- the vetted pose, and everything derived from it -------------------- */
+  /* --- the saved pose, and everything derived from it --------------------- */
   probe: ProbePose,
   sweep: Sweep.optional(),
 

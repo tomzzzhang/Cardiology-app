@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-19 17:45 EDT
+**Updated:** 2026-08-20 14:40 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -147,24 +147,27 @@ Shipping `.glb` would quietly retire the `mesh_node` validation that `npm run va
 performs. Staying with JSON plus an external `.bin` keeps that gate real, and costs nothing
 the deployed pack notices.
 
-## What does not ship
+## Public-repository and release boundaries
 
-Two independent mechanisms, because they protect against different things.
+There are two public surfaces: Git history and the deployed site. Pages filtering protects only
+the second one.
 
-`sources.py` carries a `publishable` flag deciding *where the pack is written*. A source whose
-licence forbids keeping the derived pack at all is written to `build/packs/`, which is
-gitignored, instead of `public/packs/`.
+Pipeline routing writes a derivative to `public/packs/` only when an explicit source-policy flag
+says the known grant permits public derived files **and** its licence state records that grant as
+established. Unconfirmed or permission-pending
+work goes to `build/packs/`, which is gitignored. Before staging a public output, still confirm that
+the recorded grant covers the actual derivative and attribution.
 
 `src/packs/published.ts` decides *what reaches the deployed site*. A pack under `public/packs/`
 loads in `npm run dev` and is pruned from `dist/` at build time unless it is on
-`PUBLISHED_PACK_IDS`. Every pack this pipeline currently writes is off that list, and any pack
-whose `license_state` is not `confirmed` is kept off it by `npm run check:provenance` rather
-than by anyone remembering to.
+`PUBLISHED_PACK_IDS`. The selected Normal pack is on that list; research and comparison packs are
+not. Any pack whose `license_state` is not `confirmed` is kept off Pages by
+`npm run check:provenance` rather than by anyone remembering to.
 
-**Raw sources are never committed.** The repository is public, so pushing a third-party asset
-to it would be distribution even if the deployed site never served it. Raw files live in the
-gitignored `.cache/`; only derived assets are committed, within a 15 MB per-pack budget that
-`geometry.py` enforces by aborting rather than writing an oversized pack.
+**Raw sources and uncertain-rights derivatives are never committed.** The repository is public,
+so pushing either is distribution even if the deployed site never serves it. Raw files live in the
+gitignored `.cache/`; exploratory derivatives live under `build/packs/`. Rights-cleared derived
+assets may be committed within the 15 MB per-pack budget that `geometry.py` enforces.
 
 ## Credentials
 

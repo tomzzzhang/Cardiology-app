@@ -17,8 +17,7 @@
  *
  * The cutter has two named modes rather than a one-shot align action:
  * **Echo plane**, where it continuously follows the selected view's imaging
- * plane as the sweep scrubs and the depth slider slides it along that plane's
- * own normal, and **Free**, where it is the learner's. Switching to Free adopts
+   * plane as the sweep scrubs, and **Free**, where it is the learner's. Switching to Free adopts
  * the current plane, so the transition is continuous.
  *
  * What flows where has not changed and is not a UI question: data goes
@@ -258,7 +257,7 @@ export default function PackViewer({
   const seeded = pack.interaction?.free_cut;
   const [cutEnabled, setCutEnabled] = useState(seeded !== undefined);
   /**
-   * The depth slider's value.
+   * The cutter's signed depth value.
    *
    * Its meaning follows the cutter mode, and the readout says which: in Free it
    * is `s`, the signed distance from the pivot `C`; in Echo plane it is the
@@ -1210,8 +1209,8 @@ export default function PackViewer({
 
     /*
      * The wheel writes back through React state rather than mutating `cut`
-     * directly, so the slider and the readout move with it. One `s`, three
-     * controls, no reconciliation step.
+     * directly, so the depth arrow and readout move with it. One `s`, two
+     * interaction paths, no reconciliation step.
      */
     let onCutOffset: (value: number) => void = () => {};
 
@@ -1690,7 +1689,7 @@ export default function PackViewer({
        * CAMERA ONLY, and structurally so: `echoOrientation` takes an
        * ImagingFrame and returns a rotation. It cannot reach the wedge, the
        * view or the pack, and nothing here writes to any of them — the free
-       * cutter's `{N, s}` and the vetted `views[]` are both untouched.
+       * cutter's `{N, s}` and the saved `views[]` are both untouched.
        */
       matchEchoOrientation: (frame) => glideTo(echoOrientation(frame)),
       setCineFrame: (index) => {

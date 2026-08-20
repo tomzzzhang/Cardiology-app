@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-19 23:15 EDT
+**Updated:** 2026-08-20 14:40 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -9,12 +9,17 @@ sits on the model — with a simulated echo image alongside and scrubbable sweep
 Education only. Not diagnostic. Every echo image in this app is **simulated**, never a recording
 of a patient, and the app never accepts user-uploaded or arbitrary patient images.
 
-**Status:** the Normal-heart technical slice is deployed and live. The app loads a real ingested
+**Status:** platform-first development is active on `dev`. The app loads a real ingested
 heart pack, renders it in 3D with per-structure colouring and a solid-capped free cut plane,
 draws the probe and its sector, and renders a simulated echo for the selected view from the same
 probe pose the wedge is built from. Three clinical views are authored and draft-flagged, reachable
-by `?view=`; two were deliberately refused, and the pack says why. There is no view rail yet —
-that, and the annotated sweep scrubber, are the next objective (wave 1d).
+by `?view=`; two were deliberately refused, and the pack says why. The flag-gated authoring build
+can place and save probe poses, export/import local overrides, and reach Echo on a volume-less pack.
+The next platform unit ingests an exported pose into `pack.json`; the view rail and annotated sweep
+scrubber follow.
+
+The active product surface is desktop/laptop. Phone and touch UX are paused for a dedicated later
+design pass and do not gate platform checkpoints or the current release workflow.
 
 A **model picker** now offers every pack in the repository, grouped by what a pack is: labelled and
 echo-capable, or Explore-only geometry. Explore-only packs are new in schema v0.1, which made
@@ -23,11 +28,13 @@ such pack **moves** — ten cine-MRI biventricular frames with a play/pause and 
 Explore. Motion is not wired into the echo renderer and that is deliberate; see
 [`contracts/viewer-core.md`](contracts/viewer-core.md).
 
-Everything is **draft and unvetted**. Schema v0.1 is provisional, clinical review is deferred until
-the build is substantially complete, and no view carries a clinical claim. **Nothing new is
-published**: every pack added to the shelf is on the unpublished list and absent from the deployed
-build, and any pack whose licence state is not `confirmed` is kept off it by CI rather than by
-anyone remembering to.
+Everything is **draft and unvetted**. Schema v0.1 is provisional, and clinical review and schema v1
+wait for the integrated prototype. The Pages release currently includes only `normal-rodero` and
+the synthetic `stub`. The repository itself is also public distribution: future exploratory assets
+without established redistribution rights must stay local and ignored, even when they are excluded
+from the Pages build. Two pre-existing research packs (`motion-straus-us-patient01` and
+`normal-alberta-neonatal`) are already in public history with unresolved rights; they remain off
+Pages, are explicit temporary exceptions in the content check, and need a separate owner decision.
 
 ## Read first
 
@@ -50,9 +57,15 @@ npm run dev
 | --- | --- |
 | `npm run dev` | Vite dev server |
 | `npm run build` | Production build into `dist/` |
-| `npm run verify` | Typecheck, lint, unit tests, pack schema, provenance — the normal gate |
-| `npm run test:visual` | Playwright suite (builds and previews the site) |
-| `npm run test:visual:update` | Write screenshot baselines for the current platform |
+| `npm run build:authoring` | Production-check the primary authoring surface into `dist-authoring/` |
+| `npm run check:fast` | Typecheck, lint, and unit tests — the normal platform gate |
+| `npm run check:content` | Pack/schema integrity plus provenance and licence metadata |
+| `npm run check:absolute-paths` | Reject machine-specific paths before shared history |
+| `npm run verify` | Fast platform gate plus learner and authoring production builds |
+| `npm run verify:release` | Full content, non-root bundle, authoring-exclusion, and browser release gate |
+| `npm run test:visual` | Desktop Playwright suite (builds and serves the site) |
+| `npm run test:visual:update` | Write desktop screenshot baselines for the current platform |
+| `npm run test:phone` | Deferred phone-portrait harness; manual only, not a current gate |
 | `npm run validate:packs` | Validate every pack against schema v0.1, including asset semantics |
 | `npm run check:provenance` | Licence and attribution completeness |
 | `npm run check:base-path` | Build with a sentinel base path and assert the output is prefixed |
@@ -75,7 +88,7 @@ src/echo/       echo-renderer: probe frame, the three shader passes, the echo pa
 pipeline/       Python model ingest — split, label, decimate, voxelise, author views,
                 and a geometry-only path for unlabelled sources
 shared/         the few constants the pipeline and the viewer both have to agree on
-public/packs/   shipped packs, one directory each
+public/packs/   tracked content packs, one directory each; Pages ships an explicit allowlist
 scripts/        pack validation, provenance check, base-path check, stub asset generation
 contracts/      one-page module contracts
 tests/unit/     schema, loader, asset semantics, plane algebra, orbit, echo acoustics
@@ -91,7 +104,8 @@ Two things look similar on screen and are not the same:
   interaction pivot `C`. It is runtime inspection state, the learner moves it freely, it makes no
   clinical claim, and it is **never stored in `views[]`**. A pack may seed it once, via optional
   `interaction.free_cut`.
-- The **vetted echo wedge** is a finite sector derived from a saved probe pose in `views[]`. The
+- The **saved echo wedge** is a finite sector derived from an authored probe pose in `views[]`. It
+  may still be `draft`; review status is metadata rather than a different technical object. The
   plane and the wedge derive from that one pose, so the wedge on the model and the echo fan cannot
   disagree.
 
@@ -132,8 +146,9 @@ the same terms.
 
 **Content is licensed separately and the code licence does not touch it.** Model provenance and
 licence terms are carried per pack and rendered in-app; CI fails the build on incomplete
-attribution. Third-party models arrive under their own licences (the Alberta 3D Heart Library is
-CC BY-NC 4.0), and the non-commercial red lines in `docs/build_plan.md` bind the product.
+attribution. Both Git history and the deployed site are public distribution surfaces. A third-party
+asset may enter Git only when redistribution and modification rights are established and its
+attribution and derivation are recorded; uncertain-rights exploration stays outside Git.
 
 Crediting a third party whose model a licence requires you to credit is required and is a
 different thing from publishing a collaborator's identity, which needs consent.

@@ -8,8 +8,8 @@ per-view tuning; every frame is labelled simulated. Outstanding: motion, seconda
 
 ## Responsibility
 
-Render the simulated echo image for the **selected vetted view or sweep position**, from the labelled
-`echo_volume` and the view's probe pose. Nothing else drives it.
+Render the simulated echo image for the **selected saved view or sweep position**, from the labelled
+`echo_volume` and the view's probe pose. Review status does not change the rendering path.
 
 ## Approach (fixed)
 
@@ -54,11 +54,12 @@ echo_volume           asset, format, resolution, mesh_to_volume, labels[], scatt
   unlocks the probe, this module renders the pose it is given, exactly as it renders any other. What
   changes is what the PANEL claims: the view's name and its draft flag are withdrawn the moment the
   pose has actually left the saved track, and the provenance line says the plane is unvetted.
-  Rendering an arbitrary plane under a vetted view's name is the one thing forbidden — it is the
+  Rendering an arbitrary plane under a saved view's name is the one thing forbidden — it is the
   failure the pack's refusal to author A3 and A4 exists to avoid.
 - The scatterer field is **not shipped**: generate it at runtime from `scatterer_seed`,
   deterministically. Baking a scatterer channel stays a fallback if runtime generation is too costly
-  on phones — that call belongs to the slice review, and no baked-channel field exists in schema v0.
+  on lower-end devices. Phone-specific performance is deferred, and no baked-channel field exists
+  in schema v0.
 
 ## Perceptual priorities, in order
 
@@ -76,11 +77,12 @@ Every simulated frame is labelled **simulated**, with provenance one tap away. S
 (shelled myocardium, sculpted leaflets, interface-only pericardium) stays flagged as stylized — the
 renderer must not present it as sourced anatomy.
 
-## Bar
+## Platform bar
 
-Per-view **"learnable-from"** verdict from the clinical vetter — not indistinguishability. Stage 0
-(inside the technical slice) is fixture slice → grey-level LUT + speckle + fan + TGC. If it reads as
-echo, the path is confirmed; if it reads as CT, speckle/PSF comes first.
+The renderer accepts a valid saved or working pose, produces deterministic labelled output, keeps
+the 3D wedge and echo frame on one geometry path, and exposes tuning without hardcoding a clinical
+view. A later integration/release review decides whether a candidate content frame is
+"learnable-from"; that verdict is not an acceptance criterion for renderer platform work.
 
 ## Upgrade path (must not require rearchitecture)
 

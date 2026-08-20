@@ -1,6 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4173;
+const RELEASE_CHECK = process.env.npm_lifecycle_event === 'test:release';
+const BASE_PATH = (() => {
+  const releaseDefault = RELEASE_CHECK ? '/release-check/' : '/';
+  const raw = process.env.BASE_PATH?.trim() || releaseDefault;
+  const leading = raw.startsWith('/') ? raw : `/${raw}`;
+  return leading.endsWith('/') ? leading : `${leading}/`;
+})();
+const SERVER_URL = `http://127.0.0.1:${PORT}${BASE_PATH}`;
 
 /**
  * Visual-regression infrastructure (wave 0).
@@ -17,13 +25,16 @@ const PORT = 4173;
  * Wave 1 seeds Linux baselines from a CI run and the diff becomes a real gate.
  * The deterministic assertions in the same spec gate CI from day one.
  *
- * The app is served at `/` here; `BASE_PATH` is only set by the Pages workflow.
+ * The default is `/`. The Pages workflow sets `BASE_PATH` so the same suite
+ * exercises the exact project-site artifact it uploads.
  */
 export default defineConfig({
   testDir: './tests/visual',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // The full local release run is parallel and can briefly contend for WebGL;
+  // like CI, retry one isolated timing miss while preserving its diagnostics.
+  retries: process.env.CI || RELEASE_CHECK ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   updateSnapshots: 'none',
@@ -39,7 +50,7 @@ export default defineConfig({
   },
 
   use: {
-    baseURL: `http://127.0.0.1:${PORT}`,
+    baseURL: SERVER_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -50,6 +61,8 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
     },
     {
+      // Preserved for the deferred phone/touch workstream. Normal platform,
+      // CI, and release scripts select desktop-chromium explicitly.
       name: 'phone-portrait',
       use: { ...devices['Pixel 7'] },
     },
@@ -66,8 +79,9 @@ export default defineConfig({
      * them" untestable here. tests/static-server.mjs serves only the artefact
      * that deploys, and 404s like Pages does.
      */
-    command: `npm run build && node tests/static-server.mjs ${PORT}`,
-    url: `http://127.0.0.1:${PORT}`,
+    command: `npm run build && npm run add:404 && node tests/static-server.mjs ${PORT}`,
+    url: SERVER_URL,
+    env: { BASE_PATH },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

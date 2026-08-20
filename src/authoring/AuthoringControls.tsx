@@ -10,8 +10,8 @@
  *
  * ## The word is VIEW, not "slot"
  *
- * On screen these are **views** — the canon's word, the schema's word, and the
- * word a sonographer uses for a named probe position. "Slot" survives in the
+ * On screen these are **views** — the schema's word for a saved probe position.
+ * The draft canon supplies temporary starter labels, not required content. "Slot" survives in the
  * code only because `PackView` already means the schema type and two things
  * called `View` in one file is worse than one honest piece of jargon; the type
  * `Slot` means "a place a pose can be stored", and it is never shown.
@@ -51,7 +51,7 @@ import { buildExport, exportFileName, readExport, type ExportedFrame } from './e
 export interface AuthoringControlsProps {
   packId: string;
   packSchemaVersion: string;
-  /** The canon's views plus whatever this pack authored, frozen by the caller. */
+  /** Draft starter views plus whatever this pack authored, frozen by the caller. */
   seeds: readonly SlotSeed[];
   template?: Pick<ProbePose, 'fan' | 'display'>;
   standoffOverrideMm?: number;
@@ -396,18 +396,17 @@ export default function AuthoringControls({
             setRenaming(null);
             setNotice(null);
           }}
-          data-hint="The clinical view you are placing."
+          data-hint="The saved or working view you are placing."
           data-testid="authoring-slot"
         >
           {slots.length === 0 && <option value="">No views</option>}
           {/*
-            * The whole canon, whether or not this pack has authored any of it.
-            * An empty row is the work list: `normal-vhl-heart0102` authors no
-            * clinical view at all, so the four-chamber an author came here to
-            * place was previously not offered anywhere.
+            * The current draft starter list, whether or not this pack has
+            * authored any of it. It is a convenience, not a required-content
+            * list; working views below remain arbitrary.
             */}
           {canon.length > 0 && (
-            <optgroup label="Standard views (docs/view_canon.md)">
+            <optgroup label="Draft starter views">
               {canon.map((slot) => (
                 <option key={slot.slotId} value={slot.slotId}>{optionLabel(slot)}</option>
               ))}

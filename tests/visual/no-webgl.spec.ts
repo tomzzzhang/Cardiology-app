@@ -20,7 +20,7 @@ test.use({
 
 test.describe('WebGL unavailable', () => {
   test('the shell survives and explains itself', async ({ page }) => {
-    await page.goto('/?freeze=1&pack=stub');
+    await page.goto('?freeze=1&pack=stub');
 
     // The anatomy viewer reports its own unavailability rather than disappearing.
     const viewer = page.getByTestId('anatomy-viewer');

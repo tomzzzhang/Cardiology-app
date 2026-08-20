@@ -113,7 +113,7 @@ describe('poseAt', () => {
   });
 
   it('clamps scrub positions outside [0, 1] rather than extrapolating the sweep', () => {
-    // A scrubber that overshoots must not drive the probe past its vetted range.
+    // A scrubber that overshoots must not drive the probe past its saved range.
     expect(poseAt(probe(), tilt, -5).beam_axis).toEqual(poseAt(probe(), tilt, 0).beam_axis);
     expect(poseAt(probe(), tilt, 9).beam_axis).toEqual(poseAt(probe(), tilt, 1).beam_axis);
   });
