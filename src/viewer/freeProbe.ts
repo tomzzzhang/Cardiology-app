@@ -86,6 +86,60 @@ export const STANDOFF_STEP_MM = 2;
 export const STANDOFF_LIMIT_MM = 60;
 
 /**
+ * How close the transducer may come to tissue, and how far it may retreat, in
+ * pack units (mm).
+ *
+ * The near stop keeps the probe OUT of the heart. This substrate has no chest
+ * wall, so nothing but this number stops the aperture being pushed through the
+ * epicardium and imaging from inside a ventricle — which renders something
+ * perfectly plausible and teaches the opposite of the truth. The far stop keeps
+ * the sector on the heart at all.
+ *
+ * Measured against the model SURFACE rather than against the authored pose, so
+ * both mean the same thing on every view: how far a window stands off the
+ * epicardium differs per view, and a bound measured from the pose would sit
+ * inside the heart on one and nowhere near it on another.
+ */
+export const MIN_CLEARANCE_MM = 3;
+export const MAX_CLEARANCE_MM = 70;
+
+/** How far outside the allowed band a clearance is. Zero inside it. */
+export function bandViolationMm(clearanceMm: number): number {
+  if (clearanceMm < MIN_CLEARANCE_MM) return MIN_CLEARANCE_MM - clearanceMm;
+  if (clearanceMm > MAX_CLEARANCE_MM) return clearanceMm - MAX_CLEARANCE_MM;
+  return 0;
+}
+
+/**
+ * Whether one press of the stand-off pair may go from one clearance to another.
+ *
+ * **The stops are barriers, not a trap, and they were a trap.** The rule was
+ * "the result must be inside the band", which is right while the probe starts
+ * inside it and wrong the moment it does not: from outside, every move lands
+ * outside, so every move is refused and both buttons go dead with no way back.
+ * That could not happen while the only poses on offer were authored ones, which
+ * sit inside the band by construction. It happens the first time a pose is
+ * placed from outside — an anchored pose parks the transducer at the derived
+ * standoff, which is further out than any authored pose in this repository.
+ *
+ * So a move is allowed if it lands inside the band, or if it REDUCES how far
+ * outside the band the probe is. The stop still cannot be crossed; it can now
+ * be retreated from.
+ *
+ * An unmeasurable clearance — no model yet, or a pose the surface sample cannot
+ * reach — allows the move. A stop that cannot be computed must not become a
+ * silent refusal.
+ */
+export function standOffStepAllowed(
+  beforeMm: number | undefined, afterMm: number | undefined,
+): boolean {
+  if (afterMm === undefined || !Number.isFinite(afterMm)) return true;
+  if (bandViolationMm(afterMm) === 0) return true;
+  if (beforeMm === undefined || !Number.isFinite(beforeMm)) return true;
+  return bandViolationMm(afterMm) < bandViolationMm(beforeMm);
+}
+
+/**
  * Turn a probe pose about one of its own axes, by a signed angle in degrees.
  *
  * **The origin is held fixed.** A transducer pivots where it sits, so unlocking

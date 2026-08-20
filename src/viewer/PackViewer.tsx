@@ -41,6 +41,7 @@ import {
   STANDOFF_STEP_MM,
   movedAlongBeam,
   nudgedPose,
+  standOffStepAllowed,
   type ProbeAxis,
 } from './freeProbe.ts';
 import { ProbeIndicator } from './wedge.ts';
@@ -182,24 +183,6 @@ const CLICK_SLOP_PX = 4;
 
 /** How much the structure under the pointer lifts, to say a click would take it. */
 const HIGHLIGHT_EMISSIVE = 0x2a2a2a;
-
-/**
- * How close the transducer may come to tissue, and how far it may retreat, in
- * pack units (mm).
- *
- * The near stop keeps the probe OUT of the heart. This substrate has no chest
- * wall, so nothing but this number stops a learner pushing the aperture through
- * the epicardium and imaging from inside a ventricle — which renders something
- * perfectly plausible and teaches the opposite of the truth. The far stop keeps
- * the sector on the heart at all.
- *
- * Measured against the model SURFACE rather than against the authored pose, so
- * both mean the same thing on every view: how far a window stands off the
- * epicardium differs per view, and a bound measured from the pose would sit
- * inside the heart on one and nowhere near it on another.
- */
-const MIN_CLEARANCE_MM = 3;
-const MAX_CLEARANCE_MM = 70;
 
 interface ViewerApi {
   setFrame: (frame: ImagingFrame) => void;
@@ -1854,22 +1837,59 @@ export default function PackViewer({
    */
   const [standOffRoom, setStandOffRoom] = useState({ closer: true, further: true });
 
-  const roomAround = (pose: ProbePose) => {
-    const clearance = apiRef.current?.clearanceMm(pose.origin as [number, number, number]);
-    if (clearance === undefined || !Number.isFinite(clearance)) {
-      return { closer: true, further: true };
-    }
-    return {
-      closer: clearance - STANDOFF_STEP_MM >= MIN_CLEARANCE_MM,
-      further: clearance + STANDOFF_STEP_MM <= MAX_CLEARANCE_MM,
-    };
+  /**
+   * Whether one press may move the probe from `from` to `to`.
+   *
+   * The rule itself lives in `freeProbe.ts`, where it can be tested; this is
+   * the measurement it is applied to.
+   */
+  const standOffAllowed = (from: ProbePose, to: ProbePose) => {
+    const measure = (pose: ProbePose) =>
+      apiRef.current?.clearanceMm(pose.origin as [number, number, number]);
+    return standOffStepAllowed(measure(from), measure(to));
   };
 
-  const standOffAllowed = (pose: ProbePose) => {
-    const clearance = apiRef.current?.clearanceMm(pose.origin as [number, number, number]);
-    if (clearance === undefined || !Number.isFinite(clearance)) return true;
-    return clearance >= MIN_CLEARANCE_MM && clearance <= MAX_CLEARANCE_MM;
-  };
+  /**
+   * Which of the two stand-off buttons may be pressed from here.
+   *
+   * Measured by asking the SAME question a press asks, of the SAME candidate
+   * poses — not by adding the step to the current clearance and comparing. The
+   * two are not the same number: clearance is the distance to the nearest
+   * surface point, and moving 2 mm along the beam changes it by 2 mm only when
+   * the beam happens to point at that point. A button that is enabled and inert
+   * is worse than one that is disabled, and predicting the answer differently
+   * from the way it is computed is how that happens.
+   */
+  const roomAround = (pose: ProbePose) => ({
+    closer: standOffAllowed(pose, movedAlongBeam(pose, STANDOFF_STEP_MM)),
+    further: standOffAllowed(pose, movedAlongBeam(pose, -STANDOFF_STEP_MM)),
+  });
+
+  /**
+   * Re-measure the room whenever the pose changes, whoever changed it.
+   *
+   * The second half of the same defect. The room used to be recomputed only by
+   * the three places inside this component that move the probe, so a pose
+   * arriving from ANYWHERE else left the two buttons showing the enabled state
+   * they had for a pose that is no longer on screen.
+   *
+   * Through a ref so the effect depends on the pose and nothing else: the
+   * measurement closes over `apiRef`, which is a ref, and over the component's
+   * own helpers, which are new functions on every render and would otherwise
+   * re-run this on every render.
+   */
+  const roomAroundRef = useRef(roomAround);
+  roomAroundRef.current = roomAround;
+
+  useEffect(() => {
+    if (freePose === null) return;
+    const next = roomAroundRef.current(freePose);
+    // Same values, same object: a fresh object each time would re-render on
+    // every step of a held button for no change.
+    setStandOffRoom((current) => (
+      current.closer === next.closer && current.further === next.further ? current : next
+    ));
+  }, [freePose]);
 
   /**
    * Hold the pointer for the duration of a press.
@@ -1917,9 +1937,15 @@ export default function PackViewer({
     const pose = freePoseRef.current;
     if (!pose || !view) return;
     const next = movedAlongBeam(pose, sign * STANDOFF_STEP_MM);
-    if (!standOffAllowed(next)) return;
+    if (!standOffAllowed(pose, next)) return;
     freePoseRef.current = next;
     onFreePoseChange?.(next);
+    /*
+     * Kept alongside the effect above rather than left to it. A held button
+     * repeats every 55 ms and reads `freePoseRef`, not the prop, so it can
+     * compound faster than React re-renders; this keeps the two buttons'
+     * enabled state in step with the presses that are actually landing.
+     */
     setStandOffRoom(roomAround(next));
   };
 
@@ -1961,7 +1987,6 @@ export default function PackViewer({
     const onTrack = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
     freePoseRef.current = onTrack;
     onFreePoseChange?.(onTrack);
-    setStandOffRoom(roomAround(onTrack));
   };
 
   const setProbeFree = (free: boolean) => {
@@ -1971,7 +1996,6 @@ export default function PackViewer({
     }
     const seeded = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
     onFreePoseChange?.(seeded);
-    setStandOffRoom(roomAround(seeded));
   };
 
   /**

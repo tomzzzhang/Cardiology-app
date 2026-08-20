@@ -17,12 +17,16 @@ import type { ProbePose, Sweep } from '../../src/schema/packV0.ts';
 import { dot, frameAt, imagingFrame, length, poseAt } from '../../src/echo/probeFrame.ts';
 import type { Vec3 } from '../../src/schema/primitives.ts';
 import {
+  MAX_CLEARANCE_MM,
+  MIN_CLEARANCE_MM,
   NUDGE_DEG,
   STANDOFF_STEP_MM,
+  bandViolationMm,
   beamOffsetMm,
   hasLeftTrack,
   movedAlongBeam,
   nudgedPose,
+  standOffStepAllowed,
   type ProbeAxis,
 } from '../../src/viewer/freeProbe.ts';
 
@@ -291,5 +295,74 @@ describe('hasLeftTrack', () => {
     expect(hasLeftTrack(nudgedPose(seeded, 'aim', NUDGE_DEG / 10), seeded)).toBe(true);
     // A thousandth of that is not.
     expect(hasLeftTrack(nudgedPose(seeded, 'aim', NUDGE_DEG / 10000), seeded)).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* the stand-off stops: barriers, and once a trap                              */
+/* -------------------------------------------------------------------------- */
+
+describe('the stand-off band is a barrier, not a trap', () => {
+  it('allows any step that lands inside the band', () => {
+    expect(standOffStepAllowed(30, 28)).toBe(true);
+    expect(standOffStepAllowed(30, 32)).toBe(true);
+    expect(standOffStepAllowed(MIN_CLEARANCE_MM, MIN_CLEARANCE_MM)).toBe(true);
+    expect(standOffStepAllowed(MAX_CLEARANCE_MM, MAX_CLEARANCE_MM)).toBe(true);
+  });
+
+  it('refuses a step that crosses a stop from inside', () => {
+    // Pressing closer from just inside the near stop would put the aperture
+    // inside the heart.
+    expect(standOffStepAllowed(4, 2)).toBe(false);
+    // And lifting past the far stop takes the sector off the heart.
+    expect(standOffStepAllowed(69, 71)).toBe(false);
+  });
+
+  /*
+   * THE REGRESSION. Before this rule, "allowed" meant "the result is inside the
+   * band", so from outside it every move was refused — including the move back
+   * — and both buttons went dead with no way to recover. It could not be
+   * reached while the only poses on offer were authored ones, all of which sit
+   * inside the band. An anchored pose sits at the derived standoff, which is
+   * outside it, and the buttons died on the first press.
+   */
+  it('allows a step back TOWARD the band from outside it', () => {
+    // Too far out: pressing closer must work.
+    expect(standOffStepAllowed(90, 88)).toBe(true);
+    // Too close in: lifting away must work.
+    expect(standOffStepAllowed(1, 1.5)).toBe(true);
+  });
+
+  it('still refuses a step that makes an out-of-band pose worse', () => {
+    expect(standOffStepAllowed(90, 92)).toBe(false);
+    expect(standOffStepAllowed(1, 0.5)).toBe(false);
+  });
+
+  it('a sequence of presses from outside walks the probe back into the band', () => {
+    let clearance = 96;
+    let presses = 0;
+    while (bandViolationMm(clearance) > 0 && presses < 100) {
+      const next = clearance - STANDOFF_STEP_MM;
+      expect(standOffStepAllowed(clearance, next)).toBe(true);
+      clearance = next;
+      presses += 1;
+    }
+    expect(bandViolationMm(clearance)).toBe(0);
+    expect(presses).toBe(13);
+  });
+
+  it('allows the step when the clearance cannot be measured', () => {
+    // No model loaded yet, or a pose the surface sample cannot reach. A stop
+    // that cannot be computed must not become a silent refusal.
+    expect(standOffStepAllowed(undefined, undefined)).toBe(true);
+    expect(standOffStepAllowed(90, undefined)).toBe(true);
+    expect(standOffStepAllowed(undefined, 90)).toBe(true);
+    expect(standOffStepAllowed(Number.NaN, Number.NaN)).toBe(true);
+  });
+
+  it('measures the violation as the distance past whichever stop was passed', () => {
+    expect(bandViolationMm(30)).toBe(0);
+    expect(bandViolationMm(MIN_CLEARANCE_MM - 2)).toBe(2);
+    expect(bandViolationMm(MAX_CLEARANCE_MM + 5)).toBe(5);
   });
 });
