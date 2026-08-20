@@ -1265,6 +1265,105 @@ test('the apex toggle flips the echo panel and never the model', async ({ page }
   await expect(page.getByTestId('apex-flip')).toHaveAttribute('aria-pressed', 'false');
 });
 
+/* -------------------------------------------------------------------------- */
+/* the pair is measured, not eyeballed                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The two panels are one pair, and this is where that claim is checked.
+ *
+ * Last round the alignment was measured by hand and written down; a number in a
+ * document is not a gate, and the first thing that moved it was a header chip
+ * that cost 0.9 px. So the measurements are here now:
+ *
+ * 1. the two headers are the same height and the two canvases start at the same
+ *    y and are the same size — a header that grows moves its image, which is
+ *    exactly what the pair exists to prevent;
+ * 2. every row under either canvas starts at the same inset from its own card,
+ *    which before this round it did not: the anatomy's controls sat at 16 px,
+ *    the echo's flip row at 0, its sweep label at 16 and the range input inside
+ *    that label at 18;
+ * 3. every button and toggle in those rows is the same height, so a row of
+ *    mixed controls has one baseline instead of three.
+ */
+test('the two panels are one pair, to the pixel', async ({ page }, testInfo) => {
+  const width = testInfo.project.use.viewport?.width ?? 0;
+  test.skip(width < 800, 'the panels stack below 800 px, where there is no pair to align');
+
+  const measured = await page.evaluate(() => {
+    const box = (selector: string) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    };
+
+    /* Every row under a canvas, on both sides, with the card it belongs to. */
+    const rowInsets: { name: string; inset: number }[] = [];
+    const pairs: [string, string][] = [
+      ['.anatomy-panel', '.anatomy-panel .cutter-mode, .anatomy-panel .cutter'],
+      ['.echo', '.echo__display, .echo__scrub, .echo__provenance'],
+    ];
+    for (const [cardSelector, rowSelector] of pairs) {
+      const card = document.querySelector(cardSelector)!.getBoundingClientRect();
+      for (const row of document.querySelectorAll(rowSelector)) {
+        /*
+         * The inset of the row's CONTENT, not of the row box. Several of these
+         * rows are full-bleed elements whose padding is the inset, and it is
+         * the content edge a reader sees.
+         */
+        for (const child of row.children) {
+          const rect = child.getBoundingClientRect();
+          if (rect.width === 0) continue;
+          rowInsets.push({
+            name: `${cardSelector} ${child.className || child.tagName}`,
+            inset: Math.round((rect.x - card.x) * 10) / 10,
+          });
+          break;
+        }
+      }
+    }
+
+    const controlHeights = [...document.querySelectorAll<HTMLElement>(
+      '.cutter button, .cutter-mode__button, .cutter__toggle, .echo__flip',
+    )].map((element) => ({
+      name: element.className || element.tagName,
+      height: Math.round(element.getBoundingClientRect().height * 10) / 10,
+    }));
+
+    return {
+      anatomyHead: box('.anatomy__header'),
+      echoHead: box('.echo__header'),
+      anatomyCanvas: box('.anatomy canvas'),
+      echoCanvas: box('[data-testid=echo-canvas]'),
+      rowInsets,
+      controlHeights,
+    };
+  });
+
+  // 1. The headers are the same height, so the canvases start at the same y.
+  expect(measured.anatomyHead!.height).toBe(measured.echoHead!.height);
+  expect(measured.anatomyCanvas!.y).toBeCloseTo(measured.echoCanvas!.y, 1);
+  expect(measured.anatomyCanvas!.width).toBeCloseTo(measured.echoCanvas!.width, 1);
+  expect(measured.anatomyCanvas!.height).toBeCloseTo(measured.echoCanvas!.height, 1);
+
+  // 2. One inset for every row under either canvas.
+  expect(measured.rowInsets.length).toBeGreaterThanOrEqual(5);
+  const insets = new Set(measured.rowInsets.map((row) => row.inset));
+  expect(
+    insets.size,
+    `rows sit at ${[...insets].join(', ')} px: ${JSON.stringify(measured.rowInsets)}`,
+  ).toBe(1);
+
+  // 3. One height for every control in those rows.
+  expect(measured.controlHeights.length).toBeGreaterThanOrEqual(6);
+  const heights = new Set(measured.controlHeights.map((control) => control.height));
+  expect(
+    heights.size,
+    `controls are ${[...heights].join(', ')} px tall: ${JSON.stringify(measured.controlHeights)}`,
+  ).toBe(1);
+});
+
 test('app shell screenshot', async ({ page }, testInfo) => {
   const baseline = testInfo.snapshotPath('app-shell.png');
   const seeding = !['none', 'missing'].includes(testInfo.config.updateSnapshots);

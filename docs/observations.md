@@ -1650,3 +1650,193 @@ simulated echo is labelled simulated, so it now reads "Simulated" in the panel h
 "Simulated — not a recording of a patient" in the provenance line under the image, in ordinary type.
 That is a deliberate reading of "drop the banner" rather than "drop the label", and it is easy to
 finish removing if that is what was meant.
+
+---
+
+## 45. "Eight of the nine packs have no probe pose" is not what the packs say. Five have none.
+
+**Checked before building anything, because the brief for this unit rested on it.** The count on
+the shelf today:
+
+| Packs with authored `views[]` | Packs with none |
+|---|---|
+| `normal-rodero` (4), `normal-alberta-neonatal` (1), `normal-vhl-heart0102` (1), `stub` (2) | `anatomy-bodyparts3d-heart`, `motion-biv-cinemri`, `motion-straus-us-patient01`, `normal-kit-four-chamber`, `tof-cobivecox-chd0017001` |
+
+So four packs carry a probe pose and five do not. That does not change what this unit had to
+build — five unlabelled packs is still the problem — but it changes what "placeable" means, and
+the difference matters for the next unit rather than this one.
+
+**Because the five are exactly the five with no `echo_volume`.** Schema v0 refuses views on a pack
+with no volume — a view is a pose to image from, and there is nothing there to image — so the five
+packs with no pose are the five that cannot enter Echo mode at all. **Placing a probe on them does
+not make Echo enterable.** It cannot: what they are missing is a labelled volume, which is a
+pipeline job, not a viewer one.
+
+**Which is the honest answer to the question this round was asked to answer.** Anchor-then-adjust
+makes those five packs *poseable* — a pose can be placed, saved, exported and handed back for
+ingest — and it does not make them *echoable*. Both halves are true and the second one is the one
+worth knowing before the next unit is chosen.
+
+---
+
+## 46. Anchor-then-adjust: it works, and it changes the shape of the job
+
+**The gesture.** Orbit until the model is at the angle you want to look from, press one button, and
+the probe is on that axis aimed at the model's centre. Then the pad does the fine work.
+
+**On a pack with no view at all, this is the difference between possible and not.** Before it there
+was no probe on those five packs — no wedge, no indicator, nothing. The pad cannot help, because
+the pad turns a pose that already exists. Anchoring produces the first one.
+
+**What it costs to get from an arbitrary start to a rough window, counted.** The pad's fan and aim
+buttons are two degrees a press. Getting from an arbitrary orientation to roughly the right
+approach is order ninety degrees on two axes, which is forty-five presses each, and the standoff
+would still be wrong. Anchoring is one press and lands within a few degrees of what the eye chose,
+because the eye chose it.
+
+**Where it is less good than it looks.** The anchored fan is edge-on to the camera at the instant it
+is placed — necessarily, since the beam runs along the view axis — so the thing you just made is
+invisible until you orbit ninety degrees to look at it. That is not confusing so much as
+anticlimactic, and the honest fix is a camera move on anchor, which is the same piece of work as
+framing on isolate (entry 38) and is deferred with it.
+
+---
+
+## 47. The derived standoff, and the depth that no standoff can rescue
+
+**The derivation.** For a cone of half-angle `a` to contain a sphere of radius `R` whose centre lies
+on its axis at distance `d`, `d ≥ R / sin(a)`. That is exact, it is tangency, and the shipped
+standoff is that quotient times 1.12. The cone rather than the fan, because the fan is planar and
+cannot contain a solid — what is actually wanted is the property that survives the probe being
+rolled, and that is containment by the cone of revolution.
+
+**Across the shelf it spreads by a factor of eighty**, which is the argument against a constant:
+
+| Pack | Bounding radius (mm) | Fan | Derived standoff (mm) |
+|---|---|---|---|
+| `stub` | 1.7 | 60° | 3.9 |
+| `normal-alberta-neonatal` | 59.5 | 75° | 109 |
+| `normal-rodero` | 76.7 (measured) | 80° | 134 |
+| `anatomy-bodyparts3d-heart` | 103.5 | 75° | 190 |
+| `normal-kit-four-chamber` | 140.6 | 75° | 259 |
+
+A neonatal heart and a synthetic cube and an adult cast do not share a number, and nothing had to be
+tuned for any of them.
+
+**On `normal-rodero`, looked at.** The authored pose sits 81 mm from the bounding-sphere centre and
+its fan visibly clips the heart left and right — the owner's report, confirmed by eye. The anchored
+pose sits at 134 mm and the heart is comfortably inside the sector with black either side. That is
+the improvement asked for and it is there.
+
+**And the depth cannot be rescued by any standoff, on three of the four packs that have one.** The
+two constraints together require `depth ≥ R · (1/sin(a) + 1)`:
+
+| Pack | Authored `depth_cm` | Needed | Short by |
+|---|---|---|---|
+| `normal-rodero` | 16.8 | 21.0 | 4.2 cm |
+| `normal-alberta-neonatal` | 8.6 | 16.9 | 8.3 cm |
+| `normal-vhl-heart0102` | 19.1 | 31.1 | 12.0 cm |
+
+There is no standoff that fixes this: moving the probe closer narrows the sector's reach across the
+heart, moving it further pushes the far side further away, and the authored depth is under the
+minimum either way. **So on `normal-rodero` the anchored fan contains the heart LATERALLY and
+truncates it at depth**, and the panel says so in amber: "Fan depth is 4.2 cm short of the far side
+— it needs 21.0 cm. Not changed."
+
+**This answers the question the owner left open** — whether the anchor should also set
+`fan.depth_cm` — with a fact rather than a preference. On these three packs, reporting alone leaves
+a fan that cannot contain the model. Either the anchor writes the depth, or the three authored
+depths are wrong content and get fixed in the packs. The unit reports and does not write, per the
+brief; the decision is the owner's and it is now a decision with a number attached. `depth_cm` is
+authored clinical content, so the recommendation is the second: fix it in the packs, where a review
+state applies to it.
+
+---
+
+## 48. Slots: two kinds, one confirm, and the guesses that were shipped rather than decided
+
+**Standard slots are the pack's `views[]` and saving over one never edits the pack.** It writes a
+local override that sits *beside* the authored pose, the droplist says "— overridden", and "Revert
+to authored" is exact because the authored value was never touched. That is enforced by the seeds
+being deep-frozen clones and by no module under `src/authoring/` being able to import `Pack` at
+all — asserted over the source, so it is a property of the module graph rather than a habit.
+
+**The confirm on Save centre: right, and barely noticeable.** Pressing arms it and names what will
+be overwritten; a second press does it. It is two clicks for a destructive act during a session
+that might be an hour of placing, which is the correct trade — but it is worth saying plainly that
+this was never tested against irritation, because it has only been used in a build session and not
+in a placing session. **If it turns out to be an irritation, the thing to remove is the confirm on
+CUSTOM slots and keep it on standard ones**, because those are the ones where the cost of a
+mis-click is an override on reviewed content.
+
+**Two things were shipped rather than decided, both flagged as open by the owner.**
+
+* **Custom slots are NAMED, and capped at eight.** Named because an author placing eight positions
+  on an unlabelled heart cannot tell "custom 3" from "custom 5" an hour later; capped because a
+  droplist has to stay a droplist, and because a cap that is reached says so rather than growing
+  silently. Neither is defended as the right answer.
+* **`fan.depth_cm` is reported and never written.** See entry 47 — this one now has evidence
+  against it.
+
+**The button that is deliberately not where it would fit.** Save centre sits outside the probe
+control pad, in the authoring block, with a rule above it separating it from the row that selects
+the slot. The pad's buttons repeat while held and are pressed dozens of times in a placing session;
+a destructive control adjacent to those is a mis-click waiting for a tired hand.
+
+---
+
+## 49. The stand-off stops were a trap, and only a pose from outside could find it
+
+**Reported from the app mid-session: the closer/further buttons stopped working.** They had. After
+anchoring, five presses of "closer" moved the probe origin by exactly zero.
+
+**The rule was "the resulting clearance must be inside [3, 70] mm".** That is correct while the
+probe starts inside the band, and from outside it every move lands outside, so every move was
+refused — including the move back. Both buttons went dead with no way to recover.
+
+**It could not be reached before this round.** Every pose on offer was an authored one, and authored
+poses sit inside the band by construction; the pipeline parks the transducer 8 mm off the
+epicardium. An anchored pose sits at the derived standoff, which on `normal-rodero` is 134 mm and
+therefore well outside the far stop. **The first press after the first anchor found a latent defect
+that had been shipped for a round and could not have been found by using the app as a learner.**
+
+**Two smaller failures inside the same one.** The buttons' enabled state was predicted as
+`clearance ± 2 mm` while the press measured the moved pose — different numbers, so a button could
+be enabled and inert. And the room was recomputed only by the three places inside `PackViewer` that
+move the probe, so a pose arriving from anywhere else left the buttons describing a pose no longer
+on screen.
+
+**The fix is that the stops are barriers rather than a band.** A step is allowed if it lands inside
+the band or if it reduces how far outside the band the probe is. The stop still cannot be crossed;
+it can be retreated from. The rule moved to `freeProbe.ts` where it is unit-tested, including a walk
+that takes thirteen presses to return from 96 mm.
+
+---
+
+## 50. Four left edges under two canvases, and the 0.9 px that proves the measurement earns its place
+
+**What "make it look designed" turned out to mean, measured.** Under the two canvases the control
+rows sat at four different left edges: the anatomy's controls at 16 px from the card, the echo's
+flip row at 0, its sweep label at 16, and the range input *inside that label* at 18, because a range
+input carries its own 2 px margin. Three different row gaps, and the anatomy's first control row had
+no gap at all from the bottom of the image — it was flush against it, because the rule that adds the
+gap named `.cutter` and the first row is `.cutter-mode`. Controls in one row came out 28.8, 20.4 and
+19.2 px tall.
+
+Each of those was defensible where it was written. The set of them was not a design.
+
+**Three tokens now**: one inset, one row gap, one control height, used by both panels. And the
+alignment is asserted rather than written down: the visual suite measures that the two headers are
+the same height, that the canvases start at the same y and are the same size, that every row under
+either canvas sits at one inset, and that every control in those rows is one height.
+
+**The measurement earned its place immediately.** Making "Simulated" a considered header chip —
+outlined, tracked, uppercase — grew the echo header by **0.9 px** and moved its canvas down by 0.9
+px, breaking the alignment that entry 44 established. Invisible to the eye, caught by the assertion,
+fixed with `line-height: 1`. Last round the same alignment was measured by hand and written into
+this file; a number in a document is not a gate.
+
+**The word stays and now looks like it was chosen.** `WORKFLOW.md` carries the standing safeguard
+that simulated echo is labelled simulated. The chip is not red — the banner was removed deliberately
+and this is not it returning — and the full sentence is still in the provenance line under the
+image.

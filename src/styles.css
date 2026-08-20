@@ -1,4 +1,16 @@
 :root {
+  /* --- the panel pair's shared metrics -----------------------------------
+     One inset, one vertical rhythm, one control height, used by BOTH panels.
+     Before these there were four different left edges under the two canvases —
+     the anatomy's controls at 16 px, the echo's flip row at 0, its sweep label
+     at 16 and the range input inside it at 18 — and three different row gaps.
+     Each was defensible where it was written and the set of them was not a
+     design. A token is what makes "the same" checkable, and
+     `tests/visual/viewer.spec.ts` checks it. */
+  --panel-inset: 1rem;
+  --panel-row-gap: 0.6rem;
+  --control-h: 1.8rem;
+
   --bg: #0d1117;
   --surface: #161b22;
   --border: #2b333d;
@@ -207,17 +219,21 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding: 0.75rem 1rem;
+  padding: var(--panel-row-gap) var(--panel-inset);
   border-top: 1px solid #26303c;
   font-size: 0.85rem;
 }
 
 .echo__scrub input {
   width: 100%;
+  /* A range input carries its own 2 px margin, which put it two pixels to the
+     right of the label above it. Small, and it is the kind of small that makes
+     a column look untended. */
+  margin: 0;
 }
 
 .echo__provenance {
-  padding: 0.6rem 1rem;
+  padding: var(--panel-row-gap) var(--panel-inset);
   border-top: 1px solid #26303c;
   color: #9aa7b6;
   font-size: 0.78rem;
@@ -1007,15 +1023,18 @@ body {
 
 .echo__display {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  padding: var(--panel-row-gap) var(--panel-inset) 0;
 }
 
 .echo__flip {
-  padding: 0.25rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h);
+  padding: 0.2rem 0.6rem;
   border: 1px solid #3a4450;
-  border-radius: 0.3rem;
+  border-radius: 6px;
   background: #1b2129;
   color: #cfd6dd;
   font-size: 0.82rem;
@@ -1075,6 +1094,38 @@ body {
   white-space: nowrap;
 }
 
+/*
+ * The standing safeguard, dressed as one.
+ *
+ * `WORKFLOW.md`: simulated echo is labelled simulated. The red banner over the
+ * image is gone at the owner's request and the WORD stays — but as plain grey
+ * caption text beside a title it read as something left over from moving the
+ * banner rather than as a label anybody chose. An outlined chip in the header's
+ * own type is the difference between a leftover and a decision. It is not red:
+ * the banner was removed deliberately and this is not it coming back, and the
+ * full sentence is still under the image where the provenance is.
+ */
+.panel-head__note--label {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #6b5a44;
+  border-radius: 999px;
+  color: #cbb797;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  /*
+   * The chip must not be taller than the title's own line box.
+   *
+   * The header sets the y of the canvas below it, and the two canvases have to
+   * start at the same y — that is the alignment the pair exists for and it is
+   * asserted in `tests/visual/viewer.spec.ts`. A chip with padding and a border
+   * grew the echo header by 0.9 px and moved its image down by 0.9 px, which is
+   * invisible and is exactly the kind of drift the measurement is for.
+   */
+  line-height: 1;
+}
+
 .anatomy-panel {
   border: 1px solid #26303c;
   border-radius: 10px;
@@ -1092,15 +1143,41 @@ body {
 
 .anatomy-panel .cutter,
 .anatomy-panel .cutter-mode {
-  padding-inline: 1rem;
+  padding-inline: var(--panel-inset);
 }
 
-.anatomy-panel .cutter:first-of-type {
-  padding-top: 0.75rem;
+/*
+ * The first row after the canvas, whichever row that is.
+ *
+ * It used to be `.cutter:first-of-type`, and the first row is `.cutter-mode` —
+ * so the mode buttons sat flush against the bottom of the image with no gap at
+ * all while the echo's first row had eight pixels. One rule for "the row that
+ * follows the viewport" rather than a rule naming one of them.
+ */
+.anatomy-panel .anatomy + * {
+  padding-top: var(--panel-row-gap);
 }
 
 .anatomy-panel > :last-child {
-  padding-bottom: 0.75rem;
+  padding-bottom: var(--panel-row-gap);
+}
+
+/* --------------------------------------------------------------------------
+   One control height under both panels
+
+   A row of a button, a checkbox label and a readout came out three different
+   heights, so a column of rows had no rhythm and nothing shared a baseline.
+   Every interactive control under a canvas is now the same height and centres
+   its own text, which is what lets the rows be measured rather than eyeballed.
+   -------------------------------------------------------------------------- */
+
+.cutter button,
+.cutter-mode__button,
+.cutter__toggle,
+.cutter__readout {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h);
 }
 
 /* --------------------------------------------------------------------------
@@ -1121,8 +1198,8 @@ body {
 .authoring {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.5rem 0.6rem;
+  gap: var(--panel-row-gap);
+  padding: 0.6rem var(--panel-inset);
   border: 1px dashed #4a3f5c;
   border-radius: 8px;
   background: #171320;
@@ -1155,11 +1232,18 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+  /* The same 0.5rem the learner's control rows use, so the authoring block
+     reads as another row of the same panel rather than as a widget dropped
+     into it. */
+  column-gap: 0.5rem;
 }
 
 /* Same metrics as `.cutter button`, so the two rows read as one system rather
    than as a control panel with a bolt-on. */
 .authoring__button {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h);
   padding: 0.2rem 0.55rem;
   font: inherit;
   font-size: 0.85rem;
@@ -1220,6 +1304,7 @@ body {
    than three. */
 .authoring__select,
 .authoring__input {
+  min-height: var(--control-h);
   padding: 0.2rem 0.4rem;
   font: inherit;
   font-size: 0.85rem;

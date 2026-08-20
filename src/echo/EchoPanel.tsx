@@ -222,7 +222,13 @@ export default function EchoPanel({
           * simulated, so it moved to the provenance line under the image, in
           * ordinary type rather than in a banner.
           */}
-        <p className="panel-head__note" data-testid="echo-panel-note">Simulated</p>
+        <p
+          className="panel-head__note panel-head__note--label"
+          title="Simulated — not a recording of a patient"
+          data-testid="echo-panel-note"
+        >
+          Simulated
+        </p>
       </header>
 
       <div className="echo__stage">
