@@ -2005,3 +2005,71 @@ numbers are right; the placement is blind.
    and the standoff report as the only feedback. Workable for the four-chamber,
    where the camera angle IS the placement, and poor for anything needing a
    nudge.
+
+---
+
+## 56. The learner build is a SUBSET of the author build, not the other way round
+
+**Owner's direction, 2026-08-20:** *"Let's focus on the author complete build for
+now. The learner build is not a separate build but a subset, so it will be easy
+to create after we have completed the full build. Right now the incomplete build
+is lacking in many ways."*
+
+**This reverses the framing of the last round without changing a line of the
+gating.** The flag already produces exactly this relationship — one codebase, one
+build-time constant, and Rollup drops what the learner does not get — so nothing
+architectural moved. What moved is where effort goes: the author build is the
+product being built, and the learner build is what falls out of it.
+
+**And it immediately unblocked the thing observation 55 recorded as the owner's
+call.** Five packs have no `echo_volume`, therefore no views, therefore no Echo —
+and Explore draws no probe, so placement on those five was blind. Option 1 was
+"let authoring reach Echo on a volume-less pack", and it is the option that
+satisfies BOTH of the owner's rules at once:
+
+* **Explore still has no probe**, in any build. That rule was never what was in
+  the way.
+* **Echo is where a probe is.** A learner is offered Echo to look at an image and
+  on these packs there is no image, so the mode is withheld from them. An author
+  is in Echo to place a PROBE, and a placement needs no volume — the wedge on the
+  model is the entire feedback loop.
+
+Verified on `anatomy-bodyparts3d-heart`, which authors nothing: Echo reachable in
+the authoring build, single-column stage, the probe and fan drawn, the note under
+the mode buttons saying why there is no image, and the anchored fan containing
+the heart. In the learner build the pack still refuses Echo with the same words
+it always did.
+
+**A second bug fell out of the same screen.** "Match echo" — the one button whose
+entire job is agreement between the two panels — read `view.probe`
+unconditionally. So it faced the pose the PACK authored rather than the one being
+imaged the moment the probe was unlocked, and did nothing at all on a pack with
+no views. It now faces whatever is driving the image, which is the rule the wedge
+and the echo already follow.
+
+---
+
+## 57. Free probe placement may be a learner feature, not only an author one
+
+**Owner, 2026-08-20:** *"authoring view is also kinda cool because it allows for
+free probe placement, which on its own is a good learning feature."*
+
+Worth recording as a product idea rather than acting on. What exists today splits
+cleanly:
+
+* **Already learner-reachable:** the `Free probe` toggle and the control pad —
+  turn the probe by hand, off the saved track, with the echo panel withdrawing
+  the view's name while it is off. Shipped last round.
+* **Authoring only:** `Place from camera` — the gross-placement gesture that puts
+  the probe on the axis you are looking down.
+
+So the "good learning feature" the owner is describing is mostly the *anchor*.
+Making it learner-reachable is a small change and a real decision: it would let a
+learner say "image it from here", which is a genuinely good exercise, and it
+would also let them produce an arbitrary plane in one press rather than in forty.
+The labelling that makes the free probe defensible — the echo panel withdrawing
+the view name — already covers it, so the argument against is about what a
+learner should be ENCOURAGED to do rather than about what they could claim.
+
+Not built. It is a scope question for the learner build, which by entry 56 is the
+last thing to be cut rather than the first.

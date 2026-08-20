@@ -105,6 +105,22 @@ const EXPLORE_ONLY_REFUSAL =
   'This pack is EXPLORE-ONLY: geometry with no labelled echo volume, so there is nothing '
   + 'to image and Echo mode is unavailable for it.';
 
+/**
+ * The same fact, said to an AUTHOR, for whom it refuses less.
+ *
+ * A learner is offered Echo to look at an image, and on these packs there is no
+ * image, so the mode is withheld. An author is in Echo to place a PROBE, and
+ * the probe does not need a volume — the wedge on the model is the whole
+ * feedback loop for a placement. Five of the nine packs are in this state and
+ * they are exactly the ones with no authored pose, so withholding Echo from an
+ * author means placing blind on the packs the tool exists for.
+ *
+ * Explore stays probe-free either way. That rule is not what was in the way.
+ */
+const AUTHORING_NO_VOLUME_NOTE =
+  'No labelled echo volume in this pack, so there is no image to render — the probe and its '
+  + 'wedge on the model are the placement feedback. Authoring build only.';
+
 type PackState =
   | { status: 'loading' }
   | { status: 'ok'; loaded: LoadedPack }
@@ -168,8 +184,15 @@ export default function App() {
    * pack refuses Echo, so leaving `?mode=echo` in the address bar would hand
    * out a link to a screen this pack cannot produce.
    */
+  /*
+   * An Explore-only pack refuses Echo — unless this is an authoring build, where
+   * Echo is where a probe is placed and a placement needs no volume. Folded to
+   * the learner rule with the flag off.
+   */
   const shownMode: ViewerMode =
-    packState.status === 'ok' && isExploreOnly(packState.loaded.pack) ? 'explore' : mode;
+    packState.status === 'ok' && isExploreOnly(packState.loaded.pack) && !AUTHORING_ENABLED
+      ? 'explore'
+      : mode;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -319,7 +342,7 @@ export default function App() {
             ['echo', 'Echo', 'Anatomy beside the simulated echo, on one vetted probe pose'],
             ['explore', 'Explore', 'The heart model on its own — orbit, cut and inspect. No probe.'],
           ] as [ViewerMode, string, string][]).map(([value, label, hint]) => {
-            const refused = exploreOnly && value === 'echo';
+            const refused = exploreOnly && value === 'echo' && !AUTHORING_ENABLED;
             return (
               <button
                 key={value}
@@ -349,11 +372,20 @@ export default function App() {
           */}
         {exploreOnly && (
           <p className="modes__refusal" data-testid="echo-refusal">
-            {EXPLORE_ONLY_REFUSAL}
+            {AUTHORING_ENABLED ? AUTHORING_NO_VOLUME_NOTE : EXPLORE_ONLY_REFUSAL}
           </p>
         )}
 
-        <div className={effectiveMode === 'explore' ? 'stage stage--solo' : 'stage'}>
+        {/*
+          * One column when there is no second panel to put beside it — Explore
+          * always, and Echo on a pack with no volume, which only an authoring
+          * build can reach.
+          */}
+        <div
+          className={effectiveMode === 'explore' || echoVolume === undefined
+            ? 'stage stage--solo'
+            : 'stage'}
+        >
           <PackViewer
             pack={packState.loaded.pack}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}

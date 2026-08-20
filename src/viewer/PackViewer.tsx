@@ -939,21 +939,25 @@ export default function PackViewer({
     const syncProbeObjects = () => {
       const view = pack.views[viewIndex];
       /*
-       * EXPLORE HAS NO PROBE. Not in authoring either.
+       * EXPLORE HAS NO PROBE, in any build. Echo is where a probe lives.
        *
-       * This briefly did allow one, so that a pose placed on a pack with no
-       * `views[]` — the five that carry no `echo_volume`, which are the packs
-       * this tool exists for — would be visible somewhere. The owner stopped
-       * it, and the rule is theirs: Explore is the heart on its own, and a
-       * transducer floating beside it in a mode that has no probe is a mode
-       * saying two things at once.
+       * Both halves of that are load-bearing. A transducer floating beside the
+       * model in the mode that is defined as "the heart on its own" is a mode
+       * saying two things at once — the owner's rule, and the same reasoning
+       * that made isolate Explore-only.
        *
-       * The cost is real and is recorded in `docs/observations.md`: on those
-       * five packs an author can place and store a pose and cannot SEE it,
-       * because the only mode that draws a probe is the one those packs cannot
-       * enter. How to close that is the owner's call.
+       * And in ECHO an authoring pose is drawn even when the pack has no
+       * `views[]`. That is the five packs with no `echo_volume`, which are
+       * exactly the ones with no authored pose: an author is in Echo to place a
+       * PROBE, and a placement needs no volume — the wedge on the model is the
+       * feedback. Without this the tool would place blind on the packs it
+       * exists for. Folded out with the flag off, where a pack with no views
+       * cannot reach Echo at all.
        */
-      const wanted = viewerMode === 'echo' && view !== undefined && loaded;
+      const authoringPose = AUTHORING_ENABLED && freePoseRef.current !== null;
+      const wanted = loaded
+        && viewerMode === 'echo'
+        && (view !== undefined || authoringPose);
 
       if (!wanted) {
         if (probe) {
@@ -1490,6 +1494,12 @@ export default function PackViewer({
       },
       setFrame: (frame) => {
         currentFrame = frame;
+        /*
+         * AUTHORING: on a pack with no `views[]` nothing has ever built the
+         * indicator, because the learner path only wants a probe where a view
+         * supplies the first frame. A placed pose IS that first frame.
+         */
+        if (AUTHORING_ENABLED) syncProbeObjects();
         probe?.update(frame);
         // One frame drives the probe geometry AND the highlight, for the same
         // reason the wedge and the echo share it: they cannot be allowed to
@@ -1800,7 +1810,12 @@ export default function PackViewer({
    */
   useEffect(() => {
     const view = pack.views[viewIndex];
-    if (!view) return;
+    if (!view) {
+      // AUTHORING: a pose placed on a pack with no views still drives the
+      // wedge, in Echo. Folded out with the flag off.
+      if (AUTHORING_ENABLED && freePose) apiRef.current?.setFrame(imagingFrame(freePose));
+      return;
+    }
     apiRef.current?.setFrame(
       freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
     );
@@ -2643,14 +2658,28 @@ export default function PackViewer({
             * written to at all. `contracts/README.md`: the two objects may
             * coincide visually and never merge.
             */}
-          {echoMode && (
+          {echoMode && (view !== undefined || freePose !== null) && (
             <button
               type="button"
               onClick={() => {
-                if (view) {
-                  apiRef.current?.matchEchoOrientation(
-                    withApexFlip(frameAt(view.probe, view.sweep, scrub), apexFlipped),
-                  );
+                /*
+                 * The frame ON SCREEN, not the one the pack authored.
+                 *
+                 * It read `view.probe` unconditionally, so the one button whose
+                 * whole job is agreement between the two panels turned the model
+                 * to face a plane that was not being imaged the moment the probe
+                 * was unlocked — and did nothing at all on a pack with no views,
+                 * which in an authoring build is where a placed pose most needs
+                 * looking at. Same rule as the wedge and the echo: whatever is
+                 * driving the image is what this faces.
+                 */
+                const frame = freePose !== null
+                  ? imagingFrame(freePose)
+                  : view
+                    ? frameAt(view.probe, view.sweep, scrub)
+                    : null;
+                if (frame) {
+                  apiRef.current?.matchEchoOrientation(withApexFlip(frame, apexFlipped));
                 }
               }}
               title="Turn the model to face the echo's imaging plane. Camera only."
