@@ -2716,6 +2716,7 @@ export default function PackViewer({
         {AUTHORING_ENABLED && (
           <AuthoringControls
             packId={pack.meta.id}
+            packVersion={pack.meta.pack_version}
             packSchemaVersion={pack.meta.schema_version}
             seeds={authoringSeeds}
             template={view ? { fan: view.probe.fan, display: view.probe.display } : undefined}

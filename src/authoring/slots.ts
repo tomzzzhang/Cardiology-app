@@ -70,6 +70,8 @@ export interface SlotSeed {
 /** A pose the author saved, as it is stored and exported. */
 export interface SavedSlot {
   packId: string;
+  /** Pack content revision whose model-space coordinates this pose uses. */
+  packVersion: string;
   slotId: string;
   kind: SlotKind;
   label: string;

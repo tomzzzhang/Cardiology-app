@@ -1,0 +1,69 @@
+{
+  "pack_version": "0.1.0",
+  "view_id": "ingest-reference-pose",
+  "placement_landmark": "Derived from model bounds by the ingest pipeline; carries no anatomical landmark and no clinical meaning",
+  "probe": {
+    "origin": [
+      -4.955181121826172,
+      1.2884674072265625,
+      72.2540283203125
+    ],
+    "beam_axis": [
+      0,
+      0,
+      -1
+    ],
+    "lateral_axis": [
+      1,
+      0,
+      0
+    ],
+    "fan": {
+      "angle_deg": 75,
+      "depth_cm": 15.54,
+      "focus_cm": 8.55
+    },
+    "display": {
+      "vertex": "down",
+      "flip_lr": false,
+      "marker_side": "right"
+    }
+  },
+  "sweep": {
+    "mode": "tilt",
+    "axis": {
+      "direction": [
+        1,
+        0,
+        0
+      ]
+    },
+    "range": {
+      "unit": "deg",
+      "from": -22,
+      "to": 22
+    },
+    "interpolation": "slerp",
+    "structures_in_order": []
+  },
+  "provenance": {
+    "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+    "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+    "source_url": "https://zenodo.org/records/4593738",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "license_state": "confirmed",
+    "modified": {
+      "flag": true,
+      "note": "Pose generated mechanically from model bounds by pipeline/ingest.py. Not a clinical view, not vetted, and not derived from any imaging protocol."
+    },
+    "derivation_chain": [
+      "pipeline/ingest.py"
+    ],
+    "vetted": {
+      "status": "draft",
+      "vetters": [],
+      "last_reviewed": null
+    }
+  }
+}

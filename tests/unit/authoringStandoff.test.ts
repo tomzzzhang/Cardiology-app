@@ -211,12 +211,9 @@ describe('every pack on the shelf', () => {
     (_id, row) => {
       const standoff = derivedStandoffMm(row.radius, row.angleDeg);
       /*
-       * Depth taken from the derivation, not from the pack, ON PURPOSE. Whether
-       * the anchor may write `fan.depth_cm` is an open owner decision, so this
-       * asserts what the standoff derivation is responsible for — the ANGLE —
-       * against a depth that reaches. The packs whose AUTHORED depth does not
-       * reach are asserted separately below, where the shortfall is the finding
-       * rather than a failure.
+       * Depth taken from the derivation, not from the pack, ON PURPOSE. This
+       * isolates the ANGLE guarantee. Explicit placement now expands a shallow
+       * local draft to this measured minimum; the source pack remains unchanged.
        */
       const depth = defaultDepthCm(standoff, row.radius) * 10;
       const measured = everyPointInsideFan({
@@ -235,7 +232,7 @@ describe('every pack on the shelf', () => {
    * truth, so this direction of error is the safe one, and saying so is
    * cheaper than pretending the two numbers are one measurement.
    */
-  it('the authored depths that do not reach are named, and there are two of them', () => {
+  it('the three authored depths that do not reach are named', () => {
     const short = rows
       .filter((row) => row.authoredDepthCm !== null)
       .map((row) => {
@@ -257,8 +254,8 @@ describe('every pack on the shelf', () => {
      * model from ANY standoff that satisfies the angle — the two constraints
      * together need `depth >= radius * (1/sin(half) + 1)`, and all three are
      * under it. That is a content finding, reported here and in
-     * `docs/observations.md`, and it is the reason the anchor reports the
-     * shortfall instead of clamping the standoff to hide it.
+     * `docs/observations.md`. Explicit placement reports and applies the
+     * shortfall only to its local working pose; it does not bulk-edit these packs.
      */
     expect(short.map((row) => row.id).sort()).toEqual([
       'normal-alberta-neonatal', 'normal-rodero', 'normal-vhl-heart0102',

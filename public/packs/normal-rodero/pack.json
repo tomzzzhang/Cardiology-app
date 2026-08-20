@@ -1,10 +1,10 @@
 {
   "meta": {
     "id": "normal-rodero",
-    "display_name": "Normal heart \u2014 Rodero/CEMRG average four-chamber",
+    "display_name": "Normal heart — Rodero/CEMRG average four-chamber",
     "anatomy": "Normal heart, four-chamber, adult population average",
     "canonical_variant": "Population-average adult four-chamber mesh (mean shape of 19 subjects); not a single individual and not a paediatric heart",
-    "pack_version": "0.1.0",
+    "pack_version": "0.1.1",
     "schema_version": "0.1"
   },
   "provenance": {
@@ -16,7 +16,7 @@
     "license_state": "confirmed",
     "modified": {
       "flag": true,
-      "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. Pose normalised into a CARDIAC frame measured from this mesh: +y from the left-ventricular apex (located by the source's universal ventricular coordinate) to the centroid of the four valve rings, +x from the right-atrial to the left-atrial centroid orthogonalised against it, +z completing a right-handed basis. The axes are cardiac, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. 9 of 9 independent anatomical checks pass; the full derivation is in meshes.anatomical_frame. Views docs/view_canon.md asks for that this substrate cannot support, and why: a3-subcostal-coronal: Subcostal coronal sweep. NOT AUTHORED: the subcostal family is defined by the beam entering from below the diaphragm, which is what puts the atrial septum near-perpendicular to it \u2014 the view's whole teaching payload. That direction is a BODY axis, and this heart-only mesh carries no spine, diaphragm or chest wall; the three defensible proxies for body superior-inferior disagree by up to 46 degrees on it. A guessed placement would render a plausible sector whose stated claim is false. a4-subcostal-sagittal: Subcostal sagittal (bicaval) sweep. NOT AUTHORED, for the same reason as A3. The bicaval PLANE is derivable here \u2014 the caval stubs and the right atrium are all measured landmarks \u2014 but the subcostal WINDOW is not, and approaching that plane from a guessed direction would misstate the angle every structure in it makes with the beam. The right parasternal bicaval view F1 reaches the same plane from a side this mesh can locate, and is the honest route to this content."
+      "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. Pose normalised into a CARDIAC frame measured from this mesh: +y from the left-ventricular apex (located by the source's universal ventricular coordinate) to the centroid of the four valve rings, +x from the right-atrial to the left-atrial centroid orthogonalised against it, +z completing a right-handed basis. The axes are cardiac, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. 9 of 9 independent anatomical checks pass; the full derivation is in meshes.anatomical_frame. Views docs/view_canon.md asks for that this substrate cannot support, and why: a3-subcostal-coronal: Subcostal coronal sweep. NOT AUTHORED: the subcostal family is defined by the beam entering from below the diaphragm, which is what puts the atrial septum near-perpendicular to it — the view's whole teaching payload. That direction is a BODY axis, and this heart-only mesh carries no spine, diaphragm or chest wall; the three defensible proxies for body superior-inferior disagree by up to 46 degrees on it. A guessed placement would render a plausible sector whose stated claim is false. a4-subcostal-sagittal: Subcostal sagittal (bicaval) sweep. NOT AUTHORED, for the same reason as A3. The bicaval PLANE is derivable here — the caval stubs and the right atrium are all measured landmarks — but the subcostal WINDOW is not, and approaching that plane from a guessed direction would misstate the angle every structure in it makes with the beam. The right parasternal bicaval view F1 reaches the same plane from a side this mesh can locate, and is the honest route to this content."
     },
     "derivation_chain": [
       "https://zenodo.org/records/4593738",
@@ -347,16 +347,16 @@
     ],
     "canonical_pose": {
       "position": [
-        0.0,
-        0.0,
-        0.0
+        0,
+        0,
+        0
       ],
       "rotation_euler_xyz_deg": [
-        0.0,
-        0.0,
-        0.0
+        0,
+        0,
+        0
       ],
-      "scale": 1.0
+      "scale": 1
     },
     "units": "mm",
     "orientation": {
@@ -372,7 +372,7 @@
         "apex": {
           "source": "universal ventricular coordinate Z on left-ventricular myocardium",
           "tag": 1,
-          "percentile": 1.0
+          "percentile": 1
         },
         "base": {
           "source": "mean of the valve-ring centroids",
@@ -499,7 +499,7 @@
           5.8,
           -2.29
         ],
-        "base_normal_vs_long_axis_deg": 6.0
+        "base_normal_vs_long_axis_deg": 6
       },
       "checks": {
         "pulmonary valve anterior to aortic valve": true,
@@ -524,11 +524,11 @@
     ],
     "free_cut": {
       "normal": [
-        0.0,
-        0.0,
-        1.0
+        0,
+        0,
+        1
       ],
-      "offset": 0.0
+      "offset": 0
     }
   },
   "echo_volume": {
@@ -541,21 +541,21 @@
     ],
     "mesh_to_volume": [
       1.29139830074324,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
+      0,
+      0,
+      0,
+      0,
       1.29139830074324,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
+      0,
+      0,
+      0,
+      0,
       1.29139830074324,
-      0.0,
+      0,
       102.39357952990761,
       94.34396152683479,
       85.01638190573547,
-      1.0
+      1
     ],
     "labels": [
       {
@@ -733,7 +733,7 @@
           -0.0007103882230686514
         ],
         "fan": {
-          "angle_deg": 80.0,
+          "angle_deg": 80,
           "depth_cm": 16.79,
           "focus_cm": 9.23
         },
@@ -759,8 +759,8 @@
         },
         "range": {
           "unit": "deg",
-          "from": -18.0,
-          "to": 22.0
+          "from": -18,
+          "to": 22
         },
         "interpolation": "slerp",
         "structures_in_order": [
@@ -845,7 +845,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex and BOTH atrioventricular ring centroids, which is the defining property of the view; probe standing off the apical epicardium along the plane, beam toward the midpoint of the two rings. Sweep tilts the plane posteriorly to anteriorly about the in-plane axis. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
+          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex and BOTH atrioventricular ring centroids, which is the defining property of the view; probe standing off the apical epicardium along the plane, beam toward the midpoint of the two rings. Sweep tilts the plane posteriorly to anteriorly about the in-plane axis. Geometry only — not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -884,7 +884,7 @@
           -1.387778780781446e-17
         ],
         "fan": {
-          "angle_deg": 70.0,
+          "angle_deg": 70,
           "depth_cm": 12.74,
           "focus_cm": 7.01
         },
@@ -910,8 +910,8 @@
         },
         "range": {
           "unit": "deg",
-          "from": -20.0,
-          "to": 20.0
+          "from": -20,
+          "to": 20
         },
         "interpolation": "slerp",
         "structures_in_order": [
@@ -996,7 +996,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex, the mitral ring centroid and the aortic ring centroid \u2014 the long axis of the left ventricle together with the aortic root. Probe standing off the anterior epicardium along the measured anterior axis. Screen-x runs toward the base so the apex falls on screen-left. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
+          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex, the mitral ring centroid and the aortic ring centroid — the long axis of the left ventricle together with the aortic root. Probe standing off the anterior epicardium along the measured anterior axis. Screen-x runs toward the base so the apex falls on screen-left. Geometry only — not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -1028,15 +1028,15 @@
         "beam_axis": [
           -2.100093521801519e-34,
           -2.0494357866503254e-17,
-          -1.0
+          -1
         ],
         "lateral_axis": [
-          1.0,
+          1,
           -1.0247178933251627e-17,
-          0.0
+          0
         ],
         "fan": {
-          "angle_deg": 70.0,
+          "angle_deg": 70,
           "depth_cm": 12.16,
           "focus_cm": 6.69
         },
@@ -1051,13 +1051,13 @@
         "axis": {
           "direction": [
             -1.0247178933251627e-17,
-            -1.0,
+            -1,
             2.0494357866503254e-17
           ]
         },
         "range": {
           "unit": "mm",
-          "from": 0.0,
+          "from": 0,
           "to": 79.7
         },
         "interpolation": "lerp",
@@ -1132,7 +1132,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane perpendicular to the long axis measured between the left-ventricular apex and the centroid of the four valve rings, translated along that axis from the aortic ring's level to 88 percent of the distance to the apex. Probe standing off the anterior epicardium. Geometry only \u2014 not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is DELIBERATELY EMPTY: every named structure is first reached at the same sample of this sweep, so the only thing ordering them would be the size tie-break \u2014 the structures sorted largest first, which is a fact about the mesh and not about the sweep. An ordering the sweep did not produce is not shipped, because the sweep scrubber takes its ticks from this list and would otherwise annotate events that do not happen."
+          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane perpendicular to the long axis measured between the left-ventricular apex and the centroid of the four valve rings, translated along that axis from the aortic ring's level to 88 percent of the distance to the apex. Probe standing off the anterior epicardium. Geometry only — not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is DELIBERATELY EMPTY: every named structure is first reached at the same sample of this sweep, so the only thing ordering them would be the size tie-break — the structures sorted largest first, which is a fact about the mesh and not about the sweep. An ordering the sweep did not produce is not shipped, because the sweep scrubber takes its ticks from this list and would otherwise annotate events that do not happen."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -1148,29 +1148,29 @@
     {
       "family": "INGEST",
       "view_id": "ingest-reference-pose",
-      "name": "Ingest reference pose \u2014 not a clinical view",
+      "name": "Ingest reference pose — not a clinical view",
       "aliases": [],
-      "placement_landmark": "Derived from model bounds by the ingest pipeline; carries no anatomical landmark and no clinical meaning",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-ingest-reference-pose\" (\"Ingest reference pose — not a clinical view\"); prior placement landmark invalidated pending content review",
       "indicator_clock": "12:00",
       "probe": {
         "origin": [
-          -4.955181121826172,
-          1.2884674072265625,
-          72.2540283203125
+          98.87127135292879,
+          49.67134970660503,
+          90.89675228639484
         ],
         "beam_axis": [
-          0.0,
-          0.0,
-          -1.0
+          -0.7358359241431227,
+          -0.3428978074554513,
+          -0.5839234422273875
         ],
         "lateral_axis": [
-          1.0,
-          0.0,
-          0.0
+          0.6216099682706647,
+          5.551115123125784e-17,
+          -0.7833269096274834
         ],
         "fan": {
-          "angle_deg": 75.0,
-          "depth_cm": 15.54,
+          "angle_deg": 75,
+          "depth_cm": 21.779307682107543,
           "focus_cm": 8.55
         },
         "display": {
@@ -1183,15 +1183,15 @@
         "mode": "tilt",
         "axis": {
           "direction": [
-            1.0,
-            0.0,
-            0.0
+            0.6216099682706647,
+            5.551115123125784e-17,
+            -0.7833269096274834
           ]
         },
         "range": {
           "unit": "deg",
-          "from": -22.0,
-          "to": 22.0
+          "from": -22,
+          "to": 22
         },
         "interpolation": "slerp",
         "structures_in_order": []
@@ -1265,10 +1265,11 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Pose generated mechanically from model bounds by pipeline/ingest.py. Not a clinical view, not vetted, and not derived from any imaging protocol."
+          "note": "Current probe pose came from authoring-slots/v1 slot \"view-ingest-reference-pose\" (source pack 0.1.0; saved 2026-08-20T21:19:34.948Z; exported 2026-08-20T21:19:34.981Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement."
         },
         "derivation_chain": [
-          "pipeline/ingest.py"
+          "pipeline/ingest.py",
+          "scripts/ingest-authoring-export.ts (authoring-slots/v1 slot view-ingest-reference-pose, source pack 0.1.0, exported 2026-08-20T21:19:34.981Z)"
         ],
         "vetted": {
           "status": "draft",

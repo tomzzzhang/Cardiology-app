@@ -62,9 +62,14 @@ requires a better boundary. Each current module has a one-page contract under `c
 3. **echo-renderer** — simulated echo (work item spec below).
 4. **view-rail + sweep scrubber** — view family rail, per-view presets, scrub control animating plane wedge + echo together.
 5. **provenance UI** — one-line strip (source, vetter role, date), tap to expand; draft-flag badges; consolidated credits screen (license compliance surface).
-6. **authoring mode** (flag-gated) — place/tune probe poses, planes, and sweeps interactively
-   against a loaded pack, tune per-view echo params, and export pack JSON. Later clinical review may
-   advance review metadata; saving itself never claims vetting.
+6. **authoring mode** (flag-gated) — place/tune probe poses against a loaded pack and export strict
+   draft slot data. Explicit camera placement may expand only the local draft depth to
+   `max(source, measured minimum)`; it never shrinks or mutates the loaded pack. The separate ingest
+   requires the export's exact source pack revision, maps one standard slot to its existing draft
+   view, invalidates the prior placement description, carries the coupled sweep axis, clears stale
+   sweep measurements, validates the complete candidate pack, and writes only with `--write`.
+   Broader sweep/echo tuning and later review workflow remain; saving and ingestion never claim
+   vetting.
 7. **app shell** — URL-param deep links, responsive layout, normal-vs-lesion synced-camera toggle only if nearly free.
 
 ## Viewer interaction contract (UI/UX refinement; scope unchanged)
@@ -167,14 +172,13 @@ and publication checks run at the release boundary before Pages deploys from `ma
 ## Milestones and waves
 
 Completed: Wave 0, real-model ingest, the simulated-echo slice, viewer-core interaction,
-Echo/Explore modes, the model shelf, per-structure inspection, and the initial authoring slice.
+Echo/Explore modes, the model shelf, per-structure inspection, and the authoring placement/export/
+ingestion round trip through the Rodero non-clinical reference view.
 
 Active, in order:
 
-1. Conduct the placing session and resolve the current authored-depth question.
-2. Ingest an exported pose into `pack.json`.
-3. Build the view rail and canonical sweep scrubber.
-4. Complete the integrated authoring/learner platform path.
+1. Build the view rail and canonical sweep scrubber.
+2. Complete the integrated authoring/learner platform path.
 
 Deferred to desktop integration/release: clinical review, schema v1 freeze, complete provenance UI,
 supported desktop-browser qualification, full Normal/lesion content, and advancement of `main`.

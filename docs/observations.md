@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-20 14:40 EDT
+**Last Updated:** 2026-08-20 17:20 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -1864,11 +1864,16 @@ support the derivation.
 on eight packs, and why the four-chamber's long axis is worth more than the
 declaration it replaces.
 
-**What is NOT proposed here**: that the runtime should fix it. A derived frame is
-carried out in the export and an ingest writes it with its own provenance and
-its own checks list. A runtime that overwrote `anatomical_frame` would replace
+**What is NOT proposed here**: that the runtime should fix it. The plan at this
+point was to carry a derived frame in the export and have a later ingest write
+it with its own provenance and checks list. A runtime that overwrote
+`anatomical_frame` would replace
 evidence with a gesture, and the pack would go on claiming a derivation it no
 longer had.
+
+That was the pre-implementation plan. Entry 58 records the safer v1 boundary
+that landed: export may report the frame, but pose ingestion deliberately
+ignores it and leaves the pack's independently derived anatomical frame alone.
 
 ---
 
@@ -2073,3 +2078,46 @@ learner should be ENCOURAGED to do rather than about what they could claim.
 
 Not built. It is a scope question for the learner build, which by entry 56 is the
 last thing to be cut rather than the first.
+
+---
+
+## 58. Q25 closes in the draft, and the pack changes only after crossing two named boundaries
+
+**Owner decision, 2026-08-20:** explicit `Place from camera` may expand the local working pose's
+`fan.depth_cm` to the measured minimum needed to reach the model, but may never shrink the supplied
+depth or mutate the loaded pack. This is safer than bulk-correcting shallow pack values as a side
+effect of placement: the adjustment is visible on screen, remains session/local-store data, and can
+leave only through **Save → `authoring-slots/v1` export → explicit ingest**. Ordinary viewing still
+has no path to it. Switching packs now drops the free pose, so model-space coordinates cannot be
+saved under the wrong pack.
+
+**The round trip was run, not synthesized.** A fresh Chromium authoring session selected Rodero's
+`view-ingest-reference-pose`, placed from the default camera, saved the local override, and captured
+the browser download. The report measured a **141.1 mm** standoff and expanded depth from **15.54 cm
+to 21.779307682107543 cm**. The exact JSON content is retained at
+`tests/fixtures/authoring/normal-rodero-ingest-reference-pose.authoring-slots-v1.json`, with source
+pack version `0.1.0`, saved time `2026-08-20T21:19:34.948Z`, and export time
+`2026-08-20T21:19:34.981Z`.
+
+**Ingestion is a separate fail-closed tool.** Preview is the default; `--write` requires exact
+source pack revision and schema identity, a changed output pack version, the standard slot for one
+existing view, and a `draft` target with no recorded review history. It validates the original and
+complete candidate packs. The Rodero proof updated only `ingest-reference-pose`, bumped the pack
+from **0.1.0 to 0.1.1**, kept review `draft`, and left `meshes.anatomical_frame` untouched. Its sweep
+axis moved rigidly from `[1, 0, 0]` to the new probe's lateral axis
+`[0.6216099682706647, 5.551115123125784e-17, -0.7833269096274834]`; the already-empty
+`structures_in_order` was reset pending any future measurement. The old pose-derived
+`placement_landmark` was invalidated pending content review, and provenance now names the source
+pack revision, slot, and timestamps instead of claiming the current pose came only from
+`pipeline/ingest.py`.
+
+The writer serializes the complete validated candidate. On this Python-generated pack that also
+caused a one-time textual normalization of equivalent JSON number and Unicode spellings; a deep
+semantic comparison found no changes outside the version and the target view fields named above.
+This cycle also tightened the still-pre-stable `authoring-slots/v1` envelope by requiring the source
+`pack_version`; earlier dev exports without it are intentionally refused and must be re-exported.
+
+No clinical view was asserted, no review was promoted, and the Alberta/VHL shallow-depth findings
+were not bulk-edited. Entry 47 remains the historical recommendation that preceded this owner
+decision; this entry supersedes its proposed remedy without rewriting the finding. Learner access
+to the placement gesture remains the separate, still-open question recorded in entry 57.

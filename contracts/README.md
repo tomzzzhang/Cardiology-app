@@ -1,6 +1,6 @@
 # Module contracts
 
-**Updated:** 2026-08-20 14:40 EDT
+**Updated:** 2026-08-20 17:20 EDT
 
 One page per engine module, from `docs/build_plan.md` ("Architecture: engine + content packs").
 They describe the interface and behaviour each module owes the rest of the system.
@@ -17,7 +17,7 @@ clinical or UX choices into permanent contract gates.
 | echo-renderer | [`echo-renderer.md`](echo-renderer.md) | implemented: scan, separable PSF, display passes over the labelled volume, per-view tuning, simulated labelling. Outstanding: motion, secondary rays, per-view `echo_tuning` authored rather than defaulted |
 | view rail + sweep scrubber | [`view-rail-sweep-scrubber.md`](view-rail-sweep-scrubber.md) | not built — wave 1d. One sweep slider and the probe control pad stand in; views are reachable only by `?view=` |
 | provenance UI | [`provenance-ui.md`](provenance-ui.md) | partial: the echo panel carries the simulated badge, the draft flag and the licence line. The pinned expandable strip is not built |
-| authoring mode | [`authoring-mode.md`](authoring-mode.md) | initial flag-gated slice built: camera placement, local overrides, IndexedDB persistence, export/import, and four-chamber axis capture. Outstanding: export-to-pack ingestion and broader authoring workflow |
+| authoring mode | [`authoring-mode.md`](authoring-mode.md) | implemented through guarded export-to-pack ingestion: camera placement, monotonic draft-depth expansion, local overrides, IndexedDB persistence, strict export/import, and four-chamber axis capture. Outstanding: broader authoring workflow |
 | app shell | [`app-shell.md`](app-shell.md) | partial: Echo/Explore modes, `?mode=`/`?view=`/`?pack=` deep links, responsive two-panel stage, the undismissible non-diagnostic notice. Outstanding: the view rail, the provenance strip, the full `?a=`/`?v=`/`?s=` scheme |
 
 ## The boundary every contract has to respect

@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-20 14:40 EDT
+**Updated:** 2026-08-20 17:20 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -15,8 +15,10 @@ draws the probe and its sector, and renders a simulated echo for the selected vi
 probe pose the wedge is built from. Three clinical views are authored and draft-flagged, reachable
 by `?view=`; two were deliberately refused, and the pack says why. The flag-gated authoring build
 can place and save probe poses, export/import local overrides, and reach Echo on a volume-less pack.
-The next platform unit ingests an exported pose into `pack.json`; the view rail and annotated sweep
-scrubber follow.
+Its explicit placement may only expand a local draft's depth to the measured minimum. A real Rodero
+`authoring-slots/v1` export has completed the guarded round trip into the existing non-clinical
+reference view in pack v0.1.1; it remains Draft and unreviewed. The view rail and annotated sweep
+scrubber are the next platform unit.
 
 The active product surface is desktop/laptop. Phone and touch UX are paused for a dedicated later
 design pass and do not gate platform checkpoints or the current release workflow.
@@ -56,6 +58,7 @@ npm run dev
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Vite dev server |
+| `npm run dev:authoring` | Vite dev server with the flag-gated authoring surface |
 | `npm run build` | Production build into `dist/` |
 | `npm run build:authoring` | Production-check the primary authoring surface into `dist-authoring/` |
 | `npm run check:fast` | Typecheck, lint, and unit tests — the normal platform gate |
@@ -72,6 +75,7 @@ npm run dev
 | `npm run gen:stub-assets` | Regenerate the synthetic stub pack assets |
 | `npm run ingest` | Run the model ingest pipeline over a source — see [`pipeline/`](pipeline/) |
 | `npm run ingest:fetch` | Fetch and checksum-verify a raw source asset without ingesting it |
+| `npm run ingest:authoring` | Preview or explicitly apply one standard `authoring-slots/v1` pose to one existing draft pack view |
 
 ## Architecture
 
@@ -89,7 +93,7 @@ pipeline/       Python model ingest — split, label, decimate, voxelise, author
                 and a geometry-only path for unlabelled sources
 shared/         the few constants the pipeline and the viewer both have to agree on
 public/packs/   tracked content packs, one directory each; Pages ships an explicit allowlist
-scripts/        pack validation, provenance check, base-path check, stub asset generation
+scripts/        pack validation, guarded authoring-export ingest, provenance and build checks
 contracts/      one-page module contracts
 tests/unit/     schema, loader, asset semantics, plane algebra, orbit, echo acoustics
 tests/visual/   Playwright suite against a production build

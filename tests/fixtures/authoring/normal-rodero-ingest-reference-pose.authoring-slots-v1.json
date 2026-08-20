@@ -1,0 +1,42 @@
+{
+  "schema_version": "authoring-slots/v1",
+  "pack_id": "normal-rodero",
+  "pack_version": "0.1.0",
+  "pack_schema_version": "0.1",
+  "exported_at": "2026-08-20T21:19:34.981Z",
+  "slots": [
+    {
+      "slot_id": "view-ingest-reference-pose",
+      "kind": "extra",
+      "label": "Ingest reference pose — not a clinical view",
+      "saved_at": "2026-08-20T21:19:34.948Z",
+      "probe": {
+        "origin": [
+          98.87127135292879,
+          49.67134970660503,
+          90.89675228639484
+        ],
+        "beam_axis": [
+          -0.7358359241431227,
+          -0.3428978074554513,
+          -0.5839234422273875
+        ],
+        "lateral_axis": [
+          0.6216099682706647,
+          5.551115123125784e-17,
+          -0.7833269096274834
+        ],
+        "fan": {
+          "angle_deg": 75,
+          "depth_cm": 21.779307682107543,
+          "focus_cm": 8.55
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    }
+  ]
+}

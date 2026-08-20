@@ -1,16 +1,17 @@
 /**
  * The export file: one JSON document, and the two things it refuses to do.
  *
- * `contracts/authoring-mode.md` rule 3 — "Export must round-trip through the
- * schema. An export that does not validate is a bug and must not be written."
- * So every pose is put through the schema's OWN `ProbePose` before the file is
- * built, and a failure throws rather than producing a file with a note in it.
+ * `contracts/authoring-mode.md` rule 3 makes export and pack ingestion two
+ * explicit validation boundaries. Every pose is put through the schema's OWN
+ * `ProbePose` before the file is built, and a failure throws rather than
+ * producing a file with a note in it.
  * A pose that cannot validate cannot be ingested, and a file the author cannot
  * use is worse than an error they can see, because they will find out a week
  * later with the placing session already thrown away.
  *
  * The second refusal is about identity. The file states which pack it was made
- * against, and an import into a different pack is REFUSED rather than applied.
+ * against, including the exact pack revision, and an import into a different
+ * pack or revision is REFUSED rather than applied.
  * Poses are model-space coordinates: the same numbers mean a different place in
  * every model, and silently applying one pack's positions to another's geometry
  * produces poses that are wrong in a way that looks entirely plausible.
@@ -41,9 +42,9 @@ export interface ExportedSlot {
  * The model axes an apical four-chamber pose implies, carried out with it.
  *
  * Present only when the export contains a B1 pose. It is DERIVED, and the file
- * says which pose it came from, so an ingest can write it into
- * `meshes.anatomical_frame` with its own provenance rather than the runtime
- * writing over pack content. Same convention as the schema's
+ * says which pose it came from. The v1 pack-ingest bridge deliberately ignores
+ * it: `meshes.anatomical_frame` remains independently derived pack content.
+ * Same convention as the schema's
  * `basis_source_to_pack`: `patient_left x basal` points along `anterior`.
  */
 export interface ExportedFrame {
@@ -59,6 +60,8 @@ export interface ExportedFrame {
 export interface SlotExport {
   schema_version: string;
   pack_id: string;
+  /** Exact source content revision; model-space poses must not cross it. */
+  pack_version: string;
   pack_schema_version: string;
   exported_at: string;
   slots: ExportedSlot[];
@@ -74,6 +77,7 @@ export interface SlotExport {
  */
 export function buildExport(input: {
   packId: string;
+  packVersion: string;
   packSchemaVersion: string;
   slots: readonly SavedSlot[];
   exportedAt: string;
@@ -84,6 +88,13 @@ export function buildExport(input: {
     if (slot.packId !== input.packId) {
       throw new Error(
         `slot "${slot.slotId}" belongs to pack "${slot.packId}", not "${input.packId}"`,
+      );
+    }
+    if (slot.packVersion !== input.packVersion) {
+      throw new Error(
+        `slot "${slot.slotId}" was saved against pack version `
+        + `"${String(slot.packVersion)}", not loaded version "${input.packVersion}". `
+        + 'Re-save it against the loaded revision before export.',
       );
     }
     const parsed = ProbePose.safeParse(slot.pose);
@@ -108,6 +119,7 @@ export function buildExport(input: {
   return {
     schema_version: EXPORT_SCHEMA_VERSION,
     pack_id: input.packId,
+    pack_version: input.packVersion,
     pack_schema_version: input.packSchemaVersion,
     exported_at: input.exportedAt,
     slots,
@@ -127,7 +139,11 @@ export type ImportResult =
  * the file has been on a disk and through a sync client since it was written,
  * and trusting it because this code wrote it is trusting the wrong thing.
  */
-export function readExport(text: string, expectedPackId: string): ImportResult {
+export function readExport(
+  text: string,
+  expectedPackId: string,
+  expectedPackVersion: string,
+): ImportResult {
   let document: unknown;
   try {
     document = JSON.parse(text);
@@ -164,6 +180,23 @@ export function readExport(text: string, expectedPackId: string): ImportResult {
     };
   }
 
+  if (typeof record.pack_version !== 'string') {
+    return {
+      ok: false,
+      problem: 'this file names no source pack version, so its coordinates cannot be trusted',
+    };
+  }
+
+  if (record.pack_version !== expectedPackVersion) {
+    return {
+      ok: false,
+      problem:
+        `this file was exported against pack version "${record.pack_version}" and the loaded `
+        + `version is "${expectedPackVersion}". Model-space coordinates do not cross pack `
+        + 'revisions. Refused.',
+    };
+  }
+
   if (!Array.isArray(record.slots)) {
     return { ok: false, problem: 'this file carries no slots array' };
   }
@@ -188,6 +221,7 @@ export function readExport(text: string, expectedPackId: string): ImportResult {
     }
     slots.push({
       packId: record.pack_id,
+      packVersion: record.pack_version,
       slotId: entry.slot_id,
       kind: entry.kind,
       label: entry.label,

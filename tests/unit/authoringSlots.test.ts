@@ -37,6 +37,7 @@ const slotOf = (viewId: string) => standardSlotId(viewId);
 function saved(over: Partial<SavedSlot> = {}): SavedSlot {
   return {
     packId: 'normal-rodero',
+    packVersion: '0.1.0',
     slotId: standardSlotId(FRAME_VIEW_ID),
     kind: 'canon',
     label: 'Apical four-chamber (draft)',

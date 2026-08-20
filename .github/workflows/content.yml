@@ -10,8 +10,10 @@ on:
       - pipeline/**
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
+      - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**
+      - src/authoring/exportFile.ts
       - package.json
       - package-lock.json
       - .github/workflows/content.yml
@@ -23,8 +25,10 @@ on:
       - pipeline/**
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
+      - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**
+      - src/authoring/exportFile.ts
       - package.json
       - package-lock.json
       - .github/workflows/content.yml

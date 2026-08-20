@@ -30,6 +30,7 @@ function pose(over: Partial<ProbePose> = {}): ProbePose {
 function slot(over: Partial<SavedSlot> = {}): SavedSlot {
   return {
     packId: 'normal-rodero',
+    packVersion: '0.1.0',
     slotId: 'view-0',
     kind: 'canon',
     label: 'Apical four-chamber',
@@ -40,14 +41,21 @@ function slot(over: Partial<SavedSlot> = {}): SavedSlot {
 }
 
 function exportOf(slots: SavedSlot[], packId = 'normal-rodero') {
-  return buildExport({ packId, packSchemaVersion: '0.1', slots, exportedAt: AT });
+  return buildExport({
+    packId,
+    packVersion: '0.1.0',
+    packSchemaVersion: '0.1',
+    slots,
+    exportedAt: AT,
+  });
 }
 
 describe('what the file says about itself', () => {
-  it('carries the pack id and both schema versions', () => {
+  it('carries the pack id, exact content revision and both schema versions', () => {
     const document = exportOf([slot()]);
     expect(document.schema_version).toBe(EXPORT_SCHEMA_VERSION);
     expect(document.pack_id).toBe('normal-rodero');
+    expect(document.pack_version).toBe('0.1.0');
     expect(document.pack_schema_version).toBe('0.1');
     expect(document.exported_at).toBe(AT);
     expect(document.slots).toHaveLength(1);
@@ -86,6 +94,11 @@ describe('an export that would not validate is never written', () => {
     expect(() => exportOf([slot({ packId: 'stub' })])).toThrow(/belongs to pack "stub"/);
   });
 
+  it('refuses a slot saved against another revision of the same pack', () => {
+    expect(() => exportOf([slot({ packVersion: '0.0.9' })]))
+      .toThrow(/saved against pack version "0.0.9"[\s\S]*Re-save/);
+  });
+
   it('refuses a pose carrying a field the schema does not know', () => {
     // `ProbePose` is a strict object, so a stowaway field is a REFUSAL rather
     // than something quietly stripped on the way out. That is the stronger
@@ -108,7 +121,7 @@ describe('reading one back', () => {
     const text = JSON.stringify(exportOf([slot(), slot({
       slotId: 'custom-1', kind: 'custom', label: 'Window A', pose: pose({ origin: [1, 2, 3] }),
     })]));
-    const result = readExport(text, 'normal-rodero');
+    const result = readExport(text, 'normal-rodero', '0.1.0');
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -117,11 +130,12 @@ describe('reading one back', () => {
     expect(result.slots[1].pose.origin).toEqual([1, 2, 3]);
     expect(result.slots[1].kind).toBe('custom');
     expect(result.slots.every((row) => row.packId === 'normal-rodero')).toBe(true);
+    expect(result.slots.every((row) => row.packVersion === '0.1.0')).toBe(true);
   });
 
   it('REFUSES a file exported against another pack, rather than applying it', () => {
     const text = JSON.stringify(exportOf([slot()]));
-    const result = readExport(text, 'normal-vhl-heart0102');
+    const result = readExport(text, 'normal-vhl-heart0102', '0.1.0');
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -129,9 +143,23 @@ describe('reading one back', () => {
     expect(result.problem).toMatch(/Refused/);
   });
 
+  it('REFUSES a file exported against another revision of the same pack', () => {
+    const result = readExport(JSON.stringify(exportOf([slot()])), 'normal-rodero', '0.1.1');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.problem).toMatch(/coordinates do not cross pack revisions/);
+  });
+
+  it('refuses a legacy file that names no source pack revision', () => {
+    const document = { ...exportOf([slot()]) } as Record<string, unknown>;
+    delete document.pack_version;
+    const result = readExport(JSON.stringify(document), 'normal-rodero', '0.1.0');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.problem).toMatch(/names no source pack version/);
+  });
+
   it('refuses a file in an unknown format version', () => {
     const document = { ...exportOf([slot()]), schema_version: 'authoring-slots/v99' };
-    const result = readExport(JSON.stringify(document), 'normal-rodero');
+    const result = readExport(JSON.stringify(document), 'normal-rodero', '0.1.0');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem).toMatch(/authoring-slots\/v99/);
   });
@@ -139,13 +167,13 @@ describe('reading one back', () => {
   it('refuses a pose that has been corrupted since it was written', () => {
     const document = exportOf([slot()]);
     (document.slots[0].probe as ProbePose).beam_axis = [0, 0, 0];
-    const result = readExport(JSON.stringify(document), 'normal-rodero');
+    const result = readExport(JSON.stringify(document), 'normal-rodero', '0.1.0');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem).toMatch(/Nothing was imported/);
   });
 
   it('reports rather than throws on a file that is not JSON at all', () => {
-    const result = readExport('<html>not this</html>', 'normal-rodero');
+    const result = readExport('<html>not this</html>', 'normal-rodero', '0.1.0');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem).toMatch(/not JSON/);
   });
@@ -153,7 +181,7 @@ describe('reading one back', () => {
   it('refuses a file that names no pack', () => {
     const document = { ...exportOf([slot()]) } as Record<string, unknown>;
     delete document.pack_id;
-    const result = readExport(JSON.stringify(document), 'normal-rodero');
+    const result = readExport(JSON.stringify(document), 'normal-rodero', '0.1.0');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem).toMatch(/names no pack/);
   });

@@ -101,11 +101,11 @@ export function defaultTemplate(radiusMm: number, fanAngleDeg = DEFAULT_FAN_ANGL
 }
 
 /**
- * What the anchor did, and what it could not do without changing content.
+ * What explicit placement measured and changed in the local working pose.
  *
  * Returned alongside the pose rather than logged, because the one thing this
- * has to be able to say out loud is "the fan you authored is too short for
- * where the probe now has to sit" — and a clamp would have hidden exactly that.
+ * has to be able to say out loud is whether the supplied fan was expanded, by
+ * how much, and that the loaded pack was not changed.
  */
 export interface AnchorReport {
   /** The standoff actually used, in model units (mm). */

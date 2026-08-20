@@ -81,6 +81,9 @@ export async function loadSlots(packId: string): Promise<SavedSlot[]> {
     // the slot as they wrote it.
     return rows.map((row) => ({
       packId: row.packId,
+      // Legacy rows intentionally remain undefined at runtime. Export refuses
+      // them until the author explicitly re-saves against the loaded revision.
+      packVersion: row.packVersion,
       slotId: row.slotId,
       kind: row.kind,
       label: row.label,

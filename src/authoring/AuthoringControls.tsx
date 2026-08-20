@@ -26,7 +26,7 @@
  *
  * ## What this does NOT do
  *
- * * **It never sees the `Pack`.** It is handed a pack id, a schema version, a
+ * * **It never sees the `Pack`.** It is handed a pack id, content version, schema version, a
  *   fan-and-display template and frozen seeds. There is no object here that
  *   `views[]` could be written through — the same structural guarantee
  *   `freeProbe.ts` makes, for the same reason.
@@ -35,7 +35,7 @@
  *   a revert that restores the authored value bit for bit.
  * * **It does not write the model's axes either.** The four-chamber pose
  *   DERIVES them and the export carries them out; `meshes.anatomical_frame` is
- *   pack content with a recorded derivation and an ingest writes it.
+ *   pack content with a recorded derivation and the v1 ingest ignores that frame.
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { ProbePose } from '../schema/packV0.ts';
@@ -50,6 +50,7 @@ import { buildExport, exportFileName, readExport, type ExportedFrame } from './e
 
 export interface AuthoringControlsProps {
   packId: string;
+  packVersion: string;
   packSchemaVersion: string;
   /** Draft starter views plus whatever this pack authored, frozen by the caller. */
   seeds: readonly SlotSeed[];
@@ -76,7 +77,7 @@ const axisText = (axis: readonly number[]) =>
   `[${axis.map((value) => value.toFixed(3)).join(', ')}]`;
 
 export default function AuthoringControls({
-  packId, packSchemaVersion, seeds, template, standoffOverrideMm,
+  packId, packVersion, packSchemaVersion, seeds, template, standoffOverrideMm,
   readAnchor, currentPose, onPose, onActiveSlotPose, onLevelAxis,
 }: AuthoringControlsProps) {
   const [saved, setSaved] = useState<SavedSlot[]>([]);
@@ -214,6 +215,7 @@ export default function AuthoringControls({
     try {
       await saveSlot({
         packId,
+        packVersion,
         slotId: slot.slotId,
         kind: slot.kind,
         label: slot.label,
@@ -246,6 +248,7 @@ export default function AuthoringControls({
     try {
       await saveSlot({
         packId,
+        packVersion,
         slotId,
         kind: 'custom',
         label,
@@ -305,6 +308,7 @@ export default function AuthoringControls({
       const exportedAt = new Date().toISOString();
       const document = buildExport({
         packId,
+        packVersion,
         packSchemaVersion,
         slots: saved,
         exportedAt,
@@ -333,7 +337,7 @@ export default function AuthoringControls({
   };
 
   const importViews = async (file: File) => {
-    const result = readExport(await file.text(), packId);
+    const result = readExport(await file.text(), packId, packVersion);
     if (!result.ok) {
       setProblem(result.problem);
       return;
