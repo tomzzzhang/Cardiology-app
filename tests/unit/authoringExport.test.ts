@@ -31,7 +31,7 @@ function slot(over: Partial<SavedSlot> = {}): SavedSlot {
   return {
     packId: 'normal-rodero',
     slotId: 'view-0',
-    kind: 'standard',
+    kind: 'canon',
     label: 'Apical four-chamber',
     pose: pose(),
     savedAt: AT,

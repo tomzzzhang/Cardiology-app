@@ -194,6 +194,14 @@ interface ViewerApi {
   setPointerClass: (coarse: boolean) => void;
   /** Echo mode only: hold the model's measured long axis vertical under orbit. */
   setHorizonLock: (on: boolean) => void;
+  /**
+   * AUTHORING ONLY: which axis the horizon lock holds vertical.
+   *
+   * Null is the pack's declared `orientation.up`. A vector is a MODEL-space
+   * axis — the long axis the apical four-chamber measured — which this carries
+   * through `canonical_pose` like every other model-space quantity.
+   */
+  setLevelAxis: (axis: readonly [number, number, number] | null) => void;
   /** Distance from a world point to the nearest model surface, in pack units. */
   clearanceMm: (point: readonly [number, number, number]) => number;
   /** Whether the cutter should be reversed for the cut to open toward the camera. */
@@ -497,13 +505,34 @@ export default function PackViewer({
      * only while the heart happens to be upright, and holding the heart upright
      * is the entire job.
      */
-    const lockAxis = new THREE.Vector3(...axisVector(pack.meshes.orientation.up))
+    /*
+     * The axis the horizon lock holds vertical.
+     *
+     * The pack's declared `orientation.up`, carried through `canonical_pose` —
+     * and MUTABLE, because authoring can replace it with the long axis the
+     * apical four-chamber measured. Eight of the nine packs declare
+     * `up=+y` with no derivation behind it, so on those the declared axis is
+     * the ingest's default and the four-chamber's is the only measurement
+     * there is; a lock that went on levelling the guess would be levelling
+     * nothing.
+     *
+     * Mutated in place rather than reassigned, so the two call sites that
+     * closed over it — the locked drag and `levelled` — keep working without
+     * either of them having to be told.
+     */
+    const packUp = new THREE.Vector3(...axisVector(pack.meshes.orientation.up))
       .applyEuler(new THREE.Euler(
         ...(pack.meshes.canonical_pose.rotation_euler_xyz_deg.map(
           (degrees) => (degrees * Math.PI) / 180,
         ) as [number, number, number]),
       ))
       .normalize();
+    const lockAxis = packUp.clone();
+    const poseEuler = new THREE.Euler(
+      ...(pack.meshes.canonical_pose.rotation_euler_xyz_deg.map(
+        (degrees) => (degrees * Math.PI) / 180,
+      ) as [number, number, number]),
+    );
     let pivot = new THREE.Vector3();
     let radius = 400;
     /*
@@ -1601,6 +1630,34 @@ export default function PackViewer({
           };
         }
         : () => null,
+      /*
+       * AUTHORING ONLY: level the axis the four-chamber measured, not the one
+       * the pack declares.
+       *
+       * Null puts the pack's own declaration back. Folded to a no-op with the
+       * flag off, where there is no derived axis for it to be handed.
+       */
+      setLevelAxis: AUTHORING_ENABLED
+        ? (axis) => {
+          if (axis === null) {
+            lockAxis.copy(packUp);
+          } else {
+            const next = new THREE.Vector3(...axis);
+            if (next.lengthSq() === 0) return;
+            lockAxis.copy(next.applyEuler(poseEuler).normalize());
+          }
+          if (horizonLocked) {
+            // Null at the poles, where the axis has no screen direction to
+            // level to. Leaving the camera alone is the honest answer there.
+            const level = levelled(orientation, lockAxis);
+            if (level) {
+              orientation = level;
+              applyCamera();
+            }
+            schedule();
+          }
+        }
+        : () => {},
       setGhost: (on) => {
         ghostOn = on;
         ghosts.visible = cutActive && ghostOn;
@@ -1859,6 +1916,20 @@ export default function PackViewer({
    */
   const [slotPose, setSlotPose] = useState<ProbePose | null>(null);
 
+  /**
+   * The axis the horizon lock holds vertical, when authoring has measured one.
+   *
+   * A plain nullable triple held here rather than a call into the authoring
+   * modules, for the same reason `slotPose` is: the lock is learner UI and
+   * grows no dependency on a surface that does not exist in a learner build.
+   * With the flag off nothing ever writes it and the effect below is a no-op.
+   */
+  const [levelAxis, setLevelAxis] = useState<readonly [number, number, number] | null>(null);
+
+  useEffect(() => {
+    apiRef.current?.setLevelAxis(levelAxis);
+  }, [levelAxis, status]);
+
   /*
    * AUTHORING: the pack's authored views, reduced to frozen slot seeds.
    *
@@ -1868,7 +1939,13 @@ export default function PackViewer({
    * reference and lets the whole slots module leave the bundle.
    */
   const authoringSeeds = useMemo(
-    () => (AUTHORING_ENABLED ? seedsFromViews(pack.views) : []),
+    () => (AUTHORING_ENABLED
+      ? seedsFromViews(pack.views.map((packView) => ({
+        name: packView.name,
+        view_id: packView.view_id,
+        probe: packView.probe,
+      })))
+      : []),
     [pack],
   );
 
@@ -2194,18 +2271,24 @@ export default function PackViewer({
                 *
                 * Locked there is no free angle, so it is a plain cell.
                 */}
-              {probeFree ? (
-                <button
-                  type="button"
-                  className="probe-pad__core probe-pad__core--reset"
-                  title="Recentre: put the probe back on this view's saved track, still unlocked"
-                  aria-label="Recentre the probe on this view's saved track"
-                  data-testid="probe-recentre"
-                  onClick={recentreProbe}
-                >
-                  <span className="probe-pad__dot" aria-hidden="true" />
-                </button>
-              ) : AUTHORING_ENABLED && slotPose !== null ? (
+              {/*
+                * AUTHORING takes the centre, in BOTH pad states.
+                *
+                * The brief asked for the centre on the LOCKED pad, and in a
+                * placing session the pad is never locked: anchoring sets a free
+                * pose, so the author is always in the free pad and the button
+                * they actually press is the learner's recentre — which returns
+                * the probe to the VIEW'S TRACK and ignores the slot entirely.
+                * Reported from the app as "save centre didn't save it", because
+                * from the outside that is exactly what it looks like.
+                *
+                * So in authoring the centre always means the active slot. For a
+                * standard slot with no override that IS the pack's authored
+                * pose, so nothing is taken away; the two differ only once the
+                * author has overridden the slot or selected a custom one, which
+                * is precisely when the slot is the thing they meant.
+                */}
+              {AUTHORING_ENABLED ? (
                 /*
                  * AUTHORING: the locked pad's dead centre cell becomes the way
                  * back to the active slot.
@@ -2222,16 +2305,42 @@ export default function PackViewer({
                  * echo panel then withdraws the view's name, which is correct
                  * — it is not that view until the pose is put back in the pack.
                  */
+                /*
+                 * ALWAYS rendered in authoring, disabled when there is nothing
+                 * to recall.
+                 *
+                 * It used to render only when the selected view held a pose, so
+                 * selecting an empty canon view — which is most of them on a
+                 * pack that has just been opened — made the centre of the pad
+                 * disappear. Reported as "the centre d-pad button is gone". A
+                 * control that comes and goes is one you have to re-find; a
+                 * disabled one that says why is not.
+                 */
                 <button
                   type="button"
                   className="probe-pad__core probe-pad__core--reset"
-                  title="Restore the probe to the active authoring slot, exactly"
-                  aria-label="Restore the probe to the active authoring slot"
+                  disabled={slotPose === null}
+                  title={slotPose === null
+                    ? 'Nothing is stored for the selected view yet. Place the probe and save it.'
+                    : 'Recall: put the probe back exactly where the selected view has it'}
+                  aria-label="Recall the probe to the selected view"
                   data-testid="probe-restore-slot"
                   onClick={() => {
+                    if (slotPose === null) return;
                     freePoseRef.current = slotPose;
                     onFreePoseChange?.(slotPose);
                   }}
+                >
+                  <span className="probe-pad__dot" aria-hidden="true" />
+                </button>
+              ) : probeFree ? (
+                <button
+                  type="button"
+                  className="probe-pad__core probe-pad__core--reset"
+                  title="Recentre: put the probe back on this view's saved track, still unlocked"
+                  aria-label="Recentre the probe on this view's saved track"
+                  data-testid="probe-recentre"
+                  onClick={recentreProbe}
                 >
                   <span className="probe-pad__dot" aria-hidden="true" />
                 </button>
@@ -2402,7 +2511,7 @@ export default function PackViewer({
         </div>
 
         <div className="cutter" data-testid="cutter-controls">
-          <label className="cutter__toggle">
+          <label className="cutter__toggle" data-hint="Cut the model open on the plane.">
             <input
               type="checkbox"
               checked={cutEnabled}
@@ -2436,7 +2545,10 @@ export default function PackViewer({
             * one more thing between the eye and the cut face — but read against
             * the whole heart it came out of, a section says more.
             */}
-          <label className="cutter__toggle">
+          <label
+            className="cutter__toggle"
+            data-hint="Draw the half the cut removes as a faint shell."
+          >
             <input
               type="checkbox"
               checked={ghostCutaway}
@@ -2448,7 +2560,10 @@ export default function PackViewer({
           </label>
 
           {echoMode && (
-            <label className="cutter__toggle">
+            <label
+              className="cutter__toggle"
+              data-hint="Dim the tissue the beam does not reach."
+            >
               <input
                 type="checkbox"
                 checked={beamDim}
@@ -2488,6 +2603,7 @@ export default function PackViewer({
             type="button"
             onClick={() => setCutFlipped((value) => !value)}
             disabled={!cutEnabled}
+            data-hint="Swap which half of the model the cut removes."
             data-testid="cut-flip"
           >
             Reverse
@@ -2525,6 +2641,7 @@ export default function PackViewer({
               apiRef.current?.resetCamera();
               setCutFlipped(apiRef.current?.cutShouldFaceCamera() ?? false);
             }}
+            data-hint="Camera and cut plane back to their defaults."
             data-testid="cut-reset"
           >
             Reset
@@ -2555,6 +2672,7 @@ export default function PackViewer({
               onFreePoseChange?.(pose);
             }}
             onActiveSlotPose={setSlotPose}
+            onLevelAxis={setLevelAxis}
           />
         )}
 

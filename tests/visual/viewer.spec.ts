@@ -1364,6 +1364,111 @@ test('the two panels are one pair, to the pixel', async ({ page }, testInfo) => 
   ).toBe(1);
 });
 
+/* -------------------------------------------------------------------------- */
+/* the hover hint                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every control the learner can operate has a hint, and every hint is short.
+ *
+ * Two failures this makes impossible. A control with nothing to say gets no
+ * card at all, which is the one place a hover hint is worse than useless — the
+ * learner waited and got nothing. And a control whose `title` is a paragraph
+ * would put the paragraph on screen, which is what the native tooltip already
+ * did badly.
+ *
+ * The rule itself is unit-tested in `tests/unit/hintText.test.ts`; this applies
+ * it to what is actually rendered, which is the half that drifts when a control
+ * is added.
+ */
+test('every control has a hint, and every hint is short', async ({ page }) => {
+  for (const url of ['/?freeze=1', '/?freeze=1&mode=explore']) {
+    await page.goto(url);
+    await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+      timeout: 30_000,
+    });
+
+    const missing = await page.evaluate(() => {
+      const MAX = 84;
+      const concise = (authored: string | undefined, title: string) => {
+        const short = (authored ?? '').trim();
+        if (short) return short;
+        const full = title.trim();
+        if (full === '') return '';
+        if (full.length <= MAX) return full;
+        const stop = full.search(/[.!?](\s|$)/);
+        const first = stop === -1 ? full : full.slice(0, stop + 1);
+        return first.length <= MAX ? first : '';
+      };
+
+      /* The same walk the hint layer does: up from the pointer's target. */
+      const source = (start: HTMLElement) => {
+        let element: HTMLElement | null = start;
+        while (element) {
+          if (element.dataset.hintSkip !== undefined) return null;
+          if (element.dataset.hint !== undefined || element.title.trim() !== '') return element;
+          element = element.parentElement;
+        }
+        return null;
+      };
+
+      const bare: string[] = [];
+      const selector = 'button, select, label, input:not([type=hidden]), [role=radio]';
+      for (const element of document.querySelectorAll<HTMLElement>(selector)) {
+        if (element.dataset.hintSkip !== undefined) continue;
+        const found = source(element);
+        const text = found ? concise(found.dataset.hint, found.title) : '';
+        if (text === '') {
+          bare.push(
+            element.dataset.testid
+            ?? element.getAttribute('aria-label')
+            ?? (element.textContent ?? '').trim().slice(0, 40)
+            ?? element.tagName,
+          );
+        }
+      }
+      return bare;
+    });
+
+    expect(missing, `controls with no usable hint at ${url}`).toEqual([]);
+  }
+});
+
+test('a hint appears only after a pause, and never under the pointer', async ({ page }) => {
+  const control = page.getByTestId('cut-reset');
+  await control.hover();
+
+  // Nothing yet: a card that appeared immediately would appear while the
+  // pointer was on its way somewhere else.
+  await page.waitForTimeout(400);
+  await expect(page.getByTestId('hint-card')).toHaveCount(0);
+
+  await expect(page.getByTestId('hint-card')).toHaveCount(1, { timeout: 4000 });
+  await expect(page.getByTestId('hint-card')).toHaveText(/cut plane back to their defaults/);
+
+  // It must never be the thing under the pointer: a card that intercepted a
+  // click would break the control at the moment the learner understood it.
+  const events = await page.getByTestId('hint-card')
+    .evaluate((element) => window.getComputedStyle(element).pointerEvents);
+  expect(events).toBe('none');
+
+  // And the control keeps its own description once the pointer leaves: the
+  // layer BORROWS the title while it is hovered, and a control whose title was
+  // never given back would lose its accessible description.
+  await page.getByTestId('anatomy-title').hover();
+  await expect(page.getByTestId('hint-card')).toHaveCount(0);
+  await expect(control).toHaveAttribute('data-hint', /cut plane back to their defaults/);
+  await expect(control).not.toHaveAttribute('data-hint-stash', /./);
+
+  // A control whose description lives in `title` gets it back verbatim.
+  const titled = page.getByTestId('match-echo');
+  const before = await titled.getAttribute('title');
+  await titled.hover();
+  await expect(page.getByTestId('hint-card')).toHaveCount(1, { timeout: 4000 });
+  await page.getByTestId('anatomy-title').hover();
+  await expect(titled).toHaveAttribute('title', before ?? '');
+});
+
 test('app shell screenshot', async ({ page }, testInfo) => {
   const baseline = testInfo.snapshotPath('app-shell.png');
   const seeding = !['none', 'missing'].includes(testInfo.config.updateSnapshots);
@@ -1407,7 +1512,8 @@ test('the learner build has no authoring surface, in either mode', async ({ page
     await expect(page.getByTestId('authoring-save-centre')).toHaveCount(0);
     await expect(page.getByTestId('authoring-export')).toHaveCount(0);
     await expect(page.getByTestId('probe-restore-slot')).toHaveCount(0);
-    await expect(page.getByText('Anchor to view')).toHaveCount(0);
+    await expect(page.getByTestId('authoring-frame-hint')).toHaveCount(0);
+    await expect(page.getByText('Place from camera')).toHaveCount(0);
   }
 });
 

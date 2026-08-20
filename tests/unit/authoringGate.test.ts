@@ -67,7 +67,7 @@ describe('with the flag off, IndexedDB is never opened', () => {
   it.each([
     ['loadSlots', () => loadSlots('normal-rodero')],
     ['saveSlot', () => saveSlot({
-      packId: 'normal-rodero', slotId: 'view-0', kind: 'standard', label: 'x',
+      packId: 'normal-rodero', slotId: 'view-0', kind: 'canon', label: 'x',
       pose: {
         origin: [0, 0, 0], beam_axis: [0, 0, -1], lateral_axis: [1, 0, 0],
         fan: { angle_deg: 80, depth_cm: 21, focus_cm: 10 },

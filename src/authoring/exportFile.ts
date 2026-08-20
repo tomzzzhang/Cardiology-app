@@ -37,12 +37,33 @@ export interface ExportedSlot {
   probe: unknown;
 }
 
+/**
+ * The model axes an apical four-chamber pose implies, carried out with it.
+ *
+ * Present only when the export contains a B1 pose. It is DERIVED, and the file
+ * says which pose it came from, so an ingest can write it into
+ * `meshes.anatomical_frame` with its own provenance rather than the runtime
+ * writing over pack content. Same convention as the schema's
+ * `basis_source_to_pack`: `patient_left x basal` points along `anterior`.
+ */
+export interface ExportedFrame {
+  derived_from_slot: string;
+  method: string;
+  patient_left: [number, number, number];
+  basal: [number, number, number];
+  anterior: [number, number, number];
+  /** Whether the in-plane sign was taken from the pose's `display.flip_lr`. */
+  flipped_for_display: boolean;
+}
+
 export interface SlotExport {
   schema_version: string;
   pack_id: string;
   pack_schema_version: string;
   exported_at: string;
   slots: ExportedSlot[];
+  /** Absent unless an apical four-chamber pose is in the export. */
+  cardiac_frame?: ExportedFrame;
 }
 
 /**
@@ -56,6 +77,8 @@ export function buildExport(input: {
   packSchemaVersion: string;
   slots: readonly SavedSlot[];
   exportedAt: string;
+  /** The frame the B1 pose implies, when one was saved. */
+  cardiacFrame?: ExportedFrame;
 }): SlotExport {
   const slots: ExportedSlot[] = input.slots.map((slot) => {
     if (slot.packId !== input.packId) {
@@ -88,6 +111,7 @@ export function buildExport(input: {
     pack_schema_version: input.packSchemaVersion,
     exported_at: input.exportedAt,
     slots,
+    ...(input.cardiacFrame ? { cardiac_frame: input.cardiacFrame } : {}),
   };
 }
 
@@ -149,7 +173,7 @@ export function readExport(text: string, expectedPackId: string): ImportResult {
     if (typeof entry?.slot_id !== 'string' || typeof entry?.label !== 'string') {
       return { ok: false, problem: 'a slot in this file has no id or no label' };
     }
-    if (entry.kind !== 'standard' && entry.kind !== 'custom') {
+    if (!['canon', 'extra', 'custom', 'orphan'].includes(entry.kind)) {
       return { ok: false, problem: `slot "${entry.slot_id}" has an unknown kind "${entry.kind}"` };
     }
     const parsed = ProbePose.safeParse(entry.probe);

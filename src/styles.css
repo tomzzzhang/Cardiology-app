@@ -563,6 +563,13 @@ body {
   cursor: pointer;
 }
 
+/* Disabled, not absent: the centre keeps its place in the cross when there is
+   nothing to recall, so the pad does not change shape under the hand. */
+.probe-pad__core--reset:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .probe-pad__dot {
   width: 0.42rem;
   height: 0.42rem;
@@ -1287,17 +1294,54 @@ body {
   cursor: pointer;
 }
 
-.authoring__field {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
+/*
+ * The row label. Every row has one, and that is what makes the grouping visible
+ * rather than implied — the first version had the placement button beside the
+ * view selector, which reads as though it anchors TO the selected view.
+ *
+ * A fixed width so the four labels form a column and the controls beside them
+ * start at one edge; `ch` rather than `rem` because it is sized by the longest
+ * word in it.
+ */
 .authoring__label {
+  flex: 0 0 auto;
+  width: 5ch;
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #8d7fa6;
+}
+
+/* What the selected view currently is: from the pack, stored, overridden, or
+   still empty. Beside the selector, because it is a fact about it. */
+.authoring__state {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #8d7fa6;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * "sets z axis", beside Save centre and nowhere else.
+ *
+ * The apical four-chamber is the one view whose pose is a statement about the
+ * MODEL — the beam is the long axis — so saving it does something no other view
+ * does. It is marked at the button that does it rather than explained in a
+ * paragraph somewhere else.
+ */
+.authoring__hint {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid #6b5a44;
+  border-radius: 999px;
+  color: #cbb797;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 /* Same height as the buttons beside them, so the row has one baseline rather
@@ -1315,8 +1359,13 @@ body {
   border-radius: 6px;
 }
 
+/* Wide enough for a canon name, which is the longest string in this block —
+   "A1 Subcostal coronal situs — empty" was truncating at 13 rem. It still
+   shrinks with the column rather than pushing the row wider than the panel. */
 .authoring__select {
-  max-width: 13rem;
+  flex: 1 1 14rem;
+  min-width: 8rem;
+  max-width: 100%;
 }
 
 .authoring__input {
@@ -1346,4 +1395,39 @@ body {
 
 .authoring__note--bad {
   color: var(--danger);
+}
+
+/* --------------------------------------------------------------------------
+   The hover hint
+
+   One card, in the app's own type, after a three-second pause. It replaces the
+   browser's native `title` tip, which fires in about a second — while the
+   pointer is still on its way somewhere else — and renders in the OS's type at
+   the OS's size, which on a screen of 0.85 rem controls is the one element that
+   looks like it came from somewhere else.
+   -------------------------------------------------------------------------- */
+
+.hint {
+  position: fixed;
+  z-index: 40;
+  max-width: 22rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #11161d;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  /* Centred on the control and sitting above it. Translating rather than
+     measuring means the card does not have to be laid out before it is placed. */
+  transform: translate(-50%, -100%);
+  /* It must never be the thing under the pointer: a card that intercepts a
+     click would make a control unusable at exactly the moment the learner
+     finally understood what it does. */
+  pointer-events: none;
+}
+
+.hint--below {
+  transform: translate(-50%, 0);
 }

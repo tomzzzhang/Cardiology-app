@@ -34,8 +34,23 @@
  * a droplist stays a droplist. Logged in `docs/observations.md`.
  */
 import type { ProbePose } from '../schema/packV0.ts';
+import { VIEW_CANON, isFrameView } from './viewCanon.ts';
 
-export type SlotKind = 'standard' | 'custom';
+/**
+ * `canon` — a clinical view from `docs/view_canon.md`, whether or not the pack
+ * has authored it. `extra` — a view the pack authored that the canon does not
+ * list, which is every pack's `ingest-reference-pose` and the stub's two
+ * synthetic views. `custom` — the author's own.
+ *
+ * `canon` and `extra` are both "standard" in the rule that matters: saving over
+ * either writes a local override and never the pack.
+ */
+export type SlotKind = 'canon' | 'extra' | 'custom' | 'orphan';
+
+/** Whether a slot is the pack's content rather than the author's own. */
+export function isPackSlot(kind: SlotKind): boolean {
+  return kind !== 'custom';
+}
 
 /** How many custom slots a pack may hold. See the note above: not a decision. */
 export const MAX_CUSTOM_SLOTS = 8;
@@ -44,7 +59,13 @@ export const MAX_CUSTOM_SLOTS = 8;
 export interface SlotSeed {
   slotId: string;
   label: string;
-  pose: ProbePose;
+  /** The pack's `view_id`, so an authored view finds its canon slot. */
+  viewId: string;
+  /** Null for a canon slot the pack has not authored. */
+  pose: ProbePose | null;
+  kind: SlotKind;
+  /** True for the apical four-chamber, whose pose defines the model's axes. */
+  definesFrame: boolean;
 }
 
 /** A pose the author saved, as it is stored and exported. */
@@ -63,14 +84,22 @@ export interface Slot {
   slotId: string;
   kind: SlotKind;
   label: string;
-  /** The pack's own pose, for a standard slot. Null for a custom one. */
+  /** The pack's own pose, where the pack authored one. Null otherwise. */
   authored: ProbePose | null;
   /** The author's saved pose, when there is one. */
   saved: SavedSlot | null;
-  /** A standard slot with a local override sitting over its authored value. */
+  /**
+   * A pack slot with a local override sitting over an AUTHORED value.
+   *
+   * Saving into an empty canon slot is not an override: there was nothing to
+   * override. The distinction matters on screen, because "overridden" is a
+   * warning about reviewed content and "filled" is just work in progress.
+   */
   overridden: boolean;
   /** What "restore this slot" restores. Saved wins; authored is the fallback. */
   pose: ProbePose | null;
+  /** True for the apical four-chamber, whose pose defines the model's axes. */
+  definesFrame: boolean;
 }
 
 /**
@@ -89,9 +118,16 @@ export function slotKey(packId: string, slotId: string): string {
   return `${packId}::${slotId}`;
 }
 
-/** The slot id for the pack's view at `index`. Stable across renames of the view. */
-export function standardSlotId(index: number): string {
-  return `view-${index}`;
+/**
+ * The slot id for one of the pack's views, or for a canon view.
+ *
+ * Keyed on the `view_id` rather than on the view's index, so a slot survives a
+ * pack gaining or reordering views — an index-keyed override would silently
+ * follow the position rather than the view, and an override that moves to a
+ * different view is worse than one that is lost.
+ */
+export function standardSlotId(viewId: string): string {
+  return `view-${viewId}`;
 }
 
 /** The slot id for the author's nth custom slot. */
@@ -109,13 +145,46 @@ export function customSlotId(ordinal: number): string {
  * of a reviewed view.
  */
 export function seedsFromViews(
-  views: readonly { name: string; probe: ProbePose }[],
+  views: readonly { name: string; view_id: string; probe: ProbePose }[],
 ): SlotSeed[] {
-  return views.map((view, index) => Object.freeze({
-    slotId: standardSlotId(index),
-    label: view.name,
-    pose: deepFreeze(structuredClone(view.probe)),
-  }));
+  const authored = new Map(views.map((view) => [view.view_id, view]));
+
+  /*
+   * The canon first, in the canon's own order, whether or not the pack has
+   * authored any of it. A slot with nothing in it is the work list: it is what
+   * the pack OUGHT to have, and a pack with no views used to offer no slots at
+   * all — which is every pack this tool exists for.
+   */
+  const canon: SlotSeed[] = VIEW_CANON.map((view) => {
+    const match = authored.get(view.viewId);
+    return Object.freeze({
+      slotId: standardSlotId(view.viewId),
+      label: view.name,
+      viewId: view.viewId,
+      pose: match ? deepFreeze(structuredClone(match.probe)) : null,
+      kind: 'canon' as const,
+      definesFrame: isFrameView(view.viewId),
+    });
+  });
+
+  /*
+   * Then whatever the pack authored that the canon does not list — every pack's
+   * `ingest-reference-pose`, and the stub's synthetic pair. Dropping them would
+   * hide a pose that exists, which is the opposite of what a work list is for.
+   */
+  const known = new Set(VIEW_CANON.map((view) => view.viewId));
+  const extra: SlotSeed[] = views
+    .filter((view) => !known.has(view.view_id))
+    .map((view) => Object.freeze({
+      slotId: standardSlotId(view.view_id),
+      label: view.name,
+      viewId: view.view_id,
+      pose: deepFreeze(structuredClone(view.probe)),
+      kind: 'extra' as const,
+      definesFrame: false,
+    }));
+
+  return [...canon, ...extra];
 }
 
 /**
@@ -127,16 +196,19 @@ export function seedsFromViews(
 export function mergeSlots(seeds: readonly SlotSeed[], saved: readonly SavedSlot[]): Slot[] {
   const byId = new Map(saved.map((slot) => [slot.slotId, slot]));
 
-  const standard: Slot[] = seeds.map((seed) => {
+  const fromPack: Slot[] = seeds.map((seed) => {
     const savedSlot = byId.get(seed.slotId) ?? null;
     return {
       slotId: seed.slotId,
-      kind: 'standard',
+      kind: seed.kind,
       label: seed.label,
       authored: seed.pose,
       saved: savedSlot,
-      overridden: savedSlot !== null,
+      // Only an AUTHORED pose can be overridden. Filling an empty canon slot
+      // overrides nothing.
+      overridden: savedSlot !== null && seed.pose !== null,
       pose: savedSlot?.pose ?? seed.pose,
+      definesFrame: seed.definesFrame,
     };
   });
 
@@ -150,9 +222,39 @@ export function mergeSlots(seeds: readonly SlotSeed[], saved: readonly SavedSlot
       saved: slot,
       overridden: false,
       pose: slot.pose,
+      definesFrame: false,
     }));
 
-  return [...standard, ...custom];
+  /*
+   * ORPHANS: stored under an id nothing here matches any more.
+   *
+   * Found by looking, on a store that still held rows written before slot ids
+   * were keyed on `view_id` — they matched no seed, were not custom, and so
+   * appeared in no group at all. They were still counted in "N stored" and
+   * still went into the export: a pose no row on screen showed, leaving in a
+   * file. Silently dropping them would be worse, and silently exporting them is
+   * what was happening, so they get a group of their own and a way to clear
+   * them.
+   *
+   * This will happen again. A store outlives the shape of the thing that wrote
+   * it, and the honest handling is to show what does not fit rather than to
+   * assume the two can never disagree.
+   */
+  const placed = new Set([...fromPack, ...custom].map((slot) => slot.slotId));
+  const orphans: Slot[] = saved
+    .filter((slot) => !placed.has(slot.slotId))
+    .map((slot) => ({
+      slotId: slot.slotId,
+      kind: 'orphan',
+      label: slot.label,
+      authored: null,
+      saved: slot,
+      overridden: false,
+      pose: slot.pose,
+      definesFrame: false,
+    }));
+
+  return [...fromPack, ...custom, ...orphans];
 }
 
 /**

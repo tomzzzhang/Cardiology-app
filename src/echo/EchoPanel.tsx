@@ -280,13 +280,14 @@ export default function EchoPanel({
 
       {sweep && (
         <div className="echo__scrub">
-          <label htmlFor="echo-scrub">
+          <label htmlFor="echo-scrub" data-hint="Move the probe along this view's saved sweep.">
             {freePose
               ? `Sweep (${sweep.mode}) — the probe is off this track`
               : `Sweep (${sweep.mode}) ${sweepValue?.toFixed(1)} ${sweep.range.unit}`}
           </label>
           <input
             id="echo-scrub"
+            data-hint="Move the probe along this view's saved sweep."
             data-testid="echo-scrub"
             type="range"
             min={0}

@@ -21,6 +21,7 @@ import type { ProbePose } from './schema/packV0.ts';
 import { poseAt } from './echo/probeFrame.ts';
 import { hasLeftTrack } from './viewer/freeProbe.ts';
 import { AUTHORING_ENABLED } from './authoring/flag.ts';
+import HintLayer from './ui/HintLayer.tsx';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
 import {
   DEFAULT_PACK_ID,
@@ -225,6 +226,13 @@ export default function App() {
 
   return (
     <main className="shell">
+      {/*
+        * One hover hint for every control, after a three-second pause. It reads
+        * the `title` each control already carries, so nothing here has to be
+        * re-authored — see `src/ui/HintLayer.tsx` for why it borrows the
+        * attribute rather than adding a second one.
+        */}
+      <HintLayer />
       <header className="shell__header">
         <h1>Cardiology app</h1>
         <p className="shell__tagline">
@@ -549,6 +557,7 @@ function StructurePanel({ pack, visibility, onChange }: {
           className="structures__all"
           disabled={isEverythingVisible(visibility)}
           onClick={() => onChange(showAll())}
+          data-hint="Bring every structure back."
           data-testid="structure-show-all"
         >
           Show all
@@ -556,13 +565,17 @@ function StructurePanel({ pack, visibility, onChange }: {
       </div>
 
       {/* The filter earns its place at 86 rows and costs nothing at two. */}
-      <label className="structures__filter">
+      <label
+        className="structures__filter"
+        data-hint="Narrow the list by name. The model does not change."
+      >
         <span className="visually-hidden">Filter structures</span>
         <input
           type="search"
           value={query}
           placeholder="Filter…"
           onChange={(event) => setQuery(event.target.value)}
+          data-hint="Narrow the list by name. The model does not change."
           data-testid="structure-filter"
         />
       </label>
@@ -666,11 +679,12 @@ function PackPicker({ packId, onChoose }: {
 
   return (
     <div className="picker" data-testid="pack-picker" data-picker="list">
-      <label className="picker__control">
+      <label className="picker__control" data-hint="Which heart model is loaded.">
         <span className="picker__label">Model</span>
         <select
           value={current ? packId : ''}
           onChange={(event) => onChoose(event.target.value)}
+          data-hint="Which heart model is loaded."
           data-testid="pack-select"
         >
           {/*
