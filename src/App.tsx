@@ -204,6 +204,13 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController();
+    /*
+     * Probe poses are model-space coordinates. Carrying one across a pack
+     * switch would put the old model's plausible-looking numbers onto the new
+     * model and could then save them under the new pack id. A pack change ends
+     * that local draft before the next pack begins loading.
+     */
+    setFreePose(null);
     setPackState({ status: 'loading' });
 
     loadPackById(packId, { signal: controller.signal })

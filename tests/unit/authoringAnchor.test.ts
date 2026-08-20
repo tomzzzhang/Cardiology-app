@@ -131,10 +131,12 @@ describe('where the probe lands', () => {
     expect(dot(beam, unitToCentre)).toBeCloseTo(1, 12);
   });
 
-  it('changes placement only: the fan and display come from the template untouched', () => {
+  it('preserves a sufficient fan and the display values without sharing their objects', () => {
     const { pose } = anchoredPose(oblique(), TEMPLATE);
     expect(pose.fan).toEqual(TEMPLATE.fan);
     expect(pose.display).toEqual(TEMPLATE.display);
+    expect(pose.fan).not.toBe(TEMPLATE.fan);
+    expect(pose.display).not.toBe(TEMPLATE.display);
   });
 
   it('honours a pack standoff override, and reports that it did', () => {
@@ -154,24 +156,64 @@ describe('where the probe lands', () => {
   });
 });
 
-describe('what the report says, and what it refuses to do about it', () => {
-  it('reports containment when the authored fan reaches', () => {
-    const { report } = anchoredPose(straightOn(100), TEMPLATE);
+describe('depth expansion is local, measured and monotonic', () => {
+  it('does not change a source depth that already reaches', () => {
+    const { pose, report } = anchoredPose(straightOn(100), TEMPLATE);
     expect(report.requiredDepthCm).toBeCloseTo((report.standoffMm + 100) / 10, 12);
+    expect(report.sourceDepthCm).toBe(30);
+    expect(report.appliedDepthCm).toBe(30);
     expect(report.depthShortCm).toBeNull();
     expect(report.contains).toBe(true);
+    expect(pose.fan.depth_cm).toBe(30);
   });
 
-  it('reports the shortfall, and does NOT move the probe closer to hide it', () => {
+  it('expands a shallow working pose to the measured minimum without moving the probe closer', () => {
     const shallow = { ...TEMPLATE, fan: { ...TEMPLATE.fan, depth_cm: 16.79 } };
+    const before = structuredClone(shallow);
     const { pose, report } = anchoredPose(straightOn(106.3), shallow);
 
     expect(report.depthShortCm).not.toBeNull();
-    expect(report.contains).toBe(false);
-    // The standoff is the derived one regardless. A clamp here would be the
-    // engine deciding a content question quietly.
+    expect(report.sourceDepthCm).toBe(16.79);
+    expect(report.appliedDepthCm).toBeCloseTo(report.requiredDepthCm, 12);
+    expect(report.depthShortCm).toBeCloseTo(report.requiredDepthCm - 16.79, 12);
+    expect(report.contains).toBe(true);
+    // Depth changes, not the geometry that made it necessary.
     expect(report.standoffMm).toBeCloseTo(derivedStandoffMm(106.3, 80), 12);
-    expect(pose.fan.depth_cm).toBe(16.79);
+    expect(pose.fan.depth_cm).toBeCloseTo(report.requiredDepthCm, 12);
+    expect(pose.fan.angle_deg).toBe(shallow.fan.angle_deg);
+    expect(pose.fan.focus_cm).toBe(shallow.fan.focus_cm);
+    expect(shallow).toEqual(before);
+  });
+
+  it('uses a positive standoff override when deriving the monotonic depth expansion', () => {
+    const radiusMm = 100;
+    const overrideMm = 200;
+    const shallow = {
+      ...TEMPLATE,
+      fan: { ...TEMPLATE.fan, depth_cm: 12, focus_cm: 6 },
+    };
+    const before = structuredClone(shallow);
+    const { pose, report } = anchoredPose(straightOn(radiusMm), shallow, overrideMm);
+
+    expect(report.overrideMm).toBe(overrideMm);
+    expect(report.sourceDepthCm).toBe(12);
+    expect(report.requiredDepthCm).toBe((overrideMm + radiusMm) / 10);
+    expect(report.appliedDepthCm).toBe((overrideMm + radiusMm) / 10);
+    expect(pose.fan.depth_cm).toBe((overrideMm + radiusMm) / 10);
+    expect(report.contains).toBe(true);
+    expect(shallow).toEqual(before);
+  });
+
+  it('accepts a frozen template and never mutates the loaded value', () => {
+    const shallow = Object.freeze({
+      fan: Object.freeze({ angle_deg: 80, depth_cm: 16.79, focus_cm: 9.23 }),
+      display: Object.freeze({ vertex: 'down' as const, flip_lr: false, marker_side: 'right' as const }),
+    });
+
+    const { pose, report } = anchoredPose(straightOn(106.3), shallow);
+    expect(pose.fan.depth_cm).toBeGreaterThan(shallow.fan.depth_cm);
+    expect(shallow.fan.depth_cm).toBe(16.79);
+    expect(report.contains).toBe(true);
   });
 });
 
@@ -183,6 +225,7 @@ describe('the default template, for a pack with no authored view at all', () => 
       expect(ProbePose.safeParse(pose).success).toBe(true);
       expect(report.contains).toBe(true);
       expect(report.depthShortCm).toBeNull();
+      expect(report.appliedDepthCm).toBe(report.sourceDepthCm);
       expect(pose.fan.focus_cm).toBeLessThanOrEqual(pose.fan.depth_cm);
     }
   });

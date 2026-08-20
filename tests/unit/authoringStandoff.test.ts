@@ -153,7 +153,7 @@ describe('the derived standoff contains the bounding sphere, with margin', () =>
   });
 });
 
-describe('the depth shortfall is reported, never clamped away', () => {
+describe('the depth shortfall measures the monotonic local expansion', () => {
   it('is null when the authored depth reaches past the far side', () => {
     expect(depthShortfallCm({ standoffMm: 200, radiusMm: 100, authoredDepthCm: 31 })).toBeNull();
   });

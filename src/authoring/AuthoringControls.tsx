@@ -315,8 +315,13 @@ export default function AuthoringControls({
       const link = window.document.createElement('a');
       link.href = url;
       link.download = exportFileName(packId, exportedAt);
+      link.hidden = true;
+      window.document.body.append(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      // Keep the Blob alive until the browser has consumed the synthetic click.
+      // Immediate revocation races the download in embedded browsers.
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
       setProblem(null);
       setNotice(
         `Exported ${saved.length} view(s), every pose schema-validated`
@@ -677,13 +682,10 @@ export default function AuthoringControls({
       )}
 
       {/*
-        * The placement report, and the reason it is a report.
-        *
-        * `fan.depth_cm` is authored clinical content — a depth setting is part
-        * of what a view claims — so a placement tool that quietly rewrote it
-        * would be changing the view while appearing to move the probe. When the
-        * authored depth cannot reach the far side of the model, that is said
-        * here and the author decides.
+        * The placement report names the one monotonic adjustment the explicit
+        * gesture may make. It changes only the local working pose: saving and
+        * exporting are still required before a separate ingest can change a
+        * pack, and a sufficient source depth is never reduced.
         */}
       {report !== null && (
         <p
@@ -695,9 +697,13 @@ export default function AuthoringControls({
             ? ` (pack override; derived was ${report.derivedMm.toFixed(1)})`
             : ' (derived)'}
           {report.depthShortCm !== null
-            ? `. Fan depth is ${report.depthShortCm.toFixed(1)} cm short of the far side — `
-              + `it needs ${report.requiredDepthCm.toFixed(1)} cm. Not changed.`
-            : '. The fan contains the model.'}
+            ? `. Fan depth expanded from ${report.sourceDepthCm.toFixed(1)} cm to `
+              + `${report.appliedDepthCm.toFixed(1)} cm, the measured minimum that reaches the `
+              + 'far side. Working pose only; the loaded pack is unchanged.'
+            : report.contains
+              ? '. The fan contains the model. Fan depth was not changed.'
+              : '. Fan depth reaches the far side, but the fan angle does not contain the model '
+                + 'at this standoff. The loaded pack is unchanged.'}
         </p>
       )}
 

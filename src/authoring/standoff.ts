@@ -105,12 +105,11 @@ export function requiredDepthCm(standoffMm: number, radiusMm: number): number {
 /**
  * How much depth a pack's authored fan is SHORT, or null when it reaches.
  *
- * Reported, never applied. Whether the anchor button should also write
- * `fan.depth_cm` from the bounding sphere is an open owner decision
- * (2026-08-19): `depth_cm` is authored clinical content — a depth setting is
- * part of what a view claims — and a tool that silently rewrote it would be
- * changing the view while appearing to move the probe. So the shortfall comes
- * back in the report and the author decides.
+ * The explicit authoring placement uses this as a MONOTONIC adjustment: it may
+ * expand the local working pose by this amount, but never shrink the supplied
+ * depth and never mutate the loaded pack. Keeping the measurement separate is
+ * what lets the placement report say exactly what changed before a later save,
+ * export and ingest make that draft value durable.
  */
 export function depthShortfallCm(input: {
   standoffMm: number; radiusMm: number; authoredDepthCm: number;

@@ -65,10 +65,12 @@ export interface ViewAnchor {
 /**
  * The fan and display settings the anchored pose carries.
  *
- * Copied from an authored view when the pack has one, so anchoring a pack that
- * already has views changes the probe's PLACEMENT and nothing else — the sector
- * width, the depth, the focus and the display conventions are clinical content
- * and the author did not press a button asking to change them.
+ * Copied from an authored view when the pack has one. `Place from camera` keeps
+ * the sector width, focus and display conventions, and never SHRINKS depth. It
+ * may expand depth in the resulting working pose to the measured minimum needed
+ * to reach the model's far side. The template is never mutated; saving and
+ * exporting remain the separate path by which that draft value can leave the
+ * working pose.
  */
 export type AnchorTemplate = Pick<ProbePose, 'fan' | 'display'>;
 
@@ -114,9 +116,13 @@ export interface AnchorReport {
   overrideMm: number | null;
   /** Depth needed to reach the far side of the model, in cm. */
   requiredDepthCm: number;
-  /** How far short the authored depth falls, or null when it reaches. */
+  /** Depth supplied by the selected view/template, before placement. */
+  sourceDepthCm: number;
+  /** Depth carried by the resulting local working pose. Never less than source. */
+  appliedDepthCm: number;
+  /** How much placement expanded depth, or null when the source already reached. */
   depthShortCm: number | null;
-  /** Whether the bounding sphere is inside the fan, angle AND depth. */
+  /** Whether the bounding sphere is inside the resulting fan, angle AND depth. */
   contains: boolean;
 }
 
@@ -144,6 +150,14 @@ export function anchoredPose(
   const standoff = overrideMm !== null && Number.isFinite(overrideMm) && overrideMm > 0
     ? overrideMm
     : derived;
+  const neededDepthCm = requiredDepthCm(standoff, anchor.radius);
+  const sourceDepthCm = template.fan.depth_cm;
+  const depthShortCm = depthShortfallCm({
+    standoffMm: standoff,
+    radiusMm: anchor.radius,
+    authoredDepthCm: sourceDepthCm,
+  });
+  const appliedDepthCm = Math.max(sourceDepthCm, neededDepthCm);
 
   const forward = unit(anchor.forward);
   const origin: Vec3 = [
@@ -162,8 +176,10 @@ export function anchoredPose(
     origin,
     beam_axis: forward,
     lateral_axis: anchor.right,
-    fan: template.fan,
-    display: template.display,
+    // Fresh objects are essential here: a standard slot is a deep-frozen clone
+    // of pack content, and placement must never write through it.
+    fan: { ...template.fan, depth_cm: appliedDepthCm },
+    display: { ...template.display },
   };
   const frame = imagingFrame(provisional);
 
@@ -181,17 +197,15 @@ export function anchoredPose(
       overrideMm: overrideMm !== null && Number.isFinite(overrideMm) && overrideMm > 0
         ? overrideMm
         : null,
-      requiredDepthCm: requiredDepthCm(standoff, anchor.radius),
-      depthShortCm: depthShortfallCm({
-        standoffMm: standoff,
-        radiusMm: anchor.radius,
-        authoredDepthCm: template.fan.depth_cm,
-      }),
+      requiredDepthCm: neededDepthCm,
+      sourceDepthCm,
+      appliedDepthCm,
+      depthShortCm,
       contains: sphereInsideFan({
         standoffMm: standoff,
         radiusMm: anchor.radius,
         fanAngleDeg: template.fan.angle_deg,
-        depthMm: template.fan.depth_cm * 10,
+        depthMm: appliedDepthCm * 10,
       }),
     },
   };
