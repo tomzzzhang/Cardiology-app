@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-19 17:45 EDT
+**Last Updated:** 2026-08-19 23:15 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -1840,3 +1840,128 @@ this file; a number in a document is not a gate.
 that simulated echo is labelled simulated. The chip is not red — the banner was removed deliberately
 and this is not it returning — and the full sentence is still in the provenance line under the
 image.
+
+---
+
+## 51. Eight packs declare an orientation nothing measured
+
+**Checked because the owner's proposal rested on it**, and it is the single most
+consequential thing found this round.
+
+| Pack | `meshes.orientation` | `meshes.anatomical_frame` |
+|---|---|---|
+| `normal-rodero` | up=+y, anterior=+z, patient_left=+x | `cardiac-landmarks-v2` |
+| the other eight | up=+y, anterior=+z, patient_left=+x | **absent** |
+
+Every pack declares the same triple. One of them derived it. The other eight
+carry the ingest's default — not measured, just written into the field a
+measurement would go in, and indistinguishable from a measurement once it is
+there. The schema requires the field and cannot require evidence for it; the
+`anatomical_frame` block is optional precisely because most substrates cannot
+support the derivation.
+
+**This is why the horizon lock levelling `orientation.up` was levelling nothing**
+on eight packs, and why the four-chamber's long axis is worth more than the
+declaration it replaces.
+
+**What is NOT proposed here**: that the runtime should fix it. A derived frame is
+carried out in the export and an ingest writes it with its own provenance and
+its own checks list. A runtime that overwrote `anatomical_frame` would replace
+evidence with a gesture, and the pack would go on claiming a derivation it no
+longer had.
+
+---
+
+## 52. The four-chamber defines the axes, and the one thing geometry cannot decide
+
+**The owner's proposition, checked and adopted.** An apical four-chamber is not
+just another view: the transducer sits at the apex and the beam runs to the
+base, so one pose states three things at once — the long axis **z** with the
+sign the atria are on, the four-chamber plane giving left-right **x**, and the
+plane normal giving anterior-posterior **y**. It maps exactly onto
+`imagingFrame`'s `{beam, lateral, normal}` and onto the schema's own
+`basis_source_to_pack` `{patient_left, basal, anterior}`.
+
+**Handedness is made a tautology rather than checked.** `anterior` is
+CONSTRUCTED as `patient_left × basal` rather than measured independently, so the
+triple is right-handed by definition. That matters more than it sounds: a
+left-handed basis mirrors the anatomy, puts right-sided structures on the left,
+and looks entirely plausible doing it — which is the failure the schema's own
+triple-product refinement exists to catch.
+
+**The sign of x is not a geometric fact, and nothing here pretends otherwise.**
+Rolling the probe 180 degrees gives the SAME plane with left and right
+exchanged. No amount of geometry distinguishes them; what distinguishes them is
+which chamber is on which side of the image, which is read off the anatomy. The
+sign is taken from the pose's own `display.flip_lr` and the assumption is stated
+on screen next to the axes it produced. **If the author places a four-chamber
+mirrored, the frame comes out mirrored and everything downstream is mirrored
+with it.** That is the one place in this unit where a wrong input produces a
+confident wrong answer, and the only defence is the author looking at the image.
+
+**Where it shows up immediately**: the Level lock. It held
+`meshes.orientation.up` — the unmeasured default on eight packs — and now holds
+the measured long axis when there is one. On `normal-vhl-heart0102` the
+difference is a heart lying on its side versus a heart standing up with the
+transducer under the apex.
+
+---
+
+## 53. Three defects, all found by using it, none by a test
+
+The pattern from the review round holds: the gates were green through all three.
+
+**1. "Save centre didn't save it."** It saved. The centre of the d-pad was the
+wrong control. The brief specified the recall on the LOCKED pad — and a placing
+session is never locked, because placing a probe sets a free pose — so the
+button actually pressed was the learner's recentre, which returns to the view's
+saved track and ignores the stored pose entirely. From outside, indistinguishable
+from a save that did nothing. **A control specified for a state the user is never
+in is a control that does not exist.**
+
+**2. "The centre d-pad button is gone."** It rendered only when the selected view
+held a pose. Select an empty canon view — which is most of them on a pack that
+has just been opened — and the middle of the cross vanished. A control that
+comes and goes is one you have to re-find; it is always drawn now and disabled
+when there is nothing to recall.
+
+**3. "The level selector does not respect the z axis."** Entry 52.
+
+**And one found by looking rather than by being told**: a stored pose whose id
+matched no view appeared in NO group on screen, while still being counted in the
+total and still going into the export. A pose leaving in a file that no row
+admitted to holding. Found on a store still holding rows written before view ids
+were keyed on `view_id` — which will happen again, because a store outlives the
+shape of the thing that wrote it. Orphans get a group of their own and a way to
+clear them.
+
+---
+
+## 54. The hover hint, and the two things that make it not a native tooltip
+
+**One card, one second, in the app's own type.** The native `title` tip fires in
+about a second too, and renders in the OS's type at the OS's size wherever it
+likes — on a screen of 0.85 rem controls and a measured panel pair, it is the
+one element that looks like it came from somewhere else. The layer borrows the
+`title` while the pointer is over the control, so the native tip cannot fire
+underneath, and gives it back on leave.
+
+**The delay was tried at three seconds, then 1.5, and settled at one.** Three
+was the first ask and was long enough that the pause read as nothing happening.
+
+**Concise is enforced, not hoped for.** Most `title`s here carry the reasoning as
+well as the action — that is where the reasoning belongs — and a card
+reproducing all of it would be worse than what it replaced. So an authored
+`data-hint` wins, otherwise the FIRST SENTENCE of the title, and if even that
+runs past 84 characters the hint is **dropped rather than truncated**: half a
+sentence in a card is worse than no card, and an empty result is the signal to
+write a `data-hint` for that control. The Playwright suite applies the rule to
+every button, select, label and input on the page in both modes, so a new
+control cannot ship without a usable hint — it found six on its first run.
+
+**What it does not cover, and it is the half that would help most.** The
+affordances drawn INSIDE the canvas — the cut-plane handles and the probe arrow
+— are not DOM elements and have no `title` to borrow. They are precisely the
+draggable things whose function is least obvious. Reaching them needs the scene
+to publish what is under the pointer, which it already does for structure
+hover; not built, and it is the obvious next thing.

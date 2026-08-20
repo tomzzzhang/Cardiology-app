@@ -2,8 +2,12 @@
 
 **Owns:** `src/authoring/**`
 **Status:** contract only, except for the PROBE PLACEMENT slice — view-axis anchoring, the
-derived standoff, the centre button, and saved position slots with export — pulled forward and
-landed 2026-08-19 at the owner's decision. Nothing else here is built. The gating rule below is
+derived standoff, the centre button, and saved view slots with export — pulled forward and
+landed 2026-08-19 at the owner's decision. The slice also carries the CLINICAL VIEW CANON as the
+slot list (all of `docs/view_canon.md`, empty where a pack has authored nothing) and derives the
+model's cardiac axes from the apical four-chamber pose, reporting and EXPORTING them rather than
+writing `meshes.orientation` or `meshes.anatomical_frame`, which stay pack content with their own
+recorded derivation. Nothing else here is built. The gating rule below is
 NOT relaxed by the slice: it is off by default, unreachable from the learner UI, and no learner
 path became editable because it exists (`scripts/check-authoring-absent.ts` asserts the built
 bundle carries none of it). The rest lands after wave 2.
