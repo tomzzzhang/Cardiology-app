@@ -172,8 +172,9 @@ and publication checks run at the release boundary before Pages deploys from `ma
 ## Milestones and waves
 
 Completed: Wave 0, real-model ingest, the simulated-echo slice, viewer-core interaction,
-Echo/Explore modes, the model shelf, per-structure inspection, and the authoring placement/export/
-ingestion round trip through the Rodero non-clinical reference view.
+Echo/Explore modes, the curated model picker over a retained and validated pack inventory,
+per-structure inspection, and the authoring placement/export/ingestion round trip through the
+Rodero non-clinical reference view.
 
 Active, in order:
 

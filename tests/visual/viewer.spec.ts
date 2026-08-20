@@ -934,9 +934,8 @@ test('the picker offers exactly what the build ships', async ({ page }) => {
    * The picker is the one place a learner sees what models exist, so on the
    * deployed site it must not advertise a pack the build pruned — that would be
    * a chip that 404s — nor an engine fixture, which is published on purpose and
-   * is two nested boxes. Development offers everything, which is the whole point
-   * of keeping unpublished packs; that half is unit-tested, because this suite
-   * only ever sees the production artefact.
+   * is two nested boxes. Development's active catalogue is unit-tested
+   * separately, because this suite only ever sees the production artefact.
    */
   const offered = cataloguedPacks(true);
   const picker = page.getByTestId('pack-picker');

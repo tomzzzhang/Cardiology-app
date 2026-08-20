@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PackLoadError, loadPack, resolveAsset } from '../../src/packs/loadPack.ts';
+import { PackLoadError, loadPack, loadPackById, resolveAsset } from '../../src/packs/loadPack.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const stubPath = join(repoRoot, 'public', 'packs', 'stub', 'pack.json');
@@ -17,6 +17,12 @@ const PACK_URL = 'http://packs.invalid/packs/stub/pack.json';
 
 function stubPack(): Record<string, unknown> {
   return JSON.parse(readFileSync(stubPath, 'utf8')) as Record<string, unknown>;
+}
+
+function packOnDisk(packId: string): Record<string, unknown> {
+  return JSON.parse(
+    readFileSync(join(repoRoot, 'public', 'packs', packId, 'pack.json'), 'utf8'),
+  ) as Record<string, unknown>;
 }
 
 function respondWith(body: unknown, init: { ok?: boolean; status?: number; statusText?: string } = {}) {
@@ -46,6 +52,16 @@ describe('loadPack happy path', () => {
     expect(resolveAsset(loaded, loaded.pack.meshes.gltf)).toBe(
       'http://packs.invalid/packs/stub/assets/stub.gltf',
     );
+  });
+
+  it('keeps a picker-hidden research pack loadable by explicit development id', async () => {
+    const packId = 'tof-cobivecox-chd0017001';
+    respondWith(packOnDisk(packId));
+
+    const loaded = await loadPackById(packId);
+
+    expect(loaded.pack.meta.id).toBe(packId);
+    expect(fetch).toHaveBeenCalledWith(`/packs/${packId}/pack.json`, undefined);
   });
 });
 

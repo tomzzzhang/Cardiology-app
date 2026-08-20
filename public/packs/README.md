@@ -31,6 +31,12 @@ A pack is one of two kinds, and the distinction decides which modes it can even 
 | `motion-straus-us-patient01/` | explore | **Moving, with vertex correspondence.** 30 frames of a synthetic biventricular myocardium over one whole cycle. | none stated | unconfirmed | **no** |
 | `tof-cobivecox-chd0017001/` | explore | **Congenital.** Repaired Tetralogy of Fallot: LV and RV endocardium, epicardium, four valve annuli. | CC BY 4.0 | confirmed | **no** |
 
+**Current development picker:** BodyParts3D is the only Explore-only model offered. The owner
+withdrew `motion-biv-cinemri`, `motion-straus-us-patient01`, `normal-kit-four-chamber`, and
+`tof-cobivecox-chd0017001` on 2026-08-20 because their present geometry is not educationally useful.
+Their directories, validation, provenance, and explicit development `?pack=` routes remain intact
+as research evidence; this is a reversible catalogue decision, not an asset deletion.
+
 **The engine fixture is published and is not advertised.** The visual suite runs against the
 production artefact and needs one pack whose contents this repository fixes, so `stub` stays in
 `dist/` and stays reachable by `?pack=stub`. It is marked `fixture` in the catalogue and the picker
@@ -90,7 +96,9 @@ reasoning survives being read by someone holding only the pack.
 
 Separate from the wave 1a comparison, and judged differently. A shelf model does not have to be
 labelled, segmented or pretty; it earns its place by looking good in the viewer, and that judgement
-is made by *looking*, with the verdict written into `docs/observations.md`. None of them ships.
+is made by *looking*, with the verdict written into `docs/observations.md`. None of them ships. Four
+are now retained as hidden research packs rather than normal picker choices; BodyParts3D remains on
+the active shelf.
 
 | Pack | Why it is here | What is wrong with it |
 | --- | --- | --- |

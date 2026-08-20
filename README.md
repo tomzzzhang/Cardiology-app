@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-20 17:20 EDT
+**Updated:** 2026-08-20 17:36 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -23,11 +23,13 @@ scrubber are the next platform unit.
 The active product surface is desktop/laptop. Phone and touch UX are paused for a dedicated later
 design pass and do not gate platform checkpoints or the current release workflow.
 
-A **model picker** now offers every pack in the repository, grouped by what a pack is: labelled and
-echo-capable, or Explore-only geometry. Explore-only packs are new in schema v0.1, which made
-`echo_volume` optional so that unlabelled and moving geometry could be carried at all. The first
-such pack **moves** — ten cine-MRI biventricular frames with a play/pause and a frame scrub in
-Explore. Motion is not wired into the echo renderer and that is deliberate; see
+A **model picker** offers a curated working set, grouped by what a pack is: labelled and
+echo-capable, or Explore-only geometry. The repository still retains and validates every research
+pack. BodyParts3D is the one Explore-only model currently offered; four poorer geometry-only packs
+are preserved with their assets and provenance but withdrawn from the picker. Picker visibility is
+not deletion, publication approval, or a licence decision. Explore-only packs are supported by
+schema v0.1, which makes `echo_volume` optional so unlabelled and moving geometry can be carried.
+Motion is not wired into the echo renderer and that is deliberate; see
 [`contracts/viewer-core.md`](contracts/viewer-core.md).
 
 Everything is **draft and unvetted**. Schema v0.1 is provisional, and clinical review and schema v1

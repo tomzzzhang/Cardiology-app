@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-20 17:20 EDT
+**Last Updated:** 2026-08-20 17:36 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2121,3 +2121,18 @@ No clinical view was asserted, no review was promoted, and the Alberta/VHL shall
 were not bulk-edited. Entry 47 remains the historical recommendation that preceded this owner
 decision; this entry supersedes its proposed remedy without rewriting the finding. Learner access
 to the placement gesture remains the separate, still-open question recorded in entry 57.
+
+---
+
+## 59. Four geometry-only models leave the picker; their evidence stays
+
+**Owner judgement, 2026-08-20.** Of the five Explore-only models, BodyParts3D is the only one worth
+keeping in the normal model list for now. `motion-biv-cinemri`, `motion-straus-us-patient01`,
+`normal-kit-four-chamber`, and `tof-cobivecox-chd0017001` read as incorrect blobs or incomplete
+shells, with conspicuous or missing openings, rather than as useful anatomy.
+
+**This is picker withdrawal, not registry or evidence destruction.** The four pack directories,
+assets, provenance, validators, and complete registry entries remain untouched. They are absent
+from the normal development droplist but remain reachable by an explicit development `?pack=` URL for
+research or comparison. Removing one id from the hidden list restores it without re-ingest. Pages
+is unchanged: none of these packs was published there.

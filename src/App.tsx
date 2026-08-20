@@ -636,11 +636,11 @@ function StructurePanel({ pack, visibility, onChange }: {
 /**
  * The model picker, as a DROPLIST.
  *
- * It was a wall of chips, and at nine packs it took about a third of the
- * viewport before the model was reached — `docs/observations.md` entry 28
+ * It was a wall of chips, and at nine registered packs it took about a third of
+ * the viewport before the model was reached — `docs/observations.md` entry 28
  * predicted the threshold at ten and it arrived at nine. The structure list now
  * wants that space, and a control whose collapsed height is one row gives it
- * back regardless of how many packs are catalogued.
+ * back regardless of how many packs are offered.
  *
  * A native `<select>` rather than a custom menu, for one reason that outranks
  * the styling: hospital desktops are a first-class target, and a native select
@@ -728,12 +728,11 @@ function PackPicker({ packId, onChoose }: {
           data-testid="pack-select"
         >
           {/*
-            * `?pack=` can name something the droplist does not offer — the
-            * engine fixture is exactly that, published so the visual suite can
-            * reach it in the production artefact and hidden from the picker so
-            * it is not offered beside a heart. Showing an empty selection would
-            * be the control lying about what is on screen, so the pack names
-            * itself and cannot be chosen.
+            * `?pack=` can name something the droplist does not offer — either a
+            * withdrawn research pack in development or the engine fixture in a
+            * production artefact. Showing an empty selection would be the
+            * control lying about what is on screen, so the pack names itself
+            * and cannot be chosen.
             */}
           {!current && <option value="" disabled>Not in this list — reached by ?pack=</option>}
           {groups.map(([key, heading, group]) => group.length === 0 ? null : (

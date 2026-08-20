@@ -17,7 +17,9 @@
  * The rest are the SHELF: real models brought in to be looked at, judged by eye
  * rather than by a metric. None of them ships. Every one carries a licence state
  * (schema v0.1) and anything but `confirmed` is unpublishable by rule, checked
- * in `scripts/check-provenance.ts` and again in the unit tests.
+ * in `scripts/check-provenance.ts` and again in the unit tests. A shelf pack may
+ * also be withdrawn from the normal development picker without deleting the
+ * pack or its evidence.
  *
  * Tracking a rights-cleared pack and deploying it are different decisions.
  *
@@ -142,7 +144,7 @@ export function unpublishedReason(packId: string): NotPublished | undefined {
 }
 
 /* -------------------------------------------------------------------------- */
-/* the catalogue — what the picker offers                                     */
+/* the catalogue registry and picker policy                                   */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -180,7 +182,7 @@ export interface CatalogueEntry {
 }
 
 /**
- * Every pack in the repository, for the model picker.
+ * Every pack in the repository: the complete registry behind the model picker.
  *
  * It lives here, beside the publication rule, rather than in a manifest
  * generated from the packs, for one reason: a manifest built from `public/`
@@ -272,6 +274,24 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
 ];
 
 /**
+ * Research packs retained on disk but withdrawn from the normal picker.
+ *
+ * Owner decision, 2026-08-20: these four geometry-only models are not useful
+ * enough to offer in their current form. Their packs and provenance remain in
+ * the repository, and development deep links still work, so the decision is
+ * reversible without re-ingesting any source material. BodyParts3D is the one
+ * geometry-only pack that remains selectable.
+ */
+export const PICKER_HIDDEN_PACK_IDS = [
+  'tof-cobivecox-chd0017001',
+  'motion-straus-us-patient01',
+  'normal-kit-four-chamber',
+  'motion-biv-cinemri',
+] as const;
+
+const pickerHiddenPackIds = new Set<string>(PICKER_HIDDEN_PACK_IDS);
+
+/**
  * What the picker should offer here.
  *
  * In a production build that is the published packs, MINUS the engine fixtures.
@@ -281,13 +301,14 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
  * content. It stays reachable by `?pack=stub`, which is how the visual suite
  * and anyone debugging the loader get to it.
  *
- * In development it is everything, because the whole point of keeping
- * unpublished packs and fixtures is being able to look at them.
+ * In development it is the active shelf plus the engine fixture. Withdrawn
+ * research packs remain loadable through an explicit `?pack=` deep link, but
+ * are not advertised in the picker.
  */
 export function cataloguedPacks(production: boolean): readonly CatalogueEntry[] {
   return production
     ? PACK_CATALOGUE.filter((entry) => isPublishedPack(entry.id) && !entry.fixture)
-    : PACK_CATALOGUE;
+    : PACK_CATALOGUE.filter((entry) => !pickerHiddenPackIds.has(entry.id));
 }
 
 /** Human wording for a licence state, for the chip. */

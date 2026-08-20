@@ -19,6 +19,7 @@ import {
   unpublishedReason,
   LICENSE_STATE_LABEL,
   PACK_CATALOGUE,
+  PICKER_HIDDEN_PACK_IDS,
   cataloguedPacks,
 } from '../../src/packs/published.ts';
 import { LICENSE_STATES, mayBePublished, type LicenseState } from '../../src/schema/packV0.ts';
@@ -222,8 +223,28 @@ describe('the model picker catalogue', () => {
     expect(isPublishedPack('stub')).toBe(true);
   });
 
-  it('offers everything in development, because looking at them is the point', () => {
-    expect(cataloguedPacks(false)).toEqual(PACK_CATALOGUE);
+  it('withdraws exactly four owner-rejected geometry-only models from the development picker', () => {
+    expect([...PICKER_HIDDEN_PACK_IDS]).toEqual([
+      'tof-cobivecox-chd0017001',
+      'motion-straus-us-patient01',
+      'normal-kit-four-chamber',
+      'motion-biv-cinemri',
+    ]);
+
+    const offered = cataloguedPacks(false);
+    const hidden = new Set<string>(PICKER_HIDDEN_PACK_IDS);
+    expect(offered).toEqual(
+      PACK_CATALOGUE.filter((entry) => !hidden.has(entry.id)),
+    );
+    expect(offered.filter((entry) => entry.kind === 'explore').map((entry) => entry.id))
+      .toEqual(['anatomy-bodyparts3d-heart']);
+  });
+
+  it('retains picker-hidden packs in the registry and on disk', () => {
+    for (const packId of PICKER_HIDDEN_PACK_IDS) {
+      expect(PACK_CATALOGUE.some((entry) => entry.id === packId), packId).toBe(true);
+      expect(existsSync(join(packsDir, packId, 'pack.json')), packId).toBe(true);
+    }
   });
 
   it('names every licence state, so no chip can render an empty tag', () => {

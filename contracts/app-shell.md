@@ -86,25 +86,26 @@ pack cannot produce.
 5. **No user-uploaded or arbitrary patient images, ever.** Curated content only — this is the
    regulatory line in `docs/mvp_scope.md` and the shell is where an upload affordance would most
    plausibly creep in.
-6. **The picker groups by what a pack IS, not by how good it is.** Labelled and echo-capable against
-   Explore-only geometry, because that distinction decides which modes are even available. Someone
-   who picks an Explore-only model and then finds Echo greyed out should have been able to see that
-   coming from the picker.
-7. **A pack that will not ship says so where it is chosen.** Every chip carries its licence state,
-   and in development an unpublished pack is marked unpublished. The deployed build offers only
-   published packs — offering a pruned pack would be offering a 404 — and the catalogue that feeds
-   the picker is read from the same module that decides publication, so the two cannot disagree.
+6. **The picker is a curated work surface, not the repository inventory.** It groups each offered
+   pack by capability — labelled and echo-capable against Explore-only geometry — because that
+   distinction decides which modes are available. Retained research assets may stay off-list.
+   Hiding one changes presentation only: it does not delete assets, change publication or licence
+   state, or exempt the pack from validation and provenance gates.
+7. **An offered pack that will not ship says so where it is chosen.** Every offered entry carries
+   its licence state, and in development an unpublished pack is marked unpublished. The deployed
+   build offers only published, non-fixture packs — offering a pruned pack would be offering a 404.
+   Picker visibility and publication are independent explicit decisions.
 8. **A mode the pack cannot support is refused, visibly, with the reason.** An EXPLORE-ONLY pack
    disables Echo and states why beside the control, and `?mode=echo` on such a pack lands in
    Explore. A pressable, inert control is worse than one that is visibly unavailable.
 
 ## What is actually in the repo now
 
-Echo and Explore modes with a visible toggle; the model picker, grouped by pack kind, with licence
-state and publication state on each chip; `?mode=`, `?view=`, `?pack=`, `?freeze=1` and `?polar=`
-read on load, with `?mode=` and `?pack=` written back; the anatomy viewer beside the echo panel on a
-wide viewport, plus an unsupported retained narrow stack; the pack-status panel; and the non-diagnostic notice in the
-footer, present in both modes and not behind a toggle.
+Echo and Explore modes with a visible toggle; the curated model picker, grouped by pack kind, with
+licence state and publication state on each offered entry; `?mode=`, `?view=`, `?pack=`, `?freeze=1`
+and `?polar=` read on load, with `?mode=` and `?pack=` written back; the anatomy viewer beside the
+echo panel on a wide viewport, plus an unsupported retained narrow stack; the pack-status panel;
+and the non-diagnostic notice in the footer, present in both modes and not behind a toggle.
 
 Switching pack is state, not a page load: the viewer's scene effect already keys on the pack and its
 glTF URL, so choosing a chip rebuilds the scene and nothing else.
