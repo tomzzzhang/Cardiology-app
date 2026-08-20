@@ -71,7 +71,7 @@ import {
   type CutPlaneState,
 } from './cutPlane.ts';
 import { CutPlaneGizmo, HANDLE_IDS, handleDirection, type HandleId } from './planeHandle.ts';
-import { probeTravelPath, steppedT } from './probeControl.ts';
+import { SWEEP_HOME_T, atSweepHome, probeTravelPath, steppedT } from './probeControl.ts';
 import { hitRadiusPx, isCoarsePointer, revealFor, watchPointerClass } from './pointerClass.ts';
 import { projectToScreen, unitsPerPixel } from './screen.ts';
 import { cineIntervalMs, nextCineState } from './cine.ts';
@@ -184,6 +184,8 @@ const CLICK_SLOP_PX = 4;
 
 /** How much the structure under the pointer lifts, to say a click would take it. */
 const HIGHLIGHT_EMISSIVE = 0x2a2a2a;
+
+
 
 interface ViewerApi {
   setFrame: (frame: ImagingFrame) => void;
@@ -2341,7 +2343,36 @@ export default function PackViewer({
                   <span className="probe-pad__dot" aria-hidden="true" />
                 </button>
               ) : (
-                <span className="probe-pad__core" aria-hidden="true" />
+                /*
+                 * LOCKED, and it is a home button rather than a dead cell.
+                 *
+                 * It was a `<span>`: the middle of the cross existed only to
+                 * make four arms read as one control, and the learner's pad
+                 * therefore had no way back from a scrub except pressing the
+                 * opposite arrow the same number of times. The fan buttons step
+                 * the sweep, so the centre returns it to the view's own
+                 * REFERENCE position — the middle, not the start, because a
+                 * sweep runs from one extreme to the other through the view.
+                 * The same meaning the free pad's centre already has, which is
+                 * "put me back where this view puts me".
+                 *
+                 * Disabled at the start rather than hidden, so the pad does not
+                 * change shape under the hand and the control says what it
+                 * would do before it can do it.
+                 */
+                <button
+                  type="button"
+                  className="probe-pad__core probe-pad__core--reset"
+                  disabled={atSweepHome(scrub)}
+                  title={atSweepHome(scrub)
+                    ? 'The sweep is already at this view\u2019s reference position'
+                    : 'Back to this view\u2019s reference position on its sweep'}
+                  aria-label="Back to this view's reference position on its sweep"
+                  data-testid="probe-home"
+                  onClick={() => onScrubChange?.(SWEEP_HOME_T)}
+                >
+                  <span className="probe-pad__dot" aria-hidden="true" />
+                </button>
               )}
 
               {probeFree && (

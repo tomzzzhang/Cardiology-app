@@ -20,6 +20,7 @@ import EchoPanel from './echo/EchoPanel.tsx';
 import type { ProbePose } from './schema/packV0.ts';
 import { poseAt } from './echo/probeFrame.ts';
 import { hasLeftTrack } from './viewer/freeProbe.ts';
+import { SWEEP_HOME_T } from './viewer/probeControl.ts';
 import { AUTHORING_ENABLED } from './authoring/flag.ts';
 import HintLayer from './ui/HintLayer.tsx';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
@@ -124,7 +125,7 @@ export default function App() {
    * the echo image are two renderings of the SAME sweep position, so the value
    * lives here rather than inside either panel.
    */
-  const [scrub, setScrub] = useState(0.5);
+  const [scrub, setScrub] = useState(SWEEP_HOME_T);
   const [mode, setMode] = useState<ViewerMode>(requestedMode);
   /**
    * The probe when it has been unlocked from its view's sweep track, or null.

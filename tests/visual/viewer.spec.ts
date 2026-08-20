@@ -1499,6 +1499,45 @@ test('Explore draws no probe, on a pack that has views and on one that has none'
   await expect(viewer).toHaveAttribute('data-probe', 'present');
 });
 
+/**
+ * The locked pad has a centre, and it is the way back from a scrub.
+ *
+ * It used to be a dead `<span>` — the middle of the cross existed only to make
+ * four arms read as one control — so the learner's only way back from a scrub
+ * was pressing the opposite arrow the same number of times. Reported from the
+ * app as "at least have the centre d-pad button".
+ */
+test('the locked pad’s centre returns the sweep to the view’s reference', async ({ page }) => {
+  const home = page.getByTestId('probe-home');
+  const scrub = page.getByTestId('echo-scrub');
+
+  /*
+   * HOME IS THE MIDDLE, not the start. A sweep runs from one extreme to the
+   * other THROUGH the view it is named for, which is why the app opens at 0.5;
+   * a centre button that went to 0 would be a "home" control going somewhere
+   * that is not home. `SWEEP_HOME_T` is the one place that number lives now.
+   */
+  await expect(home).toBeVisible();
+  await expect(home).toBeDisabled();
+  await expect(scrub).toHaveValue('0.5');
+
+  await page.getByTestId('probe-fan-up').click();
+  await page.getByTestId('probe-fan-up').click();
+  await expect(home).toBeEnabled();
+  expect(Number(await scrub.inputValue())).toBeGreaterThan(0.5);
+
+  await home.click();
+  await expect(scrub).toHaveValue('0.5');
+  await expect(home).toBeDisabled();
+
+  // And it works from the other side too, so it is a reference rather than a
+  // ceiling the sweep happens to start at.
+  await page.getByTestId('probe-fan-down').click();
+  expect(Number(await scrub.inputValue())).toBeLessThan(0.5);
+  await home.click();
+  await expect(scrub).toHaveValue('0.5');
+});
+
 test('app shell screenshot', async ({ page }, testInfo) => {
   const baseline = testInfo.snapshotPath('app-shell.png');
   const seeding = !['none', 'missing'].includes(testInfo.config.updateSnapshots);

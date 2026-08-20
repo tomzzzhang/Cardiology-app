@@ -60,6 +60,36 @@ export function probeTravelPath(
 }
 
 /**
+ * Where a view sits on its own sweep: the middle.
+ *
+ * A sweep runs from one extreme to the other THROUGH the view — the apical
+ * four-chamber's tilt goes posterior to anterior with the four-chamber itself
+ * in between, and the parasternal short axis runs base to apex through the
+ * level the view is named for. So `t = 0.5` is the reference position and the
+ * ends are the extremes, which is why the app opens there rather than at zero.
+ *
+ * It was a bare `0.5` in `App.tsx` and a second bare `0` in the pad's centre
+ * button, which is how a "home" control ends up going somewhere that is not
+ * home. One constant, named for what it means.
+ */
+export const SWEEP_HOME_T = 0.5;
+
+/**
+ * How far from home still counts as being at home.
+ *
+ * The scrub is a float driven by a slider and by button steps, so it lands on
+ * the reference exactly by one route and approaches it by the other. A home
+ * button still enabled a millionth away would be a control that cannot do
+ * anything, which is what the pad's dead centre cell was.
+ */
+export const SWEEP_HOME_EPSILON = 1e-6;
+
+/** Whether the scrub is at the view's reference position. */
+export function atSweepHome(t: number): boolean {
+  return Math.abs(t - SWEEP_HOME_T) <= SWEEP_HOME_EPSILON;
+}
+
+/**
  * One press of a sweep step, in the sweep's own units.
  *
  * Two degrees, or two millimetres — the same number as `NUDGE_DEG`, so a press
