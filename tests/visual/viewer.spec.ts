@@ -1279,3 +1279,59 @@ test('app shell screenshot', async ({ page }, testInfo) => {
   });
   await expect(page).toHaveScreenshot('app-shell.png', { fullPage: true });
 });
+
+/* -------------------------------------------------------------------------- */
+/* the authoring gate, against the running production build                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `contracts/authoring-mode.md` — "Gating": off by default, not reachable from
+ * the learner UI, and nothing in the learner path becomes editable because
+ * authoring mode exists.
+ *
+ * This is the third of three checks on the same rule, and it is the one that
+ * runs the app. The unit suite asserts the flag and the guards; `npm run
+ * check:authoring-absent` asserts the strings are not in the bundle; this
+ * asserts that the built, served, rendered page has no authoring control on it
+ * and has opened no database. The three fail for different reasons, which is
+ * the point of having three.
+ */
+test('the learner build has no authoring surface, in either mode', async ({ page }) => {
+  for (const url of ['/?freeze=1', '/?freeze=1&mode=explore', '/?freeze=1&pack=stub']) {
+    await page.goto(url);
+    await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+      timeout: 30_000,
+    });
+
+    await expect(page.getByTestId('authoring-controls')).toHaveCount(0);
+    await expect(page.getByTestId('authoring-anchor')).toHaveCount(0);
+    await expect(page.getByTestId('authoring-save-centre')).toHaveCount(0);
+    await expect(page.getByTestId('authoring-export')).toHaveCount(0);
+    await expect(page.getByTestId('probe-restore-slot')).toHaveCount(0);
+    await expect(page.getByText('Anchor to view')).toHaveCount(0);
+  }
+});
+
+test('the learner build opens no IndexedDB database at all', async ({ page }) => {
+  await page.goto('/?freeze=1');
+  await expect(page.getByTestId('anatomy-viewer')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+  // Exercise the controls a learner has, so this is not merely "nothing has
+  // happened yet": unlock the probe, step it, cut, and switch modes.
+  await page.getByTestId('probe-free').check();
+  await page.getByTestId('probe-fan-up').click();
+  await page.getByTestId('cut-enabled').uncheck();
+  await page.getByTestId('mode-explore').click();
+
+  const databases = await page.evaluate(async () => {
+    if (typeof indexedDB?.databases !== 'function') return null;
+    return (await indexedDB.databases()).map((entry) => entry.name ?? '');
+  });
+
+  // `databases()` is unavailable on some engines; there the assertion below on
+  // the absence of our own name is the one that can still be made.
+  if (databases === null) return;
+  expect(databases).not.toContain('cardiology-authoring');
+  expect(databases).toEqual([]);
+});

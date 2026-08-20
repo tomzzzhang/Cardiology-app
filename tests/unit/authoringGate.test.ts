@@ -27,6 +27,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AUTHORING_ENABLED, assertAuthoring } from '../../src/authoring/flag.ts';
+import { deleteSlot, loadSlots, openSlotStore, saveSlot } from '../../src/authoring/slotStore.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const authoringDir = join(repoRoot, 'src', 'authoring');
@@ -45,6 +46,45 @@ describe('the flag is off, and the guard says so out loud', () => {
   it('the guard throws rather than returning quietly', () => {
     expect(() => assertAuthoring('opening the slot store')).toThrow(/authoring-mode only/);
     expect(() => assertAuthoring('opening the slot store')).toThrow(/should not exist/);
+  });
+});
+
+describe('with the flag off, IndexedDB is never opened', () => {
+  /*
+   * Every entry point, not a sample of them. A store with one unguarded door is
+   * an open store, and the door that gets added later is the one nobody thought
+   * to test.
+   *
+   * `openSlotStore` is synchronous up to its guard, so its throw is synchronous
+   * too; the three that wrap it in an async function reject instead. Both are
+   * asserted, because "it threw" and "it returned a rejected promise" are not
+   * the same thing to a caller and only one of them is caught by a `try`.
+   */
+  it('openSlotStore throws before it can call indexedDB.open', () => {
+    expect(() => openSlotStore()).toThrow(/authoring-mode only/);
+  });
+
+  it.each([
+    ['loadSlots', () => loadSlots('normal-rodero')],
+    ['saveSlot', () => saveSlot({
+      packId: 'normal-rodero', slotId: 'view-0', kind: 'standard', label: 'x',
+      pose: {
+        origin: [0, 0, 0], beam_axis: [0, 0, -1], lateral_axis: [1, 0, 0],
+        fan: { angle_deg: 80, depth_cm: 21, focus_cm: 10 },
+        display: { vertex: 'down', flip_lr: false, marker_side: 'right' },
+      },
+      savedAt: '2026-08-19T20:00:00.000Z',
+    })],
+    ['deleteSlot', () => deleteSlot('normal-rodero', 'view-0')],
+  ] as const)('%s refuses rather than opening the store', async (_name, call) => {
+    await expect(call()).rejects.toThrow(/authoring-mode only/);
+  });
+
+  it('there is no IndexedDB in this environment, so a missing guard could not pass', () => {
+    // Node has no `indexedDB`. If a guard were removed, the call would fail on
+    // the missing global instead — with a DIFFERENT message, which is why the
+    // assertions above match on the guard's own words rather than on "it threw".
+    expect(typeof indexedDB).toBe('undefined');
   });
 });
 

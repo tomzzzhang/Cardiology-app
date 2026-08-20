@@ -31,7 +31,7 @@
  * a modifier ALWAYS zooms, in every mode, and the cutter's modifier-wheel depth
  * control below has to coexist with that.
  */
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
@@ -78,6 +78,7 @@ import { cineIntervalMs, nextCineState } from './cine.ts';
 import { structureColour } from './palette.ts';
 import { AUTHORING_ENABLED } from '../authoring/flag.ts';
 import type { ViewAnchor } from '../authoring/anchor.ts';
+import { seedsFromViews } from '../authoring/slots.ts';
 import AuthoringControls from '../authoring/AuthoringControls.tsx';
 
 /**
@@ -1447,6 +1448,16 @@ export default function PackViewer({
       },
       setFrame: (frame) => {
         currentFrame = frame;
+        /*
+         * AUTHORING: the probe indicator may not exist yet.
+         *
+         * On a pack with no `views[]` — the five this unit exists for — nothing
+         * has ever built one, because the learner path only ever wants a probe
+         * where a view supplies the first frame. A placed pose IS that first
+         * frame, so the indicator is created here on the way past. Folded out
+         * with the flag off, where a frame without a probe cannot happen.
+         */
+        if (AUTHORING_ENABLED) syncProbeObjects();
         probe?.update(frame);
         // One frame drives the probe geometry AND the highlight, for the same
         // reason the wedge and the echo share it: they cannot be allowed to
@@ -1838,6 +1849,30 @@ export default function PackViewer({
   const [standOffRoom, setStandOffRoom] = useState({ closer: true, further: true });
 
   /**
+   * The active authoring slot's pose, published up from the authoring block.
+   *
+   * A plain nullable pose held here rather than a call into the authoring
+   * modules, so the pad — which is learner UI — grows no dependency on a
+   * surface that does not exist in a learner build. With the flag off nothing
+   * ever writes it, it stays null, and the button below it folds away with the
+   * constant.
+   */
+  const [slotPose, setSlotPose] = useState<ProbePose | null>(null);
+
+  /*
+   * AUTHORING: the pack's authored views, reduced to frozen slot seeds.
+   *
+   * Memoised because the authoring block reloads its store when the seeds
+   * change, and a fresh array on every render would reload it on every render.
+   * Folded to a constant empty array with the flag off, which drops the
+   * reference and lets the whole slots module leave the bundle.
+   */
+  const authoringSeeds = useMemo(
+    () => (AUTHORING_ENABLED ? seedsFromViews(pack.views) : []),
+    [pack],
+  );
+
+  /**
    * Whether one press may move the probe from `from` to `to`.
    *
    * The rule itself lives in `freeProbe.ts`, where it can be tested; this is
@@ -1871,7 +1906,9 @@ export default function PackViewer({
    * The second half of the same defect. The room used to be recomputed only by
    * the three places inside this component that move the probe, so a pose
    * arriving from ANYWHERE else left the two buttons showing the enabled state
-   * they had for a pose that is no longer on screen.
+   * they had for a pose that is no longer on screen. That was unreachable while
+   * the pad was the only thing that could set a free pose, and it stopped being
+   * unreachable the moment an anchored pose could arrive from outside.
    *
    * Through a ref so the effect depends on the pose and nothing else: the
    * measurement closes over `apiRef`, which is a ref, and over the component's
@@ -2165,6 +2202,36 @@ export default function PackViewer({
                   aria-label="Recentre the probe on this view's saved track"
                   data-testid="probe-recentre"
                   onClick={recentreProbe}
+                >
+                  <span className="probe-pad__dot" aria-hidden="true" />
+                </button>
+              ) : AUTHORING_ENABLED && slotPose !== null ? (
+                /*
+                 * AUTHORING: the locked pad's dead centre cell becomes the way
+                 * back to the active slot.
+                 *
+                 * The restore is EXACT — `restoredPose` hands back a clone of
+                 * the stored value and the pose is REPLACED, never merged, the
+                 * same rule re-locking the free probe follows. A restore that
+                 * merged would leave a position that is nearly the saved one,
+                 * and "nearly" is not a position anybody saved.
+                 *
+                 * It unlocks the probe as a side effect, and it has to: a
+                 * saved slot is an arbitrary pose, and the locked probe is
+                 * pinned to `frameAt(probe, sweep, t)` by construction. The
+                 * echo panel then withdraws the view's name, which is correct
+                 * — it is not that view until the pose is put back in the pack.
+                 */
+                <button
+                  type="button"
+                  className="probe-pad__core probe-pad__core--reset"
+                  title="Restore the probe to the active authoring slot, exactly"
+                  aria-label="Restore the probe to the active authoring slot"
+                  data-testid="probe-restore-slot"
+                  onClick={() => {
+                    freePoseRef.current = slotPose;
+                    onFreePoseChange?.(slotPose);
+                  }}
                 >
                   <span className="probe-pad__dot" aria-hidden="true" />
                 </button>
@@ -2477,13 +2544,17 @@ export default function PackViewer({
         {AUTHORING_ENABLED && (
           <AuthoringControls
             packId={pack.meta.id}
+            packSchemaVersion={pack.meta.schema_version}
+            seeds={authoringSeeds}
             template={view ? { fan: view.probe.fan, display: view.probe.display } : undefined}
             standoffOverrideMm={pack.interaction?.authoring_standoff_mm}
             readAnchor={() => apiRef.current?.viewAnchor() ?? null}
+            currentPose={freePose}
             onPose={(pose) => {
               freePoseRef.current = pose;
               onFreePoseChange?.(pose);
             }}
+            onActiveSlotPose={setSlotPose}
           />
         )}
 

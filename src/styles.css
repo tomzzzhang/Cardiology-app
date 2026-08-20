@@ -1175,10 +1175,88 @@ body {
   cursor: default;
 }
 
+/* The destructive row, set apart from the rest by a rule rather than by
+   distance: distance in a block this small reads as an unrelated group, and
+   these controls act on the slot the row above selected. */
+.authoring__row--danger {
+  padding-top: 0.4rem;
+  border-top: 1px solid #2f2740;
+}
+
+.authoring__button--danger {
+  border-color: #6b3a3a;
+}
+
+/* A file input cannot be styled, so the label is the button and the input is
+   taken out of the layout behind it. */
+.authoring__button--file {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+}
+
+.authoring__file {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.authoring__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.authoring__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8d7fa6;
+}
+
+/* Same height as the buttons beside them, so the row has one baseline rather
+   than three. */
+.authoring__select,
+.authoring__input {
+  padding: 0.2rem 0.4rem;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: #cfe0f2;
+  background: #141019;
+  border: 1px solid #3a3050;
+  border-radius: 6px;
+}
+
+.authoring__select {
+  max-width: 13rem;
+}
+
+.authoring__input {
+  flex: 1 1 8rem;
+  min-width: 6rem;
+}
+
+.authoring__confirm {
+  color: #ffc857;
+}
+
+.authoring__count {
+  margin-inline-start: auto;
+  color: #8d7fa6;
+  font-variant-numeric: tabular-nums;
+}
+
 .authoring__note {
   margin: 0;
   color: #9aa7b4;
   font-variant-numeric: tabular-nums;
+}
+
+.authoring__note--warn {
+  color: #ffc857;
 }
 
 .authoring__note--bad {
