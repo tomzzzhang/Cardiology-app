@@ -245,27 +245,36 @@ function decodeVolume(img) {
   return v;
 }
 
-/* ---------- surface extraction with normals ----------
-   Normal is the 26-neighbour occupancy gradient, pointing away from mass.
-   Cheaper than a blurred-volume gradient and smooth enough to read shape by. */
-function buildSurface(bit) {
+/* ---------- point extraction with normals ----------
+   EVERY voxel is kept, not just the surface. The clipping plane exposes a cut
+   face, and a cut face is made of voxels that were interior before the cut —
+   so a surface-only set renders the inside of a hollow shell and you see
+   straight through the model. That was the first of two reasons the view
+   shimmered.
+
+   Interior voxels carry a zero normal and are shaded flat, which is also how a
+   cut face should look: matte, not lit as though it were a surface. */
+function buildPoints(bit) {
   const xs = [], ns = [];
   for (let k = 1; k < N - 1; k++)
     for (let j = 1; j < N - 1; j++)
       for (let i = 1; i < N - 1; i++) {
         const id = (k * N + j) * N + i;
         if (!(vol[id] & bit)) continue;
-        if ((vol[id - NN] & bit) && (vol[id + NN] & bit) && (vol[id - N] & bit) &&
-            (vol[id + N] & bit) && (vol[id - 1] & bit) && (vol[id + 1] & bit)) continue;
+        const buried = (vol[id - NN] & bit) && (vol[id + NN] & bit) && (vol[id - N] & bit) &&
+                       (vol[id + N] & bit) && (vol[id - 1] & bit) && (vol[id + 1] & bit);
         let gx = 0, gy = 0, gz = 0;
-        for (let dk = -1; dk <= 1; dk++)
-          for (let dj = -1; dj <= 1; dj++)
-            for (let di = -1; di <= 1; di++) {
-              if (!dk && !dj && !di) continue;
-              if (vol[id + dk * NN + dj * N + di] & bit) { gx -= dk; gy -= dj; gz -= di; }
-            }
-        const L = Math.hypot(gx, gy, gz) || 1;
-        xs.push(k, j, i); ns.push(gx / L, gy / L, gz / L);
+        if (!buried) {
+          for (let dk = -1; dk <= 1; dk++)
+            for (let dj = -1; dj <= 1; dj++)
+              for (let di = -1; di <= 1; di++) {
+                if (!dk && !dj && !di) continue;
+                if (vol[id + dk * NN + dj * N + di] & bit) { gx -= dk; gy -= dj; gz -= di; }
+              }
+          const L = Math.hypot(gx, gy, gz) || 1;
+          gx /= L; gy /= L; gz /= L;
+        }
+        xs.push(k, j, i); ns.push(gx, gy, gz);
       }
   return { p: new Int16Array(xs), n: new Float32Array(ns), count: xs.length / 3 };
 }
@@ -291,8 +300,11 @@ function shadePoint(px, py, depth, nx, ny, nz, r, g, b) {
   const o = py * W + px;
   if (depth >= zbuf[o]) return;
   zbuf[o] = depth;
-  const lam = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
-  const s = 0.34 + 0.72 * lam;
+  // A zero normal means an interior voxel, visible only on the cut face.
+  // Shading it flat is both correct and what a sectioned surface looks like.
+  const flat = (nx === 0 && ny === 0 && nz === 0);
+  const s = flat ? 0.86
+                 : 0.34 + 0.72 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
   const q = o * 4;
   image.data[q] = Math.min(255, r * s);
   image.data[q + 1] = Math.min(255, g * s);
@@ -300,19 +312,25 @@ function shadePoint(px, py, depth, nx, ny, nz, r, g, b) {
   image.data[q + 3] = 255;
 }
 
-function drawSet(set, R, colour, skipNear) {
+function drawSet(set, R, colour, skipNear, step) {
   const [a, b, c, d, e, f, g, h, i] = R;
   const z0 = view.zoom;
-  for (let t = 0; t < set.count; t++) {
+  const splatSize = Math.max(1, Math.ceil(z0));
+  for (let t = 0; t < set.count; t += step) {
     const x = set.p[t * 3] - CENTRE, y = set.p[t * 3 + 1] - CENTRE, z = set.p[t * 3 + 2] - CENTRE;
     const rz = g * x + h * y + i * z;
     if (rz < skipNear) continue;                       // cut away toward viewer
+    const nx = set.n[t * 3], ny = set.n[t * 3 + 1], nz = set.n[t * 3 + 2];
+    // Interior voxels (zero normal) exist only so the cut face is solid. Any
+    // that sit more than a few voxels behind the plane are occluded by the ones
+    // in front, so drawing them is pure cost — and there are ~460k of them
+    // against ~170k real surface points.
+    if (nx === 0 && ny === 0 && nz === 0 && rz > skipNear + 3) continue;
     const rx = a * x + b * y + c * z, ry = d * x + e * y + f * z;
     const px = (rx * z0 + W / 2) | 0, py = (ry * z0 + H / 2) | 0;
-    const nx = set.n[t * 3], ny = set.n[t * 3 + 1], nz = set.n[t * 3 + 2];
     const rnx = a * nx + b * ny + c * nz, rny = d * nx + e * ny + f * nz,
           rnz = g * nx + h * ny + i * nz;
-    const s = z0 > 3 ? 2 : 1;                          // splat size follows zoom
+    const s = splatSize;                               // covers the voxel pitch
     for (let ox = 0; ox < s; ox++)
       for (let oy = 0; oy < s; oy++)
         shadePoint(px + ox, py + oy, rz, rnx, rny, rnz, colour[0], colour[1], colour[2]);
@@ -331,8 +349,9 @@ function render() {
   image.data.fill(0);
   for (let p = 3; p < image.data.length; p += 4) image.data[p] = 0;
   const R = matrix(), near = clipDepth();
-  if (view.tissue && surf.tis) drawSet(surf.tis, R, [196, 96, 88], near);
-  if (surf.cav) drawSet(surf.cav, R, [240, 225, 140], near);
+  const step = drag ? 2 : 1;      // halve the load while the pointer is moving
+  if (surf.cav) drawSet(surf.cav, R, [240, 225, 140], near, step);
+  if (view.tissue && surf.tis) drawSet(surf.tis, R, [196, 96, 88], near - 0.35, step);
   ctx.putImageData(image, 0, 0);
   drawSeedMarkers(R, near);
   document.getElementById('clipVal').textContent =
@@ -388,7 +407,11 @@ canvas.addEventListener('pointermove', e => {
   if (!drag) return;
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-  view.yaw = drag.yaw + dx * 0.01;
+  // dx is NEGATED. With R = Rx(pitch)*Ry(yaw), a point at +x projects to
+  // screen x = cos(yaw)*x, so increasing yaw sweeps the right-hand side of the
+  // model to the LEFT — dragging right pushed the heart the wrong way while
+  // pitch, which needs no flip, felt correct. That asymmetry is the tell.
+  view.yaw = drag.yaw - dx * 0.01;
   view.pitch = Math.max(-1.5, Math.min(1.5, drag.pitch + dy * 0.01));
   render();
 });
@@ -493,8 +516,8 @@ window.addEventListener('keydown', e => {
 /* ---------- start ---------- */
 function start() {
   vol = decodeVolume(document.getElementById('volsrc'));
-  surf.cav = buildSurface(2);
-  surf.tis = buildSurface(1);
+  surf.cav = buildPoints(2);
+  surf.tis = buildPoints(1);
   document.getElementById('status').style.display = 'none';
   document.getElementById('hint').style.display = '';
   drawTags(); refresh();
