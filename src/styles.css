@@ -1317,6 +1317,20 @@ body {
   column-gap: 0.5rem;
 }
 
+.authoring__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--control-h);
+  color: #cfe0f2;
+  cursor: pointer;
+}
+
+.authoring__toggle:has(input:disabled) {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Same metrics as `.cutter button`, so the two rows read as one system rather
    than as a control panel with a bolt-on. */
 .authoring__button {

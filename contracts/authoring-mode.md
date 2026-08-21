@@ -71,6 +71,11 @@ with authoring absent; ordinary platform work does not wait on that release chec
    frame; direct camera input lands the selected pose exactly and stops the presentation motion.
    Recall remains available because choosing an already selected native option does not fire a
    change event, and it is the explicit way back after manual adjustment.
+   The authoring-only **Prevent auto-rotation** mode removes the camera from that shared transition:
+   selecting or recalling a saved view still animates the probe, wedge, cutter, and live echo on
+   the same clock, while the current anatomy orientation stays exact. Manual camera controls —
+   orbit, Level, Match echo, Reset, and zoom — remain available. The toggle itself never moves the
+   heart; it is session-only, defaults off, and never enters a save or export.
 10. **Fan depth is a local pose control.** The authoring-only vertical rocker immediately left of
     the probe D-pad changes `fan.depth_cm` by 0.5 cm per press. It never moves the origin, changes an
     axis, or writes the loaded pack. Decreasing stops before the focus or the 1 cm authoring floor.

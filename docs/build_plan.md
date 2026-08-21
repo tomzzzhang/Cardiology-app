@@ -175,6 +175,9 @@ Completed: Wave 0, real-model ingest, the simulated-echo slice, viewer-core inte
 Echo/Explore modes, the curated model picker over a retained and validated pack inventory,
 per-structure inspection, and the authoring placement/export/ingestion round trip through the
 Rodero non-clinical reference view.
+The authoring review surface can also hold the current anatomy angle while saved-view selection
+moves only the probe, echo-synced cutter, and live echo; manual camera controls remain available.
+This is a flag-gated review aid, not the learner rail.
 
 Active, in order:
 

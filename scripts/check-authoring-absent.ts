@@ -46,6 +46,16 @@ export const AUTHORING_BUNDLE_MARKERS: readonly { needle: string; what: string }
   { needle: 'cardiology-authoring', what: 'the authoring IndexedDB database name' },
   { needle: 'is authoring-mode only', what: 'the authoring guard’s error text' },
   { needle: 'authoring-transition-note', what: 'the authoring transition notice’s test id' },
+  { needle: 'Prevent auto-rotation', what: 'the authoring auto-rotation toggle label' },
+  {
+    needle: 'authoring-prevent-auto-rotation',
+    what: 'the authoring auto-rotation toggle’s test id',
+  },
+  { needle: 'data-prevent-auto-rotation', what: 'the authoring auto-rotation state' },
+  {
+    needle: 'data-authoring-camera-orientation',
+    what: 'the authoring camera-orientation test seam',
+  },
   {
     needle: 'Moving between saved views. This intermediate plane cannot be saved.',
     what: 'the authoring transition notice',

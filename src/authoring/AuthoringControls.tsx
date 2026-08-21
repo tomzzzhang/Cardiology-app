@@ -63,6 +63,8 @@ export interface AuthoringControlsProps {
   transitioning?: boolean;
   /** Populated views cannot be applied until the model and transition clock exist. */
   ready?: boolean;
+  /** Publish the authoring-only automatic-camera policy to the viewer. */
+  onPreventAutoRotationChange: (prevent: boolean) => void;
   /** Replace the working pose from a stored view and face its imaging plane. */
   onActivatePose: (pose: ProbePose, view: AuthoringViewIdentity) => void;
   /** Replace only the working pose; camera-derived placement must leave the camera alone. */
@@ -99,6 +101,7 @@ const identityOf = (slot: Slot): AuthoringViewIdentity => ({
 export default function AuthoringControls({
   packId, packVersion, packSchemaVersion, seeds, template, standoffOverrideMm,
   readAnchor, currentPose, transitioning = false, ready = true,
+  onPreventAutoRotationChange,
   onActivatePose, onPose, onActiveSlotPose, onLevelAxis,
 }: AuthoringControlsProps) {
   const [saved, setSaved] = useState<SavedSlot[]>([]);
@@ -109,6 +112,8 @@ export default function AuthoringControls({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
+  /** Session-only presentation preference; deliberately absent from slot/export state. */
+  const [preventAutoRotation, setPreventAutoRotation] = useState(false);
 
   const slots = mergeSlots(seeds, saved);
   const active = slots.find((slot) => slot.slotId === activeSlotId) ?? slots[0] ?? null;
@@ -136,6 +141,11 @@ export default function AuthoringControls({
     setProblem(null);
     setNotice(null);
   }, [packId, refresh, seeds]);
+
+  useEffect(() => {
+    setPreventAutoRotation(false);
+    onPreventAutoRotationChange(false);
+  }, [packId, packVersion, onPreventAutoRotationChange]);
 
   // An armed overwrite cannot survive into an unauthored transition frame.
   useEffect(() => {
@@ -447,7 +457,12 @@ export default function AuthoringControls({
             : 'From the pack.';
 
   return (
-    <div className="authoring" data-testid="authoring-controls" data-pack={packId}>
+    <div
+      className="authoring"
+      data-testid="authoring-controls"
+      data-pack={packId}
+      data-prevent-auto-rotation={preventAutoRotation ? 'true' : 'false'}
+    >
       <p className="authoring__title">
         Authoring
         <span
@@ -514,6 +529,32 @@ export default function AuthoringControls({
           )}
         </select>
         <span className="authoring__state" data-testid="authoring-slot-state">{state}</span>
+      </div>
+
+      {/* Presentation only: the stored pose still moves; the anatomy camera does not. */}
+      <div className="authoring__row">
+        <span className="authoring__label">Mode</span>
+        <label
+          className="authoring__toggle"
+          data-hint="Applying a saved view moves the probe without turning the anatomy."
+          title={
+            'Keep the current anatomy angle while saved views move the probe, cut plane, '
+            + 'and live echo. Manual camera controls remain available.'
+          }
+        >
+          <input
+            type="checkbox"
+            checked={preventAutoRotation}
+            onChange={(event) => {
+              const prevent = event.target.checked;
+              setPreventAutoRotation(prevent);
+              onPreventAutoRotationChange(prevent);
+            }}
+            disabled={transitioning || !ready}
+            data-testid="authoring-prevent-auto-rotation"
+          />
+          Prevent auto-rotation
+        </label>
       </div>
 
       {/* 2. PLACE the probe. Acts on the PROBE, not on the view above. */}

@@ -98,6 +98,10 @@ describe('the emitted learner bundle is checked for authoring transition code', 
   it('keeps the original surface marker and adds transition-specific markers', () => {
     const markers = new Set(AUTHORING_BUNDLE_MARKERS.map((marker) => marker.needle));
     expect(markers).toContain('Place from camera');
+    expect(markers).toContain('Prevent auto-rotation');
+    expect(markers).toContain('authoring-prevent-auto-rotation');
+    expect(markers).toContain('data-prevent-auto-rotation');
+    expect(markers).toContain('data-authoring-camera-orientation');
     expect(markers).toContain('probeTransition');
     expect(markers).toContain('data-transitioning');
     expect(markers).toContain('Transition — not a saved view');
@@ -112,9 +116,11 @@ describe('the emitted learner bundle is checked for authoring transition code', 
   it('reports both an original authoring control and minified transition literals', () => {
     const failures = findAuthoringBundleLeaks(
       'dist/assets/index.js',
-      'x Place from camera y probeTransition z Transition — not a saved view',
+      'x Place from camera y Prevent auto-rotation authoring-prevent-auto-rotation probeTransition '
+        + 'z Transition — not a saved view',
     ).join('\n');
     expect(failures).toContain('the placement button’s label');
+    expect(failures).toContain('the authoring auto-rotation toggle label');
     expect(failures).toContain('the authoring probe-transition dataset state');
     expect(failures).toContain('the authoring transition heading');
   });

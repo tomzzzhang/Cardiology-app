@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-20 22:49 EDT
+**Updated:** 2026-08-20 23:18 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -26,8 +26,10 @@ plane while moving the probe back to leave a measured side margin, a 5 mm distal
 proxy, not a measured chest wall, pediatric default, or clinical acquisition standard. In
 authoring, choosing a populated review slot applies it immediately; camera, wedge, cut plane, and
 simulated echo move on one gently eased clock, and the explicitly unauthored intermediate frames
-cannot be saved. A separate depth rocker grows or shortens the current local fan in 0.5 cm steps
-without moving its source point.
+cannot be saved. An authoring-only **Prevent auto-rotation** toggle suppresses that automatic
+camera turn while the same transition moves the probe, cut plane, and live echo; manual orbit and
+explicit camera controls remain available. A separate depth rocker grows or shortens the current
+local fan in 0.5 cm steps without moving its source point.
 
 The active product surface is desktop/laptop. Phone and touch UX are paused for a dedicated later
 design pass and do not gate platform checkpoints or the current release workflow.

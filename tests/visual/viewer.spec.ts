@@ -1574,6 +1574,9 @@ test('the learner build has no authoring surface, in either mode', async ({ page
     await expect(page.getByTestId('authoring-controls')).toHaveCount(0);
     await expect(page.getByTestId('authoring-anchor')).toHaveCount(0);
     await expect(page.getByTestId('authoring-save-centre')).toHaveCount(0);
+    await expect(page.getByTestId('authoring-prevent-auto-rotation')).toHaveCount(0);
+    expect(await page.getByTestId('anatomy-viewer')
+      .getAttribute('data-authoring-camera-orientation')).toBeNull();
     await expect(page.getByTestId('authoring-export')).toHaveCount(0);
     await expect(page.getByTestId('probe-restore-slot')).toHaveCount(0);
     await expect(page.getByTestId('authoring-frame-hint')).toHaveCount(0);

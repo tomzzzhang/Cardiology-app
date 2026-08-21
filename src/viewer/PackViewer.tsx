@@ -238,6 +238,7 @@ interface ViewerApi {
     target: ProbePose;
     centre: readonly [number, number, number];
     targetFrame: ImagingFrame;
+    moveCamera: boolean;
   }) => void;
   resetCutPlane: () => void;
   /**
@@ -353,6 +354,7 @@ export default function PackViewer({
   const freePoseRef = useRef(freePose);
   freePoseRef.current = freePose;
   const poseTransitioningRef = useRef(false);
+  const preventAuthoringAutoRotationRef = useRef(false);
   const holdRef = useRef<{ delay: number; repeat: number } | null>(null);
   /*
    * The scrub position is read through a ref inside the load effect, not listed
@@ -584,6 +586,12 @@ export default function PackViewer({
       camera.position.copy(pivot).add(pose.offset);
       camera.up.copy(pose.up);
       camera.lookAt(pivot);
+      if (AUTHORING_ENABLED) {
+        host.setAttribute(
+          'data-authoring-camera-orientation',
+          orientation.toArray().map((value) => value.toFixed(9)).join(','),
+        );
+      }
     };
 
     /* --- explanatory view transition ------------------------------------- */
@@ -595,6 +603,7 @@ export default function PackViewer({
       to: THREE.Quaternion;
       start: number;
       duration: number;
+      moveCamera: boolean;
       pose?: {
         from: ProbePose;
         to: ProbePose;
@@ -636,8 +645,10 @@ export default function PackViewer({
           authoringGlideEasing,
         )
         : glideStep(active.from, active.to, elapsed, active.duration);
-      orientation.copy(step.orientation);
-      applyCamera();
+      if (active.moveCamera) {
+        orientation.copy(step.orientation);
+        applyCamera();
+      }
       let displayFadeDone = true;
       if (AUTHORING_ENABLED && active.pose) {
         const poseStep = viewPoseTransitionStep(
@@ -706,6 +717,7 @@ export default function PackViewer({
         to: shortestTarget(orientation, target),
         start: performance.now(),
         duration: GLIDE_MS,
+        moveCamera: true,
       };
       // Announced on the host so a caller can tell a move is in flight.
       host.dataset.cameraGlide = 'true';
@@ -717,6 +729,7 @@ export default function PackViewer({
       target: ProbePose;
       centre: readonly [number, number, number];
       targetFrame: ImagingFrame;
+      moveCamera: boolean;
     }) => {
       // Selection retargets from the currently rendered intermediate pose; it
       // does not finish or queue the superseded destination.
@@ -726,12 +739,16 @@ export default function PackViewer({
       publishAuthoringPose(source, false);
       glide = {
         from: orientation.clone(),
-        to: shortestTarget(orientation, echoOrientation(input.targetFrame)),
+        to: input.moveCamera
+          ? shortestTarget(orientation, echoOrientation(input.targetFrame))
+          : orientation.clone(),
         start: performance.now(),
         duration: AUTHORING_GLIDE_MS,
+        moveCamera: input.moveCamera,
         pose: { from: source, to: target, centre: input.centre, blankedAt: null },
       };
-      host.dataset.cameraGlide = 'true';
+      if (input.moveCamera) host.dataset.cameraGlide = 'true';
+      else delete host.dataset.cameraGlide;
       setPoseTransitionState(true, 1);
       schedule();
     } : null;
@@ -1915,6 +1932,7 @@ export default function PackViewer({
       delete host.dataset.viewerReady;
       delete host.dataset.cameraGlide;
       if (AUTHORING_ENABLED) delete host.dataset.probeTransition;
+      if (AUTHORING_ENABLED) host.removeAttribute('data-authoring-camera-orientation');
       delete host.dataset.cutHandles;
     };
     // `mode` is read once here to seed the scene and is applied thereafter
@@ -2104,6 +2122,10 @@ export default function PackViewer({
         : identity
     ));
   }, []);
+  const setPreventAuthoringAutoRotation = useCallback((prevent: boolean) => {
+    if (poseTransitioningRef.current) return;
+    preventAuthoringAutoRotationRef.current = prevent;
+  }, []);
 
   /**
    * The axis the horizon lock holds vertical, when authoring has measured one.
@@ -2148,12 +2170,16 @@ export default function PackViewer({
 
   /**
    * AUTHORING: make a stored view the working pose and explain the change by
-   * turning the camera toward its imaging plane.
+   * turning the camera toward its imaging plane, unless automatic rotation is
+   * prevented. In that mode the same clock moves the probe and echo while the
+   * anatomy camera stays exactly where the author fixed it.
    *
-   * The camera, wedge and echo share one duration and easing curve. Intermediate
-   * probe poses exist only long enough to render the transition: nothing here
-   * stores, exports or names them as views. The final frame is an exact clone
-   * of the stored pose rather than an approximation accumulated over time.
+   * When camera motion is enabled, it shares the pose's duration and easing.
+   * Preventing auto-rotation removes only that camera update; wedge, cutter,
+   * and echo still share the one pose clock. Intermediate probe poses exist
+   * only long enough to render the transition: nothing here stores, exports
+   * or names them as views. The final frame is an exact clone of the stored
+   * pose rather than an approximation accumulated over time.
    */
   const activateAuthoringPose = (pose: ProbePose, identity: AuthoringViewIdentity) => {
     const target = structuredClone(pose) as ProbePose;
@@ -2170,6 +2196,7 @@ export default function PackViewer({
       target,
       centre: anchor.centre,
       targetFrame: withApexFlip(imagingFrame(target), apexFlipped),
+      moveCamera: !preventAuthoringAutoRotationRef.current,
     });
   };
 
@@ -3002,6 +3029,7 @@ export default function PackViewer({
             currentPose={freePose}
             transitioning={poseTransitioning}
             ready={status === 'ready'}
+            onPreventAutoRotationChange={setPreventAuthoringAutoRotation}
             onActivatePose={activateAuthoringPose}
             onPose={(pose) => {
               if (poseTransitioningRef.current) return;

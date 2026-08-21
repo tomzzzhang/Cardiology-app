@@ -171,7 +171,10 @@ heart, and the beam follows interpolated endpoint aim points so it continues to 
 Pointer or wheel camera input ends the animation, lands the chosen pose exactly, and leaves the
 camera to the user; probe controls and all pose-saving controls are disabled while an intermediate
 plane is visible. The authoring-only depth rocker changes only `fan.depth_cm`, never the aperture or
-imaging plane. This path is flag-gated authoring UI, not the deferred learner rail.
+imaging plane. An authoring-only **Prevent auto-rotation** toggle removes the camera from automatic
+saved-view transitions: the probe/cutter/echo transition continues while the current anatomy angle
+stays exact. Manual orbit and the explicit camera controls remain available, and the toggle itself
+never moves the heart. This path is flag-gated authoring UI, not the deferred learner rail.
 
 ## Per-structure visibility, and ISOLATE as the gesture
 
