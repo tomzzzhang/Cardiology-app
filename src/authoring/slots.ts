@@ -33,7 +33,7 @@
  * a droplist stays a droplist. Logged in `docs/observations.md`.
  */
 import type { ProbePose } from '../schema/packV0.ts';
-import { VIEW_CANON, isFrameView } from './viewCanon.ts';
+import { VIEW_CANON } from './viewCanon.ts';
 
 /**
  * `canon` — a clinical view from `docs/view_canon.md`, whether or not the pack
@@ -63,8 +63,6 @@ export interface SlotSeed {
   /** Null for a canon slot the pack has not authored. */
   pose: ProbePose | null;
   kind: SlotKind;
-  /** True for the apical four-chamber, whose pose defines the model's axes. */
-  definesFrame: boolean;
 }
 
 /** A pose the author saved, as it is stored and exported. */
@@ -99,8 +97,6 @@ export interface Slot {
   overridden: boolean;
   /** What "restore this slot" restores. Saved wins; authored is the fallback. */
   pose: ProbePose | null;
-  /** True for the apical four-chamber, whose pose defines the model's axes. */
-  definesFrame: boolean;
 }
 
 /**
@@ -165,7 +161,6 @@ export function seedsFromViews(
       viewId: view.viewId,
       pose: match ? deepFreeze(structuredClone(match.probe)) : null,
       kind: 'canon' as const,
-      definesFrame: isFrameView(view.viewId),
     });
   });
 
@@ -183,7 +178,6 @@ export function seedsFromViews(
       viewId: view.view_id,
       pose: deepFreeze(structuredClone(view.probe)),
       kind: 'extra' as const,
-      definesFrame: false,
     }));
 
   return [...canon, ...extra];
@@ -210,7 +204,6 @@ export function mergeSlots(seeds: readonly SlotSeed[], saved: readonly SavedSlot
       // overrides nothing.
       overridden: savedSlot !== null && seed.pose !== null,
       pose: savedSlot?.pose ?? seed.pose,
-      definesFrame: seed.definesFrame,
     };
   });
 
@@ -224,7 +217,6 @@ export function mergeSlots(seeds: readonly SlotSeed[], saved: readonly SavedSlot
       saved: slot,
       overridden: false,
       pose: slot.pose,
-      definesFrame: false,
     }));
 
   /*
@@ -253,7 +245,6 @@ export function mergeSlots(seeds: readonly SlotSeed[], saved: readonly SavedSlot
       saved: slot,
       overridden: false,
       pose: slot.pose,
-      definesFrame: false,
     }));
 
   return [...fromPack, ...custom, ...orphans];

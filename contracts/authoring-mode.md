@@ -3,12 +3,19 @@
 **Owns:** `src/authoring/**`, `scripts/ingest-authoring-export.ts`, and
 `scripts/lib/authoringIngest.ts`
 **Status:** implemented through the explicit authoring round trip: view-axis anchoring, monotonic
-local-draft depth expansion, saved view slots, `authoring-slots/v1` export/import, four-chamber
-frame capture, and guarded export-to-pack ingestion. The current UI uses the DRAFT view canon as a
-temporary starter list, not a completeness requirement or clinical acceptance gate. It reports and
-exports the cardiac frame implied by a four-chamber pose; ingestion deliberately does not overwrite
-`meshes.orientation` or `meshes.anatomical_frame`, which remain pack content with their own recorded
-derivation. Arbitrary working slots remain available locally, but the v1 ingest accepts only a
+local-draft depth expansion, saved view slots, `authoring-slots/v1` export/import, and guarded
+export-to-pack ingestion. The current UI uses the DRAFT view canon as a
+temporary starter list, not a completeness requirement or clinical acceptance gate.
+
+**No view defines the patient frame** *(owner decision, 2026-08-21)*. This surface used to treat the
+apical four-chamber as special: saving it repointed the levelling axis, a `sets z axis` badge sat
+beside the save button, and the export carried a `cardiac_frame` block. All of it is removed. An
+imaging view states where a transducer goes, which is not evidence for which way is up. The
+patient/body frame comes from a `body-context/v0` registration instead, and `Level` holds body `+Z`.
+Old exports carrying `cardiac_frame` still import their poses; the block is parsed, reported
+ignored, and discarded. `meshes.orientation` and `meshes.anatomical_frame` remain pack content with
+their own recorded derivation and are still never overwritten by an ingest.
+`scripts/check-frame-decoupling.ts` gates all of this repository-wide. Arbitrary working slots remain available locally, but the v1 ingest accepts only a
 standard slot mapped to its existing pack view. Broader sweep and echo-tuning authoring remains to
 be built. The learner bundle excludes this surface at the release boundary.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (6); vetting checklist in `docs/view_canon.md`.

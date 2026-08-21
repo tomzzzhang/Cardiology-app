@@ -1,0 +1,125 @@
+{
+  "schema_version": "body-context/v0",
+  "context_id": "adult-reference-chest-bp3d",
+  "display_name": "Adult reference chest \u2014 BodyParts3D",
+  "pack_binding": {
+    "pack_id": "normal-rodero",
+    "pack_version": "0.1.1",
+    "pack_schema_version": "0.1",
+    "pack_json_sha256": "65678c34665064d00cad4cf8aa39ff3bce34b16065f42d114602180d5bd094a9"
+  },
+  "body_frame": {
+    "patient_left": [
+      1,
+      0,
+      0
+    ],
+    "posterior": [
+      0,
+      1,
+      0
+    ],
+    "superior": [
+      0,
+      0,
+      1
+    ],
+    "handedness": "right",
+    "units": "mm",
+    "note": "Anterior is -Y. cross(patient_left, superior) = -Y = anterior, the same handedness convention meshes.anatomical_frame.basis_source_to_pack uses."
+  },
+  "model_to_body": {
+    "rotation_row_major": [
+      0.698895050263,
+      -0.647317953431,
+      0.304179512597,
+      0.66394330064,
+      0.429050183265,
+      -0.612450188812,
+      0.265941727175,
+      0.629996355074,
+      0.729643467962
+    ],
+    "translation_mm": [
+      28.998996946,
+      -127.915197672,
+      1213.923265941
+    ],
+    "scale": 1
+  },
+  "registration": {
+    "method": "rigid-landmark-kabsch-scale-locked-v1",
+    "jig": "BodyParts3D 4.0 heart, used only to measure where and how a heart sits in this body. It is never displayed; the displayed heart is the bound pack.",
+    "scheme": "valve_centres_and_apex_direction",
+    "landmark_definitions": {
+      "mitral/tricuspid/aortic/pulmonary": "target: vertex centroid of every element the source lists under the valve concept (FMA7235/7234/7236/7246). source: the pack's published anatomical_frame.landmarks_source_mm.valve_rings, carried into pack model space by anatomical_frame.basis_source_to_pack.",
+      "apex_direction": "each heart's own base-to-apex unit vector taken out to a shared 65.917182 mm. Constrains long-axis DIRECTION without asserting the two hearts are the same length. Target apex: mean of the most apical percentile of the BodyParts3D left ventricular cavity (FMA9466) along that cavity's own principal axis. Source apex: the pack's published apex, from its universal ventricular coordinate."
+    },
+    "weights": {
+      "mitral": 1.0,
+      "tricuspid": 1.0,
+      "aortic": 1.0,
+      "pulmonary": 1.0,
+      "apex_direction": 1.0
+    },
+    "rms_residual_mm": 5.407312666726793,
+    "max_residual_mm": 6.502377546223491,
+    "per_landmark_residual_mm": {
+      "mitral": 6.0341178756502805,
+      "tricuspid": 4.691451506463748,
+      "aortic": 6.360751644119098,
+      "pulmonary": 6.502377546223491,
+      "apex_direction": 2.2438316274136185
+    },
+    "long_axis_disagreement_deg": 2.4381310601520525,
+    "apex_separation_mm": 20.92655386871077,
+    "irreducible_length_difference_mm": 20.75822667068178,
+    "apex_separation_attributable_to_fit_mm": 0.1683271980289902,
+    "rigid_validation": {
+      "determinant": 1.0000000000000007,
+      "orthonormality_error": 4.440892098500626e-16,
+      "column_norms": [
+        1.0000000000000002,
+        1.0,
+        1.0000000000000002
+      ],
+      "scale": 1.0,
+      "reflection": false,
+      "shear": false
+    },
+    "anatomy_checks": {
+      "apex is inferior to the valve plane": true,
+      "apex is anterior to the valve plane": true,
+      "apex is left of the valve plane": true,
+      "right ventricle is anterior to the left ventricle": true
+    }
+  },
+  "context_assets": [],
+  "provenance": {
+    "creator": "The Database Center for Life Science (DBCLS), Research Organization of Information and Systems",
+    "source": "BodyParts3D 4.0, partof_BP3D_4.0_obj_99.zip and partof_element_parts.txt, LSDB Archive",
+    "source_urls": {
+      "description": "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/desc.html",
+      "download": "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html",
+      "license": "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html",
+      "paper": "https://academic.oup.com/nar/article/37/suppl_1/D782/1000752",
+      "source_cautions": "https://lifesciencedb.jp/bp3d/info_en/index.html",
+      "taro_scale_information": "https://emc.nict.go.jp/bio/en-data-offer/information-on-the-provision.html"
+    },
+    "source_sha256": {
+      "partof_BP3D_4.0_obj_99.zip": "9fbc713fffeee924a5a657d9813d84d7eb957bded63adb854931dd5e3eb61c97",
+      "partof_element_parts.txt": "3f5f6df1028eb122b30de77c711597b6bb8e5541658e5985859fd228adbf88ea"
+    },
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "license_state": "confirmed",
+    "attribution": "BodyParts3D, \u00a9 The Database Center for Life Science licensed under CC Attribution 4.0 International",
+    "license_read_on": "2026-08-21",
+    "license_page_last_updated": "2025/02/27",
+    "license_history_caveat": "The rights holder's current licence page states CC Attribution 4.0 International and grants redistribution and derivative works explicitly. Older project pages for the same data state CC BY-SA 2.1 Japan. The licensing history is NOT consistent; the current page is taken as authoritative because it is the rights holder's own and is the more recent statement. If that reading is wrong, material derived from this source is a share-alike derivative and this record must be revisited.",
+    "subject": "A living adult male. BodyParts3D describes itself as a three-dimensional whole-body model for an adult human male, and the underlying whole-body reference is an MRI volunteer (the NICT/TARO adult male reference), NOT a cadaver and NOT a post-mortem specimen. Whole-body skin height measured from the source is 1719 mm.",
+    "source_cautions": "The publisher's own notice states there could be many errors for use as anatomical education, and that some parts were made from scratch by artists or distorted to fit into the environment. It also warns that OBJ sets are versioned per organ and that sets differing in the one's place of their version number do not necessarily share body coordinates.",
+    "known_legacy_provenance_defect": "pipeline/sources.py and public/packs/anatomy-bodyparts3d-heart/pack.json both describe this source as a cadaver with a post-mortem leaflet configuration. That is wrong, and it is NOT corrected in place by this checkpoint: pipeline/sources.py is pinned by SHA-256 inside the committed Rodero candidate evidence (derivation_files[5]), and editing it would break an immutable byte-binding on evidence that must stay unchanged. The correction is recorded here and deferred to a separate evidence-safe migration.",
+    "not_a_patient": "A population-average adult heart rigidly placed inside one adult male reference body. A teaching composite: not a patient, not a matched pair, and not clinical ground truth."
+  }
+}

@@ -24,6 +24,7 @@ import { SWEEP_HOME_T } from './viewer/probeControl.ts';
 import { AUTHORING_ENABLED } from './authoring/flag.ts';
 import HintLayer from './ui/HintLayer.tsx';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
+import { IDENTITY_TRANSFORM, rigidTransform, type RigidTransform } from './viewer/bodyFrame.ts';
 import {
   DEFAULT_PACK_ID,
   LICENSE_STATE_LABEL,
@@ -207,6 +208,34 @@ export default function App() {
     packState.status === 'ok' && isExploreOnly(packState.loaded.pack) && !AUTHORING_ENABLED
       ? 'explore'
       : mode;
+
+  /*
+   * The model-to-body registration, or the identity where no context is bound.
+   *
+   * Memoised on the loaded pack rather than rebuilt per render: the viewer's
+   * scene effect lists it as a dependency, and a fresh object identity every
+   * render would rebuild the whole scene — a five-megabyte glTF reload — on
+   * every state change in the shell.
+   *
+   * A context that failed to load leaves the identity here deliberately. The
+   * heart then renders in its own model space, which is honest, rather than in
+   * a body pose derived from a registration that did not validate.
+   */
+  const bodyContext = packState.status === 'ok' ? packState.loaded.bodyContext : null;
+  const modelToBody: RigidTransform = useMemo(() => {
+    if (bodyContext?.state !== 'bound') return IDENTITY_TRANSFORM;
+    try {
+      return rigidTransform(
+        bodyContext.context.model_to_body.rotation_row_major,
+        bodyContext.context.model_to_body.translation_mm,
+      );
+    } catch {
+      // Already schema-validated, so this is unreachable in practice. Falling
+      // back to the identity rather than throwing keeps a bad descriptor from
+      // taking down a heart that does not need it to render.
+      return IDENTITY_TRANSFORM;
+    }
+  }, [bodyContext]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -413,6 +442,7 @@ export default function App() {
         >
           <PackViewer
             pack={packState.loaded.pack}
+            modelToBody={modelToBody}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
             scrub={scrub}
             viewIndex={viewIndex}

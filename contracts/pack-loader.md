@@ -11,6 +11,26 @@ Fetch, schema-validate, and parse content packs; expose a typed pack model. It i
 an untyped pack becomes a typed one. Nothing downstream re-validates, and nothing downstream may
 accept an unvalidated pack.
 
+## `body-context/v0` — a separate document, bound to a pack by hash
+
+*(Added 2026-08-21.)* `src/schema/bodyContextV0.ts` and `src/packs/loadBodyContext.ts` carry the
+patient/body frame — `+X` patient-left, `+Y` posterior, `+Z` superior — and a rigid, unit-scale
+`model_to_body` registration. It is **not** a pack field, and the direction of the binding is the
+point: a registration is a fact about pairing one pack revision with one reference body, with its
+own residuals and its own third-party licence. `meshes.orientation` and `meshes.anatomical_frame`
+stay what they are — the pack's own cardinal declaration and its CARDIAC basis — and are not
+overwritten to carry a body frame they were never derived for.
+
+The descriptor names its pack, its pack version, and that pack's exact `pack.json` SHA-256, and all
+three are checked at load. Model-space coordinates do not survive a re-ingest, so a stale
+registration is refused rather than applied approximately. `rigidProblem` refuses a scale, a shear
+or a reflection by name; a reflection is refused because a mirrored heart fits the same landmarks
+and is a different organ.
+
+Loading is fail-soft in one direction only: no context, or a context that fails any check, leaves
+the heart in its own model space and everything working. A context that failed validation is never
+partially applied.
+
 ## Interface
 
 ```ts

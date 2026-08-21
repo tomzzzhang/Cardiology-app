@@ -54,8 +54,14 @@ import {
 } from './freeProbe.ts';
 import { ProbeIndicator } from './wedge.ts';
 import { StencilCaps, capsAtCut, type CapSource } from './caps.ts';
-import { axisVector } from '../schema/packV0.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
+import {
+  IDENTITY_TRANSFORM,
+  frameToBody,
+  pointToBody,
+  vectorToBody,
+  type RigidTransform,
+} from './bodyFrame.ts';
 import {
   AUTHORING_GLIDE_MS,
   GLIDE_MS,
@@ -113,6 +119,15 @@ export type ViewerMode = 'echo' | 'explore';
 interface PackViewerProps {
   pack: Pack;
   gltfUrl: string;
+  /**
+   * Model -> body registration, or the identity when no context is bound.
+   *
+   * The scene is rendered in BODY space. Authored poses, saved slots, free
+   * poses and the echo simulation all stay in MODEL space and are converted at
+   * the point of use — see `bodyFrame.ts` for why the conversion is not baked
+   * into `canonical_pose` instead.
+   */
+  modelToBody?: RigidTransform;
   /** Scrub position of the selected view's sweep, 0..1. Drives the probe. */
   scrub: number;
   viewIndex?: number;
@@ -220,17 +235,9 @@ interface ViewerApi {
   setBeamDim: (strength: number) => void;
   setGhost: (on: boolean) => void;
   setPointerClass: (coarse: boolean) => void;
-  /** Echo mode only: hold the model's measured long axis vertical under orbit. */
+  /** Echo mode only: hold body/world +Z vertical under orbit. */
   setHorizonLock: (on: boolean) => void;
-  /**
-   * AUTHORING ONLY: which axis the horizon lock holds vertical.
-   *
-   * Null is the pack's declared `orientation.up`. A vector is a MODEL-space
-   * axis — the long axis the apical four-chamber measured — which this carries
-   * through `canonical_pose` like every other model-space quantity.
-   */
-  setLevelAxis: (axis: readonly [number, number, number] | null) => void;
-  /** Distance from a world point to the nearest model surface, in pack units. */
+  /** Distance from a MODEL-space point to the nearest heart surface, in pack units. */
   clearanceMm: (point: readonly [number, number, number]) => number;
   /** Whether the cutter should be reversed for the cut to open toward the camera. */
   cutShouldFaceCamera: () => boolean;
@@ -265,7 +272,8 @@ interface ViewerApi {
 }
 
 export default function PackViewer({
-  pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
+  pack, gltfUrl, modelToBody = IDENTITY_TRANSFORM,
+  scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
   freePose = null, onScrubChange, onFreePoseChange, onStructureClick, apexFlipped = false,
   imagingActive = true, onImagingActiveChange, isolatedLabel = null,
   onViewTransitionChange, onAuthoringWorkingViewChange,
@@ -512,7 +520,22 @@ export default function PackViewer({
     let currentFrame: ImagingFrame | null = null;
 
     /* --- the free anatomical cutter --------------------------------------- */
-    const cut: CutPlaneState = initialCutPlane(pack.interaction?.free_cut);
+    /*
+     * The pack seeds the free cutter with a MODEL-space normal, and the cutter
+     * lives in body space beside the pivot it measures from. Converted here, at
+     * the one place the seed enters.
+     *
+     * `offset` needs no conversion and that is a property of the transform
+     * rather than an oversight: it is a signed distance along the normal from
+     * the pivot, and a unit-scale rigid map preserves distances exactly. A
+     * registration that scaled would have to rewrite this too, which is one
+     * more reason `rigidTransform` refuses one.
+     */
+    const seededCut = pack.interaction?.free_cut;
+    const cut: CutPlaneState = initialCutPlane(seededCut && {
+      ...seededCut,
+      normal: vectorToBody(modelToBody, seededCut.normal as [number, number, number]),
+    });
     /**
      * The slider's value, in the current mode's terms. Mirrors React state; the
      * plane's actual `s` is derived from it in `applyCut`.
@@ -549,44 +572,32 @@ export default function PackViewer({
 
     /* --- orbit state, pivoting on C -------------------------------------- */
     /*
-     * The axis the horizon lock holds vertical: the model's own long axis, in
-     * WORLD space.
+     * The axis the horizon lock holds vertical: body/world +Z. Superior. Up.
      *
-     * It comes from the pack — `meshes.orientation.up`, which for a labelled
-     * substrate is the derived cardiac frame recorded in `meshes.anatomical_frame`
-     * and measured rather than declared — carried through `canonical_pose` the
-     * way the pivot is. World up would be the wrong axis: it is the same thing
-     * only while the heart happens to be upright, and holding the heart upright
-     * is the entire job.
+     * This used to be the pack's declared `meshes.orientation.up` carried
+     * through `canonical_pose`, and it used to be MUTABLE, because saving an
+     * apical four-chamber replaced it with the long axis that view's beam
+     * implied. Both are gone (owner decision, 2026-08-21).
+     *
+     * The old arrangement had a real problem behind it — eight of the nine
+     * packs declare `up=+y` with no derivation behind it, so levelling to the
+     * declaration was levelling a guess — but it solved that problem by letting
+     * an imaging view answer a question about the patient, which it cannot. A
+     * transducer position says where you stand to look at a heart. It says
+     * nothing about which way the patient's head is.
+     *
+     * Up now comes from the body frame: the scene is rendered in BODY space, so
+     * superior is +Z by construction and `Level` means exactly one thing on
+     * every pack, whether or not that pack has a body registration. A pack
+     * without one is rendered in its own model space and Level still holds +Z;
+     * it is then honestly "the model's +Z" rather than a claim about a patient,
+     * which is the same thing the old code was doing minus the pretence that a
+     * view had established it.
+     *
+     * Constant now, where it used to be mutated in place so that the authoring
+     * setter could reach it. Nothing may repoint it.
      */
-    /*
-     * The axis the horizon lock holds vertical.
-     *
-     * The pack's declared `orientation.up`, carried through `canonical_pose` —
-     * and MUTABLE, because authoring can replace it with the long axis the
-     * apical four-chamber measured. Eight of the nine packs declare
-     * `up=+y` with no derivation behind it, so on those the declared axis is
-     * the ingest's default and the four-chamber's is the only measurement
-     * there is; a lock that went on levelling the guess would be levelling
-     * nothing.
-     *
-     * Mutated in place rather than reassigned, so the two call sites that
-     * closed over it — the locked drag and `levelled` — keep working without
-     * either of them having to be told.
-     */
-    const packUp = new THREE.Vector3(...axisVector(pack.meshes.orientation.up))
-      .applyEuler(new THREE.Euler(
-        ...(pack.meshes.canonical_pose.rotation_euler_xyz_deg.map(
-          (degrees) => (degrees * Math.PI) / 180,
-        ) as [number, number, number]),
-      ))
-      .normalize();
-    const lockAxis = packUp.clone();
-    const poseEuler = new THREE.Euler(
-      ...(pack.meshes.canonical_pose.rotation_euler_xyz_deg.map(
-        (degrees) => (degrees * Math.PI) / 180,
-      ) as [number, number, number]),
-    );
+    const lockAxis = new THREE.Vector3(0, 0, 1);
     let pivot = new THREE.Vector3();
     let radius = 400;
     /*
@@ -771,7 +782,9 @@ export default function PackViewer({
     const glideToAuthoringPose = AUTHORING_ENABLED ? (input: {
       source: ProbePose;
       target: ProbePose;
+      /** MODEL-space pivot for the glide; converted to body before the camera uses it. */
       centre: readonly [number, number, number];
+      /** MODEL-space frame; `echoOrientation` needs it in body space. */
       targetFrame: ImagingFrame;
       moveCamera: boolean;
     }) => {
@@ -784,7 +797,9 @@ export default function PackViewer({
       glide = {
         from: orientation.clone(),
         to: input.moveCamera
-          ? shortestTarget(orientation, echoOrientation(input.targetFrame))
+          ? shortestTarget(
+            orientation, echoOrientation(frameToBody(modelToBody, input.targetFrame)),
+          )
           : orientation.clone(),
         start: performance.now(),
         duration: AUTHORING_GLIDE_MS,
@@ -832,8 +847,20 @@ export default function PackViewer({
       if (viewerMode !== 'echo' || !imagingViewActive) return;
       const view = pack.views[viewIndex];
       if (!view) return;
+      /*
+       * The travel path comes back in MODEL space and `pivot` is in BODY
+       * space, so the points are converted before the distance is taken.
+       *
+       * With an identity registration the two spaces coincide and the missing
+       * conversion was invisible. With a real one the raw comparison measures
+       * the distance from the heart to the body origin — about 1.2 metres —
+       * which the cap below then silently absorbs, so the symptom would have
+       * been a camera that quietly stopped fitting the probe rather than an
+       * error anyone could see.
+       */
       for (const point of probeTravelPath(view.probe, view.sweep)) {
-        framedReach = Math.max(framedReach, new THREE.Vector3(...point).distanceTo(pivot));
+        const world = pointToBody(modelToBody, point as [number, number, number]);
+        framedReach = Math.max(framedReach, new THREE.Vector3(...world).distanceTo(pivot));
       }
       /*
        * Capped, and the cap is the interesting part. A probe sits on the chest
@@ -1203,8 +1230,22 @@ export default function PackViewer({
       host.dataset.probe = probe ? 'present' : 'absent';
     };
 
-    /** Apply one pose-derived frame to every 3D consumer. */
-    const applyImagingFrame = (frame: ImagingFrame, requestDraw: boolean) => {
+    /**
+     * Apply one pose-derived frame to every 3D consumer.
+     *
+     * Takes a MODEL-space frame and converts once, here. Every consumer below
+     * — the probe indicator, the wedge it carries, the beam-dim uniforms and
+     * the echo-synced cutter — draws in body space, so this is the single
+     * boundary between the space poses are authored in and the space the scene
+     * is rendered in. `currentFrame` holds the BODY-space frame, because every
+     * later reader of it is a renderer.
+     *
+     * One conversion rather than four is not tidiness: four would be four
+     * chances for one consumer to be left in model space, and with an identity
+     * registration that mistake is invisible.
+     */
+    const applyImagingFrame = (modelFrame: ImagingFrame, requestDraw: boolean) => {
+      const frame = frameToBody(modelToBody, modelFrame);
       currentFrame = frame;
       if (AUTHORING_ENABLED) syncProbeObjects();
       probe?.update(frame);
@@ -1492,7 +1533,33 @@ export default function PackViewer({
           ...(pose.rotation_euler_xyz_deg.map((d) => (d * Math.PI) / 180) as [number, number, number]),
         );
         gltf.scene.scale.setScalar(pose.scale);
+        /*
+         * `model_to_body` sits OUTSIDE `canonical_pose`, as its own parent.
+         *
+         * Two transforms, two owners, and keeping them separate is the point.
+         * `canonical_pose` is the pack's statement about presenting its own
+         * mesh; the body registration is a fact about pairing that pack with a
+         * reference body, and it lives in the body-context document with its
+         * own residuals and its own licence. Multiplying them together here
+         * would work and would lose that distinction the first time anyone
+         * needed to read one back out.
+         *
+         * The composition is what `modelRoot.matrixWorld` then IS, so
+         * `viewAnchor`'s existing world-to-model inverse keeps working with no
+         * change: it inverts whatever the chain happens to be.
+         */
+        const bodyRoot = new THREE.Group();
+        bodyRoot.matrixAutoUpdate = false;
+        const r = modelToBody.rotation;
+        bodyRoot.matrix.set(
+          r[0], r[1], r[2], modelToBody.translation[0],
+          r[3], r[4], r[5], modelToBody.translation[1],
+          r[6], r[7], r[8], modelToBody.translation[2],
+          0, 0, 0, 1,
+        );
+        bodyRoot.add(gltf.scene);
         gltf.scene.updateMatrixWorld(true);
+        bodyRoot.updateMatrixWorld(true);
 
         const bloodPool = new Set(
           pack.meshes.structures.filter((s) => s.blood_pool).map((s) => s.id),
@@ -1598,7 +1665,7 @@ export default function PackViewer({
             });
           }
         });
-        scene.add(gltf.scene);
+        scene.add(bodyRoot);
         modelRoot = gltf.scene;
 
         bounds = new THREE.Box3().setFromObject(gltf.scene);
@@ -1637,9 +1704,9 @@ export default function PackViewer({
 
         const view = pack.views[viewIndex];
         if (view) {
-          currentFrame = freePoseRef.current
+          currentFrame = frameToBody(modelToBody, freePoseRef.current
             ? imagingFrame(freePoseRef.current)
-            : frameAt(view.probe, view.sweep, scrubRef.current);
+            : frameAt(view.probe, view.sweep, scrubRef.current));
           for (const uniforms of dimUniforms) setBeamFrame(uniforms, currentFrame);
         }
 
@@ -1702,11 +1769,22 @@ export default function PackViewer({
 
     apiRef.current = {
       clearanceMm: (point) => {
+        /*
+         * The caller holds a MODEL-space probe origin; `surfacePoints` is the
+         * sampled heart surface in BODY space. Converting the one point is both
+         * cheaper and safer than converting the few thousand surface samples,
+         * and it keeps this API model-space like every other pose-shaped input.
+         *
+         * HEART ONLY, and it must stay that way: this bounds how close the
+         * transducer may stand to tissue, and folding chest geometry into it
+         * would let a rib decide the probe stand-off.
+         */
+        const world = pointToBody(modelToBody, point as [number, number, number]);
         let nearest = Infinity;
         for (let i = 0; i < surfacePoints.length; i += 3) {
-          const dx = surfacePoints[i] - point[0];
-          const dy = surfacePoints[i + 1] - point[1];
-          const dz = surfacePoints[i + 2] - point[2];
+          const dx = surfacePoints[i] - world[0];
+          const dy = surfacePoints[i + 1] - world[1];
+          const dz = surfacePoints[i + 2] - world[2];
           const squared = dx * dx + dy * dy + dz * dz;
           if (squared < nearest) nearest = squared;
         }
@@ -1868,34 +1946,6 @@ export default function PackViewer({
           };
         }
         : () => null,
-      /*
-       * AUTHORING ONLY: level the axis the four-chamber measured, not the one
-       * the pack declares.
-       *
-       * Null puts the pack's own declaration back. Folded to a no-op with the
-       * flag off, where there is no derived axis for it to be handed.
-       */
-      setLevelAxis: AUTHORING_ENABLED
-        ? (axis) => {
-          if (axis === null) {
-            lockAxis.copy(packUp);
-          } else {
-            const next = new THREE.Vector3(...axis);
-            if (next.lengthSq() === 0) return;
-            lockAxis.copy(next.applyEuler(poseEuler).normalize());
-          }
-          if (horizonLocked) {
-            // Null at the poles, where the axis has no screen direction to
-            // level to. Leaving the camera alone is the honest answer there.
-            const level = levelled(orientation, lockAxis);
-            if (level) {
-              orientation = level;
-              applyCamera();
-            }
-            schedule();
-          }
-        }
-        : () => {},
       setGhost: (on) => {
         ghostOn = on;
         ghosts.visible = cutActive && ghostOn;
@@ -1917,7 +1967,12 @@ export default function PackViewer({
        * view or the pack, and nothing here writes to any of them — the free
        * cutter's `{N, s}` and the saved `views[]` are both untouched.
        */
-      matchEchoOrientation: (frame) => glideTo(echoOrientation(frame)),
+      // Takes a MODEL-space frame, like every other pose-shaped input on this
+      // API, and converts before the camera reads it. The camera lives in body
+      // space; the caller holds the pose the echo panel is drawing.
+      matchEchoOrientation: (frame) => glideTo(
+        echoOrientation(frameToBody(modelToBody, frame)),
+      ),
       setImagingActive: (next, moveCamera) => {
         cancelGlide(false);
         imagingViewActive = next;
@@ -2014,7 +2069,7 @@ export default function PackViewer({
     // through `setMode`; listing it would reload a five-megabyte glTF on a
     // mode switch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gltfUrl, pack, viewIndex]);
+  }, [gltfUrl, pack, viewIndex, modelToBody]);
 
   /*
    * The cine axis.
@@ -2202,20 +2257,6 @@ export default function PackViewer({
     if (poseTransitioningRef.current) return;
     preventAuthoringAutoRotationRef.current = prevent;
   }, []);
-
-  /**
-   * The axis the horizon lock holds vertical, when authoring has measured one.
-   *
-   * A plain nullable triple held here rather than a call into the authoring
-   * modules, for the same reason `slotPose` is: the lock is learner UI and
-   * grows no dependency on a surface that does not exist in a learner build.
-   * With the flag off nothing ever writes it and the effect below is a no-op.
-   */
-  const [levelAxis, setLevelAxis] = useState<readonly [number, number, number] | null>(null);
-
-  useEffect(() => {
-    apiRef.current?.setLevelAxis(levelAxis);
-  }, [levelAxis, status]);
 
   /*
    * AUTHORING: the pack's authored views, reduced to frozen slot seeds.
@@ -3163,7 +3204,6 @@ export default function PackViewer({
               onFreePoseChange?.(pose);
             }}
             onActiveSlotPose={setActiveAuthoringSlot}
-            onLevelAxis={setLevelAxis}
           />
         )}
 

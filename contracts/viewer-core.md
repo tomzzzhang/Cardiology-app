@@ -56,12 +56,18 @@ Reset restores the pack's standard orientation.
 as UI-6 and answered with it.)* Trackball orbit is the default everywhere and the ONLY option in
 Explore, where free inspection is the point and the turntable was removed precisely because it could
 not reach every angle. In Echo, which way is up is diagnostic rather than cosmetic, so the lock is
-offered there: with it on, horizontal drag turns about **the model's measured long axis** —
-`meshes.orientation.up`, which for a labelled substrate is the derived cardiac frame recorded in
-`meshes.anatomical_frame` — and the result is re-levelled after every step. World up would be the
-wrong axis: it is the same thing only while the heart happens to be upright, and holding the heart
-upright is the entire job. Turning it on LEVELS what is on screen without moving where the camera
-looks, and it stops three degrees short of the pole, where "up" has no answer.
+offered there: with it on, horizontal drag turns about **body/world `+Z` — superior** — and the
+result is re-levelled after every step. Turning it on LEVELS what is on screen without moving where
+the camera looks, and it stops three degrees short of the pole, where "up" has no answer.
+
+*(Supersedes "the model's measured long axis", 2026-08-21.)* The lock used to hold
+`meshes.orientation.up` carried through `canonical_pose`, and in authoring it could be REPOINTED by
+saving an apical four-chamber, whose beam was taken as the long axis. Both are gone. The scene is
+rendered in the patient/body frame — `+X` patient-left, `+Y` posterior, `+Z` superior — established
+by a `body-context/v0` registration measured against a whole-body reference, so `Level` means one
+thing on every pack and no imaging view can move it. A pack with no registration bound renders in
+its own model space, where `Level` still holds `+Z`; that is honestly the model's `+Z` rather than a
+claim about a patient. See `src/viewer/bodyFrame.ts` and `pipeline/body_context.py`.
 
 *(Supersedes "familiar globe-viewer orbit feel is the reference", 2026-08-19.)* A globe has a fixed
 axis and is never turned over; a heart read from underneath is neither, and reading that clause as a

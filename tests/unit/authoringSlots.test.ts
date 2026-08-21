@@ -12,7 +12,19 @@ import {
   MAX_CUSTOM_SLOTS, customSlotId, mergeSlots, nextCustomSlotId, restoredPose, samePose,
   seedsFromViews, slotKey, standardSlotId, type SavedSlot,
 } from '../../src/authoring/slots.ts';
-import { FRAME_VIEW_ID, VIEW_CANON } from '../../src/authoring/viewCanon.ts';
+import { VIEW_CANON } from '../../src/authoring/viewCanon.ts';
+
+/*
+ * B1's id, as an ordinary canon row.
+ *
+ * It used to be exported as `B1_VIEW_ID` because placing this view set the
+ * model's axes. That is removed: no view defines the patient frame, which now
+ * comes from a body-context registration. The id is still the most useful one
+ * to exercise slot behaviour with — it is the row the pack actually authors —
+ * so it is spelled out here rather than imported from a constant that no longer
+ * has a reason to exist.
+ */
+const B1_VIEW_ID = 'b1-apical-four-chamber';
 import type { ProbePose } from '../../src/schema/packV0.ts';
 
 function pose(origin: [number, number, number]): ProbePose {
@@ -26,7 +38,7 @@ function pose(origin: [number, number, number]): ProbePose {
 }
 
 const VIEWS = [
-  { name: 'Apical four-chamber (draft)', view_id: FRAME_VIEW_ID, probe: pose([0, -80, 13]) },
+  { name: 'Apical four-chamber (draft)', view_id: B1_VIEW_ID, probe: pose([0, -80, 13]) },
   { name: 'Parasternal long axis (draft)', view_id: 'c1-parasternal-long-axis', probe: pose([20, -60, 30]) },
   { name: 'Ingest reference pose', view_id: 'ingest-reference-pose', probe: pose([0, 0, 90]) },
 ];
@@ -38,7 +50,7 @@ function saved(over: Partial<SavedSlot> = {}): SavedSlot {
   return {
     packId: 'normal-rodero',
     packVersion: '0.1.0',
-    slotId: standardSlotId(FRAME_VIEW_ID),
+    slotId: standardSlotId(B1_VIEW_ID),
     kind: 'canon',
     label: 'Apical four-chamber (draft)',
     pose: pose([1, -133.6, 8]),
@@ -63,7 +75,7 @@ describe('keys cannot collide across packs', () => {
     // An index-keyed override would silently follow the POSITION when a pack
     // gains or reorders views, so an override made for the four-chamber would
     // reappear on whatever ended up second. Worse than losing it.
-    expect(standardSlotId(FRAME_VIEW_ID)).toBe(`view-${FRAME_VIEW_ID}`);
+    expect(standardSlotId(B1_VIEW_ID)).toBe(`view-${B1_VIEW_ID}`);
   });
 });
 
@@ -79,7 +91,7 @@ describe('the canon is present whether the pack authored it or not', () => {
 
   it('fills the canon slot the pack DID author, and leaves the rest empty', () => {
     const seeds = seedsFromViews(VIEWS);
-    const fourChamber = seeds.find((seed) => seed.viewId === FRAME_VIEW_ID)!;
+    const fourChamber = seeds.find((seed) => seed.viewId === B1_VIEW_ID)!;
     expect(fourChamber.pose).toEqual(VIEWS[0].probe);
     expect(seeds.find((seed) => seed.viewId === 'b3-apical-two-chamber')!.pose).toBeNull();
   });
@@ -93,14 +105,18 @@ describe('the canon is present whether the pack authored it or not', () => {
     expect(extra[0].pose).toEqual(VIEWS[2].probe);
   });
 
-  it('marks exactly one slot as the one that defines the model’s axes', () => {
-    const framing = seedsFromViews(VIEWS).filter((seed) => seed.definesFrame);
-    expect(framing).toHaveLength(1);
-    expect(framing[0].viewId).toBe(FRAME_VIEW_ID);
+  it('gives no seed any authority over the model’s axes', () => {
+    // The removed behaviour, asserted as absent: a seed is an id, a label, a
+    // kind and a pose. Nothing on it can repoint world up, and a reintroduced
+    // flag would fail here rather than quietly start levelling to a view again.
+    for (const seed of seedsFromViews(VIEWS)) {
+      expect(Object.keys(seed).sort())
+        .toEqual(['kind', 'label', 'pose', 'slotId', 'viewId']);
+    }
   });
 
   it('the authored pose in a seed is deep-frozen', () => {
-    const seed = seedsFromViews(VIEWS).find((row) => row.viewId === FRAME_VIEW_ID)!;
+    const seed = seedsFromViews(VIEWS).find((row) => row.viewId === B1_VIEW_ID)!;
     const authored = seed.pose!;
     expect(Object.isFrozen(authored)).toBe(true);
     expect(Object.isFrozen(authored.origin)).toBe(true);
@@ -111,7 +127,7 @@ describe('the canon is present whether the pack authored it or not', () => {
   });
 
   it('the seed is a COPY: freezing it does not freeze the pack’s own object', () => {
-    const views = [{ name: 'A', view_id: FRAME_VIEW_ID, probe: pose([0, 0, 0]) }];
+    const views = [{ name: 'A', view_id: B1_VIEW_ID, probe: pose([0, 0, 0]) }];
     seedsFromViews(views);
     // The pack's object is untouched and still writable — the seed froze a
     // clone. A freeze that reached back into the pack would be this module
@@ -122,7 +138,7 @@ describe('the canon is present whether the pack authored it or not', () => {
   it('a saved slot over an AUTHORED one is an override beside the authored pose', () => {
     const seeds = seedsFromViews(VIEWS);
     const slots = mergeSlots(seeds, [saved()]);
-    const first = slots.find((slot) => slot.slotId === slotOf(FRAME_VIEW_ID))!;
+    const first = slots.find((slot) => slot.slotId === slotOf(B1_VIEW_ID))!;
 
     expect(first.kind).toBe('canon');
     expect(first.overridden).toBe(true);
@@ -140,7 +156,7 @@ describe('the canon is present whether the pack authored it or not', () => {
   it('filling an EMPTY canon slot is not an override — there was nothing to override', () => {
     const seeds = seedsFromViews([]);
     const slots = mergeSlots(seeds, [saved()]);
-    const filled = slots.find((slot) => slot.slotId === slotOf(FRAME_VIEW_ID))!;
+    const filled = slots.find((slot) => slot.slotId === slotOf(B1_VIEW_ID))!;
 
     expect(filled.authored).toBeNull();
     expect(filled.overridden).toBe(false);
@@ -150,7 +166,7 @@ describe('the canon is present whether the pack authored it or not', () => {
   it('reverting is exact: dropping the override leaves the authored pose byte for byte', () => {
     const seeds = seedsFromViews(VIEWS);
     const pick = (rows: ReturnType<typeof mergeSlots>) =>
-      rows.find((slot) => slot.slotId === slotOf(FRAME_VIEW_ID))!;
+      rows.find((slot) => slot.slotId === slotOf(B1_VIEW_ID))!;
 
     expect(pick(mergeSlots(seeds, [saved()])).overridden).toBe(true);
     const reverted = pick(mergeSlots(seeds, []));
@@ -231,7 +247,7 @@ describe('a stored pose whose id nothing matches is shown, not swallowed', () =>
 describe('restoring is exact, not approximate', () => {
   it('returns the stored pose byte for byte', () => {
     const slot = mergeSlots(seedsFromViews(VIEWS), [saved()])
-      .find((row) => row.slotId === slotOf(FRAME_VIEW_ID))!;
+      .find((row) => row.slotId === slotOf(B1_VIEW_ID))!;
     const restored = restoredPose(slot);
     expect(restored).not.toBeNull();
     expect(JSON.stringify(restored)).toBe(JSON.stringify(saved().pose));
@@ -241,7 +257,7 @@ describe('restoring is exact, not approximate', () => {
   it('REPLACES rather than merges: nothing of the previous pose survives', () => {
     const slot = mergeSlots(seedsFromViews(VIEWS), [
       saved({ pose: { ...pose([5, 5, 5]), fan: { angle_deg: 60, depth_cm: 12, focus_cm: 6 } } }),
-    ]).find((row) => row.slotId === slotOf(FRAME_VIEW_ID))!;
+    ]).find((row) => row.slotId === slotOf(B1_VIEW_ID))!;
     const restored = restoredPose(slot) as ProbePose;
     // A merge would have kept the seed's 80-degree fan under the saved origin.
     expect(restored.fan).toEqual({ angle_deg: 60, depth_cm: 12, focus_cm: 6 });
@@ -250,7 +266,7 @@ describe('restoring is exact, not approximate', () => {
 
   it('hands back a clone, so a later nudge cannot rewrite what was saved', () => {
     const slot = mergeSlots(seedsFromViews(VIEWS), [saved()])
-      .find((row) => row.slotId === slotOf(FRAME_VIEW_ID))!;
+      .find((row) => row.slotId === slotOf(B1_VIEW_ID))!;
     const restored = restoredPose(slot) as ProbePose;
     (restored.origin as number[])[0] = 999;
     expect(slot.saved?.pose.origin[0]).toBe(1);
@@ -259,7 +275,7 @@ describe('restoring is exact, not approximate', () => {
   it('is null for a slot with nothing in it', () => {
     expect(restoredPose({
       slotId: 'x', kind: 'custom', label: 'x', authored: null, saved: null,
-      overridden: false, pose: null, definesFrame: false,
+      overridden: false, pose: null,
     })).toBeNull();
   });
 });

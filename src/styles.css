@@ -1427,26 +1427,6 @@ body {
   white-space: nowrap;
 }
 
-/*
- * "sets z axis", beside Save centre and nowhere else.
- *
- * The apical four-chamber is the one view whose pose is a statement about the
- * MODEL — the beam is the long axis — so saving it does something no other view
- * does. It is marked at the button that does it rather than explained in a
- * paragraph somewhere else.
- */
-.authoring__hint {
-  padding: 0.1rem 0.45rem;
-  border: 1px solid #6b5a44;
-  border-radius: 999px;
-  color: #cbb797;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
 /* Same height as the buttons beside them, so the row has one baseline rather
    than three. */
 .authoring__select,

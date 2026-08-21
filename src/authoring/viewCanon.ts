@@ -16,20 +16,23 @@
  * `Restore` is dead on it, and saving into it writes an ordinary local slot
  * that leaves for the pack through an export and an ingest like every other.
  *
- * ## B1 is special, and it is special for a reason that is not clinical rank
+ * ## No view defines the model's axes, and B1 least of all
  *
- * The apical four-chamber is the one view whose pose IS a statement about the
- * model's axes. The transducer sits at the apex and the beam runs to the base,
- * so `beam_axis` is the cardiac long axis with the sign the atria are on; the
- * fan plane is the four-chamber plane, so the in-plane axis is the septum-to-
- * lateral-wall direction and the plane normal is anterior-posterior. Place that
- * one view and the model has a frame. See `cardiacFrame.ts`.
+ * The apical four-chamber used to be special here: placing it set the model's
+ * frame, and the app levelled to the axis its beam implied. That is removed
+ * (owner decision, 2026-08-21), and the reason is not that the geometry was
+ * wrong — the beam really does run along the cardiac long axis — but that it
+ * was answering the wrong question. Where a transducer goes is a fact about an
+ * acquisition window. Which way is UP is a fact about a body, and a view cannot
+ * be evidence for it.
  *
- * That matters here more than it would elsewhere, because **eight of the nine
- * packs on the shelf declare `orientation: up=+y, anterior=+z, patient_left=+x`
- * and only `normal-rodero` carries any derivation behind it.** The other eight
- * carry the ingest's default triple. They are not measured; they are a guess
- * that happens to be written down in the same field a measurement would be.
+ * The frame now comes from `body-context/v0`: `+X` patient-left, `+Y`
+ * posterior, `+Z` superior, measured from a whole-body reference and bound to a
+ * pack by an explicit rigid registration. `Level` means body `+Z` and nothing
+ * else. Every row below is an imaging view and only an imaging view.
+ *
+ * B1 keeps every other role it had, including its relationship to the B2
+ * candidates. What it lost is a claim it should never have carried.
  */
 
 export interface CanonView {
@@ -37,8 +40,6 @@ export interface CanonView {
   /** The pack's `view_id`. Matches `views[i].view_id` where a pack authored one. */
   viewId: string;
   name: string;
-  /** True for the one view whose pose defines the model's axes. */
-  definesFrame?: true;
 }
 
 /**
@@ -58,12 +59,7 @@ export const VIEW_CANON: readonly CanonView[] = Object.freeze([
   { family: 'A', viewId: 'a5-subcostal-rao', name: 'A5 Subcostal right anterior oblique' },
   { family: 'A', viewId: 'a6-subcostal-lao', name: 'A6 Subcostal left anterior oblique' },
 
-  {
-    family: 'B',
-    viewId: 'b1-apical-four-chamber',
-    name: 'B1 Apical four-chamber',
-    definesFrame: true,
-  },
+  { family: 'B', viewId: 'b1-apical-four-chamber', name: 'B1 Apical four-chamber' },
   { family: 'B', viewId: 'b2-apical-five-chamber', name: 'B2 Apical five-chamber' },
   { family: 'B', viewId: 'b3-apical-two-chamber', name: 'B3 Apical two-chamber' },
   { family: 'B', viewId: 'b4-apical-three-chamber', name: 'B4 Apical three-chamber' },
@@ -81,10 +77,3 @@ export const VIEW_CANON: readonly CanonView[] = Object.freeze([
   { family: 'F', viewId: 'f1-right-parasternal-bicaval', name: 'F1 Right parasternal bicaval' },
   { family: 'F', viewId: 'f2-right-parasternal-transverse', name: 'F2 Right parasternal transverse' },
 ]);
-
-/** The one canon view whose pose defines the model's axes. */
-export const FRAME_VIEW_ID = 'b1-apical-four-chamber';
-
-export function isFrameView(viewId: string): boolean {
-  return viewId === FRAME_VIEW_ID;
-}

@@ -1660,7 +1660,6 @@ test('the learner build has no authoring surface, in either mode', async ({ page
       .getAttribute('data-authoring-camera-orientation')).toBeNull();
     await expect(page.getByTestId('authoring-export')).toHaveCount(0);
     await expect(page.getByTestId('probe-restore-slot')).toHaveCount(0);
-    await expect(page.getByTestId('authoring-frame-hint')).toHaveCount(0);
     await expect(page.getByText('Place from camera')).toHaveCount(0);
   }
 });

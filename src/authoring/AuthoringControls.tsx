@@ -34,20 +34,22 @@
  *   stays where it was, and the restore action can recover that value bit for
  *   bit. The UI treats the browser-local pose as the view being defined rather
  *   than labelling it as an override.
- * * **It does not write the model's axes either.** The four-chamber pose
- *   DERIVES them and the export carries them out; `meshes.anatomical_frame` is
- *   pack content with a recorded derivation and the v1 ingest ignores that frame.
+ * * **No view here defines the model's axes.** It used to: saving the apical
+ *   four-chamber set the levelling axis and wrote a cardiac frame into the
+ *   export. That is removed (owner decision, 2026-08-21). The patient/body
+ *   frame comes from `body-context/v0` — `+X` patient-left, `+Y` posterior,
+ *   `+Z` superior — and `Level` holds body `+Z`. Saving, selecting, recalling
+ *   or importing any view, B1 included, cannot move it.
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { ProbePose } from '../schema/packV0.ts';
 import { anchoredPose, defaultTemplate, type AnchorReport, type ViewAnchor } from './anchor.ts';
-import { frameFromFourChamber, type CardiacBasis } from './cardiacFrame.ts';
 import {
   MAX_CUSTOM_SLOTS, mergeSlots, nextCustomSlotId, restoredPose,
   type SavedSlot, type Slot, type SlotSeed,
 } from './slots.ts';
 import { deleteSlot, loadSlots, saveSlot } from './slotStore.ts';
-import { buildExport, exportFileName, readExport, type ExportedFrame } from './exportFile.ts';
+import { buildExport, exportFileName, readExport } from './exportFile.ts';
 
 export interface AuthoringControlsProps {
   packId: string;
@@ -74,14 +76,6 @@ export interface AuthoringControlsProps {
   onPose: (pose: ProbePose) => void;
   /** The selected view's pose, so the pad's centre can recall it. */
   onActiveSlotPose: (pose: ProbePose | null, view: AuthoringViewIdentity | null) => void;
-  /**
-   * The long axis the four-chamber measured, for the horizon lock to hold.
-   *
-   * Null while no four-chamber pose exists, which puts the pack's declared
-   * `orientation.up` back. Published upward rather than reached for, so the
-   * viewer keeps no dependency on this module.
-   */
-  onLevelAxis: (axis: readonly [number, number, number] | null) => void;
 }
 
 /** The truthful label/source carried with a pose while it is on screen. */
@@ -89,10 +83,6 @@ export interface AuthoringViewIdentity {
   label: string;
   source: 'pack' | 'local';
 }
-
-/** Three decimals is a millimetre at model scale and a thousandth of an axis. */
-const axisText = (axis: readonly number[]) =>
-  `[${axis.map((value) => value.toFixed(3)).join(', ')}]`;
 
 const identityOf = (slot: Slot): AuthoringViewIdentity => ({
   // Standard rows keep the canon label in the selector, but a mounted review
@@ -105,7 +95,7 @@ export default function AuthoringControls({
   packId, packVersion, packSchemaVersion, seeds, template, standoffOverrideMm,
   readAnchor, currentPose, transitioning = false, ready = true,
   onPreventAutoRotationChange,
-  onActivatePose, onShowFullHeart, onPose, onActiveSlotPose, onLevelAxis,
+  onActivatePose, onShowFullHeart, onPose, onActiveSlotPose,
 }: AuthoringControlsProps) {
   const [saved, setSaved] = useState<SavedSlot[]>([]);
   const [activeSlotId, setActiveSlotId] = useState('');
@@ -169,49 +159,6 @@ export default function AuthoringControls({
         : { label: activeIdentityLabel, source: activeIdentitySource as 'pack' | 'local' },
     );
   }, [activePose, activeIdentityLabel, activeIdentitySource, onActiveSlotPose]);
-
-  /* --- the model's axes ------------------------------------------------- */
-
-  /**
-   * The four-chamber view, and the frame its pose implies.
-   *
-   * Computed from whatever that view currently holds — the pack's pose, or the
-   * author's override — so the readout is about what is actually stored rather
-   * than about what is on screen at this instant.
-   */
-  const frameSlot = slots.find((slot) => slot.definesFrame) ?? null;
-  const derivedFrame = frameSlot?.pose ? frameFromFourChamber(frameSlot.pose) : null;
-
-  /*
-   * The horizon lock follows the measured long axis once there is one.
-   *
-   * Reported from the app: "the level selector does not respect the z axis set
-   * by the four-chamber view". It did not — it held `meshes.orientation.up`,
-   * which on eight of the nine packs is the ingest's default triple with
-   * nothing behind it. Once B1 holds a pose, that pose is the only measurement
-   * of the long axis there is, so it is what gets levelled.
-   *
-   * Keyed on the axis's own numbers rather than on the object, so this fires
-   * when the axis CHANGES and not on every render.
-   */
-  const basal = derivedFrame?.basis.basal ?? null;
-  const basalKey = basal ? basal.join(',') : '';
-  useEffect(() => {
-    onLevelAxis(basalKey === '' ? null : basalKey.split(',').map(Number) as [number, number, number]);
-  }, [basalKey, onLevelAxis]);
-
-  const exportedFrame = (): ExportedFrame | undefined => {
-    if (!frameSlot?.saved || !derivedFrame) return undefined;
-    const basis: CardiacBasis = derivedFrame.basis;
-    return {
-      derived_from_slot: frameSlot.slotId,
-      method: 'apical-four-chamber-pose-v1',
-      patient_left: basis.patient_left as [number, number, number],
-      basal: basis.basal as [number, number, number],
-      anterior: basis.anterior as [number, number, number],
-      flipped_for_display: derivedFrame.flippedForDisplay,
-    };
-  };
 
   /* --- place ------------------------------------------------------------ */
 
@@ -308,9 +255,7 @@ export default function AuthoringControls({
       setNotice(
         slot.overridden || slot.authored !== null
           ? `Saved the working definition for ${slot.label}. The loaded pack is unchanged.`
-          : slot.definesFrame
-            ? `Saved ${slot.label}. The model's axes now come from this pose.`
-            : `Saved ${slot.label}.`,
+          : `Saved ${slot.label}.`,
       );
       await refresh();
     } catch (error) {
@@ -406,7 +351,6 @@ export default function AuthoringControls({
         packSchemaVersion,
         slots: saved,
         exportedAt,
-        cardiacFrame: exportedFrame(),
       });
       const blob = new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -421,10 +365,7 @@ export default function AuthoringControls({
       // Immediate revocation races the download in embedded browsers.
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
       setProblem(null);
-      setNotice(
-        `Exported ${saved.length} view(s), every pose schema-validated`
-        + `${document.cardiac_frame ? ', with the model axes the four-chamber implies' : ''}.`,
-      );
+      setNotice(`Exported ${saved.length} view(s), every pose schema-validated.`);
     } catch (error) {
       fail(error);
     }
@@ -661,28 +602,6 @@ export default function AuthoringControls({
             >
               Save centre
             </button>
-
-            {/*
-              * The four-chamber is the ONE view whose pose is a statement about
-              * the model rather than only about a window: the transducer sits
-              * at the apex and the beam runs to the base, so saving it fixes
-              * the long axis. Said here, next to the button that does it, and
-              * ONLY here — every other view stores a pose and nothing else.
-              */}
-            {active?.definesFrame && (
-              <span
-                className="authoring__hint"
-                data-testid="authoring-frame-hint"
-                title={
-                  'The beam becomes the long axis (z), the fan plane gives left-right (x), '
-                  + 'and the plane normal gives anterior-posterior (y). Derived and carried '
-                  + 'in the export as review evidence; the current ingest deliberately leaves '
-                  + 'pack meshes.anatomical_frame unchanged.'
-                }
-              >
-                sets z axis
-              </span>
-            )}
           </>
         )}
 
@@ -796,23 +715,6 @@ export default function AuthoringControls({
           {`${saved.length} stored`}
         </span>
       </div>
-
-      {/*
-        * The model's axes, whenever the four-chamber holds a pose.
-        *
-        * Shown always rather than only while B1 is selected: it is a fact about
-        * the MODEL, and every other view is placed against it.
-        */}
-      {derivedFrame !== null && (
-        <p className="authoring__note" data-testid="authoring-frame">
-          {`Model axes from ${frameSlot?.label}: `}
-          {`z basal ${axisText(derivedFrame.basis.basal)} · `}
-          {`x patient-left ${axisText(derivedFrame.basis.patient_left)} · `}
-          {`y anterior ${axisText(derivedFrame.basis.anterior)}`}
-          {derivedFrame.flippedForDisplay ? ' (x flipped for display.flip_lr)' : ''}
-          {' · Level holds z vertical.'}
-        </p>
-      )}
 
       {/*
         * The placement report names the one monotonic adjustment the explicit

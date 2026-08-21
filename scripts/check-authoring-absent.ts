@@ -38,9 +38,7 @@ const distDir = join(repoRoot, 'dist');
 export const AUTHORING_BUNDLE_MARKERS: readonly { needle: string; what: string }[] = [
   { needle: 'Place from camera', what: 'the placement button’s label' },
   { needle: 'None — full heart', what: 'the authoring neutral-view option label' },
-  { needle: 'sets z axis', what: 'the four-chamber frame hint' },
   { needle: 'Standard views (docs/view_canon.md)', what: 'the view canon group label' },
-  { needle: 'Level holds z vertical', what: 'the derived-axis readout' },
   { needle: 'authoring-controls', what: 'the authoring panel’s test id' },
   { needle: 'authoring-anchor', what: 'the anchor button’s test id' },
   { needle: 'authoring-save-centre', what: 'the destructive save control’s test id' },
