@@ -1,0 +1,11 @@
+{
+  "registry_schema": "view-candidate-registry/v1",
+  "candidate_sets": [
+    {
+      "candidate_set_id": "normal-rodero-pack-0.1.1-candidate-set-001",
+      "path": "evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-001.json",
+      "file_sha256": "8acc53578c346fe6442b3c1179ba65d2dab564b12e497d91c6d04e161f66f555",
+      "canonical_payload_sha256": "555a249098a24f662073bb7b5dd82541f1651e8a55af7e295231d453fd3ac625"
+    }
+  ]
+}

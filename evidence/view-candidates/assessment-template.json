@@ -1,0 +1,61 @@
+{
+  "assessment_format": "view-candidate-assessment/v1",
+  "assessment_id": "replace-with-stable-assessment-id",
+  "assessment_class": "technical_geometry",
+  "assessor_role": "technical_reviewer",
+  "assessed_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "candidate_binding": {
+    "candidate_set_id": "replace-with-candidate-set-id",
+    "candidate_set_path": "replace-with-repository-relative-path",
+    "candidate_file_sha256": "replace-with-exact-file-byte-sha256",
+    "candidate_canonical_payload_sha256": "replace-with-internal-canonical-payload-sha256",
+    "source_pack_id": "normal-rodero",
+    "source_pack_version": "replace-with-pack-version",
+    "source_pack_sha256": "replace-with-sha256",
+    "source_pack_revision": "replace-with-source-pack-git-sha"
+  },
+  "effect_on_pack_review_status": "none",
+  "may_promote_pack_review_status": false,
+  "claims": {
+    "geometry_anatomy": {
+      "state": "not_assessed",
+      "scope": "finite-sector and sweep geometry on the bound Rodero model only",
+      "finding": "",
+      "evidence_ids": []
+    },
+    "acquisition_window": {
+      "state": "not_assessed",
+      "scope": "physical probe placement and acoustic-window plausibility",
+      "finding": "No claim follows from a geometry assessment.",
+      "evidence_ids": []
+    },
+    "display_orientation": {
+      "state": "not_assessed",
+      "scope": "pediatric display, vertex, marker, and left-right conventions",
+      "finding": "",
+      "evidence_ids": []
+    },
+    "educational_use": {
+      "state": "not_assessed",
+      "scope": "fitness for a defined learning task",
+      "finding": "No claim follows from a geometry assessment.",
+      "evidence_ids": []
+    },
+    "clinical_diagnostic": {
+      "state": "not_evaluated",
+      "scope": "diagnosis or patient-care performance",
+      "claim_allowed": false,
+      "finding": "This evidence does not establish clinical or diagnostic validity.",
+      "evidence_ids": []
+    }
+  },
+  "checks": [],
+  "evidence": [],
+  "limitations": [
+    "The Rodero substrate is an adult-derived static heart model, not a pediatric patient study.",
+    "The heart-only substrate does not establish a body surface, chest wall, spine, or diaphragm.",
+    "Geometry checks do not validate ultrasound physics, motion, Doppler, artifacts, or diagnosis."
+  ],
+  "disposition": "not_assessed",
+  "disposition_note": "Use advance_to_clinician_review, hold, or reject_candidate; none changes pack review status."
+}

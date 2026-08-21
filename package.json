@@ -25,6 +25,7 @@
     "measure:echo": "node tests/perf/echo-fill.mjs",
     "validate:packs": "tsx scripts/validate-packs.ts",
     "check:provenance": "tsx scripts/check-provenance.ts",
+    "check:view-candidates": "tsx scripts/check-view-candidates.ts",
     "check:base-path": "tsx scripts/check-base-path.ts",
     "check:published-packs": "tsx scripts/check-published-packs.ts",
     "check:authoring-absent": "tsx scripts/check-authoring-absent.ts",
@@ -36,7 +37,7 @@
     "ingest:fetch": "conda run --no-capture-output -n cardiology-app python pipeline/fetch.py",
     "ingest:authoring": "tsx scripts/ingest-authoring-export.ts",
     "check:fast": "npm run typecheck && npm run lint && npm run test",
-    "check:content": "npm run validate:packs && npm run check:provenance",
+    "check:content": "npm run validate:packs && npm run check:provenance && npm run check:view-candidates",
     "verify": "npm run check:fast && npm run build && npm run build:authoring",
     "verify:release": "npm run verify && npm run check:content && npm run check:stub-assets && npm run check:absolute-paths && npm run check:base-path && npm run check:published-packs && npm run check:authoring-absent && npm run test:release"
   },

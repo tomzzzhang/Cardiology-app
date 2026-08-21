@@ -8,8 +8,11 @@ on:
       - src/packs/**
       - src/schema/**
       - pipeline/**
+      - evidence/view-candidates/**
+      - .gitattributes
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
+      - scripts/check-view-candidates.ts
       - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**
@@ -23,8 +26,11 @@ on:
       - src/packs/**
       - src/schema/**
       - pipeline/**
+      - evidence/view-candidates/**
+      - .gitattributes
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
+      - scripts/check-view-candidates.ts
       - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**
@@ -47,6 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

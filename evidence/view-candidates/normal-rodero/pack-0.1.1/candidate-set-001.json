@@ -1,0 +1,1907 @@
+{
+  "artifact_schema": "view-candidates/v1",
+  "binding": {
+    "coordinate_frame": {
+      "basis_source_to_pack": {
+        "anterior": [
+          0.314831974293318,
+          -0.7324327249014179,
+          0.6036746900906609
+        ],
+        "basal": [
+          -0.6349959604900172,
+          0.310182059882459,
+          0.7075077525288576
+        ],
+        "patient_left": [
+          0.7054508899448154,
+          0.6060770522141211,
+          0.36743659133993356
+        ]
+      },
+      "checks_passed": 9,
+      "checks_total": 9,
+      "method": "cardiac-landmarks-v2"
+    },
+    "derivation_files": [
+      {
+        "path": ".gitattributes",
+        "sha256": "8976406f11a05578d79983a569383a2d8d5981c7143482a5dc6c250455b923a0"
+      },
+      {
+        "path": "pipeline/view_candidates.py",
+        "sha256": "2ee30b5f54396a50ceb567f8b86f69c1805a364ccd0f228d4dc8cb408175fd9a"
+      },
+      {
+        "path": "pipeline/views.py",
+        "sha256": "0532f21e93d6c389036be0aead1531b1c68bfee0e7401985d8d2b958ef10787a"
+      },
+      {
+        "path": "pipeline/anatomy.py",
+        "sha256": "a9ae36df5fb761b2759c91b75f2e28aa751ee22c1fbd38e10ffe26217ee4eaed"
+      },
+      {
+        "path": "pipeline/meshlib.py",
+        "sha256": "3b22d82af774dd3c86b5bc0810f7e569db561b21b0781f4249634efce4fc50c7"
+      },
+      {
+        "path": "pipeline/sources.py",
+        "sha256": "038397674244e63fe4d121c484816dad72430638406e682eaffe6d43533448c7"
+      },
+      {
+        "path": "shared/imaging-constants.json",
+        "sha256": "897c50848227bf06bace73f724ceff614af99889ecc2f5b2a2267df852b396c2"
+      },
+      {
+        "path": "environment.yml",
+        "sha256": "f57ad2bf628d8469ac48512636ca0ada48bbc8cca731b9ce4187155f7fbdda48"
+      }
+    ],
+    "pack_assets": [
+      {
+        "path": "public/packs/normal-rodero/assets/model.gltf",
+        "sha256": "69eee3cbf1ab10ef0c14fd0f29fb1a3dd5c5a8e384924da8e4ad4ee1ff9bae97"
+      },
+      {
+        "path": "public/packs/normal-rodero/assets/model.bin",
+        "sha256": "56f328af141316965815c97ef48beb1b51a15d7e6ceb3cc492ce500ac89c4926"
+      },
+      {
+        "path": "public/packs/normal-rodero/assets/echo-volume.raw",
+        "sha256": "9da3ca81d466dd1cce2059141bc05c0b814702539072cd09bf6801d6111be0cb"
+      }
+    ],
+    "source": {
+      "archive_md5": "992f31e20c1aa73c10c5d9a6b6ac903a",
+      "path": "pipeline/.cache/rodero/average.vtk",
+      "sha256": "b8e013832ccf9262d677ad3d6f140a76de6bb0a2d9734132ec9924a29eba8356",
+      "size_bytes": 187320446,
+      "source_url": "https://zenodo.org/records/4593738"
+    },
+    "source_pack_id": "normal-rodero",
+    "source_pack_path": "public/packs/normal-rodero/pack.json",
+    "source_pack_revision": "770d5d2aa65f27d510c4ab59e94f91209c539cbb",
+    "source_pack_schema_version": "0.1",
+    "source_pack_sha256": "65678c34665064d00cad4cf8aa39ff3bce34b16065f42d114602180d5bd094a9",
+    "source_pack_version": "0.1.1"
+  },
+  "candidate_set_id": "normal-rodero-pack-0.1.1-candidate-set-001",
+  "candidates": [
+    {
+      "candidate_id": "b4-apical-three-chamber-candidate-001",
+      "candidate_status": "draft",
+      "checks": [
+        {
+          "check_id": "b4-apical-three-chamber-candidate-001.pose-math",
+          "measurement": {
+            "all_values_finite": true,
+            "angle_deg": 80.0,
+            "beam_lateral_dot": 0.0,
+            "beam_norm": 1.0,
+            "depth_cm": 16.84,
+            "focus_cm": 9.26,
+            "lateral_norm": 1.0,
+            "normal_norm": 1.0
+          },
+          "passed": true,
+          "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+        },
+        {
+          "check_id": "b4-apical-three-chamber-candidate-001.aperture",
+          "measurement": {
+            "clearance_threshold_mm": 7.9,
+            "minimum_forward_projection_mm": 8.0,
+            "nearest_source_point_mm": 8.234679
+          },
+          "passed": true,
+          "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+        },
+        {
+          "check_id": "b4-apical-three-chamber-candidate-001.depth",
+          "measurement": {
+            "depth_margin_mm": 12.440876,
+            "fan_depth_mm": 168.4,
+            "farthest_source_point_mm": 155.959124,
+            "measurement_slab_half_mm": 12.0,
+            "points_in_measurement_slab": 116862
+          },
+          "passed": true,
+          "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+        },
+        {
+          "check_id": "b4-apical-three-chamber-candidate-001.landmarks-contained",
+          "measurement": {
+            "elevation_tolerance_mm": 6.0,
+            "landmarks": [
+              {
+                "contained": true,
+                "landmark_id": "apex",
+                "position_mm": [
+                  -0.354699,
+                  -68.322408,
+                  10.395364
+                ],
+                "range_mm": 11.74534,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": 0.0
+              },
+              {
+                "contained": true,
+                "landmark_id": "mitral_ring",
+                "position_mm": [
+                  19.762758,
+                  13.497558,
+                  -6.921728
+                ],
+                "range_mm": 97.643461,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": 7.687212
+              },
+              {
+                "contained": true,
+                "landmark_id": "aortic_ring",
+                "position_mm": [
+                  4.106446,
+                  24.209658,
+                  12.250488
+                ],
+                "range_mm": 104.299321,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": -7.193968
+              }
+            ]
+          },
+          "passed": true,
+          "requirement": "every defining landmark is inside the finite sector"
+        }
+      ],
+      "coordinates": {
+        "probe": {
+          "beam_axis": [
+            0.139055796,
+            0.986413282,
+            -0.087477561
+          ],
+          "display": {
+            "flip_lr": false,
+            "marker_side": "left",
+            "vertex": "down"
+          },
+          "fan": {
+            "angle_deg": 80.0,
+            "depth_cm": 16.84,
+            "focus_cm": 9.26
+          },
+          "lateral_axis": [
+            0.635071843,
+            -0.156607207,
+            -0.756411222
+          ],
+          "origin": [
+            -1.987956926,
+            -79.908167362,
+            11.422817631
+          ]
+        }
+      },
+      "derivation": {
+        "description": "Plane through the measured LV apex, mitral-ring centroid, and aortic-ring centroid; probe stood off the apical epicardium and aimed at the midpoint of the mitral and aortic rings.",
+        "inputs": [
+          "lv_apex_uvc",
+          "mitral_ring_centroid",
+          "aortic_ring_centroid"
+        ],
+        "method": "measured-landmark-plane-v1"
+      },
+      "intended_view_id": "b4-apical-three-chamber",
+      "kind": "single",
+      "limitations": [
+        "Draft coordinate proposal; no clinician has selected or reviewed this pose.",
+        "The source has valve rings but no leaflets, motion, Doppler, or ultrasound artifacts.",
+        "Display marker side is an unreviewed canon-derived proposal."
+      ]
+    },
+    {
+      "candidate_id": "f1-right-parasternal-bicaval-candidate-001",
+      "candidate_status": "draft",
+      "checks": [
+        {
+          "check_id": "f1-right-parasternal-bicaval-candidate-001.pose-math",
+          "measurement": {
+            "all_values_finite": true,
+            "angle_deg": 80.0,
+            "beam_lateral_dot": 0.0,
+            "beam_norm": 1.0,
+            "depth_cm": 12.02,
+            "focus_cm": 6.61,
+            "lateral_norm": 1.0,
+            "normal_norm": 1.0
+          },
+          "passed": true,
+          "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+        },
+        {
+          "check_id": "f1-right-parasternal-bicaval-candidate-001.aperture",
+          "measurement": {
+            "clearance_threshold_mm": 7.9,
+            "minimum_forward_projection_mm": 8.0,
+            "nearest_source_point_mm": 13.550581
+          },
+          "passed": true,
+          "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+        },
+        {
+          "check_id": "f1-right-parasternal-bicaval-candidate-001.depth",
+          "measurement": {
+            "depth_margin_mm": 8.907198,
+            "fan_depth_mm": 120.2,
+            "farthest_source_point_mm": 111.292802,
+            "measurement_slab_half_mm": 12.0,
+            "points_in_measurement_slab": 48173
+          },
+          "passed": true,
+          "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+        },
+        {
+          "check_id": "f1-right-parasternal-bicaval-candidate-001.landmarks-contained",
+          "measurement": {
+            "elevation_tolerance_mm": 6.0,
+            "landmarks": [
+              {
+                "contained": true,
+                "landmark_id": "superior_vena_cava_centroid",
+                "position_mm": [
+                  -10.93761,
+                  60.289147,
+                  7.062838
+                ],
+                "range_mm": 55.2472,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": 30.758653
+              },
+              {
+                "contained": true,
+                "landmark_id": "inferior_vena_cava_centroid",
+                "position_mm": [
+                  -23.462972,
+                  35.050966,
+                  -38.968532
+                ],
+                "range_mm": 42.205178,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": -34.918134
+              },
+              {
+                "contained": true,
+                "landmark_id": "atrial_septum_interface_centroid",
+                "position_mm": [
+                  -2.417556,
+                  41.461906,
+                  -19.321762
+                ],
+                "range_mm": 56.378015,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": -4.166561
+              }
+            ]
+          },
+          "passed": true,
+          "requirement": "every defining landmark is inside the finite sector"
+        },
+        {
+          "check_id": "f1-right-parasternal-bicaval-candidate-001.atrial-interface",
+          "measurement": {
+            "area_weighted_centroid_mm": [
+              -2.417556,
+              41.461906,
+              -19.321762
+            ],
+            "left_atrium_tag": 3,
+            "right_atrium_tag": 4,
+            "shared_interface_area_mm2": 334.340642,
+            "shared_triangle_count": 1108
+          },
+          "passed": true,
+          "requirement": "LA and RA source tags share the pinned 1,108-face interface used as the septal landmark"
+        }
+      ],
+      "coordinates": {
+        "probe": {
+          "beam_axis": [
+            0.973333525,
+            -0.194625095,
+            0.121420429
+          ],
+          "display": {
+            "flip_lr": false,
+            "marker_side": "right",
+            "vertex": "up"
+          },
+          "fan": {
+            "angle_deg": 80.0,
+            "depth_cm": 12.02,
+            "focus_cm": 6.61
+          },
+          "lateral_axis": [
+            0.0,
+            0.529308313,
+            0.848429555
+          ],
+          "origin": [
+            -57.147136499,
+            54.573639503,
+            -22.673768319
+          ]
+        }
+      },
+      "derivation": {
+        "description": "Plane through the SVC centroid, IVC centroid, and area-weighted LA/RA shared-interface centroid; beam enters from the derived cardiac-right side of the cardiac frame. Fan angle is the 5-degree increment that contains all three landmarks with a 5-degree half-angle margin, bounded to 70-100 degrees.",
+        "inputs": [
+          "source_tag_16_svc_centroid",
+          "source_tag_17_ivc_centroid",
+          "source_tags_3_4_shared_interface_centroid"
+        ],
+        "method": "measured-caval-septal-plane-v1"
+      },
+      "intended_view_id": "f1-right-parasternal-bicaval",
+      "kind": "single",
+      "limitations": [
+        "Draft coordinate proposal; no clinician has selected or reviewed this pose.",
+        "The model establishes a cardiac right side, not a chest wall or physically reachable intercostal window.",
+        "The geometry cannot establish sinus-venosus diagnostic performance, Doppler alignment, or pulmonary-vein flow.",
+        "Display marker side is an unreviewed canon-derived proposal."
+      ]
+    },
+    {
+      "candidate_id": "b2-apical-five-chamber-series-001",
+      "candidate_status": "draft",
+      "checks": [
+        {
+          "check_id": "b2-apical-five-chamber-series-001.variant-grid",
+          "measurement": {
+            "angles_deg": [
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "variant_count": 7
+          },
+          "passed": true,
+          "requirement": "deterministic inclusive one-degree anterior-angulation grid from 9 through 15 degrees"
+        },
+        {
+          "check_id": "b2-apical-five-chamber-series-001.no-selection",
+          "measurement": {
+            "selected_variant_id": null,
+            "selection_state": "no_variant_selected"
+          },
+          "passed": true,
+          "requirement": "geometry generation must not select a clinically preferred B2 variant"
+        }
+      ],
+      "derivation": {
+        "description": "Seven fixed-pose samples of the existing B1 anterior tilt, from 9 to 15 degrees inclusive. Every sample contains the measured apex and aortic-ring centroid. Geometry does not choose among them.",
+        "inputs": [
+          "b1-apical-four-chamber probe",
+          "b1 tilt sweep",
+          "aortic_ring_centroid"
+        ],
+        "method": "sample-existing-b1-anterior-sweep-v1"
+      },
+      "intended_view_id": "b2-apical-five-chamber",
+      "kind": "series",
+      "limitations": [
+        "No variant is selected; exact B2 angulation requires author and clinician review.",
+        "Aortic-ring containment is a geometry proxy, not proof of an authentic five-chamber acquisition window.",
+        "The static source has no valve leaflets, flow, motion, Doppler, or ultrasound artifacts."
+      ],
+      "selected_variant_id": null,
+      "selection_state": "no_variant_selected",
+      "variants": [
+        {
+          "checks": [
+            {
+              "check_id": "b2-anterior-09-deg.pose-math",
+              "measurement": {
+                "all_values_finite": true,
+                "angle_deg": 80.0,
+                "beam_lateral_dot": 0.0,
+                "beam_norm": 1.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23,
+                "lateral_norm": 1.0,
+                "normal_norm": 1.0
+              },
+              "passed": true,
+              "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+            },
+            {
+              "check_id": "b2-anterior-09-deg.aperture",
+              "measurement": {
+                "clearance_threshold_mm": 7.9,
+                "minimum_forward_projection_mm": 7.663242,
+                "nearest_source_point_mm": 8.265162
+              },
+              "passed": true,
+              "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+            },
+            {
+              "check_id": "b2-anterior-09-deg.depth",
+              "measurement": {
+                "depth_margin_mm": 11.951758,
+                "fan_depth_mm": 167.9,
+                "farthest_source_point_mm": 155.948242,
+                "measurement_slab_half_mm": 12.0,
+                "points_in_measurement_slab": 123577
+              },
+              "passed": true,
+              "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+            },
+            {
+              "check_id": "b2-anterior-09-deg.landmarks-contained",
+              "measurement": {
+                "elevation_tolerance_mm": 6.0,
+                "landmarks": [
+                  {
+                    "contained": true,
+                    "landmark_id": "apex",
+                    "position_mm": [
+                      -0.354699,
+                      -68.322408,
+                      10.395364
+                    ],
+                    "range_mm": 11.676355,
+                    "signed_elevation_mm": 1.849353,
+                    "signed_fan_angle_deg": 0.0
+                  },
+                  {
+                    "contained": true,
+                    "landmark_id": "aortic_ring",
+                    "position_mm": [
+                      4.106446,
+                      24.209658,
+                      12.250488
+                    ],
+                    "range_mm": 104.045307,
+                    "signed_elevation_mm": -4.939123,
+                    "signed_fan_angle_deg": 4.478841
+                  }
+                ]
+              },
+              "passed": true,
+              "requirement": "every defining landmark is inside the finite sector"
+            }
+          ],
+          "coordinates": {
+            "probe": {
+              "beam_axis": [
+                -0.039628941,
+                0.997785179,
+                -0.053425501
+              ],
+              "display": {
+                "flip_lr": false,
+                "marker_side": "right",
+                "vertex": "down"
+              },
+              "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23
+              },
+              "lateral_axis": [
+                0.999213471,
+                0.039647631,
+                -0.000710388
+              ],
+              "origin": [
+                0.105415809,
+                -79.874125675,
+                12.865890481
+              ]
+            }
+          },
+          "source_parameter": {
+            "derived_value": {
+              "unit": "deg",
+              "value": 9.0
+            },
+            "name": "b1_sweep_normalized_t",
+            "value": 0.675
+          },
+          "variant_id": "b2-anterior-09-deg"
+        },
+        {
+          "checks": [
+            {
+              "check_id": "b2-anterior-10-deg.pose-math",
+              "measurement": {
+                "all_values_finite": true,
+                "angle_deg": 80.0,
+                "beam_lateral_dot": 0.0,
+                "beam_norm": 1.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23,
+                "lateral_norm": 1.0,
+                "normal_norm": 1.0
+              },
+              "passed": true,
+              "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+            },
+            {
+              "check_id": "b2-anterior-10-deg.aperture",
+              "measurement": {
+                "clearance_threshold_mm": 7.9,
+                "minimum_forward_projection_mm": 7.594988,
+                "nearest_source_point_mm": 8.265162
+              },
+              "passed": true,
+              "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+            },
+            {
+              "check_id": "b2-anterior-10-deg.depth",
+              "measurement": {
+                "depth_margin_mm": 12.003424,
+                "fan_depth_mm": 167.9,
+                "farthest_source_point_mm": 155.896576,
+                "measurement_slab_half_mm": 12.0,
+                "points_in_measurement_slab": 124796
+              },
+              "passed": true,
+              "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+            },
+            {
+              "check_id": "b2-anterior-10-deg.landmarks-contained",
+              "measurement": {
+                "elevation_tolerance_mm": 6.0,
+                "landmarks": [
+                  {
+                    "contained": true,
+                    "landmark_id": "apex",
+                    "position_mm": [
+                      -0.354699,
+                      -68.322408,
+                      10.395364
+                    ],
+                    "range_mm": 11.642301,
+                    "signed_elevation_mm": 2.052852,
+                    "signed_fan_angle_deg": 0.0
+                  },
+                  {
+                    "contained": true,
+                    "landmark_id": "aortic_ring",
+                    "position_mm": [
+                      4.106446,
+                      24.209658,
+                      12.250488
+                    ],
+                    "range_mm": 104.115494,
+                    "signed_elevation_mm": -3.128075,
+                    "signed_fan_angle_deg": 4.475816
+                  }
+                ]
+              },
+              "passed": true,
+              "requirement": "every defining landmark is inside the finite sector"
+            }
+          ],
+          "coordinates": {
+            "probe": {
+              "beam_axis": [
+                -0.039647502,
+                0.998565373,
+                -0.035989887
+              ],
+              "display": {
+                "flip_lr": false,
+                "marker_side": "right",
+                "vertex": "down"
+              },
+              "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23
+              },
+              "lateral_axis": [
+                0.999213471,
+                0.039647631,
+                -0.000710388
+              ],
+              "origin": [
+                0.105415809,
+                -79.874125675,
+                12.865890481
+              ]
+            }
+          },
+          "source_parameter": {
+            "derived_value": {
+              "unit": "deg",
+              "value": 10.0
+            },
+            "name": "b1_sweep_normalized_t",
+            "value": 0.7
+          },
+          "variant_id": "b2-anterior-10-deg"
+        },
+        {
+          "checks": [
+            {
+              "check_id": "b2-anterior-11-deg.pose-math",
+              "measurement": {
+                "all_values_finite": true,
+                "angle_deg": 80.0,
+                "beam_lateral_dot": -1e-09,
+                "beam_norm": 1.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23,
+                "lateral_norm": 1.0,
+                "normal_norm": 1.0
+              },
+              "passed": true,
+              "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+            },
+            {
+              "check_id": "b2-anterior-11-deg.aperture",
+              "measurement": {
+                "clearance_threshold_mm": 7.9,
+                "minimum_forward_projection_mm": 7.52442,
+                "nearest_source_point_mm": 8.265162
+              },
+              "passed": true,
+              "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+            },
+            {
+              "check_id": "b2-anterior-11-deg.depth",
+              "measurement": {
+                "depth_margin_mm": 12.263807,
+                "fan_depth_mm": 167.9,
+                "farthest_source_point_mm": 155.636193,
+                "measurement_slab_half_mm": 12.0,
+                "points_in_measurement_slab": 125254
+              },
+              "passed": true,
+              "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+            },
+            {
+              "check_id": "b2-anterior-11-deg.landmarks-contained",
+              "measurement": {
+                "elevation_tolerance_mm": 6.0,
+                "landmarks": [
+                  {
+                    "contained": true,
+                    "landmark_id": "apex",
+                    "position_mm": [
+                      -0.354699,
+                      -68.322408,
+                      10.395364
+                    ],
+                    "range_mm": 11.604701,
+                    "signed_elevation_mm": 2.255725,
+                    "signed_fan_angle_deg": 0.0
+                  },
+                  {
+                    "contained": true,
+                    "landmark_id": "aortic_ring",
+                    "position_mm": [
+                      4.106446,
+                      24.209658,
+                      12.250488
+                    ],
+                    "range_mm": 104.154159,
+                    "signed_elevation_mm": -1.316074,
+                    "signed_fan_angle_deg": 4.474151
+                  }
+                ]
+              },
+              "passed": true,
+              "requirement": "every defining landmark is inside the finite sector"
+            }
+          ],
+          "coordinates": {
+            "probe": {
+              "beam_axis": [
+                -0.039653987,
+                0.999041394,
+                -0.01854331
+              ],
+              "display": {
+                "flip_lr": false,
+                "marker_side": "right",
+                "vertex": "down"
+              },
+              "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23
+              },
+              "lateral_axis": [
+                0.999213471,
+                0.039647631,
+                -0.000710388
+              ],
+              "origin": [
+                0.105415809,
+                -79.874125675,
+                12.865890481
+              ]
+            }
+          },
+          "source_parameter": {
+            "derived_value": {
+              "unit": "deg",
+              "value": 11.0
+            },
+            "name": "b1_sweep_normalized_t",
+            "value": 0.725
+          },
+          "variant_id": "b2-anterior-11-deg"
+        },
+        {
+          "checks": [
+            {
+              "check_id": "b2-anterior-12-deg.pose-math",
+              "measurement": {
+                "all_values_finite": true,
+                "angle_deg": 80.0,
+                "beam_lateral_dot": 0.0,
+                "beam_norm": 1.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23,
+                "lateral_norm": 1.0,
+                "normal_norm": 1.0
+              },
+              "passed": true,
+              "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+            },
+            {
+              "check_id": "b2-anterior-12-deg.aperture",
+              "measurement": {
+                "clearance_threshold_mm": 7.9,
+                "minimum_forward_projection_mm": 7.437299,
+                "nearest_source_point_mm": 8.265162
+              },
+              "passed": true,
+              "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+            },
+            {
+              "check_id": "b2-anterior-12-deg.depth",
+              "measurement": {
+                "depth_margin_mm": 13.2439,
+                "fan_depth_mm": 167.9,
+                "farthest_source_point_mm": 154.6561,
+                "measurement_slab_half_mm": 12.0,
+                "points_in_measurement_slab": 125042
+              },
+              "passed": true,
+              "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+            },
+            {
+              "check_id": "b2-anterior-12-deg.landmarks-contained",
+              "measurement": {
+                "elevation_tolerance_mm": 6.0,
+                "landmarks": [
+                  {
+                    "contained": true,
+                    "landmark_id": "apex",
+                    "position_mm": [
+                      -0.354699,
+                      -68.322408,
+                      10.395364
+                    ],
+                    "range_mm": 11.563566,
+                    "signed_elevation_mm": 2.457912,
+                    "signed_fan_angle_deg": 0.0
+                  },
+                  {
+                    "contained": true,
+                    "landmark_id": "aortic_ring",
+                    "position_mm": [
+                      4.106446,
+                      24.209658,
+                      12.250488
+                    ],
+                    "range_mm": 104.161291,
+                    "signed_elevation_mm": 0.496328,
+                    "signed_fan_angle_deg": 4.473844
+                  }
+                ]
+              },
+              "passed": true,
+              "requirement": "every defining landmark is inside the finite sector"
+            }
+          ],
+          "coordinates": {
+            "probe": {
+              "beam_axis": [
+                -0.039648392,
+                0.999213098,
+                -0.001091084
+              ],
+              "display": {
+                "flip_lr": false,
+                "marker_side": "right",
+                "vertex": "down"
+              },
+              "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23
+              },
+              "lateral_axis": [
+                0.999213471,
+                0.039647631,
+                -0.000710388
+              ],
+              "origin": [
+                0.105415809,
+                -79.874125675,
+                12.865890481
+              ]
+            }
+          },
+          "source_parameter": {
+            "derived_value": {
+              "unit": "deg",
+              "value": 12.0
+            },
+            "name": "b1_sweep_normalized_t",
+            "value": 0.75
+          },
+          "variant_id": "b2-anterior-12-deg"
+        },
+        {
+          "checks": [
+            {
+              "check_id": "b2-anterior-13-deg.pose-math",
+              "measurement": {
+                "all_values_finite": true,
+                "angle_deg": 80.0,
+                "beam_lateral_dot": 0.0,
+                "beam_norm": 1.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23,
+                "lateral_norm": 1.0,
+                "normal_norm": 1.0
+              },
+              "passed": true,
+              "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+            },
+            {
+              "check_id": "b2-anterior-13-deg.aperture",
+              "measurement": {
+                "clearance_threshold_mm": 7.9,
+                "minimum_forward_projection_mm": 7.340245,
+                "nearest_source_point_mm": 8.265162
+              },
+              "passed": true,
+              "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+            },
+            {
+              "check_id": "b2-anterior-13-deg.depth",
+              "measurement": {
+                "depth_margin_mm": 14.528729,
+                "fan_depth_mm": 167.9,
+                "farthest_source_point_mm": 153.371271,
+                "measurement_slab_half_mm": 12.0,
+                "points_in_measurement_slab": 124174
+              },
+              "passed": true,
+              "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+            },
+            {
+              "check_id": "b2-anterior-13-deg.landmarks-contained",
+              "measurement": {
+                "elevation_tolerance_mm": 6.0,
+                "landmarks": [
+                  {
+                    "contained": true,
+                    "landmark_id": "apex",
+                    "position_mm": [
+                      -0.354699,
+                      -68.322408,
+                      10.395364
+                    ],
+                    "range_mm": 11.518908,
+                    "signed_elevation_mm": 2.659349,
+                    "signed_fan_angle_deg": 0.0
+                  },
+                  {
+                    "contained": true,
+                    "landmark_id": "aortic_ring",
+                    "position_mm": [
+                      4.106446,
+                      24.209658,
+                      12.250488
+                    ],
+                    "range_mm": 104.136888,
+                    "signed_elevation_mm": 2.308579,
+                    "signed_fan_angle_deg": 4.474895
+                  }
+                ]
+              },
+              "passed": true,
+              "requirement": "every defining landmark is inside the finite sector"
+            }
+          ],
+          "coordinates": {
+            "probe": {
+              "beam_axis": [
+                -0.03963072,
+                0.999080431,
+                0.016361474
+              ],
+              "display": {
+                "flip_lr": false,
+                "marker_side": "right",
+                "vertex": "down"
+              },
+              "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23
+              },
+              "lateral_axis": [
+                0.999213471,
+                0.039647631,
+                -0.000710388
+              ],
+              "origin": [
+                0.105415809,
+                -79.874125675,
+                12.865890481
+              ]
+            }
+          },
+          "source_parameter": {
+            "derived_value": {
+              "unit": "deg",
+              "value": 13.0
+            },
+            "name": "b1_sweep_normalized_t",
+            "value": 0.775
+          },
+          "variant_id": "b2-anterior-13-deg"
+        },
+        {
+          "checks": [
+            {
+              "check_id": "b2-anterior-14-deg.pose-math",
+              "measurement": {
+                "all_values_finite": true,
+                "angle_deg": 80.0,
+                "beam_lateral_dot": 0.0,
+                "beam_norm": 1.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23,
+                "lateral_norm": 1.0,
+                "normal_norm": 1.0
+              },
+              "passed": true,
+              "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+            },
+            {
+              "check_id": "b2-anterior-14-deg.aperture",
+              "measurement": {
+                "clearance_threshold_mm": 7.9,
+                "minimum_forward_projection_mm": 7.240955,
+                "nearest_source_point_mm": 8.265162
+              },
+              "passed": true,
+              "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+            },
+            {
+              "check_id": "b2-anterior-14-deg.depth",
+              "measurement": {
+                "depth_margin_mm": 15.779053,
+                "fan_depth_mm": 167.9,
+                "farthest_source_point_mm": 152.120947,
+                "measurement_slab_half_mm": 12.0,
+                "points_in_measurement_slab": 123271
+              },
+              "passed": true,
+              "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+            },
+            {
+              "check_id": "b2-anterior-14-deg.landmarks-contained",
+              "measurement": {
+                "elevation_tolerance_mm": 6.0,
+                "landmarks": [
+                  {
+                    "contained": true,
+                    "landmark_id": "apex",
+                    "position_mm": [
+                      -0.354699,
+                      -68.322408,
+                      10.395364
+                    ],
+                    "range_mm": 11.470742,
+                    "signed_elevation_mm": 2.859977,
+                    "signed_fan_angle_deg": 0.0
+                  },
+                  {
+                    "contained": true,
+                    "landmark_id": "aortic_ring",
+                    "position_mm": [
+                      4.106446,
+                      24.209658,
+                      12.250488
+                    ],
+                    "range_mm": 104.080956,
+                    "signed_elevation_mm": 4.120126,
+                    "signed_fan_angle_deg": 4.477304
+                  }
+                ]
+              },
+              "passed": true,
+              "requirement": "every defining landmark is inside the finite sector"
+            }
+          ],
+          "coordinates": {
+            "probe": {
+              "beam_axis": [
+                -0.039600976,
+                0.998643435,
+                0.033809048
+              ],
+              "display": {
+                "flip_lr": false,
+                "marker_side": "right",
+                "vertex": "down"
+              },
+              "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23
+              },
+              "lateral_axis": [
+                0.999213471,
+                0.039647631,
+                -0.000710388
+              ],
+              "origin": [
+                0.105415809,
+                -79.874125675,
+                12.865890481
+              ]
+            }
+          },
+          "source_parameter": {
+            "derived_value": {
+              "unit": "deg",
+              "value": 14.0
+            },
+            "name": "b1_sweep_normalized_t",
+            "value": 0.8
+          },
+          "variant_id": "b2-anterior-14-deg"
+        },
+        {
+          "checks": [
+            {
+              "check_id": "b2-anterior-15-deg.pose-math",
+              "measurement": {
+                "all_values_finite": true,
+                "angle_deg": 80.0,
+                "beam_lateral_dot": 0.0,
+                "beam_norm": 1.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23,
+                "lateral_norm": 1.0,
+                "normal_norm": 1.0
+              },
+              "passed": true,
+              "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+            },
+            {
+              "check_id": "b2-anterior-15-deg.aperture",
+              "measurement": {
+                "clearance_threshold_mm": 7.9,
+                "minimum_forward_projection_mm": 7.13946,
+                "nearest_source_point_mm": 8.265162
+              },
+              "passed": true,
+              "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+            },
+            {
+              "check_id": "b2-anterior-15-deg.depth",
+              "measurement": {
+                "depth_margin_mm": 16.588366,
+                "fan_depth_mm": 167.9,
+                "farthest_source_point_mm": 151.311634,
+                "measurement_slab_half_mm": 12.0,
+                "points_in_measurement_slab": 122597
+              },
+              "passed": true,
+              "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+            },
+            {
+              "check_id": "b2-anterior-15-deg.landmarks-contained",
+              "measurement": {
+                "elevation_tolerance_mm": 6.0,
+                "landmarks": [
+                  {
+                    "contained": true,
+                    "landmark_id": "apex",
+                    "position_mm": [
+                      -0.354699,
+                      -68.322408,
+                      10.395364
+                    ],
+                    "range_mm": 11.419081,
+                    "signed_elevation_mm": 3.059734,
+                    "signed_fan_angle_deg": 0.0
+                  },
+                  {
+                    "contained": true,
+                    "landmark_id": "aortic_ring",
+                    "position_mm": [
+                      4.106446,
+                      24.209658,
+                      12.250488
+                    ],
+                    "range_mm": 103.993514,
+                    "signed_elevation_mm": 5.930419,
+                    "signed_fan_angle_deg": 4.481077
+                  }
+                ]
+              },
+              "passed": true,
+              "requirement": "every defining landmark is inside the finite sector"
+            }
+          ],
+          "coordinates": {
+            "probe": {
+              "beam_axis": [
+                -0.03955917,
+                0.997902243,
+                0.051246323
+              ],
+              "display": {
+                "flip_lr": false,
+                "marker_side": "right",
+                "vertex": "down"
+              },
+              "fan": {
+                "angle_deg": 80.0,
+                "depth_cm": 16.79,
+                "focus_cm": 9.23
+              },
+              "lateral_axis": [
+                0.999213471,
+                0.039647631,
+                -0.000710388
+              ],
+              "origin": [
+                0.105415809,
+                -79.874125675,
+                12.865890481
+              ]
+            }
+          },
+          "source_parameter": {
+            "derived_value": {
+              "unit": "deg",
+              "value": 15.0
+            },
+            "name": "b1_sweep_normalized_t",
+            "value": 0.825
+          },
+          "variant_id": "b2-anterior-15-deg"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "check_id": "binding.source-pack",
+      "measurement": {
+        "id": "normal-rodero",
+        "pack_version": "0.1.1",
+        "schema_version": "0.1",
+        "sha256": "65678c34665064d00cad4cf8aa39ff3bce34b16065f42d114602180d5bd094a9"
+      },
+      "passed": true,
+      "requirement": "source pack identity, version, schema, and sha256 exactly match the pinned input"
+    },
+    {
+      "check_id": "binding.rodero-source",
+      "measurement": {
+        "archive_md5": "992f31e20c1aa73c10c5d9a6b6ac903a",
+        "sha256": "b8e013832ccf9262d677ad3d6f140a76de6bb0a2d9734132ec9924a29eba8356",
+        "size_bytes": 187320446
+      },
+      "passed": true,
+      "requirement": "raw Rodero member sha256 and byte size exactly match the pinned source"
+    },
+    {
+      "check_id": "binding.pack-assets",
+      "measurement": {
+        "asset_count": 3,
+        "sha256_by_path": {
+          "public/packs/normal-rodero/assets/echo-volume.raw": "9da3ca81d466dd1cce2059141bc05c0b814702539072cd09bf6801d6111be0cb",
+          "public/packs/normal-rodero/assets/model.bin": "56f328af141316965815c97ef48beb1b51a15d7e6ceb3cc492ce500ac89c4926",
+          "public/packs/normal-rodero/assets/model.gltf": "69eee3cbf1ab10ef0c14fd0f29fb1a3dd5c5a8e384924da8e4ad4ee1ff9bae97"
+        }
+      },
+      "passed": true,
+      "requirement": "every current Rodero pack asset sha256 exactly matches the pinned asset"
+    },
+    {
+      "check_id": "binding.derivation-files",
+      "measurement": {
+        "file_count": 8,
+        "sha256_by_path": {
+          ".gitattributes": "8976406f11a05578d79983a569383a2d8d5981c7143482a5dc6c250455b923a0",
+          "environment.yml": "f57ad2bf628d8469ac48512636ca0ada48bbc8cca731b9ce4187155f7fbdda48",
+          "pipeline/anatomy.py": "a9ae36df5fb761b2759c91b75f2e28aa751ee22c1fbd38e10ffe26217ee4eaed",
+          "pipeline/meshlib.py": "3b22d82af774dd3c86b5bc0810f7e569db561b21b0781f4249634efce4fc50c7",
+          "pipeline/sources.py": "038397674244e63fe4d121c484816dad72430638406e682eaffe6d43533448c7",
+          "pipeline/view_candidates.py": "2ee30b5f54396a50ceb567f8b86f69c1805a364ccd0f228d4dc8cb408175fd9a",
+          "pipeline/views.py": "0532f21e93d6c389036be0aead1531b1c68bfee0e7401985d8d2b958ef10787a",
+          "shared/imaging-constants.json": "897c50848227bf06bace73f724ceff614af99889ecc2f5b2a2267df852b396c2"
+        }
+      },
+      "passed": true,
+      "requirement": "every coordinate-derivation source file and environment definition is sha256-bound"
+    },
+    {
+      "check_id": "binding.cardiac-frame",
+      "measurement": {
+        "basis_max_abs_difference": 0.0,
+        "checks_passed": 9,
+        "checks_total": 9,
+        "method": "cardiac-landmarks-v2"
+      },
+      "passed": true,
+      "requirement": "checksum-bound source re-derives the pack cardiac-landmarks-v2 basis and all 9 checks pass"
+    },
+    {
+      "check_id": "policy.draft-only",
+      "measurement": {
+        "all_view_statuses": "draft",
+        "pack_status": "draft",
+        "review_timestamp_count": 0,
+        "vetter_count": 0,
+        "view_count": 4
+      },
+      "passed": true,
+      "requirement": "pack and every current pack view remain Draft with no vetter or review timestamp"
+    },
+    {
+      "check_id": "policy.no-pack-promotion",
+      "measurement": {
+        "output_path": "evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-001.json",
+        "pack_write_allowed": false,
+        "review_promotion_allowed": false
+      },
+      "passed": true,
+      "requirement": "generator output target is evidence only and no pack-writing code path is invoked"
+    }
+  ],
+  "deferred": [
+    {
+      "disposition": "deferred",
+      "intended_view_id": "a3-subcostal-coronal",
+      "reason": "Relevant intracardiac landmarks are present, but a named subcostal view is defined by a beam entering from below the diaphragm. Rodero has no diaphragm, chest wall, spine, or defensible body-inferior axis from which to derive it.",
+      "reason_code": "subcostal_window_requires_body_axis",
+      "requires": [
+        "torso-registered body and diaphragm landmarks or clinician-authored placement",
+        "clinician review of septal beam angle and display orientation"
+      ]
+    },
+    {
+      "disposition": "deferred",
+      "intended_view_id": "a4-subcostal-sagittal",
+      "reason": "The caval and atrial landmarks can define a bicaval plane, but Rodero cannot establish the below-diaphragm entry direction that makes it a subcostal acquisition. F1 records the geometry-only side approach instead.",
+      "reason_code": "bicaval_plane_without_subcostal_window",
+      "requires": [
+        "torso-registered body and diaphragm landmarks or clinician-authored placement",
+        "clinician review of the subcostal acquisition window"
+      ]
+    },
+    {
+      "disposition": "deferred",
+      "intended_view_id": "a5-subcostal-rao",
+      "reason": "The RAO pose is a rotation from a clinically placed subcostal coronal window; that parent window is unresolved on this heart-only model, and the substrate does not carry the valve-leaflet or conal detail needed for its full payload.",
+      "reason_code": "rao_rotation_depends_on_unresolved_subcostal_window",
+      "requires": [
+        "accepted A3 acquisition pose",
+        "author and clinician selection of the RAO rotation"
+      ]
+    },
+    {
+      "disposition": "deferred",
+      "intended_view_id": "a6-subcostal-lao",
+      "reason": "The LAO pose is a rotation from a clinically placed subcostal coronal window; that parent window is unresolved on this heart-only model, and valve rings cannot establish an en-face leaflet view.",
+      "reason_code": "lao_rotation_depends_on_unresolved_subcostal_window",
+      "requires": [
+        "accepted A3 acquisition pose",
+        "author and clinician selection of the LAO rotation"
+      ]
+    },
+    {
+      "disposition": "deferred",
+      "intended_view_id": "b3-apical-two-chamber",
+      "reason": "The deterministic plane through the LV apex, mitral-ring centroid, and left-atrial centroid also lies 1.05 mm from the aortic-ring centroid on the checksum-bound source, so those landmarks do not distinguish two-chamber from three-chamber/LVOT content.",
+      "reason_code": "geometry_does_not_select_two_chamber_rotation",
+      "requires": [
+        "author-selected apical rotation that excludes the LVOT/aortic root while preserving LV and LA",
+        "clinician review of the acquisition plane and display orientation"
+      ]
+    },
+    {
+      "disposition": "deferred",
+      "intended_view_id": "b5-apical-rv-focused",
+      "reason": "The RV, RA, and tricuspid ring are present, but the required medial chest shift is not derivable from a heart-only model, and a static end-diastolic mesh cannot support TAPSE, FAC, or RV-strain claims.",
+      "reason_code": "chest_shift_and_function_not_derivable",
+      "requires": [
+        "author placement against a torso/chest frame or direct acquisition expertise",
+        "clinician selection of the RV-focused plane",
+        "dynamic source data for functional measurements"
+      ]
+    },
+    {
+      "disposition": "deferred",
+      "intended_view_id": "f2-right-parasternal-transverse",
+      "reason": "The source carries pulmonary-vein stubs but no separately identified right pulmonary artery branch, so the canonical RUPV-to-LA relationship below the RPA level cannot be verified or used to derive a unique transverse pose.",
+      "reason_code": "rpa_level_not_identifiable",
+      "requires": [
+        "substrate with a separately identified RPA and RUPV",
+        "author placement and clinician review of the transverse acquisition window"
+      ]
+    }
+  ],
+  "existing_views": [
+    {
+      "candidate_id": "existing-b1-apical-four-chamber",
+      "candidate_status": "draft",
+      "checks": [
+        {
+          "check_id": "existing-b1-apical-four-chamber.pose-math",
+          "measurement": {
+            "all_values_finite": true,
+            "angle_deg": 80,
+            "beam_lateral_dot": 0.0,
+            "beam_norm": 1.0,
+            "depth_cm": 16.79,
+            "focus_cm": 9.23,
+            "lateral_norm": 1.0,
+            "normal_norm": 1.0
+          },
+          "passed": true,
+          "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+        },
+        {
+          "check_id": "existing-b1-apical-four-chamber.aperture",
+          "measurement": {
+            "clearance_threshold_mm": 7.9,
+            "minimum_forward_projection_mm": 8.000651,
+            "nearest_source_point_mm": 8.265162
+          },
+          "passed": true,
+          "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+        },
+        {
+          "check_id": "existing-b1-apical-four-chamber.depth",
+          "measurement": {
+            "depth_margin_mm": 12.250179,
+            "fan_depth_mm": 167.9,
+            "farthest_source_point_mm": 155.649821,
+            "measurement_slab_half_mm": 12.0,
+            "points_in_measurement_slab": 108469
+          },
+          "passed": true,
+          "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+        },
+        {
+          "check_id": "existing-b1-apical-four-chamber.sweep-math",
+          "measurement": {
+            "axis_norm": 1.0,
+            "from": -18,
+            "mode": "tilt",
+            "to": 22,
+            "unit": "deg"
+          },
+          "passed": true,
+          "requirement": "finite unit sweep axis, increasing range, and mode-compatible units"
+        },
+        {
+          "check_id": "existing-b1-apical-four-chamber.landmarks-contained",
+          "measurement": {
+            "elevation_tolerance_mm": 6.0,
+            "landmarks": [
+              {
+                "contained": true,
+                "landmark_id": "apex",
+                "position_mm": [
+                  -0.354699,
+                  -68.322408,
+                  10.395364
+                ],
+                "range_mm": 11.821903,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": 0.0
+              },
+              {
+                "contained": true,
+                "landmark_id": "mitral_ring",
+                "position_mm": [
+                  19.762758,
+                  13.497558,
+                  -6.921728
+                ],
+                "range_mm": 97.448613,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": 13.868515
+              },
+              {
+                "contained": true,
+                "landmark_id": "tricuspid_ring",
+                "position_mm": [
+                  -27.104169,
+                  16.361867,
+                  -7.89724
+                ],
+                "range_mm": 102.141252,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": -13.21951
+              }
+            ]
+          },
+          "passed": true,
+          "requirement": "every defining landmark is inside the finite sector"
+        }
+      ],
+      "coordinates": {
+        "probe": {
+          "beam_axis": [
+            -0.03892056723675134,
+            0.9771453673924172,
+            -0.2089787559287014
+          ],
+          "display": {
+            "flip_lr": false,
+            "marker_side": "right",
+            "vertex": "down"
+          },
+          "fan": {
+            "angle_deg": 80,
+            "depth_cm": 16.79,
+            "focus_cm": 9.23
+          },
+          "lateral_axis": [
+            0.9992134710353209,
+            0.039647631078269435,
+            -0.0007103882230686514
+          ],
+          "origin": [
+            0.1054158086849426,
+            -79.87412567548702,
+            12.86589048118901
+          ]
+        },
+        "sweep": {
+          "axis": {
+            "direction": [
+              0.9992134710353209,
+              0.039647631078269435,
+              -0.0007103882230686514
+            ],
+            "origin": [
+              0.1054158086849426,
+              -79.87412567548702,
+              12.86589048118901
+            ]
+          },
+          "interpolation": "slerp",
+          "mode": "tilt",
+          "range": {
+            "from": -18,
+            "to": 22,
+            "unit": "deg"
+          },
+          "structures_in_order": [
+            "lv-myocardium",
+            "rv-myocardium",
+            "ra-myocardium",
+            "la-myocardium",
+            "tricuspid-valve-ring",
+            "mitral-valve-ring",
+            "aortic-wall",
+            "aortic-valve-ring",
+            "pulmonary-artery-wall",
+            "pulmonary-valve-ring"
+          ]
+        }
+      },
+      "intended_view_id": "b1-apical-four-chamber",
+      "kind": "existing",
+      "source_view_id": "b1-apical-four-chamber"
+    },
+    {
+      "candidate_id": "existing-c1-parasternal-long-axis",
+      "candidate_status": "draft",
+      "checks": [
+        {
+          "check_id": "existing-c1-parasternal-long-axis.pose-math",
+          "measurement": {
+            "all_values_finite": true,
+            "angle_deg": 70,
+            "beam_lateral_dot": 0.0,
+            "beam_norm": 1.0,
+            "depth_cm": 12.74,
+            "focus_cm": 7.01,
+            "lateral_norm": 1.0,
+            "normal_norm": 1.0
+          },
+          "passed": true,
+          "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+        },
+        {
+          "check_id": "existing-c1-parasternal-long-axis.aperture",
+          "measurement": {
+            "clearance_threshold_mm": 7.9,
+            "minimum_forward_projection_mm": 7.990109,
+            "nearest_source_point_mm": 10.071711
+          },
+          "passed": true,
+          "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+        },
+        {
+          "check_id": "existing-c1-parasternal-long-axis.depth",
+          "measurement": {
+            "depth_margin_mm": 9.45482,
+            "fan_depth_mm": 127.4,
+            "farthest_source_point_mm": 117.94518,
+            "measurement_slab_half_mm": 12.0,
+            "points_in_measurement_slab": 116862
+          },
+          "passed": true,
+          "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+        },
+        {
+          "check_id": "existing-c1-parasternal-long-axis.sweep-math",
+          "measurement": {
+            "axis_norm": 1.0,
+            "from": -20,
+            "mode": "tilt",
+            "to": 20,
+            "unit": "deg"
+          },
+          "passed": true,
+          "requirement": "finite unit sweep axis, increasing range, and mode-compatible units"
+        },
+        {
+          "check_id": "existing-c1-parasternal-long-axis.landmarks-contained",
+          "measurement": {
+            "elevation_tolerance_mm": 6.0,
+            "landmarks": [
+              {
+                "contained": true,
+                "landmark_id": "mitral_ring",
+                "position_mm": [
+                  19.762758,
+                  13.497558,
+                  -6.921728
+                ],
+                "range_mm": 82.759272,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": -3.348886
+              },
+              {
+                "contained": true,
+                "landmark_id": "aortic_ring",
+                "position_mm": [
+                  4.106446,
+                  24.209658,
+                  12.250488
+                ],
+                "range_mm": 57.642564,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": 4.811017
+              }
+            ]
+          },
+          "passed": true,
+          "requirement": "every defining landmark is inside the finite sector"
+        },
+        {
+          "check_id": "existing-c1-parasternal-long-axis.landmarks-plane",
+          "measurement": {
+            "elevation_tolerance_mm": 6.0,
+            "landmarks": [
+              {
+                "contained": false,
+                "landmark_id": "apex",
+                "position_mm": [
+                  -0.354699,
+                  -68.322408,
+                  10.395364
+                ],
+                "range_mm": 106.266074,
+                "signed_elevation_mm": 0.0,
+                "signed_fan_angle_deg": -55.705176
+              }
+            ]
+          },
+          "passed": true,
+          "requirement": "every defining landmark is within 6.0 mm of the imaging plane"
+        }
+      ],
+      "coordinates": {
+        "probe": {
+          "beam_axis": [
+            0.6468421621667504,
+            -0.04224874401784548,
+            -0.761452730556768
+          ],
+          "display": {
+            "flip_lr": false,
+            "marker_side": "left",
+            "vertex": "up"
+          },
+          "fan": {
+            "angle_deg": 70,
+            "depth_cm": 12.74,
+            "focus_cm": 7.01
+          },
+          "lateral_axis": [
+            0.06517650693500611,
+            0.9978737510044801,
+            -1.387778780781446e-17
+          ],
+          "origin": [
+            -33.36292056688886,
+            21.812232728931654,
+            55.98793320029994
+          ]
+        },
+        "sweep": {
+          "axis": {
+            "direction": [
+              -0.06517650693500611,
+              -0.9978737510044801,
+              1.387778780781446e-17
+            ],
+            "origin": [
+              -33.36292056688886,
+              21.812232728931654,
+              55.98793320029994
+            ]
+          },
+          "interpolation": "slerp",
+          "mode": "tilt",
+          "range": {
+            "from": -20,
+            "to": 20,
+            "unit": "deg"
+          },
+          "structures_in_order": [
+            "lv-myocardium",
+            "rv-myocardium",
+            "ra-myocardium",
+            "la-myocardium",
+            "aortic-wall",
+            "tricuspid-valve-ring",
+            "aortic-valve-ring",
+            "mitral-valve-ring",
+            "pulmonary-artery-wall",
+            "pulmonary-valve-ring"
+          ]
+        }
+      },
+      "intended_view_id": "c1-parasternal-long-axis",
+      "kind": "existing",
+      "source_view_id": "c1-parasternal-long-axis"
+    },
+    {
+      "candidate_id": "existing-c2-parasternal-short-axis",
+      "candidate_status": "draft",
+      "checks": [
+        {
+          "check_id": "existing-c2-parasternal-short-axis.pose-math",
+          "measurement": {
+            "all_values_finite": true,
+            "angle_deg": 70,
+            "beam_lateral_dot": 0.0,
+            "beam_norm": 1.0,
+            "depth_cm": 12.16,
+            "focus_cm": 6.69,
+            "lateral_norm": 1.0,
+            "normal_norm": 1.0
+          },
+          "passed": true,
+          "requirement": "finite orthonormal probe basis and 0 < focus_cm <= depth_cm"
+        },
+        {
+          "check_id": "existing-c2-parasternal-short-axis.aperture",
+          "measurement": {
+            "clearance_threshold_mm": 7.9,
+            "minimum_forward_projection_mm": 7.999877,
+            "nearest_source_point_mm": 8.161805
+          },
+          "passed": true,
+          "requirement": "probe origin is at least 7.9 mm from source points and all source points are in front of the aperture plane"
+        },
+        {
+          "check_id": "existing-c2-parasternal-short-axis.depth",
+          "measurement": {
+            "depth_margin_mm": 9.037513,
+            "fan_depth_mm": 121.6,
+            "farthest_source_point_mm": 112.562487,
+            "measurement_slab_half_mm": 12.0,
+            "points_in_measurement_slab": 93023
+          },
+          "passed": true,
+          "requirement": "fan depth reaches every checksum-bound source point in the 24 mm measurement slab"
+        },
+        {
+          "check_id": "existing-c2-parasternal-short-axis.sweep-math",
+          "measurement": {
+            "axis_norm": 1.0,
+            "from": 0,
+            "mode": "translate",
+            "to": 79.7,
+            "unit": "mm"
+          },
+          "passed": true,
+          "requirement": "finite unit sweep axis, increasing range, and mode-compatible units"
+        },
+        {
+          "check_id": "existing-c2-parasternal-short-axis.landmarks-contained",
+          "measurement": {
+            "elevation_tolerance_mm": 6.0,
+            "landmarks": [
+              {
+                "contained": true,
+                "landmark_id": "aortic_ring",
+                "position_mm": [
+                  4.106446,
+                  24.209658,
+                  12.250488
+                ],
+                "range_mm": 55.843528,
+                "signed_elevation_mm": -2.0,
+                "signed_fan_angle_deg": 4.582043
+              }
+            ]
+          },
+          "passed": true,
+          "requirement": "every defining landmark is inside the finite sector"
+        }
+      ],
+      "coordinates": {
+        "probe": {
+          "beam_axis": [
+            -2.100093521801519e-34,
+            -2.0494357866503254e-17,
+            -1
+          ],
+          "display": {
+            "flip_lr": false,
+            "marker_side": "right",
+            "vertex": "up"
+          },
+          "fan": {
+            "angle_deg": 70,
+            "depth_cm": 12.16,
+            "focus_cm": 6.69
+          },
+          "lateral_axis": [
+            1,
+            -1.0247178933251627e-17,
+            0
+          ],
+          "origin": [
+            -0.354699350951943,
+            22.20965766588477,
+            67.9155387878418
+          ]
+        },
+        "sweep": {
+          "axis": {
+            "direction": [
+              -1.0247178933251627e-17,
+              -1,
+              2.0494357866503254e-17
+            ]
+          },
+          "interpolation": "lerp",
+          "mode": "translate",
+          "range": {
+            "from": 0,
+            "to": 79.7,
+            "unit": "mm"
+          },
+          "structures_in_order": []
+        }
+      },
+      "intended_view_id": "c2-parasternal-short-axis",
+      "kind": "existing",
+      "source_view_id": "c2-parasternal-short-axis"
+    }
+  ],
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "555a249098a24f662073bb7b5dd82541f1651e8a55af7e295231d453fd3ac625",
+    "scope": "canonical-json-with-integrity.canonical_payload_sha256-null"
+  },
+  "limitations": [
+    "These are Draft coordinate proposals and machine-checked geometry evidence, not clinically validated views.",
+    "Rodero is a static adult population-average CT-derived heart, not pediatric patient anatomy.",
+    "The heart-only source does not establish chest-wall reachability, ultrasound physics, motion, Doppler, or artifacts.",
+    "No candidate or check in this file changes pack content or provenance.vetted status."
+  ],
+  "non_promotion": {
+    "candidate_review_status": "draft",
+    "effect_on_pack_review_status": "none",
+    "generation_writes_only": "evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-001.json",
+    "may_promote_pack_review_status": false,
+    "may_write_pack": false,
+    "source_pack_review_status": "draft"
+  },
+  "status": "draft_evidence_only",
+  "unsupported": [
+    {
+      "disposition": "unsupported",
+      "intended_view_id": "a1-subcostal-coronal-situs",
+      "reason": "Requires liver, stomach, spine, abdominal IVC, and descending abdominal aorta; the Rodero source is heart-only.",
+      "reason_code": "absent_abdominal_situs_anatomy"
+    },
+    {
+      "disposition": "unsupported",
+      "intended_view_id": "a2-subcostal-sagittal-ivc",
+      "reason": "Requires longitudinal abdominal IVC, descending abdominal aorta, spine, and azygos context; those structures are absent.",
+      "reason_code": "absent_abdominal_long_axis_anatomy"
+    },
+    {
+      "disposition": "unsupported",
+      "intended_view_id": "d1-high-parasternal-ductal",
+      "reason": "Requires ductus/ligamentum, proximal LPA, aortic isthmus, arch, and descending aorta; the source contains none as identified geometry.",
+      "reason_code": "absent_ductal_arch_anatomy"
+    },
+    {
+      "disposition": "unsupported",
+      "intended_view_id": "d2-high-parasternal-transverse",
+      "reason": "Requires separately identified RPA and LPA and their pulmonary-vein relationships; the source has only a pulmonary-artery wall tag without branch identities.",
+      "reason_code": "absent_branch_pulmonary_arteries"
+    },
+    {
+      "disposition": "unsupported",
+      "intended_view_id": "e1-suprasternal-long-axis",
+      "reason": "Requires the full aortic arch, isthmus, descending aorta, and head-and-neck branches; the Rodero source does not contain them.",
+      "reason_code": "absent_aortic_arch_and_branches"
+    },
+    {
+      "disposition": "unsupported",
+      "intended_view_id": "e2-suprasternal-short-axis",
+      "reason": "Requires arch branching, innominate vein, SVC/RPA level relationships, and a complete four-pulmonary-vein crab view; the required identified anatomy is absent.",
+      "reason_code": "absent_arch_venous_and_branch_context"
+    }
+  ]
+}

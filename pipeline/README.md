@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-20 17:20 EDT
+**Updated:** 2026-08-20 20:36 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -51,6 +51,28 @@ or escaped Unicode to literal Unicode) alongside the actual content diff.
 `authoring-slots/v1` is still a pre-stable dev format. This cycle made its source `pack_version`
 required; an earlier v1 file without that field is intentionally refused and must be re-exported.
 
+## View-coordinate review evidence
+
+Proposed Rodero coordinates are generated into `evidence/view-candidates/`, not written into a
+pack. The candidate set is bound to exact pack, source, pack-asset, and derivation-file digests; it
+records current view coordinates, new geometry-derived proposals, an unselected B2 angle series,
+and the reason every remaining canon slot has no coordinates. It is Draft evidence for technical
+and later clinical review, never a review promotion or a runtime input.
+
+```bash
+conda run --no-capture-output -n cardiology-app python pipeline/view_candidates.py --check
+conda run --no-capture-output -n cardiology-app python pipeline/view_candidates.py --write
+npm run check:view-candidates
+```
+
+`--write` atomically creates the pinned evidence JSON or no-ops when its bytes already match. It
+never calls pack-writing code, and it refuses to replace a tracked set with different bytes. After
+a candidate set is shared, revisions use a new immutable set number; review observations go in a
+separate assessment sidecar. The content gate checks the independent accepted-digest registry; the
+registry and every previously committed candidate blob are append-only against Git history. The
+Python `--check` command remains the required raw-source geometry replay before sharing a set. See
+`evidence/view-candidates/README.md`.
+
 ## Files
 
 | File | What it does |
@@ -63,6 +85,7 @@ required; an earlier v1 file without that field is intentionally refused and mus
 | `anatomy.py` | Valve identification by face adjacency, and the cardiac frame derived from it. |
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
+| `view_candidates.py` | Deterministic, revision-bound Rodero coordinate evidence; never pack content. |
 
 ## Steps
 
