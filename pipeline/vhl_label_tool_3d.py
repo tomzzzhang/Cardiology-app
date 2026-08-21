@@ -1,42 +1,52 @@
 """
-A rotatable 3D chamber labeller, still as one self-contained HTML file.
+Chamber labeller on the real mesh, using the app's own engine and cut plane.
 
-The slice version of this tool (`vhl_label_tool`) was correct and unusable.
-Reading a chamber off an isolated binary cross-section is a trained radiological
-skill; without it the slices carry no spatial context and there is nothing to
-recognise. That is a real defect in the instrument, not in the reader.
+Two earlier attempts are recorded here because each failed for a reason worth
+not repeating.
 
-What changes here, and why each choice:
+FIRST, slices (`vhl_label_tool`). Correct and unusable: reading a chamber off an
+isolated binary cross-section is a trained radiological skill, and without it
+the slices carry no spatial context to recognise.
 
-* **It opens on a CUTAWAY: muscle and cavity together, front half removed.**
-  The obvious design was to show the blood pool alone, as an angiographic cast
-  in which an LV cone and an RV crescent are recognisable at a glance. That was
-  built and rejected on the evidence: this source's trabeculation is heavy
-  enough that the cast is a lumpy mass with fingers everywhere and no readable
-  chamber, whether taken raw or opened at 2-5 mm to strip the interstitial film.
-  Rendering muscle in red against cavity in cream, with the near half clipped
-  away, produces a cross-section held in 3D — and that reads immediately, with
-  septum and chamber walls obvious. The cast view remains one checkbox away.
+SECOND, a voxel splat renderer with a clipping plane. Better, still not good
+enough — a 128^3 point cloud is too coarse to read anatomy from, and clicking
+into a rendered volume leaves the reader guessing what depth the click landed
+at. Two useful negatives came out of it and are kept:
 
-* **It shows the cavity UNDIVIDED.** The cavity is close to objective: not
-  tissue, inside the epicardium. The three-way split this experiment produced is
-  the contested part and is NEVER drawn. Showing it would collect agreement with
-  a guess instead of independent evidence, which is the trap the whole labelling
-  exercise exists to avoid.
+  * Showing the BLOOD POOL alone, as an angiographic cast, does not work on this
+    source. The trabeculation is heavy enough that the cast is a lumpy mass with
+    fingers everywhere, whether taken raw or opened at 2-5 mm to strip the
+    interstitial film. Muscle against cavity in section is what reads.
+  * A clipped point cloud must keep INTERIOR voxels, not only surface ones, or
+    the cut reveals the inside of a hollow shell and the viewer sees straight
+    through the model.
 
-* **Picking is a ray march through the volume, not a lookup in a depth buffer.**
-  The click has to land on the chamber the reader believes they are pointing at,
-  including when a clipping plane has cut the front of the heart away. Marching
-  the actual voxels from the clip plane forward gives exactly that, and it stays
-  exact regardless of zoom, rotation or window size.
+THIS version answers both by using what the application itself uses.
 
-* **The volume ships as a tiled PNG, decoded in the browser.** 128^3 packed one
-  bit per structure into two colour channels, with the surface and its normals
-  computed once at load. That is ~200 KB rather than the ~1.5 MB a pre-extracted
-  point cloud with normals would cost, and it keeps the file emailable.
+* **three.js, the app's own renderer and version**, inlined from `node_modules`
+  so the file stays offline and self-contained.
 
-Seeds export in the SAME schema as the slice tool, so `seeds_to_markers` and
-`consistency` read either without modification.
+* **The app's stencil-cap algorithm**, mirrored from `src/viewer/caps.ts`: draw
+  the clipped solid writing only stencil, back faces incrementing and front
+  faces decrementing with the depth test off, then paint a plane-aligned quad
+  masked to a non-zero counter. Away from the cut every back face is matched by
+  a front face and the count returns to zero; where the plane removed the near
+  surface the match is missing, so the counter is non-zero over exactly the
+  cross-section. `contracts/viewer-core.md` puts it plainly: a hollow cut is a
+  bug, not a style.
+
+* **Seeds land ON the cut plane, by construction.** The click is intersected
+  with the mathematical plane — not with geometry, not with a depth buffer — so
+  there is no depth for the reader to be wrong about. The point is then looked
+  up in an occupancy grid shipped alongside, which decides whether it fell in
+  cavity or in muscle and refuses the seed if it fell in neither.
+
+* **The real decimated surface**, 110k triangles with smooth normals, quantised
+  to 16-bit positions and 8-bit normals with 16-bit indices. About 1.1 MB of
+  geometry rather than 5 MB of float32, and it reads as anatomy, not as blocks.
+
+Seeds export in the slice tool's schema, so `seeds_to_markers` and `consistency`
+read this tool's output unchanged.
 """
 
 from __future__ import annotations
@@ -46,31 +56,84 @@ import json
 from pathlib import Path
 
 import numpy as np
-from scipy import ndimage
 
 from vhl_label_tool import TAG_CHOICES
-from vhl_partition import (components, epicardial_envelope, write_png)
+from vhl_partition import (analyse_debris, components, epicardial_envelope,
+                           strip_debris, write_png)
 
-#: Working resolution for the shipped volume. 128 keeps the payload small and
-#: still resolves a papillary muscle; seeds are mapped back up on export, so
-#: this costs display detail rather than seed precision.
-GRID = 128
+#: Triangle budget. The largest that keeps the vertex count under 65,535 so
+#: indices fit in Uint16 — that one constraint halves the index buffer, which is
+#: the biggest single part of the payload.
+TRIANGLE_BUDGET = 110_000
 
-#: Tiles across the packed PNG. 12 x 11 holds 128 slices.
+#: Occupancy grid shipped for hit-testing a click. Only ever asked "cavity,
+#: muscle or neither" at a point, so it needs far less resolution than the mesh.
+HIT_GRID = 128
 TILE_COLUMNS = 12
 
 
+def build_mesh(vertices: np.ndarray, faces: np.ndarray) -> dict:
+    """Decimate, compute smooth normals, and quantise for transport."""
+    import fast_simplification
+
+    report = analyse_debris(vertices, faces)
+    clean_v, clean_f = strip_debris(vertices, faces, report)
+    reduction = 1.0 - TRIANGLE_BUDGET / len(clean_f)
+    points, triangles = fast_simplification.simplify(
+        clean_v.astype(np.float32), clean_f.astype(np.int32),
+        min(max(reduction, 0.0), 0.99))
+    points = np.asarray(points, dtype=np.float64)
+    triangles = np.asarray(triangles, dtype=np.int64)
+    if len(points) > 65535:
+        raise ValueError(f"{len(points)} vertices exceeds the Uint16 index limit")
+
+    # Area-weighted vertex normals: accumulating the raw cross product rather
+    # than a per-face unit normal is what stops a fan of slivers on a trabecula
+    # from outvoting the large faces around it.
+    a, b, c = points[triangles[:, 0]], points[triangles[:, 1]], points[triangles[:, 2]]
+    face_normal = np.cross(b - a, c - a)
+    normals = np.zeros_like(points)
+    for column in range(3):
+        np.add.at(normals, triangles[:, column], face_normal)
+    lengths = np.linalg.norm(normals, axis=1, keepdims=True)
+    # A vertex whose incident faces cancel out — 61 of them here, on slivers left
+    # by decimation — would otherwise ship a zero normal and shade black under
+    # Phong. Point it outward from the centroid instead: wrong in detail, right
+    # in sign, and invisible at 0.1% of vertices.
+    degenerate = lengths[:, 0] < 1e-12
+    if degenerate.any():
+        outward = points[degenerate] - points.mean(axis=0)
+        fallback = np.linalg.norm(outward, axis=1, keepdims=True)
+        fallback[fallback == 0] = 1.0
+        normals[degenerate] = outward / fallback
+        lengths[degenerate] = 1.0
+    lengths[lengths == 0] = 1.0
+    normals /= lengths
+
+    low, high = points.min(axis=0), points.max(axis=0)
+    span = float((high - low).max())
+    quantised = np.round((points - low) / span * 65534.0 - 32767.0).astype(np.int16)
+    normal_bytes = np.round(np.clip(normals, -1, 1) * 127.0).astype(np.int8)
+
+    return {
+        "positions": base64.b64encode(quantised.tobytes()).decode("ascii"),
+        "normals": base64.b64encode(normal_bytes.tobytes()).decode("ascii"),
+        "indices": base64.b64encode(triangles.astype(np.uint16).tobytes()).decode("ascii"),
+        "vertexCount": int(len(points)),
+        "triangleCount": int(len(triangles)),
+        "quantLow": [float(v) for v in low],
+        "quantSpan": span,
+    }
+
+
 def downsample(mask: np.ndarray, factor: int) -> np.ndarray:
-    """Block-reduce by OR. `any` rather than majority: thin trabeculae and the
-    narrow necks between chambers must survive, and a majority rule erases
-    exactly those."""
     size = mask.shape[0] // factor
     trimmed = mask[:size * factor, :size * factor, :size * factor]
     return trimmed.reshape(size, factor, size, factor, size, factor).any(axis=(1, 3, 5))
 
 
-def pack_volume_png(tissue: np.ndarray, cavity: np.ndarray, path: Path) -> tuple[int, int]:
-    """Tile the volume into one RGB image: red = tissue, green = cavity."""
+def pack_hit_grid(tissue: np.ndarray, cavity: np.ndarray, path: Path) -> tuple[int, int]:
+    """Tile the occupancy grid into one RGB image: red = muscle, green = cavity."""
     n = tissue.shape[0]
     rows = (n + TILE_COLUMNS - 1) // TILE_COLUMNS
     image = np.zeros((rows * n, TILE_COLUMNS * n, 3), dtype=np.uint8)
@@ -82,31 +145,39 @@ def pack_volume_png(tissue: np.ndarray, cavity: np.ndarray, path: Path) -> tuple
     return image.shape[1], image.shape[0]
 
 
-def build(tissue_full: np.ndarray, cavity_full: np.ndarray, out: Path,
-          pack_id: str, full_resolution: int, pitch_mm: float) -> Path:
-    factor = tissue_full.shape[0] // GRID
-    tissue = downsample(tissue_full, factor)
-    cavity = downsample(cavity_full, factor)
-
-    scratch = out / "_volume.png"
-    width, height = pack_volume_png(tissue, cavity, scratch)
-    encoded = base64.b64encode(scratch.read_bytes()).decode("ascii")
+def build(mesh: dict, tissue: np.ndarray, cavity: np.ndarray, grid_origin: np.ndarray,
+          grid_pitch: float, full_resolution: int, out: Path, pack_id: str,
+          three_source: str) -> Path:
+    factor = tissue.shape[0] // HIT_GRID
+    scratch = out / "_hit.png"
+    width, height = pack_hit_grid(downsample(tissue, factor), downsample(cavity, factor), scratch)
+    hit_png = base64.b64encode(scratch.read_bytes()).decode("ascii")
     scratch.unlink()
 
     payload = {
         "pack": pack_id,
-        "grid": GRID,
-        "tileColumns": TILE_COLUMNS,
-        "imageWidth": width,
-        "imageHeight": height,
+        "mesh": mesh,
+        "hit": {
+            "grid": HIT_GRID, "tileColumns": TILE_COLUMNS,
+            "imageWidth": width, "imageHeight": height,
+            "origin": [float(v) for v in grid_origin],
+            "pitch": float(grid_pitch) * factor,
+            "scaleToFull": factor,
+        },
         "fullResolution": full_resolution,
-        "scaleToFull": factor,
-        "pitch_mm": round(pitch_mm, 6),
         "tags": [{"tag": t, "label": lab, "colour": col} for t, lab, col in TAG_CHOICES],
     }
+
+    # three.js sits in a text/plain block and is imported from a Blob URL at
+    # runtime. A data: URI import is refused by some browsers, and an inline
+    # `type="module"` script would put three's own top-level names in scope.
+    if "</script>" in three_source:
+        raise ValueError("three source contains a closing script tag")
+
     html = (_TEMPLATE
             .replace("__PAYLOAD__", json.dumps(payload))
-            .replace("__VOLUME__", encoded))
+            .replace("__HITPNG__", hit_png)
+            .replace("__THREE__", three_source))
     target = out / "label-tool-3d.html"
     target.write_text(html)
     return target
@@ -116,12 +187,12 @@ _TEMPLATE = r"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Chamber labeller (3D)</title>
+<title>Chamber labeller</title>
 <style>
-  :root { --bg:#f6f6f8; --panel:#fff; --ink:#1b1b1f; --muted:#6b6b76; --line:#dcdce3; --accent:#1565c0; }
+  :root { --panel:#fff; --ink:#1b1b1f; --muted:#6b6b76; --line:#dcdce3; --accent:#1565c0; }
   * { box-sizing:border-box; }
   body { margin:0; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:var(--bg); color:var(--ink); }
+         background:#f6f6f8; color:var(--ink); }
   header { padding:12px 18px; background:var(--panel); border-bottom:1px solid var(--line);
            display:flex; gap:14px; align-items:baseline; flex-wrap:wrap; }
   h1 { font-size:16px; margin:0; font-weight:650; }
@@ -136,11 +207,13 @@ _TEMPLATE = r"""<!doctype html>
            padding:6px 10px; cursor:pointer; color:var(--ink); }
   button:hover { border-color:#b7b7c2; }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.on { background:#eef4fd; border-color:var(--accent); }
   .tag { display:flex; align-items:center; gap:8px; width:100%; text-align:left; margin-bottom:5px; }
   .tag.active { box-shadow:inset 0 0 0 2px var(--ink); }
   .swatch { width:13px; height:13px; border-radius:4px; flex:none; }
   .key { margin-left:auto; color:var(--muted); font-size:12px; }
-  canvas { display:block; border-radius:8px; background:#fff; cursor:crosshair; touch-action:none; }
+  #gl { display:block; width:100%; border-radius:8px; background:#eef0f4; cursor:crosshair;
+        touch-action:none; }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   label.ctl { display:block; font-size:13px; color:var(--muted); margin-top:8px; }
   input[type=range]{ width:100%; }
@@ -152,322 +225,310 @@ _TEMPLATE = r"""<!doctype html>
 </head>
 <body>
 <header>
-  <h1>Chamber labeller &mdash; 3D</h1>
+  <h1>Chamber labeller</h1>
   <span class="muted" id="packLine"></span>
 </header>
-
 <main>
   <div class="stage">
     <div class="row" style="margin-bottom:8px">
-      <button id="resetView">Reset view</button>
-      <label class="ctl" style="margin:0"><input type="checkbox" id="showTissue" checked> show muscle</label>
-      <span class="muted" style="margin-left:auto">drag to rotate &middot; scroll to zoom &middot; click a chamber to label</span>
+      <button id="reset">Reset view</button>
+      <span class="muted">cut along</span>
+      <button data-axis="0">X</button><button data-axis="1">Y</button>
+      <button data-axis="2">Z</button><button data-axis="v">view</button>
+      <button id="flip">Flip</button>
+      <span class="muted" style="margin-left:auto">drag rotate &middot; scroll zoom &middot; click the cut face</span>
     </div>
-    <canvas id="view" width="620" height="560"></canvas>
-    <label class="ctl">Cut away front <span id="clipVal" class="muted"></span>
-      <input type="range" id="clip" min="0" max="100" value="50"></label>
+    <canvas id="gl"></canvas>
+    <label class="ctl">Cut depth <input type="range" id="depth" min="0" max="1000" value="500"></label>
     <p id="status" class="warn" style="margin:10px 0 0">
-      Loading&hellip; if this stays, whatever opened the file is blocking scripts.
-      Save it to disk and open it in Chrome or Safari.
+      Loading&hellip; if this stays, the file is being shown by something that blocks scripts.
+      Save it to disk and open the saved file in Chrome or Safari.
     </p>
-    <p class="muted" id="hint" style="margin:8px 0 0; display:none">
-      <strong>Red is heart muscle, cream is the space inside the chambers.</strong> The front half
-      is cut away so you are looking at a cross-section held in 3D. Drag to rotate, use the slider
-      to move the cut, then click on a chamber to label it. Nothing here is pre-labelled &mdash;
-      the cream is the undivided cavity, not any guess about where the chambers divide.
+    <p class="muted" id="hint" style="display:none;margin:8px 0 0">
+      <strong>Red is muscle, cream is the space inside a chamber.</strong> Click on the flat cut
+      face. The dot lands exactly on the cutting plane, so there is nothing to judge about depth.
+      Nothing is pre-labelled &mdash; the cream is the undivided cavity, not any guess about where
+      the chambers divide.
     </p>
   </div>
-
   <div class="side">
-    <div class="card">
-      <h2>Label to place</h2>
-      <div id="tags"></div>
-      <label class="ctl"><input type="checkbox" id="unsure"> mark next click unsure</label>
-    </div>
-    <div class="card">
-      <h2>Seeds placed</h2>
-      <div id="seedList" style="max-height:200px; overflow:auto"></div>
-      <div class="row" style="margin-top:8px">
-        <button id="undo">Undo</button><button id="clear">Clear all</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Progress</h2>
-      <div id="counts" style="font-size:13px"></div>
-      <p class="muted" id="progressNote" style="margin:8px 0 0"></p>
-    </div>
-    <div class="card">
-      <h2>Finish</h2>
-      <div class="row">
-        <button class="primary" id="download">Download seeds.json</button>
-        <button id="copy">Copy</button>
-      </div>
-      <p class="muted" id="saveNote" style="margin:8px 0 0"></p>
-    </div>
-    <div class="warn">
-      You are never asked which side is patient-left. Name the chambers you recognise; the
-      orientation is worked out afterwards from where they turn out to be.
-    </div>
+    <div class="card"><h2>Label to place</h2><div id="tags"></div>
+      <label class="ctl"><input type="checkbox" id="unsure"> mark next click unsure</label></div>
+    <div class="card"><h2>Seeds</h2><div id="seedList" style="max-height:190px;overflow:auto"></div>
+      <div class="row" style="margin-top:8px"><button id="undo">Undo</button>
+      <button id="clear">Clear all</button></div></div>
+    <div class="card"><h2>Progress</h2><div id="counts" style="font-size:13px"></div>
+      <p class="muted" id="progressNote" style="margin:8px 0 0"></p></div>
+    <div class="card"><h2>Finish</h2>
+      <div class="row"><button class="primary" id="download">Download seeds.json</button>
+      <button id="copy">Copy</button></div>
+      <p class="muted" id="saveNote" style="margin:8px 0 0"></p></div>
+    <div class="warn">Never asks which side is patient-left. Name the chambers you recognise; the
+      orientation is worked out afterwards from where they turn out to be.</div>
   </div>
 </main>
 
-<img id="volsrc" alt="" style="display:none" src="data:image/png;base64,__VOLUME__">
-<script>
+<script id="threesrc" type="text/plain">__THREE__</script>
+<img id="hitimg" alt="" style="display:none" src="data:image/png;base64,__HITPNG__">
+<script type="module">
 const CFG = __PAYLOAD__;
-const N = CFG.grid, NN = N * N, NNN = NN * N;
-const canvas = document.getElementById('view'), ctx = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
-document.getElementById('packLine').textContent =
-  CFG.pack + ' · blood pool · ' + N + '³ display, seeds exported at ' + CFG.fullResolution + '³';
+const blobUrl = URL.createObjectURL(
+  new Blob([document.getElementById('threesrc').textContent], { type: 'text/javascript' }));
+const THREE = await import(blobUrl);
 
-let vol = null, surf = { cav:null, tis:null };
-const view = { yaw: 0.9, pitch: 0.20, zoom: 3.2, clip: 0.5, tissue: true };
-const state = { tag: 1, seeds: [] };
+/* ---------------- geometry ---------------- */
+function bytes(b64) {
+  const bin = atob(b64), out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+const M = CFG.mesh;
+const qpos = new Int16Array(bytes(M.positions).buffer);
+const qnrm = new Int8Array(bytes(M.normals).buffer);
+const idx  = new Uint16Array(bytes(M.indices).buffer);
 
-/* ---------- decode the packed volume ---------- */
-function decodeVolume(img) {
-  const c = document.createElement('canvas');
-  c.width = CFG.imageWidth; c.height = CFG.imageHeight;
+const positions = new Float32Array(qpos.length);
+for (let i = 0; i < qpos.length; i++) {
+  positions[i] = (qpos[i] + 32767) / 65534 * M.quantSpan + M.quantLow[i % 3];
+}
+const normals = new Float32Array(qnrm.length);
+for (let i = 0; i < qnrm.length; i++) normals[i] = qnrm[i] / 127;
+
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+geometry.setIndex(new THREE.BufferAttribute(idx, 1));
+geometry.computeBoundingSphere();
+const bounds = geometry.boundingSphere;
+
+/* ---------------- scene ---------------- */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+renderer.setClearColor(0xeef0f4, 1);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 4000);
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.5); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.5); scene.add(fill);
+
+const plane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+const MUSCLE = 0xc0605a, CAVITY = 0xf0e08c;
+
+const muscle = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
+  color: MUSCLE, shininess: 12, side: THREE.DoubleSide, clippingPlanes: [plane],
+}));
+scene.add(muscle);
+
+/* ---- stencil cap, mirroring src/viewer/caps.ts ----
+   Back faces increment and front faces decrement with the depth test OFF, so
+   every face along the ray is counted; a depth test would drop the ones behind
+   nearer geometry and leave the parity wrong. Away from the cut the counter
+   returns to zero. Where the plane removed the near surface the matching front
+   face is missing, so the counter is non-zero over exactly the cross-section,
+   and a plane-aligned quad masked to `stencil != 0` paints it solid. */
+function stencilMaterial(side, op) {
+  return new THREE.MeshBasicMaterial({
+    depthWrite: false, depthTest: false, colorWrite: false,
+    stencilWrite: true, stencilFunc: THREE.AlwaysStencilFunc, side,
+    stencilFail: op, stencilZFail: op, stencilZPass: op,
+    clippingPlanes: [plane],
+  });
+}
+const backFaces = new THREE.Mesh(geometry,
+  stencilMaterial(THREE.BackSide, THREE.IncrementWrapStencilOp));
+const frontFaces = new THREE.Mesh(geometry,
+  stencilMaterial(THREE.FrontSide, THREE.DecrementWrapStencilOp));
+backFaces.renderOrder = 1; frontFaces.renderOrder = 2;
+scene.add(backFaces, frontFaces);
+
+const capMaterial = new THREE.MeshBasicMaterial({
+  color: CAVITY, side: THREE.DoubleSide, depthTest: false,
+  stencilWrite: true, stencilRef: 0, stencilFunc: THREE.NotEqualStencilFunc,
+  stencilFail: THREE.ReplaceStencilOp, stencilZFail: THREE.ReplaceStencilOp,
+  stencilZPass: THREE.ReplaceStencilOp,
+});
+const cap = new THREE.Mesh(new THREE.PlaneGeometry(bounds.radius * 4, bounds.radius * 4), capMaterial);
+cap.renderOrder = 3;
+scene.add(cap);
+
+const markers = new THREE.Group(); scene.add(markers);
+
+/* ---------------- hit grid ---------------- */
+let hitVol = null;
+function decodeHit(img) {
+  const H = CFG.hit, c = document.createElement('canvas');
+  c.width = H.imageWidth; c.height = H.imageHeight;
   const g = c.getContext('2d', { willReadFrequently: true });
   g.drawImage(img, 0, 0);
-  const d = g.getImageData(0, 0, CFG.imageWidth, CFG.imageHeight).data;
-  const v = new Uint8Array(NNN);
-  for (let k = 0; k < N; k++) {
-    const tx = (k % CFG.tileColumns) * N, ty = ((k / CFG.tileColumns) | 0) * N;
-    for (let j = 0; j < N; j++) {
-      const rowOff = ((ty + j) * CFG.imageWidth + tx) * 4, base = (k * N + j) * N;
-      for (let i = 0; i < N; i++) {
-        const o = rowOff + i * 4;
+  const d = g.getImageData(0, 0, H.imageWidth, H.imageHeight).data;
+  const n = H.grid, v = new Uint8Array(n * n * n);
+  for (let k = 0; k < n; k++) {
+    const tx = (k % H.tileColumns) * n, ty = ((k / H.tileColumns) | 0) * n;
+    for (let j = 0; j < n; j++) {
+      const row = ((ty + j) * H.imageWidth + tx) * 4, base = (k * n + j) * n;
+      for (let i = 0; i < n; i++) {
+        const o = row + i * 4;
         v[base + i] = (d[o] > 127 ? 1 : 0) | (d[o + 1] > 127 ? 2 : 0);
       }
     }
   }
   return v;
 }
-
-/* ---------- point extraction with normals ----------
-   EVERY voxel is kept, not just the surface. The clipping plane exposes a cut
-   face, and a cut face is made of voxels that were interior before the cut —
-   so a surface-only set renders the inside of a hollow shell and you see
-   straight through the model. That was the first of two reasons the view
-   shimmered.
-
-   Interior voxels carry a zero normal and are shaded flat, which is also how a
-   cut face should look: matte, not lit as though it were a surface. */
-function buildPoints(bit) {
-  const xs = [], ns = [];
-  for (let k = 1; k < N - 1; k++)
-    for (let j = 1; j < N - 1; j++)
-      for (let i = 1; i < N - 1; i++) {
-        const id = (k * N + j) * N + i;
-        if (!(vol[id] & bit)) continue;
-        const buried = (vol[id - NN] & bit) && (vol[id + NN] & bit) && (vol[id - N] & bit) &&
-                       (vol[id + N] & bit) && (vol[id - 1] & bit) && (vol[id + 1] & bit);
-        let gx = 0, gy = 0, gz = 0;
-        if (!buried) {
-          for (let dk = -1; dk <= 1; dk++)
-            for (let dj = -1; dj <= 1; dj++)
-              for (let di = -1; di <= 1; di++) {
-                if (!dk && !dj && !di) continue;
-                if (vol[id + dk * NN + dj * N + di] & bit) { gx -= dk; gy -= dj; gz -= di; }
-              }
-          const L = Math.hypot(gx, gy, gz) || 1;
-          gx /= L; gy /= L; gz /= L;
+/** Model-space point -> {voxel, kind}, from the shipped occupancy grid. */
+function classify(point) {
+  const H = CFG.hit, n = H.grid;
+  const k = Math.round((point.x - H.origin[0]) / H.pitch - 0.5);
+  const j = Math.round((point.y - H.origin[1]) / H.pitch - 0.5);
+  const i = Math.round((point.z - H.origin[2]) / H.pitch - 0.5);
+  if (k < 0 || j < 0 || i < 0 || k >= n || j >= n || i >= n) return null;
+  const direct = hitVol[(k * n + j) * n + i];
+  if (direct & 2) return { voxel: [k, j, i], kind: 'cavity' };
+  // A click on the cut face can land a voxel inside the wall. Search outward a
+  // little rather than refusing: the reader pointed at a chamber, and this grid
+  // is coarser than their aim.
+  for (let r = 1; r <= 3; r++)
+    for (let dk = -r; dk <= r; dk++)
+      for (let dj = -r; dj <= r; dj++)
+        for (let di = -r; di <= r; di++) {
+          const a = k + dk, b = j + dj, c2 = i + di;
+          if (a < 0 || b < 0 || c2 < 0 || a >= n || b >= n || c2 >= n) continue;
+          if (hitVol[(a * n + b) * n + c2] & 2) return { voxel: [a, b, c2], kind: 'cavity' };
         }
-        xs.push(k, j, i); ns.push(gx, gy, gz);
-      }
-  return { p: new Int16Array(xs), n: new Float32Array(ns), count: xs.length / 3 };
+  return direct & 1 ? { voxel: [k, j, i], kind: 'muscle' } : null;
 }
 
-/* ---------- maths ---------- */
-function matrix() {
-  const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw);
-  const cp = Math.cos(view.pitch), sp = Math.sin(view.pitch);
-  // R = Rx(pitch) * Ry(yaw), row-major
-  return [ cy, 0, sy,
-           sp * sy, cp, -sp * cy,
-           -cp * sy, sp, cp * cy ];
-}
-const CENTRE = N / 2;
+/* ---------------- camera and plane ---------------- */
+const view = { az: 0.9, el: 0.25, dist: bounds.radius * 3.0, axis: 2, sign: -1, depth: 0.5 };
+const target = bounds.center.clone();
+const state = { tag: 1, seeds: [] };
 
-/* ---------- render ---------- */
-const zbuf = new Float32Array(W * H);
-const image = ctx.createImageData(W, H);
-const LIGHT = (() => { const v = [0.4, -0.55, 0.73]; const L = Math.hypot(...v); return v.map(x => x / L); })();
-
-function shadePoint(px, py, depth, nx, ny, nz, r, g, b) {
-  if (px < 0 || py < 0 || px >= W || py >= H) return;
-  const o = py * W + px;
-  if (depth >= zbuf[o]) return;
-  zbuf[o] = depth;
-  // A zero normal means an interior voxel, visible only on the cut face.
-  // Shading it flat is both correct and what a sectioned surface looks like.
-  const flat = (nx === 0 && ny === 0 && nz === 0);
-  const s = flat ? 0.86
-                 : 0.34 + 0.72 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
-  const q = o * 4;
-  image.data[q] = Math.min(255, r * s);
-  image.data[q + 1] = Math.min(255, g * s);
-  image.data[q + 2] = Math.min(255, b * s);
-  image.data[q + 3] = 255;
+function placeCamera() {
+  const ce = Math.cos(view.el), se = Math.sin(view.el);
+  camera.position.set(
+    target.x + view.dist * ce * Math.sin(view.az),
+    target.y + view.dist * se,
+    target.z + view.dist * ce * Math.cos(view.az));
+  camera.lookAt(target);
+  key.position.copy(camera.position).add(new THREE.Vector3(0, bounds.radius, 0));
+  fill.position.copy(camera.position).multiplyScalar(-1);
 }
 
-function drawSet(set, R, colour, skipNear, step) {
-  const [a, b, c, d, e, f, g, h, i] = R;
-  const z0 = view.zoom;
-  const splatSize = Math.max(1, Math.ceil(z0));
-  for (let t = 0; t < set.count; t += step) {
-    const x = set.p[t * 3] - CENTRE, y = set.p[t * 3 + 1] - CENTRE, z = set.p[t * 3 + 2] - CENTRE;
-    const rz = g * x + h * y + i * z;
-    if (rz < skipNear) continue;                       // cut away toward viewer
-    const nx = set.n[t * 3], ny = set.n[t * 3 + 1], nz = set.n[t * 3 + 2];
-    // Interior voxels (zero normal) exist only so the cut face is solid. Any
-    // that sit more than a few voxels behind the plane are occluded by the ones
-    // in front, so drawing them is pure cost — and there are ~460k of them
-    // against ~170k real surface points.
-    if (nx === 0 && ny === 0 && nz === 0 && rz > skipNear + 3) continue;
-    const rx = a * x + b * y + c * z, ry = d * x + e * y + f * z;
-    const px = (rx * z0 + W / 2) | 0, py = (ry * z0 + H / 2) | 0;
-    const rnx = a * nx + b * ny + c * nz, rny = d * nx + e * ny + f * nz,
-          rnz = g * nx + h * ny + i * nz;
-    const s = splatSize;                               // covers the voxel pitch
-    for (let ox = 0; ox < s; ox++)
-      for (let oy = 0; oy < s; oy++)
-        shadePoint(px + ox, py + oy, rz, rnx, rny, rnz, colour[0], colour[1], colour[2]);
-  }
+function updatePlane() {
+  const normal = new THREE.Vector3();
+  if (view.axis === 'v') camera.getWorldDirection(normal);
+  else { normal.setComponent(view.axis, 1); normal.multiplyScalar(view.sign); }
+  normal.normalize();
+  const offset = target.dot(normal) + (view.depth - 0.5) * bounds.radius * 2;
+  plane.set(normal, -offset);
+  cap.position.copy(normal).multiplyScalar(offset);
+  cap.lookAt(cap.position.clone().add(normal));
 }
 
-function clipDepth() {
-  // 1 = nothing cut, 0.5 = exactly half cut away toward the viewer, 0 = all cut.
-  // Linear in the view's depth axis so the slider feels like a scalpel rather
-  // than doing nothing for most of its travel, which the first mapping did.
-  return (0.5 - view.clip) * N * 1.2;
+function draw() {
+  const w = canvas.clientWidth || 620, h = Math.round((canvas.clientWidth || 620) * 0.8);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  placeCamera(); updatePlane();
+  renderer.clearStencil();
+  renderer.render(scene, camera);
 }
 
-function render() {
-  zbuf.fill(Infinity);
-  image.data.fill(0);
-  for (let p = 3; p < image.data.length; p += 4) image.data[p] = 0;
-  const R = matrix(), near = clipDepth();
-  const step = drag ? 2 : 1;      // halve the load while the pointer is moving
-  if (surf.cav) drawSet(surf.cav, R, [240, 225, 140], near, step);
-  if (view.tissue && surf.tis) drawSet(surf.tis, R, [196, 96, 88], near - 0.35, step);
-  ctx.putImageData(image, 0, 0);
-  drawSeedMarkers(R, near);
-  document.getElementById('clipVal').textContent =
-    view.clip >= 0.999 ? '(off)' : Math.round((1 - view.clip) * 100) + '%';
-}
-
-function project(v, R) {
-  const x = v[0] - CENTRE, y = v[1] - CENTRE, z = v[2] - CENTRE;
-  return [ (R[0]*x + R[1]*y + R[2]*z) * view.zoom + W / 2,
-           (R[3]*x + R[4]*y + R[5]*z) * view.zoom + H / 2,
-            R[6]*x + R[7]*y + R[8]*z ];
-}
-
-function drawSeedMarkers(R, near) {
-  state.seeds.forEach(s => {
-    const [px, py, pz] = project(s.vox, R);
-    if (pz < near) return;
-    const col = CFG.tags.find(t => t.tag === s.tag).colour;
-    ctx.beginPath(); ctx.arc(px, py, 7, 0, 6.284);
-    ctx.fillStyle = col; ctx.globalAlpha = s.confidence === 'unsure' ? .45 : .95;
-    ctx.fill(); ctx.globalAlpha = 1;
-    ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
-  });
-}
-
-/* ---------- picking: march the actual voxels ---------- */
-function pick(sx, sy) {
-  const R = matrix(), near = clipDepth();
-  const vx = (sx - W / 2) / view.zoom, vy = (sy - H / 2) / view.zoom;
-  const want = view.tissue ? 3 : 2;                    // cavity, or either
-  const reach = N * 1.5;
-  for (let d = near; d < reach; d += 0.5) {
-    // inverse-rotate (R is orthonormal, so transpose)
-    const x = R[0]*vx + R[3]*vy + R[6]*d + CENTRE;
-    const y = R[1]*vx + R[4]*vy + R[7]*d + CENTRE;
-    const z = R[2]*vx + R[5]*vy + R[8]*d + CENTRE;
-    const k = Math.round(x), j = Math.round(y), i = Math.round(z);
-    if (k < 0 || j < 0 || i < 0 || k >= N || j >= N || i >= N) continue;
-    const val = vol[(k * N + j) * N + i];
-    if (val & 2) return [k, j, i];                     // cavity always wins
-    if ((want & 1) && (val & 1)) return [k, j, i];
-  }
-  return null;
-}
-
-/* ---------- interaction ---------- */
+/* ---------------- interaction ---------------- */
 let drag = null;
 canvas.addEventListener('pointerdown', e => {
-  drag = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false };
+  drag = { x: e.clientX, y: e.clientY, az: view.az, el: view.el, moved: false };
   canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', e => {
   if (!drag) return;
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-  // dx is NEGATED. With R = Rx(pitch)*Ry(yaw), a point at +x projects to
-  // screen x = cos(yaw)*x, so increasing yaw sweeps the right-hand side of the
-  // model to the LEFT — dragging right pushed the heart the wrong way while
-  // pitch, which needs no flip, felt correct. That asymmetry is the tell.
-  view.yaw = drag.yaw - dx * 0.01;
-  view.pitch = Math.max(-1.5, Math.min(1.5, drag.pitch + dy * 0.01));
-  render();
+  view.az = drag.az - dx * 0.008;
+  view.el = Math.max(-1.4, Math.min(1.4, drag.el + dy * 0.008));
+  draw();
 });
 canvas.addEventListener('pointerup', e => {
-  const wasDrag = drag && drag.moved;
-  drag = null;
+  const wasDrag = drag && drag.moved; drag = null;
   if (wasDrag) return;
   const r = canvas.getBoundingClientRect();
-  const hit = pick(e.clientX - r.left, e.clientY - r.top);
-  if (!hit) { note('Nothing there — try clicking on the solid shape.'); return; }
-  state.seeds.push({ vox: hit, tag: state.tag,
+  const ndc = new THREE.Vector2(
+    ((e.clientX - r.left) / r.width) * 2 - 1,
+    -((e.clientY - r.top) / r.height) * 2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera);
+  // Intersect the mathematical plane: not geometry, not a depth buffer. The
+  // seed is on the cut plane by construction, so there is no depth to misjudge.
+  const point = new THREE.Vector3();
+  if (!ray.ray.intersectPlane(plane, point)) { note('The plane is edge-on — rotate a little.'); return; }
+  const hit = classify(point);
+  if (!hit) { note('That is outside the heart.'); return; }
+  if (hit.kind === 'muscle') { note('That looks like muscle. Click the cream area.'); return; }
+  state.seeds.push({ voxel: hit.voxel, point: [point.x, point.y, point.z], tag: state.tag,
     confidence: document.getElementById('unsure').checked ? 'unsure' : 'sure' });
   document.getElementById('unsure').checked = false;
   refresh();
 });
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
-  view.zoom = Math.max(1.2, Math.min(8, view.zoom * (e.deltaY > 0 ? 0.92 : 1.08)));
-  render();
+  view.dist = Math.max(bounds.radius * 1.1,
+    Math.min(bounds.radius * 8, view.dist * (e.deltaY > 0 ? 1.08 : 0.92)));
+  draw();
 }, { passive: false });
 
-document.getElementById('clip').oninput = e => { view.clip = e.target.value / 100; render(); };
-document.getElementById('showTissue').onchange = e => { view.tissue = e.target.checked; render(); };
-document.getElementById('resetView').onclick = () => {
-  view.yaw = 0.9; view.pitch = 0.20; view.zoom = 3.2; view.clip = 0.5;
-  document.getElementById('clip').value = 50; render();
+document.getElementById('depth').oninput = e => { view.depth = e.target.value / 1000; draw(); };
+document.getElementById('flip').onclick = () => { view.sign *= -1; draw(); };
+document.querySelectorAll('[data-axis]').forEach(b => b.onclick = () => {
+  view.axis = b.dataset.axis === 'v' ? 'v' : +b.dataset.axis;
+  document.querySelectorAll('[data-axis]').forEach(o => o.classList.toggle('on', o === b));
+  draw();
+});
+document.getElementById('reset').onclick = () => {
+  view.az = 0.9; view.el = 0.25; view.dist = bounds.radius * 3.0; view.depth = 0.5;
+  document.getElementById('depth').value = 500; draw();
 };
 document.getElementById('undo').onclick = () => { state.seeds.pop(); refresh(); };
 document.getElementById('clear').onclick = () => { state.seeds = []; refresh(); };
+window.addEventListener('resize', draw);
 
+/* ---------------- seeds ---------------- */
 function note(t) { document.getElementById('saveNote').textContent = t; }
+function colourOf(tag) { return CFG.tags.find(t => t.tag === tag).colour; }
 
+function rebuildMarkers() {
+  markers.clear();
+  const size = bounds.radius * 0.03;
+  state.seeds.forEach(s => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(size, 16, 12),
+      new THREE.MeshBasicMaterial({ color: colourOf(s.tag), depthTest: false,
+        transparent: s.confidence === 'unsure', opacity: s.confidence === 'unsure' ? 0.5 : 1 }));
+    m.position.set(s.point[0], s.point[1], s.point[2]);
+    m.renderOrder = 4;
+    markers.add(m);
+  });
+}
 function drawTags() {
   const host = document.getElementById('tags'); host.innerHTML = '';
   CFG.tags.forEach((t, n) => {
     const b = document.createElement('button');
     b.className = 'tag' + (t.tag === state.tag ? ' active' : '');
     b.innerHTML = '<span class="swatch" style="background:' + t.colour + '"></span><span>' +
-                  t.label + '</span><span class="key">' + (n + 1) + '</span>';
+      t.label + '</span><span class="key">' + (n + 1) + '</span>';
     b.onclick = () => { state.tag = t.tag; drawTags(); };
     host.appendChild(b);
   });
 }
-
 function refresh() {
   const list = document.getElementById('seedList');
   list.innerHTML = state.seeds.length ? '' : '<span class="muted">none yet</span>';
-  state.seeds.forEach((s, idx) => {
+  state.seeds.forEach((s, i) => {
     const t = CFG.tags.find(x => x.tag === s.tag);
-    const row = document.createElement('div');
-    row.className = 'seed';
+    const row = document.createElement('div'); row.className = 'seed';
     row.innerHTML = '<span class="swatch" style="background:' + t.colour + '"></span><span>' +
       t.label + (s.confidence === 'unsure' ? ' <em>(unsure)</em>' : '') + '</span>';
-    const del = document.createElement('button');
-    del.textContent = 'x'; del.style.marginLeft = 'auto';
-    del.onclick = () => { state.seeds.splice(idx, 1); refresh(); };
+    const del = document.createElement('button'); del.textContent = 'x'; del.style.marginLeft = 'auto';
+    del.onclick = () => { state.seeds.splice(i, 1); refresh(); };
     row.appendChild(del); list.appendChild(row);
   });
   const counts = document.getElementById('counts'); counts.innerHTML = '';
@@ -481,28 +542,23 @@ function refresh() {
   const covered = CFG.tags.filter(t =>
     state.seeds.some(s => s.tag === t.tag && s.confidence !== 'unsure')).length;
   document.getElementById('progressNote').innerHTML = covered === CFG.tags.length
-    ? '<span class="done">All six labelled. One or two seeds each is plenty.</span>'
-    : covered + ' of 6 labelled.';
-  render();
+    ? '<span class="done">All six labelled.</span>' : covered + ' of 6 labelled.';
+  rebuildMarkers(); draw();
 }
-
 function payload() {
   return JSON.stringify({
-    pack: CFG.pack, resolution: CFG.fullResolution, pitch_mm: CFG.pitch_mm,
-    source: '3d', slices: [],
+    pack: CFG.pack, resolution: CFG.fullResolution, source: '3d-mesh', slices: [],
     seeds: state.seeds.map(s => ({
       slice: '3d', axis: -1,
-      // back up to full resolution, centre of the block this voxel came from
-      voxel: s.vox.map(v => v * CFG.scaleToFull + ((CFG.scaleToFull / 2) | 0)),
-      display_voxel: s.vox, tag: s.tag, confidence: s.confidence
+      voxel: s.voxel.map(v => v * CFG.hit.scaleToFull + ((CFG.hit.scaleToFull / 2) | 0)),
+      model_point_mm: s.point, tag: s.tag, confidence: s.confidence
     }))
   }, null, 2);
 }
 document.getElementById('download').onclick = () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([payload()], { type: 'application/json' }));
-  a.download = 'seeds.json'; a.click();
-  note('Saved ' + state.seeds.length + ' seeds.');
+  a.download = 'seeds.json'; a.click(); note('Saved ' + state.seeds.length + ' seeds.');
 };
 document.getElementById('copy').onclick = async () => {
   await navigator.clipboard.writeText(payload()); note('Copied.');
@@ -513,17 +569,18 @@ window.addEventListener('keydown', e => {
   else if ((e.metaKey || e.ctrlKey) && e.key === 'z') { state.seeds.pop(); refresh(); }
 });
 
-/* ---------- start ---------- */
+/* ---------------- start ---------------- */
 function start() {
-  vol = decodeVolume(document.getElementById('volsrc'));
-  surf.cav = buildPoints(2);
-  surf.tis = buildPoints(1);
+  hitVol = decodeHit(document.getElementById('hitimg'));
+  document.getElementById('packLine').textContent =
+    CFG.pack + ' · ' + M.triangleCount.toLocaleString() + ' triangles · stencil cap cut face';
+  document.querySelector('[data-axis="2"]').classList.add('on');
   document.getElementById('status').style.display = 'none';
   document.getElementById('hint').style.display = '';
   drawTags(); refresh();
 }
-const src = document.getElementById('volsrc');
-if (src.complete && src.naturalWidth) start(); else src.onload = start;
+const hitImg = document.getElementById('hitimg');
+if (hitImg.complete && hitImg.naturalWidth) start(); else hitImg.onload = start;
 </script>
 </body>
 </html>
@@ -537,36 +594,32 @@ def main() -> int:
     root = Path(__file__).resolve().parent.parent
     sys.path.insert(0, str(root / "pipeline"))
 
-    parser = argparse.ArgumentParser(description="Build the 3D chamber labeller.")
+    parser = argparse.ArgumentParser(description="Build the mesh chamber labeller.")
     parser.add_argument("--pack", default="normal-vhl-heart0102")
-    parser.add_argument("--source", type=Path, default=None)
+    parser.add_argument("--source", type=Path, required=True,
+                        help="Heart102_Tissue.stl (gitignored, CC BY-NC)")
     parser.add_argument("--resolution", type=int, default=384)
     parser.add_argument("--out", type=Path, default=root / "output/vhl-partition")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
-    if args.source and args.source.exists():
-        import geometry
-        from meshlib import read_binary_stl
-        from vhl_partition import voxelise
-        surface, _ = geometry.weld(read_binary_stl(args.source))
-        grid = voxelise(surface.vertices, surface.faces, args.resolution)
-        tissue, pitch, resolution = grid.mask, grid.pitch, args.resolution
-    else:
-        pack = json.loads((root / "public/packs" / args.pack / "pack.json").read_text())
-        echo = pack["echo_volume"]
-        resolution = echo["resolution"][0]
-        tissue = np.fromfile(root / "public/packs" / args.pack / echo["asset"],
-                             dtype=np.uint8).reshape(*echo["resolution"]) > 0
-        pitch = 1.0 / np.array(echo["mesh_to_volume"]).reshape(4, 4)[0, 0]
+    import geometry
+    from meshlib import read_binary_stl
+    from vhl_partition import voxelise
 
-    envelope = epicardial_envelope(tissue, 10.0, float(pitch))
-    labels, sizes = components(envelope & ~tissue)
+    surface, _ = geometry.weld(read_binary_stl(args.source))
+    mesh = build_mesh(surface.vertices.astype(np.float64), surface.faces.astype(np.int64))
+    print(f"mesh: {mesh['triangleCount']} triangles, {mesh['vertexCount']} vertices")
+
+    grid = voxelise(surface.vertices, surface.faces, args.resolution)
+    envelope = epicardial_envelope(grid.mask, 10.0, grid.pitch)
+    labels, sizes = components(envelope & ~grid.mask)
     cavity = labels == int(np.argmax(sizes))
-    print(f"tissue {tissue.sum() * pitch ** 3 / 1000:.1f} mL, "
-          f"cavity {cavity.sum() * pitch ** 3 / 1000:.1f} mL")
+    print(f"cavity {cavity.sum() * grid.pitch ** 3 / 1000:.1f} mL")
 
-    target = build(tissue, cavity, args.out, args.pack, resolution, float(pitch))
+    three = (root / "node_modules/three/build/three.module.min.js").read_text()
+    target = build(mesh, grid.mask, cavity, grid.origin, grid.pitch,
+                   args.resolution, args.out, args.pack, three)
     print(f"wrote {target} ({target.stat().st_size / 1e6:.2f} MB)")
     return 0
 
