@@ -56,6 +56,14 @@ echo_volume           asset, format, resolution, mesh_to_volume, labels[], scatt
   pose has actually left the saved track, and the provenance line says the plane is unvetted.
   Rendering an arbitrary plane under a saved view's name is the one thing forbidden — it is the
   failure the pack's refusal to author A3 and A4 exists to avoid.
+- **An authoring view transition renders its live pose, and says what it is.** The camera, 3D wedge,
+  echo-synced cutter, and echo frame consume the same eased runtime pose. During that short motion
+  the panel withdraws both endpoint names and review flags and says `Transition — not a saved view`
+  and `Unvetted intermediate plane — animation between saved views`. These frames are presentation
+  only and the authoring store refuses to save them. Categorical display flags are not interpolated;
+  the echo fades fully transparent, changes convention while invisible, then fades back in on the
+  same clock. At exact landing the panel names the saved local or pack-authored working view rather
+  than falsely calling it an arbitrary free probe.
 - The scatterer field is **not shipped**: generate it at runtime from `scatterer_seed`,
   deterministically. Baking a scatterer channel stays a fallback if runtime generation is too costly
   on lower-end devices. Phone-specific performance is deferred, and no baked-channel field exists

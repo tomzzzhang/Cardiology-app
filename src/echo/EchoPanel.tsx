@@ -21,6 +21,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
+import { AUTHORING_ENABLED } from '../authoring/flag.ts';
 import { describePack, resolveTuning } from './acoustics.ts';
 import { DEFAULT_POLAR, EchoRenderer, EchoRendererError, fetchVolume } from './EchoRenderer.ts';
 import { frameAt, imagingFrame, withApexFlip } from './probeFrame.ts';
@@ -68,6 +69,12 @@ interface EchoPanelProps {
    * pose the sweep would have produced.
    */
   offTrack?: boolean;
+  /** An authoring animation is showing an explicitly unauthored intermediate plane. */
+  transitioning?: boolean;
+  /** Shared-clock fade used when a categorical display convention changes. */
+  transitionOpacity?: number;
+  /** Exact saved authoring pose currently on screen after a transition lands. */
+  workingView?: { label: string; source: 'pack' | 'local' } | null;
   onScrubChange: (scrub: number) => void;
 }
 
@@ -100,13 +107,23 @@ type Status =
 
 export default function EchoPanel({
   pack, volumeUrl, viewIndex = 0, scrub, freePose = null, offTrack = false, onScrubChange,
+  transitioning = false, transitionOpacity = 1, workingView = null,
   apexFlipped = false, onApexFlip,
 }: EchoPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<EchoRenderer | null>(null);
+  const drawRef = useRef<() => void>(() => {});
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
 
   const view = pack.views[viewIndex];
+  // Compile-time gates: learner builds must not carry the authoring-only
+  // labels or presentation state merely because this shared panel can render
+  // them in an authoring build.
+  const showTransition = AUTHORING_ENABLED && transitioning;
+  const shownWorkingView = AUTHORING_ENABLED ? workingView : null;
+  const shownOpacity = showTransition
+    ? Math.min(1, Math.max(0, transitionOpacity))
+    : 1;
   const descriptor = useMemo(() => describePack(pack), [pack]);
   const tuning = useMemo(() => resolveTuning(view?.echo_tuning), [view]);
 
@@ -155,14 +172,7 @@ export default function EchoPanel({
     };
   }, [descriptor, volumeUrl, view]);
 
-  /*
-   * Redraw on scrub, on pose change, and on resize.
-   *
-   * The resize half is not optional: the canvas is laid out by CSS, so at first
-   * paint its backing store is still the 300x150 default and a one-shot measure
-   * inside the render effect captures that. A ResizeObserver is the only thing
-   * that reliably fires once the element actually has a box.
-   */
+  /** Redraw for the latest pose without rebuilding the size observer. */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || status.kind !== 'ready' || !view) return;
@@ -188,11 +198,26 @@ export default function EchoPanel({
       canvas.dataset.echoFrame = String(Number(canvas.dataset.echoFrame ?? '0') + 1);
     };
 
+    drawRef.current = draw;
     draw();
-    const observer = new ResizeObserver(draw);
+    return () => {
+      if (drawRef.current === draw) drawRef.current = () => {};
+    };
+  }, [scrub, status, tuning, view, freePose, apexFlipped]);
+
+  /*
+   * The resize half is not optional: the canvas is laid out by CSS, so at first
+   * paint its backing store is still the 300x150 default and a one-shot measure
+   * inside the render effect captures that. It is deliberately separate from
+   * pose redraws so a live view transition does not churn ResizeObservers.
+   */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !view) return;
+    const observer = new ResizeObserver(() => drawRef.current());
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [scrub, status, tuning, view, freePose, apexFlipped]);
+  }, [view]);
 
   if (!view) return null;
 
@@ -202,7 +227,14 @@ export default function EchoPanel({
     : null;
 
   return (
-    <section className="echo" data-testid="echo-panel" data-status={status.kind}>
+    <section
+      className="echo"
+      data-testid="echo-panel"
+      data-status={status.kind}
+      {...(AUTHORING_ENABLED
+        ? { 'data-transitioning': showTransition ? 'true' : 'false' }
+        : {})}
+    >
       <header className="panel-head echo__header">
         {/*
           * The name is the view's CLAIM, so it is withdrawn the moment the
@@ -212,7 +244,11 @@ export default function EchoPanel({
           * probe defensible at all.
           */}
         <h2 data-testid="echo-view-name">
-          {offTrack ? 'Free probe — not a saved view' : view.name}
+          {showTransition
+            ? 'Transition — not a saved view'
+            : shownWorkingView
+              ? `${shownWorkingView.label} — authoring working view`
+              : offTrack ? 'Free probe — not a saved view' : view.name}
         </h2>
         {/*
           * The red "Simulated — not a recording of a patient" banner is gone
@@ -235,9 +271,19 @@ export default function EchoPanel({
         <canvas
           ref={canvasRef}
           className="echo__canvas"
+          style={{ opacity: shownOpacity }}
           data-testid="echo-canvas"
+          {...(AUTHORING_ENABLED
+            ? { 'data-transition-opacity': shownOpacity.toFixed(3) }
+            : {})}
           role="img"
-          aria-label={`Simulated echocardiogram, ${view.name}`}
+          aria-label={showTransition
+            ? 'Simulated echocardiogram, unauthored transition between saved views'
+            : shownWorkingView
+              ? `Simulated echocardiogram, ${shownWorkingView.label}, authoring working view`
+              : offTrack
+                ? 'Simulated echocardiogram, free probe, not a saved view'
+                : `Simulated echocardiogram, ${view.name}`}
         />
         {status.kind === 'unavailable' && (
           <p className="echo__message" data-testid="echo-unavailable">
@@ -265,6 +311,7 @@ export default function EchoPanel({
             className={apexFlipped ? 'echo__flip echo__flip--on' : 'echo__flip'}
             aria-pressed={apexFlipped}
             onClick={() => onApexFlip(!apexFlipped)}
+            disabled={showTransition}
             data-testid="apex-flip"
             title="Show the apex the other way up. The panel only — the model does not move."
           >
@@ -318,7 +365,13 @@ export default function EchoPanel({
         <span data-testid="echo-simulated">Simulated — not a recording of a patient</span>
         {' · '}
         <span>
-          {offTrack
+          {showTransition
+            ? 'Unvetted intermediate plane — animation between saved views'
+            : shownWorkingView
+              ? shownWorkingView.source === 'local'
+                ? 'Local authoring view — loaded pack unchanged; mounting did not promote review'
+                : 'Pack-authored pose opened for authoring — loaded pack unchanged'
+            : offTrack
             ? 'Unvetted plane — moved by you, not a reviewed view'
             : view.provenance.vetted.status === 'vetted' ? 'Vetted' : 'Draft — not vetted'}
         </span>

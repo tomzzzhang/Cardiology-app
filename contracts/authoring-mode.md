@@ -60,6 +60,22 @@ with authoring absent; ordinary platform work does not wait on that release chec
    default until explicit naming consent exists.
 8. **Stylized geometry is declared, not hidden.** Substrate completion (shelled myocardium, sculpted
    leaflets, interface-only pericardium) sets `structures[i].stylized` and a `modified` note.
+9. **Selecting a populated authoring slot applies it immediately.** Empty slots become the active
+   placement target without moving the current probe. A populated selection replaces the working
+   pose and explains the change with one 850 ms quintic-eased clock shared by camera, wedge, cutter,
+   and simulated echo. The probe origin follows an arc about the model centre, never a chord through
+   the anatomy, while its beam follows interpolated endpoint aim points so the heart remains inside
+   the moving fan. Intermediate planes are explicitly labelled unauthored, are never named as either
+   endpoint, and cannot be saved or exported. A categorical display convention changes only while
+   the echo is fully transparent. A new selection retargets from the current
+   frame; direct camera input lands the selected pose exactly and stops the presentation motion.
+   Recall remains available because choosing an already selected native option does not fire a
+   change event, and it is the explicit way back after manual adjustment.
+10. **Fan depth is a local pose control.** The authoring-only vertical rocker immediately left of
+    the probe D-pad changes `fan.depth_cm` by 0.5 cm per press. It never moves the origin, changes an
+    axis, or writes the loaded pack. Decreasing stops before the focus or the 1 cm authoring floor.
+    Like every manual probe edit, a depth change leaves the selected saved pose and becomes a free,
+    unvetted working plane until it is explicitly saved.
 
 ## Definition of done
 

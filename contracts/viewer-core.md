@@ -163,6 +163,16 @@ The unlock is paid for by labelling rather than by hiding: see `contracts/README
 withdrawn and what is restored. Nothing about it can write to `views[]`, and locking again returns
 the probe to `frameAt(probe, sweep, t)` exactly.
 
+**Authoring selection has one explanatory transition, not two clocks.** Choosing a populated local
+slot immediately applies that view. Camera orientation and the runtime pose share one elapsed-time
+clock and easing curve, so the wedge, beam dim, echo-synced cutter, and echo image cannot drift from
+one another. The aperture travels around the interaction centre rather than linearly through the
+heart, and the beam follows interpolated endpoint aim points so it continues to face the anatomy.
+Pointer or wheel camera input ends the animation, lands the chosen pose exactly, and leaves the
+camera to the user; probe controls and all pose-saving controls are disabled while an intermediate
+plane is visible. The authoring-only depth rocker changes only `fan.depth_cm`, never the aperture or
+imaging plane. This path is flag-gated authoring UI, not the deferred learner rail.
+
 ## Per-structure visibility, and ISOLATE as the gesture
 
 *(Owner decision, 2026-08-19. `docs/observations.md` entries 24, 25 and 31 are the reasoning: two

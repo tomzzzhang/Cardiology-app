@@ -156,6 +156,13 @@ export default function App() {
    * and what it does not.
    */
   const [freePose, setFreePose] = useState<ProbePose | null>(null);
+  /** Authoring-only: one shared transition clock also fades categorical echo conventions. */
+  const [viewTransition, setViewTransition] = useState({ active: false, echoOpacity: 1 });
+  /** The exact saved authoring pose on screen after an automatic selection lands. */
+  const [workingAuthoringView, setWorkingAuthoringView] = useState<{
+    label: string;
+    source: 'pack' | 'local';
+  } | null>(null);
 
   /*
    * The mode is written back into the URL as it changes, so the address bar is
@@ -211,6 +218,8 @@ export default function App() {
      * that local draft before the next pack begins loading.
      */
     setFreePose(null);
+    setViewTransition({ active: false, echoOpacity: 1 });
+    setWorkingAuthoringView(null);
     setPackState({ status: 'loading' });
 
     loadPackById(packId, { signal: controller.signal })
@@ -408,6 +417,10 @@ export default function App() {
               : null}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
+            onViewTransitionChange={AUTHORING_ENABLED ? setViewTransition : undefined}
+            onAuthoringWorkingViewChange={AUTHORING_ENABLED
+              ? setWorkingAuthoringView
+              : undefined}
             /*
              * A click on the model isolates what is under it; empty space shows
              * everything. Settled design decision 13 — the list is the index
@@ -433,6 +446,9 @@ export default function App() {
               viewIndex={viewIndex}
               freePose={freePose}
               offTrack={offTrack}
+              transitioning={AUTHORING_ENABLED && viewTransition.active}
+              transitionOpacity={AUTHORING_ENABLED ? viewTransition.echoOpacity : 1}
+              workingView={AUTHORING_ENABLED ? workingAuthoringView : null}
               apexFlipped={apexFlipped}
               onApexFlip={setApexFlipped}
               onScrubChange={setScrub}

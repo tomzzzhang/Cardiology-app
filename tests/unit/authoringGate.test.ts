@@ -28,6 +28,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AUTHORING_ENABLED, assertAuthoring } from '../../src/authoring/flag.ts';
 import { deleteSlot, loadSlots, openSlotStore, saveSlot } from '../../src/authoring/slotStore.ts';
+import {
+  AUTHORING_BUNDLE_MARKERS,
+  findAuthoringBundleLeaks,
+  findAuthoringSourceMapLeaks,
+} from '../../scripts/check-authoring-absent.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const authoringDir = join(repoRoot, 'src', 'authoring');
@@ -86,6 +91,57 @@ describe('with the flag off, IndexedDB is never opened', () => {
     // the missing global instead — with a DIFFERENT message, which is why the
     // assertions above match on the guard's own words rather than on "it threw".
     expect(typeof indexedDB).toBe('undefined');
+  });
+});
+
+describe('the emitted learner bundle is checked for authoring transition code', () => {
+  it('keeps the original surface marker and adds transition-specific markers', () => {
+    const markers = new Set(AUTHORING_BUNDLE_MARKERS.map((marker) => marker.needle));
+    expect(markers).toContain('Place from camera');
+    expect(markers).toContain('probeTransition');
+    expect(markers).toContain('data-transitioning');
+    expect(markers).toContain('Transition — not a saved view');
+    expect(markers).toContain(
+      'Simulated echocardiogram, unauthored transition between saved views',
+    );
+    expect(markers).toContain(
+      'Unvetted intermediate plane — animation between saved views',
+    );
+  });
+
+  it('reports both an original authoring control and minified transition literals', () => {
+    const failures = findAuthoringBundleLeaks(
+      'dist/assets/index.js',
+      'x Place from camera y probeTransition z Transition — not a saved view',
+    ).join('\n');
+    expect(failures).toContain('the placement button’s label');
+    expect(failures).toContain('the authoring probe-transition dataset state');
+    expect(failures).toContain('the authoring transition heading');
+  });
+
+  it('allows only the build flag and reports every implementation module in a source map', () => {
+    const sourceMap = JSON.stringify({
+      version: 3,
+      sources: [
+        '../../src/authoring/flag.ts',
+        '../../src/authoring/poseTransition.ts',
+        '..\\..\\src\\authoring\\AuthoringControls.tsx',
+        '../../src/viewer/orbit.ts',
+      ],
+    });
+    expect(findAuthoringSourceMapLeaks('dist/assets/index.js.map', sourceMap)).toEqual([
+      'dist/assets/index.js.map maps emitted code to src/authoring/AuthoringControls.tsx. '
+        + 'An authoring implementation module is in the learner build.',
+      'dist/assets/index.js.map maps emitted code to src/authoring/poseTransition.ts. '
+        + 'An authoring implementation module is in the learner build.',
+    ]);
+  });
+
+  it('fails closed when a source map cannot prove its source-module list', () => {
+    expect(findAuthoringSourceMapLeaks('dist/assets/index.js.map', '{}').join('\n'))
+      .toMatch(/no string sources list.*cannot be proved/);
+    expect(findAuthoringSourceMapLeaks('dist/assets/index.js.map', '{').join('\n'))
+      .toMatch(/not valid JSON.*cannot be proved/);
   });
 });
 

@@ -59,9 +59,16 @@ export interface AuthoringControlsProps {
   readAnchor: () => ViewAnchor | null;
   /** The pose on screen right now — what "Save centre" would store. */
   currentPose: ProbePose | null;
+  /** A presentation-only path is on screen and must never enter the saved store. */
+  transitioning?: boolean;
+  /** Populated views cannot be applied until the model and transition clock exist. */
+  ready?: boolean;
+  /** Replace the working pose from a stored view and face its imaging plane. */
+  onActivatePose: (pose: ProbePose, view: AuthoringViewIdentity) => void;
+  /** Replace only the working pose; camera-derived placement must leave the camera alone. */
   onPose: (pose: ProbePose) => void;
   /** The selected view's pose, so the pad's centre can recall it. */
-  onActiveSlotPose: (pose: ProbePose | null) => void;
+  onActiveSlotPose: (pose: ProbePose | null, view: AuthoringViewIdentity | null) => void;
   /**
    * The long axis the four-chamber measured, for the horizon lock to hold.
    *
@@ -72,13 +79,27 @@ export interface AuthoringControlsProps {
   onLevelAxis: (axis: readonly [number, number, number] | null) => void;
 }
 
+/** The truthful label/source carried with a pose while it is on screen. */
+export interface AuthoringViewIdentity {
+  label: string;
+  source: 'pack' | 'local';
+}
+
 /** Three decimals is a millimetre at model scale and a thousandth of an axis. */
 const axisText = (axis: readonly number[]) =>
   `[${axis.map((value) => value.toFixed(3)).join(', ')}]`;
 
+const identityOf = (slot: Slot): AuthoringViewIdentity => ({
+  // Standard rows keep the canon label in the selector, but a mounted review
+  // file's own label is the more precise identity of the pose being shown.
+  label: slot.saved?.label ?? slot.label,
+  source: slot.saved ? 'local' : 'pack',
+});
+
 export default function AuthoringControls({
   packId, packVersion, packSchemaVersion, seeds, template, standoffOverrideMm,
-  readAnchor, currentPose, onPose, onActiveSlotPose, onLevelAxis,
+  readAnchor, currentPose, transitioning = false, ready = true,
+  onActivatePose, onPose, onActiveSlotPose, onLevelAxis,
 }: AuthoringControlsProps) {
   const [saved, setSaved] = useState<SavedSlot[]>([]);
   const [activeSlotId, setActiveSlotId] = useState<string>(seeds[0]?.slotId ?? '');
@@ -116,9 +137,23 @@ export default function AuthoringControls({
     setNotice(null);
   }, [packId, refresh, seeds]);
 
+  // An armed overwrite cannot survive into an unauthored transition frame.
   useEffect(() => {
-    onActiveSlotPose(active?.pose ?? null);
-  }, [active, onActiveSlotPose]);
+    if (transitioning) setConfirming(null);
+  }, [transitioning]);
+
+  const activePose = active?.pose ?? null;
+  const activeIdentity = activePose && active ? identityOf(active) : null;
+  const activeIdentityLabel = activeIdentity?.label ?? '';
+  const activeIdentitySource = activeIdentity?.source ?? '';
+  useEffect(() => {
+    onActiveSlotPose(
+      activePose,
+      activeIdentityLabel === ''
+        ? null
+        : { label: activeIdentityLabel, source: activeIdentitySource as 'pack' | 'local' },
+    );
+  }, [activePose, activeIdentityLabel, activeIdentitySource, onActiveSlotPose]);
 
   /* --- the model's axes ------------------------------------------------- */
 
@@ -204,13 +239,42 @@ export default function AuthoringControls({
       return;
     }
     setProblem(null);
-    setNotice(`Recalled ${active.label}.`);
-    onPose(pose);
+    setReport(null);
+    const identity = identityOf(active);
+    setNotice(`Selected ${identity.label}.`);
+    onActivatePose(pose, identity);
+  };
+
+  /**
+   * Choosing a populated view applies it immediately.
+   *
+   * This belongs in the change event, not an effect: refreshing storage,
+   * renaming a row, or resetting for a new pack must not unexpectedly move the
+   * probe or camera. Empty rows still become the active authoring target, but
+   * there is no pose to apply and the working pose stays exactly where it was.
+   */
+  const selectView = (slotId: string) => {
+    const target = slots.find((slot) => slot.slotId === slotId) ?? null;
+    const pose = target ? restoredPose(target) : null;
+
+    setActiveSlotId(slotId);
+    setConfirming(null);
+    setRenaming(null);
+    setProblem(null);
+    setReport(null);
+    const identity = target && pose ? identityOf(target) : null;
+    setNotice(identity ? `Selected ${identity.label}.` : null);
+
+    if (pose && identity) onActivatePose(pose, identity);
   };
 
   /* --- store ------------------------------------------------------------ */
 
   const commitSave = async (slot: Slot) => {
+    if (transitioning) {
+      setProblem('Wait for the selected view to finish moving before saving.');
+      return;
+    }
     if (!currentPose) return;
     try {
       await saveSlot({
@@ -238,6 +302,10 @@ export default function AuthoringControls({
   };
 
   const addWorkingView = async () => {
+    if (transitioning) {
+      setProblem('Wait for the selected view to finish moving before saving.');
+      return;
+    }
     if (!currentPose) return;
     const slotId = nextCustomSlotId(slots);
     if (slotId === null) {
@@ -354,7 +422,7 @@ export default function AuthoringControls({
 
   /* --- render ----------------------------------------------------------- */
 
-  const canSave = currentPose !== null && active !== null;
+  const canSave = !transitioning && currentPose !== null && active !== null;
   const canon = slots.filter((slot) => slot.kind === 'canon');
   const extra = slots.filter((slot) => slot.kind === 'extra');
   const working = slots.filter((slot) => slot.kind === 'custom');
@@ -399,13 +467,9 @@ export default function AuthoringControls({
         <select
           className="authoring__select"
           value={active?.slotId ?? ''}
-          onChange={(event) => {
-            setActiveSlotId(event.target.value);
-            setConfirming(null);
-            setRenaming(null);
-            setNotice(null);
-          }}
-          data-hint="The saved or working view you are placing."
+          onChange={(event) => selectView(event.target.value)}
+          disabled={!ready}
+          data-hint="Choose a saved view to apply it, or an empty view to place next."
           data-testid="authoring-slot"
         >
           {slots.length === 0 && <option value="">No views</option>}
@@ -459,6 +523,7 @@ export default function AuthoringControls({
           type="button"
           className="authoring__button"
           onClick={placeFromCamera}
+          disabled={transitioning || !ready}
           data-hint="Put the probe on the axis you are looking down."
           data-testid="authoring-anchor"
           title={
@@ -473,7 +538,7 @@ export default function AuthoringControls({
           type="button"
           className="authoring__button"
           onClick={recall}
-          disabled={!active || active.pose === null}
+          disabled={!ready || transitioning || !active || active.pose === null}
           data-hint="Put the probe back exactly where this view has it."
           data-testid="authoring-restore"
           title="Put the probe back exactly where this view has it. The pose is replaced, not merged."
@@ -505,6 +570,7 @@ export default function AuthoringControls({
               type="button"
               className="authoring__button authoring__button--danger"
               onClick={() => void commitSave(active)}
+              disabled={transitioning}
               data-testid="authoring-save-confirm"
             >
               Overwrite
@@ -528,7 +594,9 @@ export default function AuthoringControls({
               data-hint="Store the pose on screen into the selected view."
             data-testid="authoring-save-centre"
               title={
-                canSave
+                transitioning
+                  ? 'The pose on screen is an unauthored transition frame and cannot be saved.'
+                  : canSave
                   ? 'Write the pose on screen into the selected view. Confirmed before it '
                     + 'writes. A pack view gets a local override; the pack itself is never '
                     + 'edited.'
@@ -552,7 +620,8 @@ export default function AuthoringControls({
                 title={
                   'The beam becomes the long axis (z), the fan plane gives left-right (x), '
                   + 'and the plane normal gives anterior-posterior (y). Derived and carried '
-                  + 'in the export — meshes.anatomical_frame is written by the ingest, not here.'
+                  + 'in the export as review evidence; the current ingest deliberately leaves '
+                  + 'pack meshes.anatomical_frame unchanged.'
                 }
               >
                 sets z axis
@@ -566,6 +635,7 @@ export default function AuthoringControls({
             type="button"
             className="authoring__button"
             onClick={() => void removeSaved(active)}
+            disabled={transitioning}
             data-testid="authoring-revert"
             title={active.authored !== null
               ? 'Drop the local override. The pack’s authored pose was never changed, so this '
@@ -605,12 +675,14 @@ export default function AuthoringControls({
               type="button"
               className="authoring__button"
               onClick={() => void addWorkingView()}
-              disabled={currentPose === null}
+              disabled={transitioning || currentPose === null}
               data-hint="Store the pose on screen as a view of your own."
               data-testid="authoring-add-slot"
               title={
-                'Store the pose on screen as a view of your own, outside the canon. '
-                + `${MAX_CUSTOM_SLOTS} maximum.`
+                transitioning
+                  ? 'The pose on screen is an unauthored transition frame and cannot be saved.'
+                  : 'Store the pose on screen as a view of your own, outside the canon. '
+                    + `${MAX_CUSTOM_SLOTS} maximum.`
               }
             >
               Save as new
@@ -655,6 +727,7 @@ export default function AuthoringControls({
             type="file"
             accept="application/json,.json"
             className="authoring__file"
+            disabled={transitioning}
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = '';
@@ -708,6 +781,12 @@ export default function AuthoringControls({
               ? '. The fan contains the model. Fan depth was not changed.'
               : '. Fan depth reaches the far side, but the fan angle does not contain the model '
                 + 'at this standoff. The loaded pack is unchanged.'}
+        </p>
+      )}
+
+      {transitioning && (
+        <p className="authoring__note" data-testid="authoring-transition-note">
+          Moving between saved views. This intermediate plane cannot be saved.
         </p>
       )}
 

@@ -30,17 +30,26 @@
  * a modifier ALWAYS zooms, in every mode, and the cutter's modifier-wheel depth
  * control below has to coexist with that.
  */
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
 import { frameAt, imagingFrame, poseAt, withApexFlip, type ImagingFrame } from '../echo/probeFrame.ts';
 import {
+  FAN_DEPTH_STEP_CM,
   NUDGE_DEG,
   STANDOFF_STEP_MM,
   movedAlongBeam,
   nudgedPose,
   standOffStepAllowed,
+  steppedFanDepth,
   type ProbeAxis,
 } from './freeProbe.ts';
 import { ProbeIndicator } from './wedge.ts';
@@ -48,6 +57,9 @@ import { StencilCaps, capsAtCut, type CapSource } from './caps.ts';
 import { axisVector } from '../schema/packV0.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
 import {
+  AUTHORING_GLIDE_MS,
+  GLIDE_MS,
+  authoringGlideEasing,
   dragOrientation,
   echoOrientation,
   levelled,
@@ -78,7 +90,10 @@ import { structureColour } from './palette.ts';
 import { AUTHORING_ENABLED } from '../authoring/flag.ts';
 import type { ViewAnchor } from '../authoring/anchor.ts';
 import { seedsFromViews } from '../authoring/slots.ts';
-import AuthoringControls from '../authoring/AuthoringControls.tsx';
+import { echoDisplayHandoff, viewPoseTransitionStep } from './poseTransition.ts';
+import AuthoringControls, {
+  type AuthoringViewIdentity,
+} from '../authoring/AuthoringControls.tsx';
 
 /**
  * What the cut plane is, stated on screen at all times.
@@ -134,6 +149,10 @@ interface PackViewerProps {
    * anything is worse than no affordance.
    */
   onFreePoseChange?: (pose: ProbePose | null) => void;
+  /** Authoring-only presentation state, lifted so the echo can label and fade it honestly. */
+  onViewTransitionChange?: (state: { active: boolean; echoOpacity: number }) => void;
+  /** Exact saved authoring pose currently shown; null once the probe is changed by hand. */
+  onAuthoringWorkingViewChange?: (view: AuthoringViewIdentity | null) => void;
   /**
    * A click on the model, with the structure under it — or null for empty space.
    *
@@ -214,6 +233,12 @@ interface ViewerApi {
   setCutterMode: (mode: CutterMode) => number;
   resetCamera: () => void;
   matchEchoOrientation: (frame: ImagingFrame) => void;
+  transitionAuthoringPose: (input: {
+    source: ProbePose;
+    target: ProbePose;
+    centre: readonly [number, number, number];
+    targetFrame: ImagingFrame;
+  }) => void;
   resetCutPlane: () => void;
   /**
    * AUTHORING ONLY: the camera ray and the model's bounding sphere, in MODEL
@@ -231,7 +256,7 @@ interface ViewerApi {
 export default function PackViewer({
   pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
   freePose = null, onScrubChange, onFreePoseChange, onStructureClick, apexFlipped = false,
-  isolatedLabel = null,
+  isolatedLabel = null, onViewTransitionChange, onAuthoringWorkingViewChange,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   /*
@@ -315,14 +340,20 @@ export default function PackViewer({
     mode === 'explore' ? 'free' : 'echo',
   );
   const [coarsePointer, setCoarsePointer] = useState(isCoarsePointer);
+  const [poseTransitioning, setPoseTransitioning] = useState(false);
 
   const onScrubRef = useRef(onScrubChange);
   onScrubRef.current = onScrubChange;
   const onFreePoseRef = useRef(onFreePoseChange);
   onFreePoseRef.current = onFreePoseChange;
+  const onViewTransitionRef = useRef(onViewTransitionChange);
+  onViewTransitionRef.current = onViewTransitionChange;
+  const onAuthoringWorkingViewRef = useRef(onAuthoringWorkingViewChange);
+  onAuthoringWorkingViewRef.current = onAuthoringWorkingViewChange;
   const freePoseRef = useRef(freePose);
   freePoseRef.current = freePose;
-
+  const poseTransitioningRef = useRef(false);
+  const holdRef = useRef<{ delay: number; repeat: number } | null>(null);
   /*
    * The scrub position is read through a ref inside the load effect, not listed
    * as a dependency. Depending on it would tear down the renderer and re-fetch
@@ -331,6 +362,9 @@ export default function PackViewer({
    */
   const scrubRef = useRef(scrub);
   scrubRef.current = scrub;
+  // App currently constructs a fresh Set during every free-pose frame. Key the
+  // expensive scene walk on its contents, not on that incidental identity.
+  const hiddenKey = [...(hidden ?? [])].sort().join('\u0000');
 
   useEffect(() => {
     const host = hostRef.current;
@@ -552,34 +586,155 @@ export default function PackViewer({
       camera.lookAt(pivot);
     };
 
-    /* --- camera animation ------------------------------------------------- */
-    /* The curve, the duration and the shortest-path choice live in `orbit.ts`,
-     * where they can be tested; this is only the clock and the flag. */
-    let glide: { from: THREE.Quaternion; to: THREE.Quaternion; start: number } | null = null;
+    /* --- explanatory view transition ------------------------------------- */
+    /* One clock owns the camera and, in authoring, the transient probe pose.
+     * That is what makes interruption atomic and keeps the wedge and echo on
+     * the same eased progress rather than running two nearly-equal animations. */
+    type Glide = {
+      from: THREE.Quaternion;
+      to: THREE.Quaternion;
+      start: number;
+      duration: number;
+      pose?: {
+        from: ProbePose;
+        to: ProbePose;
+        centre: readonly [number, number, number];
+        /** A categorical echo convention gets one fully transparent paint before switching. */
+        blankedAt: number | null;
+      };
+    };
+    let glide: Glide | null = null;
+
+    const clearHeldProbePress = () => {
+      const held = holdRef.current;
+      if (!held) return;
+      window.clearTimeout(held.delay);
+      window.clearInterval(held.repeat);
+      holdRef.current = null;
+    };
+
+    const setPoseTransitionState = (active: boolean, echoOpacity = 1) => {
+      if (!AUTHORING_ENABLED) return;
+      poseTransitioningRef.current = active;
+      if (active) clearHeldProbePress();
+      if (active) host.dataset.probeTransition = 'true';
+      else delete host.dataset.probeTransition;
+      setPoseTransitioning(active);
+      onViewTransitionRef.current?.({ active, echoOpacity });
+    };
 
     const stepGlide = (now: number) => {
       if (!glide) return false;
-      const step = glideStep(glide.from, glide.to, now - glide.start);
+      const active = glide;
+      const elapsed = now - active.start;
+      const step = AUTHORING_ENABLED && active.pose
+        ? glideStep(
+          active.from,
+          active.to,
+          elapsed,
+          active.duration,
+          authoringGlideEasing,
+        )
+        : glideStep(active.from, active.to, elapsed, active.duration);
       orientation.copy(step.orientation);
       applyCamera();
-      if (step.done) {
+      let displayFadeDone = true;
+      if (AUTHORING_ENABLED && active.pose) {
+        const poseStep = viewPoseTransitionStep(
+          active.pose.from,
+          active.pose.to,
+          elapsed,
+          active.duration,
+          active.pose.centre,
+        );
+        const handoff = echoDisplayHandoff(
+          active.pose.from.display,
+          active.pose.to.display,
+          elapsed,
+          active.duration,
+        );
+        if (handoff.changed && handoff.phase === 'target' && active.pose.blankedAt === null) {
+          /*
+           * A dropped frame can cross the mathematical zero-opacity instant.
+           * Force one real painted source frame at zero before the categorical
+           * convention changes, so vertex/left-right can never flash at full
+           * opacity merely because the renderer was busy.
+           */
+          const blankPose = structuredClone(poseStep.pose) as ProbePose;
+          blankPose.display = structuredClone(active.pose.from.display);
+          publishAuthoringPose(blankPose, false);
+          active.pose.blankedAt = now;
+          setPoseTransitionState(true, 0);
+          return true;
+        }
+
+        let echoOpacity = handoff.opacity;
+        if (active.pose.blankedAt !== null) {
+          const fadeIn = Math.min(1, Math.max(0, (now - active.pose.blankedAt) / 150));
+          echoOpacity = authoringGlideEasing(fadeIn);
+          displayFadeDone = fadeIn >= 1;
+        }
+        publishAuthoringPose(poseStep.pose, false);
+        setPoseTransitionState(true, echoOpacity);
+      }
+      if (step.done && displayFadeDone) {
         glide = null;
         delete host.dataset.cameraGlide;
+        if (AUTHORING_ENABLED && active.pose) setPoseTransitionState(false, 1);
         return false;
       }
       return true;
     };
 
+    const cancelGlide = (finishPose: boolean) => {
+      const active = glide;
+      if (!active) return;
+      if (AUTHORING_ENABLED && finishPose && active.pose) {
+        publishAuthoringPose(structuredClone(active.pose.to) as ProbePose, false);
+      }
+      glide = null;
+      delete host.dataset.cameraGlide;
+      if (AUTHORING_ENABLED && active.pose) setPoseTransitionState(false, 1);
+    };
+
     const glideTo = (target: THREE.Quaternion) => {
+      // A direct camera command takes over, but the selected view remains the
+      // selected view: finish its probe pose before changing camera course.
+      cancelGlide(true);
       glide = {
         from: orientation.clone(),
         to: shortestTarget(orientation, target),
         start: performance.now(),
+        duration: GLIDE_MS,
       };
       // Announced on the host so a caller can tell a move is in flight.
       host.dataset.cameraGlide = 'true';
       schedule();
     };
+
+    const glideToAuthoringPose = AUTHORING_ENABLED ? (input: {
+      source: ProbePose;
+      target: ProbePose;
+      centre: readonly [number, number, number];
+      targetFrame: ImagingFrame;
+    }) => {
+      // Selection retargets from the currently rendered intermediate pose; it
+      // does not finish or queue the superseded destination.
+      cancelGlide(false);
+      const source = structuredClone(input.source) as ProbePose;
+      const target = structuredClone(input.target) as ProbePose;
+      publishAuthoringPose(source, false);
+      glide = {
+        from: orientation.clone(),
+        to: shortestTarget(orientation, echoOrientation(input.targetFrame)),
+        start: performance.now(),
+        duration: AUTHORING_GLIDE_MS,
+        pose: { from: source, to: target, centre: input.centre, blankedAt: null },
+      };
+      host.dataset.cameraGlide = 'true';
+      setPoseTransitionState(true, 1);
+      schedule();
+    } : null;
 
     /**
      * Distance at which the model bounds fill the viewport.
@@ -981,6 +1136,23 @@ export default function PackViewer({
       host.dataset.probe = probe ? 'present' : 'absent';
     };
 
+    /** Apply one pose-derived frame to every 3D consumer. */
+    const applyImagingFrame = (frame: ImagingFrame, requestDraw: boolean) => {
+      currentFrame = frame;
+      if (AUTHORING_ENABLED) syncProbeObjects();
+      probe?.update(frame);
+      for (const uniforms of dimUniforms) setBeamFrame(uniforms, frame);
+      if (cutter === 'echo') applyCut();
+      if (requestDraw) schedule();
+    };
+
+    /** Publish the exact transient pose used by both the 3D and echo panels. */
+    const publishAuthoringPose = (pose: ProbePose, requestDraw: boolean) => {
+      freePoseRef.current = pose;
+      onFreePoseRef.current?.(pose);
+      applyImagingFrame(imagingFrame(pose), requestDraw);
+    };
+
     /* --- input ------------------------------------------------------------ */
     let horizonLocked = false;
     let dragging = false;
@@ -1034,9 +1206,9 @@ export default function PackViewer({
       dragging = true;
       pressX = event.clientX;
       pressY = event.clientY;
-      // The learner's hand outranks an animation in flight.
-      glide = null;
-      delete host.dataset.cameraGlide;
+      // The learner's hand outranks an animation in flight. The selected pose
+      // lands exactly, while the camera stays where the hand took control.
+      cancelGlide(true);
       lastX = event.clientX;
       lastY = event.clientY;
 
@@ -1185,6 +1357,7 @@ export default function PackViewer({
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      cancelGlide(true);
       /*
        * Wheel WITHOUT a modifier always zooms — in every mode, no exceptions.
        * Shift-wheel translates the cutter along `N`, and only when the cutter
@@ -1492,22 +1665,7 @@ export default function PackViewer({
         return cut.normal.dot(toCamera) < 0;
       },
       setFrame: (frame) => {
-        currentFrame = frame;
-        /*
-         * AUTHORING: on a pack with no `views[]` nothing has ever built the
-         * indicator, because the learner path only wants a probe where a view
-         * supplies the first frame. A placed pose IS that first frame.
-         */
-        if (AUTHORING_ENABLED) syncProbeObjects();
-        probe?.update(frame);
-        // One frame drives the probe geometry AND the highlight, for the same
-        // reason the wedge and the echo share it: they cannot be allowed to
-        // disagree about where the beam is.
-        for (const uniforms of dimUniforms) setBeamFrame(uniforms, frame);
-        // Echo-synced: the cutter FOLLOWS, so it moves with every frame rather
-        // than having been aligned once.
-        if (cutter === 'echo') applyCut();
-        schedule();
+        applyImagingFrame(frame, true);
       },
       setHidden: (next) => {
         let index = 0;
@@ -1563,6 +1721,7 @@ export default function PackViewer({
         applyReveal(null, null);
       },
       setMode: (next) => {
+        cancelGlide(true);
         const wasFramedFor = framedReach;
         viewerMode = next;
         measureFraming();
@@ -1692,6 +1851,9 @@ export default function PackViewer({
        * cutter's `{N, s}` and the saved `views[]` are both untouched.
        */
       matchEchoOrientation: (frame) => glideTo(echoOrientation(frame)),
+      transitionAuthoringPose: AUTHORING_ENABLED && glideToAuthoringPose
+        ? (input) => glideToAuthoringPose(input)
+        : () => {},
       setCineFrame: (index) => {
         const geometry = cineGeometry[index];
         if (!geometry) return;
@@ -1710,6 +1872,10 @@ export default function PackViewer({
     return () => {
       disposed = true;
       controller.abort();
+      if (AUTHORING_ENABLED && glide?.pose) {
+        poseTransitioningRef.current = false;
+        onViewTransitionRef.current?.({ active: false, echoOpacity: 1 });
+      }
       apiRef.current = null;
       if (frameHandle !== 0) cancelAnimationFrame(frameHandle);
       observer.disconnect();
@@ -1748,6 +1914,7 @@ export default function PackViewer({
       renderer.domElement.remove();
       delete host.dataset.viewerReady;
       delete host.dataset.cameraGlide;
+      if (AUTHORING_ENABLED) delete host.dataset.probeTransition;
       delete host.dataset.cutHandles;
     };
     // `mode` is read once here to seed the scene and is applied thereafter
@@ -1821,8 +1988,8 @@ export default function PackViewer({
   }, [scrub, pack, viewIndex, status, freePose]);
 
   useEffect(() => {
-    apiRef.current?.setHidden(hidden ?? new Set());
-  }, [hidden, status]);
+    apiRef.current?.setHidden(new Set(hiddenKey === '' ? [] : hiddenKey.split('\u0000')));
+  }, [hiddenKey, status]);
 
   useEffect(() => {
     apiRef.current?.setCut({ enabled: cutEnabled, offset: cutOffset, flipped: cutFlipped });
@@ -1903,8 +2070,6 @@ export default function PackViewer({
    * compounds from the value the previous repeat produced rather than from a
    * stale prop.
    */
-  const holdRef = useRef<{ delay: number; repeat: number } | null>(null);
-
   /**
    * Whether the probe may still be pressed closer, or lifted further.
    *
@@ -1927,6 +2092,18 @@ export default function PackViewer({
    * constant.
    */
   const [slotPose, setSlotPose] = useState<ProbePose | null>(null);
+  const [slotView, setSlotView] = useState<AuthoringViewIdentity | null>(null);
+  const setActiveAuthoringSlot = useCallback((
+    pose: ProbePose | null,
+    identity: AuthoringViewIdentity | null,
+  ) => {
+    setSlotPose(pose);
+    setSlotView((current) => (
+      current?.label === identity?.label && current?.source === identity?.source
+        ? current
+        : identity
+    ));
+  }, []);
 
   /**
    * The axis the horizon lock holds vertical, when authoring has measured one.
@@ -1960,6 +2137,41 @@ export default function PackViewer({
       : []),
     [pack],
   );
+
+  // A new model or same-id pack revision cannot inherit presentation state.
+  useEffect(() => {
+    poseTransitioningRef.current = false;
+    setPoseTransitioning(false);
+    if (AUTHORING_ENABLED) onViewTransitionRef.current?.({ active: false, echoOpacity: 1 });
+    if (AUTHORING_ENABLED) onAuthoringWorkingViewRef.current?.(null);
+  }, [gltfUrl, pack.meta.pack_version, viewIndex]);
+
+  /**
+   * AUTHORING: make a stored view the working pose and explain the change by
+   * turning the camera toward its imaging plane.
+   *
+   * The camera, wedge and echo share one duration and easing curve. Intermediate
+   * probe poses exist only long enough to render the transition: nothing here
+   * stores, exports or names them as views. The final frame is an exact clone
+   * of the stored pose rather than an approximation accumulated over time.
+   */
+  const activateAuthoringPose = (pose: ProbePose, identity: AuthoringViewIdentity) => {
+    const target = structuredClone(pose) as ProbePose;
+    const source = freePoseRef.current
+      ?? (view
+        ? (view.sweep ? poseAt(view.probe, view.sweep, scrubRef.current) : view.probe)
+        : target);
+    const api = apiRef.current;
+    const anchor = api?.viewAnchor();
+    if (!api || !anchor || status !== 'ready') return;
+    onAuthoringWorkingViewRef.current?.(identity);
+    api.transitionAuthoringPose({
+      source,
+      target,
+      centre: anchor.centre,
+      targetFrame: withApexFlip(imagingFrame(target), apexFlipped),
+    });
+  };
 
   /**
    * Whether one press may move the probe from `from` to `to`.
@@ -2008,14 +2220,18 @@ export default function PackViewer({
   roomAroundRef.current = roomAround;
 
   useEffect(() => {
-    if (freePose === null) return;
+    // Transition frames are presentation-only and arrive every animation
+    // frame. Measuring two nearest-surface scans for each one would stall the
+    // shared camera/echo clock; the exact landing pose is measured below when
+    // the transition flag clears.
+    if (freePose === null || poseTransitioning) return;
     const next = roomAroundRef.current(freePose);
     // Same values, same object: a fresh object each time would re-render on
     // every step of a held button for no change.
     setStandOffRoom((current) => (
       current.closer === next.closer && current.further === next.further ? current : next
     ));
-  }, [freePose]);
+  }, [freePose, poseTransitioning]);
 
   /**
    * Hold the pointer for the duration of a press.
@@ -2060,11 +2276,13 @@ export default function PackViewer({
    * nothing.
    */
   const pressStandOff = (sign: -1 | 1) => {
+    if (poseTransitioningRef.current) return;
     const pose = freePoseRef.current;
     if (!pose || !view) return;
     const next = movedAlongBeam(pose, sign * STANDOFF_STEP_MM);
     if (!standOffAllowed(pose, next)) return;
     freePoseRef.current = next;
+    onAuthoringWorkingViewRef.current?.(null);
     onFreePoseChange?.(next);
     /*
      * Kept alongside the effect above rather than left to it. A held button
@@ -2075,8 +2293,21 @@ export default function PackViewer({
     setStandOffRoom(roomAround(next));
   };
 
+  /** One authoring-only depth step: resize the sector without moving it. */
+  const pressFanDepth = (sign: -1 | 1) => {
+    if (poseTransitioningRef.current || !AUTHORING_ENABLED) return;
+    const pose = freePoseRef.current;
+    if (!pose) return;
+    const next = steppedFanDepth(pose, sign);
+    if (!next) return;
+    freePoseRef.current = next;
+    onAuthoringWorkingViewRef.current?.(null);
+    onFreePoseChange?.(next);
+  };
+
   /** One press: step the sweep when the probe is locked, turn it when it is not. */
   const pressProbe = (axis: ProbeAxis, sign: -1 | 1) => {
+    if (poseTransitioningRef.current) return;
     const pose = freePoseRef.current;
     if (pose === null) {
       // LOCKED: the press writes `t` and nothing else, so the pose it produces
@@ -2086,10 +2317,12 @@ export default function PackViewer({
     }
     const next = nudgedPose(pose, axis, sign * NUDGE_DEG);
     freePoseRef.current = next;
+    onAuthoringWorkingViewRef.current?.(null);
     onFreePoseChange?.(next);
   };
 
   const beginHold = (step: () => void) => {
+    if (poseTransitioningRef.current) return;
     stopHold();
     step();
     const delay = window.setTimeout(() => {
@@ -2109,18 +2342,24 @@ export default function PackViewer({
    * replaced outright by a pose the pack authored.
    */
   const recentreProbe = () => {
+    if (poseTransitioningRef.current) return;
     if (!view) return;
     const onTrack = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
     freePoseRef.current = onTrack;
+    onAuthoringWorkingViewRef.current?.(null);
     onFreePoseChange?.(onTrack);
   };
 
   const setProbeFree = (free: boolean) => {
+    if (poseTransitioningRef.current) return;
+    onAuthoringWorkingViewRef.current?.(null);
     if (!free || !view) {
+      freePoseRef.current = null;
       onFreePoseChange?.(null);
       return;
     }
     const seeded = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
+    freePoseRef.current = seeded;
     onFreePoseChange?.(seeded);
   };
 
@@ -2133,8 +2372,10 @@ export default function PackViewer({
    * free-probe only — there is no on-track meaning for aiming within the plane
    * or rolling the probe, so offering them locked would be offering a control
    * that cannot do anything.
-   */
+  */
   const probeFree = freePose !== null;
+  const canIncreaseFanDepth = freePose !== null && steppedFanDepth(freePose, 1) !== null;
+  const canDecreaseFanDepth = freePose !== null && steppedFanDepth(freePose, -1) !== null;
   const hasSweep = view?.sweep !== undefined;
   const padPresent = echoMode && (probeFree || (hasSweep && onScrubChange !== undefined));
 
@@ -2203,6 +2444,34 @@ export default function PackViewer({
           <div className="probe-pad" data-testid="probe-pad" data-probe-pad={probeFree ? 'free' : 'sweep'}>
             <p className="probe-pad__title">Probe control</p>
 
+            <div className="probe-pad__controls">
+              {AUTHORING_ENABLED && probeFree && (
+                <div className="probe-depth-rocker" role="group" aria-label="Fan depth">
+                  <button
+                    type="button"
+                    className="probe-depth-rocker__button"
+                    title={`Increase fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    aria-label={`Increase fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    data-testid="probe-depth-up"
+                    disabled={poseTransitioning || !canIncreaseFanDepth}
+                    onClick={() => pressFanDepth(1)}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    className="probe-depth-rocker__button"
+                    title={`Decrease fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    aria-label={`Decrease fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    data-testid="probe-depth-down"
+                    disabled={poseTransitioning || !canDecreaseFanDepth}
+                    onClick={() => pressFanDepth(-1)}
+                  >
+                    ▼
+                  </button>
+                </div>
+              )}
+
             {/*
               * One 3x3 grid, laid out as a game controller's d-pad: a fat cross
               * of five filled cells, with the two roll buttons in the corners
@@ -2221,6 +2490,7 @@ export default function PackViewer({
                   title={hint}
                   aria-label={hint}
                   data-testid={`probe-roll-${sign > 0 ? 'cw' : 'ccw'}`}
+                  disabled={poseTransitioning}
                   onPointerDown={(event) => {
                     capturePress(event);
                     beginPress('rotate', sign);
@@ -2245,6 +2515,7 @@ export default function PackViewer({
                   : 'Step the sweep forward'}
                 aria-label={probeFree ? 'Fan the imaging plane one way' : 'Step the sweep forward'}
                 data-testid="probe-fan-up"
+                disabled={poseTransitioning}
                 onPointerDown={(event) => {
                   capturePress(event);
                   beginPress('fan', 1);
@@ -2262,6 +2533,7 @@ export default function PackViewer({
                   title="Aim the beam left within the same imaging plane"
                   aria-label="Aim the beam left within the same imaging plane"
                   data-testid="probe-aim-left"
+                  disabled={poseTransitioning}
                   onPointerDown={(event) => {
                     capturePress(event);
                     beginPress('aim', -1);
@@ -2331,16 +2603,16 @@ export default function PackViewer({
                 <button
                   type="button"
                   className="probe-pad__core probe-pad__core--reset"
-                  disabled={slotPose === null}
+                  disabled={status !== 'ready' || slotPose === null || slotView === null
+                    || poseTransitioning}
                   title={slotPose === null
                     ? 'Nothing is stored for the selected view yet. Place the probe and save it.'
                     : 'Recall: put the probe back exactly where the selected view has it'}
                   aria-label="Recall the probe to the selected view"
                   data-testid="probe-restore-slot"
                   onClick={() => {
-                    if (slotPose === null) return;
-                    freePoseRef.current = slotPose;
-                    onFreePoseChange?.(slotPose);
+                    if (slotPose === null || slotView === null) return;
+                    activateAuthoringPose(slotPose, slotView);
                   }}
                 >
                   <span className="probe-pad__dot" aria-hidden="true" />
@@ -2396,6 +2668,7 @@ export default function PackViewer({
                   title="Aim the beam right within the same imaging plane"
                   aria-label="Aim the beam right within the same imaging plane"
                   data-testid="probe-aim-right"
+                  disabled={poseTransitioning}
                   onPointerDown={(event) => {
                     capturePress(event);
                     beginPress('aim', 1);
@@ -2427,7 +2700,7 @@ export default function PackViewer({
                   key={key}
                   type="button"
                   className={`probe-pad__roll probe-pad__roll--${key}`}
-                  disabled={!standOffRoom[key]}
+                  disabled={poseTransitioning || !standOffRoom[key]}
                   title={`${hint}. The only translation offered — it changes the stand-off, not the window, and it stops before the probe reaches tissue.`}
                   aria-label={hint}
                   data-testid={`probe-${key}`}
@@ -2459,6 +2732,7 @@ export default function PackViewer({
                   : 'Step the sweep back'}
                 aria-label={probeFree ? 'Fan the imaging plane the other way' : 'Step the sweep back'}
                 data-testid="probe-fan-down"
+                disabled={poseTransitioning}
                 onPointerDown={(event) => {
                   capturePress(event);
                   beginPress('fan', -1);
@@ -2468,6 +2742,7 @@ export default function PackViewer({
               >
                 ▼
               </button>
+            </div>
             </div>
           </div>
         )}
@@ -2526,6 +2801,7 @@ export default function PackViewer({
                 type="checkbox"
                 checked={freePose !== null}
                 onChange={(event) => setProbeFree(event.target.checked)}
+                disabled={poseTransitioning}
                 data-testid="probe-free"
               />
               Free probe
@@ -2634,6 +2910,7 @@ export default function PackViewer({
                 type="checkbox"
                 checked={horizonLock}
                 onChange={(event) => setHorizonLock(event.target.checked)}
+                disabled={poseTransitioning}
                 data-testid="horizon-lock"
               />
               Level
@@ -2723,11 +3000,16 @@ export default function PackViewer({
             standoffOverrideMm={pack.interaction?.authoring_standoff_mm}
             readAnchor={() => apiRef.current?.viewAnchor() ?? null}
             currentPose={freePose}
+            transitioning={poseTransitioning}
+            ready={status === 'ready'}
+            onActivatePose={activateAuthoringPose}
             onPose={(pose) => {
+              if (poseTransitioningRef.current) return;
               freePoseRef.current = pose;
+              onAuthoringWorkingViewRef.current?.(null);
               onFreePoseChange?.(pose);
             }}
-            onActiveSlotPose={setSlotPose}
+            onActiveSlotPose={setActiveAuthoringSlot}
             onLevelAxis={setLevelAxis}
           />
         )}

@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-20 17:36 EDT
+**Updated:** 2026-08-20 22:49 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -18,7 +18,16 @@ can place and save probe poses, export/import local overrides, and reach Echo on
 Its explicit placement may only expand a local draft's depth to the measured minimum. A real Rodero
 `authoring-slots/v1` export has completed the guarded round trip into the existing non-clinical
 reference view in pack v0.1.1; it remains Draft and unreviewed. The view rail and annotated sweep
-scrubber are the next platform unit.
+scrubber are the next platform unit. Separately, immutable Rodero review evidence now carries
+Draft B4/F1 coordinate proposals and seven unselected B2 variants without changing the pack. A
+second candidate set responds to visual fan-edge clipping in B1, B4, F1, and B2 by preserving each
+plane while moving the probe back to leave a measured side margin, a 5 mm distal guard, and at least
+30 mm of forward separation from the heart source. That distance is an adult Rodero visual-layout
+proxy, not a measured chest wall, pediatric default, or clinical acquisition standard. In
+authoring, choosing a populated review slot applies it immediately; camera, wedge, cut plane, and
+simulated echo move on one gently eased clock, and the explicitly unauthored intermediate frames
+cannot be saved. A separate depth rocker grows or shortens the current local fan in 0.5 cm steps
+without moving its source point.
 
 The active product surface is desktop/laptop. Phone and touch UX are paused for a dedicated later
 design pass and do not gate platform checkpoints or the current release workflow.
