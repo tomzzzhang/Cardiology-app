@@ -1,0 +1,46 @@
+{
+  "chambers": [
+    {
+      "tag": 1,
+      "name": "LV",
+      "ml": 81.0,
+      "components": 1,
+      "in_range": true
+    },
+    {
+      "tag": 2,
+      "name": "RV",
+      "ml": 138.0,
+      "components": 1,
+      "in_range": false
+    },
+    {
+      "tag": 3,
+      "name": "LA",
+      "ml": 38.2,
+      "components": 1,
+      "in_range": true
+    },
+    {
+      "tag": 4,
+      "name": "RA",
+      "ml": 85.4,
+      "components": 1,
+      "in_range": false
+    },
+    {
+      "tag": 5,
+      "name": "Aorta",
+      "ml": 11.6,
+      "components": 1,
+      "in_range": false
+    },
+    {
+      "tag": 6,
+      "name": "PA",
+      "ml": 20.7,
+      "components": 1,
+      "in_range": true
+    }
+  ]
+}

@@ -1,10 +1,21 @@
 {
+  "mask": {
+    "method": "line-of-sight occlusion from the observer's outside marks (pipeline/vhl_mask_occlusion.py)",
+    "rule": "a free voxel is OUTSIDE iff an unobstructed straight segment reaches a tag-99 mark; chamber space is the rest",
+    "space_ml": 406.0,
+    "previous_space_ml": 437.7,
+    "removed_ml": 31.67,
+    "removed_that_was_wider_than_3mm_ml": 1.74,
+    "marks_inside_chamber_space": 0,
+    "chamber_seeds_retained": {
+      "chamber_seeds_in_mask": 27,
+      "of": 27
+    }
+  },
   "seeds": {
-    "5": 1,
-    "1": 4,
-    "2": 9,
-    "4": 5,
-    "3": 8
+    "chamber": 27,
+    "barrier": 553,
+    "note": "barrier marks read from model_point_mm; the voxel field is dragged up to 13.56 mm inward by the labeller and is unusable"
   },
   "frame": {
     "patient_left": [
@@ -48,91 +59,121 @@
       "tag": 1,
       "name": "LV",
       "ml": 89.1,
-      "expected_ml": [
+      "components": 1,
+      "bbox_mm": [
+        47.6,
+        83.3,
+        87.9
+      ],
+      "inscribed_mm": 13.8,
+      "thin_pct": 35.0,
+      "expected": [
         60,
         100
-      ],
-      "in_range": true,
-      "extent_voxels": [
-        122,
-        214,
-        226
       ]
     },
     {
       "tag": 2,
       "name": "RV",
-      "ml": 238.1,
-      "expected_ml": [
+      "ml": 216.9,
+      "components": 1,
+      "bbox_mm": [
+        84.4,
+        112.0,
+        126.3
+      ],
+      "inscribed_mm": 17.32,
+      "thin_pct": 31.6,
+      "expected": [
         60,
         100
-      ],
-      "in_range": false,
-      "extent_voxels": [
-        241,
-        288,
-        364
       ]
     },
     {
       "tag": 3,
       "name": "LA",
-      "ml": 58.0,
-      "expected_ml": [
+      "ml": 43.8,
+      "components": 1,
+      "bbox_mm": [
+        50.4,
+        96.5,
+        58.5
+      ],
+      "inscribed_mm": 12.81,
+      "thin_pct": 33.1,
+      "expected": [
         25,
         45
-      ],
-      "in_range": false,
-      "extent_voxels": [
-        193,
-        315,
-        312
       ]
     },
     {
       "tag": 4,
       "name": "RA",
       "ml": 37.1,
-      "expected_ml": [
+      "components": 1,
+      "bbox_mm": [
+        67.0,
+        72.8,
+        67.8
+      ],
+      "inscribed_mm": 9.86,
+      "thin_pct": 30.1,
+      "expected": [
         25,
         45
-      ],
-      "in_range": true,
-      "extent_voxels": [
-        172,
-        185,
-        174
       ]
     },
     {
       "tag": 5,
       "name": "Aorta",
-      "ml": 15.3,
-      "expected_ml": [
+      "ml": 11.7,
+      "components": 1,
+      "bbox_mm": [
+        24.8,
+        26.3,
+        56.6
+      ],
+      "inscribed_mm": 8.8,
+      "thin_pct": 38.1,
+      "expected": [
         15,
         25
-      ],
-      "in_range": true,
-      "extent_voxels": [
-        122,
-        138,
-        151
       ]
     },
     {
       "tag": 6,
       "name": "PA",
       "ml": 0.0,
-      "expected_ml": [
+      "components": 0,
+      "bbox_mm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "inscribed_mm": 0.0,
+      "thin_pct": 0.0,
+      "expected": [
         15,
         25
-      ],
-      "in_range": false,
-      "extent_voxels": [
-        0,
-        0,
-        0
       ]
     }
-  ]
+  ],
+  "corroboration": {
+    "note": "independent mask definitions, same seeds, same flood",
+    "occlusion": {
+      "LV": 89.1,
+      "RV": 216.9,
+      "LA": 43.8,
+      "RA": 37.1,
+      "Aorta": 11.7,
+      "PA": 0.0
+    },
+    "rimwatershed": {
+      "LV": 89.1,
+      "RV": 211.0,
+      "LA": 39.2,
+      "RA": 35.1,
+      "Aorta": 12.0
+    }
+  }
 }

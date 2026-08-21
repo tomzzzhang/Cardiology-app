@@ -483,6 +483,194 @@ run from +12 down to -42 mm. They are at great-vessel height and are plausibly
 RVOT or pulmonary artery rather than RV cavity. **Not retagged** — that is the
 observer's call, not this module's.
 
+## 5d. The mask, fixed — six definitions, one answer
+
+Round two of the seeds arrived as 553 marks, all tag 99, clicked on the OUTSIDE
+SURFACE of the model. Two things were wrong, one in the data and one in the method.
+
+### 5d.1 The `voxel` field on a barrier mark is corrupt
+
+For the 27 chamber seeds, `voxel` and `model_point_mm` agree to under 0.9 mm. For
+the 553 barrier marks they disagree by **p50 2.40 mm, p90 9.62 mm, max 13.56 mm**,
+and no affine — not even a full 3x3 with rotation — relates them; the residual stays
+near 10 mm.
+
+`model_point_mm` for the barrier marks lands 423 outside the envelope, 124 in the
+cavity mask and 6 in tissue: on or just outside the epicardium, where the observer
+clicked. `voxel` lands 149 in the cavity, 321 in tissue and 83 outside.
+
+The cause is `vhl_label_tool_3d.classify(point, reach)`, called as
+`classify(point, barrier ? 10 : 3)`. For a barrier mark it searches up to 10 steps
+of the 128^3 hit grid — 1.162 mm per step, so ~11.6 mm on an axis and ~20 mm into a
+corner — outward from the click for a voxel flagged **cavity**, and returns the
+first one found. A barrier mark is clicked on the outside of the heart, so the
+nearest cavity voxel is frequently on the far side of the wall, INSIDE a chamber.
+The tool then permits `kind === 'muscle'`, but only reaches that branch when no
+cavity was found within reach, so in practice a mark meaning "not lumen" is
+preferentially snapped INTO lumen.
+
+**Use `model_point_mm` for tag 99. The `voxel` field is unusable.** This is the same
+mistake as "the barrier label first rejected the clicks it existed for", one layer
+down: the tool now accepts the click and then moves it somewhere it does not mean.
+
+### 5d.2 A barrier that competes as a flood label is still a race
+
+Run as delivered — barrier as a sixth flood label — the RV came out **165.6 mL**,
+down from 238 but still wrapping at 67 x 94 x 126 mm. Projecting the dropped barrier
+seeds onto the nearest cavity voxel brought the RV to 98.5 mL, inside the expected
+60-100, and that number was **wrong for the reason this branch has already retracted
+one result over**: the barrier then claimed 235.1 mL of the 437.7 mL cavity, of which
+**69.1 mL had clearance greater than 3 mm** — space far too wide to be film — in 187
+blobs whose largest two were 28.8 mL and 21.9 mL. It had eaten the chambers. A
+boundary decided by which label arrives first is not a boundary in either direction.
+
+### 5d.3 The mask that works: line-of-sight occlusion
+
+The owner's rule — *if there is wall between a chamber and a mark, the mark must not
+affect that chamber* — is a statement about visibility, and visibility is a per-voxel
+property with no race in it:
+
+    a free voxel is OUTSIDE  <=>  an unobstructed straight segment reaches some
+                                  tag-99 mark at its model_point_mm
+    chamber space = free AND NOT outside
+
+`pipeline/vhl_mask_occlusion.py`. Each voxel is tested against its k nearest marks by
+a vectorised fixed-step walk, which can only miss visibility, so the result
+over-estimates chamber space and under-estimates the film — the error is signed and
+in the safe direction.
+
+It removes **31.7 mL of the 437.7**, of which only **1.74 mL** is wider than 3 mm
+(largest such blob 0.62 mL). It removes the film and essentially nothing else.
+**0 of 553 marks fall inside the resulting chamber space, and all 27 chamber seeds
+are retained.**
+
+| tag | mL | expected | components | bbox mm | inscribed mm |
+|---|---|---|---|---|---|
+| LV | 89.1 | 60-100 | 1 | 47.6 x 83.3 x 87.9 | 13.8 |
+| RV | **216.9** | 60-100 | 1 | 84.4 x 112.0 x 126.3 | 17.3 |
+| LA | 43.8 | 25-45 | 1 | 50.4 x 96.5 x 58.5 | 12.8 |
+| RA | 37.1 | 25-45 | 1 | 67.0 x 72.8 x 67.8 | 9.9 |
+| Aorta | 11.7 | 15-25 | 1 | 24.8 x 26.3 x 56.6 | 8.8 |
+| PA | 0.0 | 15-25 | 0 | — | — |
+
+Whole heart for comparison: 110.8 x 122.4 x 148.4 mm.
+
+### 5d.4 Six independent definitions, and what they agree on
+
+Five were built independently against the same seeds and the same flood, plus a sixth
+here. Only the mask differs.
+
+| mask | LV | RV | LA | RA | Aorta | marks inside | seeds kept |
+|---|---|---|---|---|---|---|---|
+| occlusion (line of sight) | 89.1 | 216.9 | 43.8 | 37.1 | 11.7 | **0** | **27/27** |
+| rim watershed (epi/endo split) | 89.1 | 211.0 | 39.2 | 35.1 | 12.0 | **0** | 26/27 |
+| ray parity (spherical-harmonic fit) | 81.3 | 210.2 | 35.7 | 35.0 | 7.4 | **0** | **27/27** |
+| enclosure (solid angle) | 89.1 | 175.9 | 47.3 | 36.6 | 13.3 | 37 | 27/27 |
+| SDF from mark normals (Hoppe) | 89.2 | 240.4 | 47.6 | 35.3 | 0.0 | 67 | 26/27 |
+| seal shell (balls on marks) | 62.4 | 97.5 | 9.8 | 0.0 | 0.0 | 0 | 10/27 |
+
+Read this table for its agreements, not its winner.
+
+* **The LV is 89.1 mL in four independent methods, to 0.1 mL.** The left ventricle is
+  a genuinely closed cavity bounded by real tissue on every side, so every definition
+  finds exactly the same space. This is the strongest result on the branch.
+* **The RV is 210-217 mL in all three methods that satisfy the containment rule.** It
+  is not a mask artefact and not a flood artefact.
+* **`enclosure` and `sdfnormals` fail the rule** — 37 and 67 marks fall inside their
+  chamber space — and their RV figures should be discarded, not averaged in.
+* **`sealshell` fails the opposite way.** A shell radius of 17.25 mm was needed to seal
+  the gaps between marks, which is far more than the 2.5 mm 25th-percentile wall
+  thickness under a mark, so the shell ate the wall: RA and aorta come out empty and
+  only 10 of 27 seeds survive. Its in-range LV and RV are the residue of a destroyed
+  partition, not a result. Mark spacing decides this: nearest-neighbour distance among
+  the 553 marks reaches 13.7 mm, and no radius both bridges that and spares a 2.5 mm wall.
+
+### 5d.5 The RV is the open question, and it is no longer a mask question
+
+216.9 mL against an expected 60-100, one connected component, and it survives erosion
+as a single piece all the way to 6 mm — so it is not several cavities fused through
+open orifices in any way a morphological cut could separate.
+
+Three things are measured about it, and they do not resolve to one answer:
+
+* It is **not a wrap**. Casting 1,000 directions from the LV centroid, the first
+  labelled thing met is the RV in **25.7%** of them. A right ventricle bordering a left
+  across the septum and part of the free wall is exactly that. A label that had escaped
+  around the organ would be near 100%. The earlier 3D preview looked like a wrap and was
+  a projection artefact of the splat renderer.
+* Only **18.9 mL** of it sits above the aortic seed at +48 mm on the base axis, where
+  the sealing envelope bridges the gap between the great vessels, and that band has a
+  median detour of 5.8 mm — the signature of a false pocket. Removing it leaves 192 mL.
+* **The largest inscribed sphere in the whole model, 17.3 mm, is inside the RV label,
+  not the LV label, which reaches only 13.8 mm.** In any real heart the left ventricular
+  cavity holds the larger sphere. NOTES §1 recorded that 17.75 mm figure as "the right
+  scale for a 14-year-old LV". It is not in the LV.
+
+That last point is the one to take to the observer. It does not mean the names are
+swapped — an LV of 217 mL is impossible for this donor and the 89.1 mL LV is the right
+size and shape — but it does mean **the RV seed set bounds something larger than a right
+ventricle**, and the model gives no neck at which to cut it. Nothing here is retagged:
+that is the observer's call, as §5c.3 already said of the two RV seeds at great-vessel
+height. Dropping those two changes the RV by 12 mL and settles nothing.
+
+### 5d.6 Two adversarial challenges, adjudicated
+
+Each mask was re-measured by an independent agent told to refute it. Two challenges
+survived far enough to need settling with new measurements rather than argument.
+
+**Challenge 1: "the RV is a wrapping sheet."** Raised against occlusion, enclosure and
+the SDF, on the grounds that the RV bounding box is 76% / 90% / 85% of the whole heart
+and its volume-to-bounding-box fill ratio is low.
+
+**Overruled, on the detour field.** Detour is the geodesic distance from the open air
+through free space minus the straight-line distance to that same air. Space outside the
+organ lies against the air with only the imaginary envelope surface between, so both
+distances match and the detour is zero; lumen is separated from air by myocardium, so the
+straight line is one wall and the route is in through an orifice. Measured on the 553
+marks it reads p50 0.0, p90 0.4, max 5.3 mm — the marks are, correctly, at zero.
+
+Volume by detour band, and the three masks that satisfy the containment rule agree:
+
+| mask | RV mL | < 5 mm | 5-20 | 20-50 | > 50 mm | p50 |
+|---|---|---|---|---|---|---|
+| occlusion | 216.9 | **6.6** | 20.3 | 61.9 | 128.1 | 60.5 |
+| ray parity | 210.2 | **9.1** | 22.1 | 64.1 | 114.8 | 55.2 |
+| rim watershed | 211.0 | **10.7** | 19.1 | 58.5 | 122.7 | 59.7 |
+
+Under 5% of the RV sits at outside-the-heart depth, and roughly 60% of it needs more than
+50 mm of detour. The LV has **0.0 mL** below 20 mm. A bounding box cannot distinguish a
+crescentic right ventricle running from apex to pulmonary trunk from a sheet, and here it
+does not: the RV is a large interior cavity, not space outside the organ. This agrees with
+the ray test in §5d.5 (first-contact from the LV centroid is RV in 25.7% of directions)
+and with the ray-parity agent's own six-ray enclosure audit (202.0 of 210.2 mL enclosed).
+
+**Challenge 2: "the marks are dispensable."** Raised against ray parity by ablation — delete
+the fitted surface, apply a 1.5 mm morphological opening to the old 437.7 mL space, keep
+the components holding a seed, and the result reproduces.
+
+**Half right, and the important half is wrong.** The opening alone never satisfies the
+containment rule at any radius, and it costs left ventricle:
+
+| opening | space mL | LV | RV | marks inside | seeds |
+|---|---|---|---|---|---|
+| none | 437.7 | 89.1 | 238.1 | 124/553 | 27/27 |
+| 0.75 mm | 407.2 | 86.9 | 232.0 | 41/553 | 27/27 |
+| 1.0 mm | 398.9 | 85.0 | 228.8 | 29/553 | 27/27 |
+| 1.5 mm | 382.3 | 81.3 | 216.7 | 10/553 | 27/27 |
+| 2.0 mm | 366.3 | 78.0 | 204.9 | 7/553 | 27/27 |
+| **occlusion** | **406.0** | **89.1** | **216.9** | **0/553** | **27/27** |
+
+The no-mark baseline reproduces round one's RV exactly at 238.1 mL, which is a useful check
+that nothing else drifted. But the opening trades left ventricle for containment and never
+buys containment outright: 7 of 553 marks are still inside at 2.0 mm, by which point the LV
+has lost 11 mL it should not have lost. Occlusion reaches the same RV figure, keeps the LV
+at 89.1 exactly, and reaches zero. **The spherical-harmonic surface is dispensable; the
+observer's marks are not.**
+
+**What neither challenge disturbs.** Every mask, including the no-mark baseline, puts the RV
+between 205 and 238 mL. The right ventricle being roughly twice its expected volume is a
+property of the seed set and the model, not of any mask, and §5d.5 stands.
+
 ## 6. Gates
 
 - **`npm run check:fast`: PASS, exit code 0.** typecheck, lint, and 28 test files —
@@ -505,6 +693,51 @@ So running the gates means tetrahedralising the tagged voxels, synthesising valv
 at the chamber interfaces, and supplying a `Z` field. **A `Z` field derived from one's own
 partition makes the apex check partly circular**, and any future run must say so rather than
 report it as an independent pass.
+
+
+## 6b. What the gates actually refuse — measured, not read
+
+§6 lists valve-plane tags 7-10, a `Z` field and a `TetMesh`. That list is incomplete.
+Throwaway `TetMesh`es were built on a shared point lattice carrying exactly the tags a
+VHL partition can supply, and `anatomy.py` was CALLED — never modified — to see what it
+refuses. The ladder:
+
+| mesh carries | `identify_valve_planes` | `derive_cardiac_frame` |
+|---|---|---|
+| tags 1-5 only | raises: no tag borders any valve pair | raises, same |
+| + valve bands 7, 8, 9 | raises: **no tag borders the pulmonary pair** | raises, same |
+| + a synthesised PA (6) and band 10 | OK, all four named | raises: `no 'Z' field` |
+| + a `Z` apicobasal field | OK | raises: **`no elements tagged 16`** |
+| + synthesised cavae 16 and 17 | OK | runs |
+
+So the gates need **five fabrications**, not three: valve bands 7-10, a pulmonary artery
+at tag 6, a superior vena cava at 16, an inferior vena cava at 17, and a `Z` field. The
+VHL source carries none of them — the PA stub is too short to seed at all (§5c.3), and
+there are no caval stubs to tag.
+
+**After fabricating all five, at most two of the nine checks measure anything.** Taking
+them one at a time, against inputs that would have to be invented:
+
+| # | check | status on a fabricated VHL mesh |
+|---|---|---|
+| 1 | pulmonary valve anterior to aortic valve | meaningless — the pulmonary ring sits on an invented PA |
+| 2 | mitral valve left of tricuspid valve | near-circular — the bands sit at the LV/LA and RV/RA interfaces and the left axis is built from LA-RA |
+| 3 | **left ventricle left of right ventricle** | **genuine** — the left axis comes from the atria, not the ventricles |
+| 4 | aortic valve right of mitral valve | **partly genuine** — rests on the observer's aorta seed, which is not an axis input |
+| 5 | left atrium basal to left ventricle | circular — the long axis runs from a `Z`-derived apex to the mean of four invented rings |
+| 6 | right atrium basal to right ventricle | circular, same reason |
+| 7 | superior vena cava basal to the valve plane | meaningless — invented SVC |
+| 8 | inferior vena cava posterior to superior vena cava | meaningless — both invented |
+| 9 | apex apical to every valve ring | circular — the apex comes from a `Z` field derived from this partition |
+
+§6 already flagged check 9 as partly circular. It is worse than that: seven of the nine
+are circular or meaningless once the missing structures are invented, and **running them
+would produce a 9/9 pass that means almost nothing.** That is precisely the failure this
+branch retracted in §5c.1.
+
+**Recommendation: do not run the gates on a fabricated mesh.** Report check 3 and, with a
+caveat, check 4, or report that the gates are not applicable to this source. A pack that
+carries no pulmonary artery and no cavae cannot be validated by a frame that checks both.
 
 ## 7. Orientation
 

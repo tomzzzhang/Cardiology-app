@@ -2,7 +2,7 @@
 
 **Branch:** `experiment/vhl-partition`
 **Branched from `dev` at:** `294751faf124b79693cae99d9335e881189a032c`
-**Last Updated:** 2026-08-21 01:10 EDT
+**Last Updated:** 2026-08-21 15:49 ET
 
 Branch log. Interleave these entries by timestamp into the planning folder's
 `progress_log.md` at merge, then delete this file.
@@ -10,6 +10,715 @@ Branch log. Interleave these entries by timestamp into the planning folder's
 Newest first.
 
 ---
+
+## 2026-08-21 15:49 ET — round six: the atrioventricular divide enforced, and the wall drawn rather than inferred
+
+**A real error the observer caught by eye.** Atrial lumen was sitting BELOW its own valve
+plane. Measured against the traced annuli: **10.3 mL of right atrium below the tricuspid
+plane, the deepest 39.1 mm below it**, and 1.1 mL of left atrium below the mitral. Both
+reassigned to the ventricle.
+
+The rule is deliberately ONE-WAY - atrium on the ventricular side becomes ventricle, never
+the reverse - and unbounded by the disc radius, unlike the earlier reclassification. The
+reverse direction would eat the right ventricular outflow tract, which is basal to the
+tricuspid plane and legitimately ventricle. "Below the plane" is a half-space and an atrium
+has no business anywhere in it.
+
+**Round six lumen:** LV 82.1, RV 148.3, LA 37.0, RA **75.0** (from 85.4), aorta 11.6,
+PA 20.7 mL. All single components.
+
+**The wall is now drawn, not inferred.** 375 groove marks and 1,076 region points at a 5 mm
+brush. The barrier covers 175,363 of 993,449 epicardial voxels; **1,376 voxels, 0.14%, were
+left unreached** by the flood, so the grooves close well enough almost everywhere.
+
+| chamber | painted wall mL | nearest-cavity mL |
+|---|---|---|
+| LV | 116.1 | 130.0 |
+| RV | 133.5 | 128.4 |
+| LA | 75.6 | 33.8 |
+| RA | 28.1 | 44.4 |
+| aorta | 3.5 | 10.2 |
+| PA | 7.3 | 14.7 |
+| unclaimed | 0.0 | 2.5 |
+
+**LA wall at 75.6 mL is intentional, not a leak.** The observer folded the pulmonary veins
+into the left atrium rather than tagging them separately - too many, too hard to resolve on
+this model, and topologically continuous with the atrium anyway. Recorded so nobody later
+reads it as an error and "fixes" it.
+
+The boundaries follow the grooves now instead of the nearest cavity, and the patchiness is
+gone: territories are contiguous with clean edges along the atrioventricular and
+interventricular grooves. See `wall-painted-round6.png`.
+
+**Gates.** `npm run check:fast` green, exit 0.
+
+## 2026-08-21 15:18 ET — the wall colouring is patchy, so the grooves get drawn instead
+
+**The observer's call, and it is right.** Assigning wall to the nearest labelled cavity
+produces ragged territories, because the nearest cavity does not bound a chamber on the
+OUTSIDE. The atrioventricular and interventricular grooves do, and on this specimen they are
+plainly visible on the epicardium - so they should be drawn, not inferred.
+
+**Tool.** A `Paint the wall` mode in the reviewer: `Draw groove` lays a barrier stroke along a
+groove as you drag, `Name region` drops a chamber tag inside one. One mark per brush-width of
+travel, so a drag lays a stroke rather than a blob. Exports `wall-paint.json` in cardiac
+coordinates. Verified by driving it: strokes accumulate, region points register, undo and
+clear behave.
+
+**Consumer.** `pipeline/vhl_wall_paint.py` - the same seeded watershed used everywhere else on
+this branch, moved onto a surface. Grooves are barriers, region points are seeds, the flood is
+confined to the epicardial surface, and the wall beneath inherits from the surface above it.
+
+**Confining the flood to the surface is the point.** Two voxels either side of a groove are
+millimetres apart in space and a long way apart across the surface. That distinction is
+exactly what a groove encodes, and it is invisible to a distance transform through the wall,
+which is why the nearest-cavity version was patchy in the first place.
+
+**Smoke-tested with synthetic marks** - eight region points per chamber sampled from the
+existing wall labels and fed back as if painted, no grooves. Coordinate round trip, snapping,
+flood and inheritance all work; IoU against the nearest-cavity labelling runs 0.36-0.67, which
+is expected and not a defect: a surface watershed from eight points is not a nearest-cavity
+assignment, and being different is the reason it was built. It has not yet seen a real mark.
+
+## 2026-08-21 15:06 ET — a frame error, retracted; then per-chamber myocardium
+
+**A CORRECTION, and it invalidated the previous entry's valve numbers.** The traced rims are
+in CARDIAC coordinates - the viewer raycasts posed meshes - and everything downstream compared
+them against `origin + (voxel + 0.5) * pitch`, which is MODEL coordinates. Settled by test:
+mapped through `ROT.T` every traced point lands **0.5 mm** from the tissue surface; taken as
+model coordinates, **2.5 mm** and up to 12.5 mm away.
+
+Withdrawn: "the traced plane cuts 2929 mm2, nearly three times an annulus"; the 14-degree
+refinement to 1186 mm2; the claim that the mitral search "degenerated onto a crevice" at
+0 mm2; and the round-five volumes quoted from it. Radii, areas, out-of-plane rms and the
+10.3-degree angle between the planes are rotation invariant and survive untouched.
+
+**In the right frame the traces are good, and two independent measurements say so.**
+
+| valve | orifice measured on the mesh | circle fit to the points | expected |
+|---|---|---|---|
+| tricuspid | 1405 mm2 | 1506 mm2 | 1000-1200 |
+| mitral | 636 mm2 | 578 mm2 | 800-1000 |
+
+Agreement to 7% and 10% between two things that share no machinery. The automatic refinement
+now returns 934 and 488 mm2 - it undershoots both, hunting the narrowest local neck, which
+sits below the annulus. **The observer's planes are kept.**
+
+**Round five**, classifying inside each traced disc by side of its plane: LV 81.0, RV 138.0,
+LA 38.2, RA 85.4, aorta 11.6, PA 20.7 mL. RA falls from 95.8, the right direction. The RA-RV
+interface stays at 6,262 mm2, so the tricuspid still is not doing a valve's job.
+
+**Per-chamber myocardium, the thing that makes `normal-rodero` read as a labelled heart from
+outside.** `pipeline/vhl_wall_labels.py`: a piece of wall belongs to the chamber whose cavity
+it encloses, so the nearest labelled lumen voxel names it. The interventricular septum comes
+out split down its middle, which is the honest answer for a shared structure. Wall beyond
+12 mm from any cavity is left unclaimed rather than attributed to whatever is least far away -
+2.5 mL of 364.1.
+
+| chamber | wall mL | lumen mL |
+|---|---|---|
+| LV | 130.0 | 81.0 |
+| RV | 128.4 | 138.0 |
+| LA | 33.8 | 38.2 |
+| RA | 44.4 | 85.4 |
+| aorta | 10.2 | 11.6 |
+| PA | 14.7 | 20.7 |
+
+**An old finding, confirmed from a new direction.** LV wall : RV wall = **1.01 : 1**, against
+about 2.6 : 1 for Rodero. NOTES §5b.2 reached the same conclusion from wall THICKNESS and was
+disbelieved once already; this is the same result from volume, by an unrelated route. This
+model genuinely carries no left-right wall asymmetry.
+
+**Rendering.** The wall carries a per-vertex colour attribute rather than six separate wall
+meshes, which would duplicate every shared interface and roughly double the triangle count.
+Two traps, both hit: a vertex sits ON the tissue boundary, so sampling the label volume at
+that exact voxel reads 0 almost everywhere - snap to the nearest labelled wall voxel instead;
+and three.js takes a vertex-colour attribute as LINEAR, so sRGB values written straight
+through render washed out.
+
+**Gates.** `npm run check:fast` green, exit 0.
+
+## 2026-08-21 14:26 ET — traced annuli: the mitral severs, the tricuspid does not, and a bound is withdrawn
+
+**The observer traced the tricuspid and mitral rims.** 14 and 20 points, saved as
+`output/vhl-partition/valve-rims.observer-A.json`.
+
+**Both planes are sound, and two checks say so that were not fitted for.** Out-of-plane rms
+0.36 mm (tricuspid) and 0.51 mm (mitral) - the traced rings really are planar. The angle
+between the two annular planes comes out **10.3 deg**, against 10-20 deg in a real heart, and
+nothing in the fitting couples them. The mitral centre sits **+22.6 mm patient-left** and
+**+18.6 mm basal** of the tricuspid, both correct in sign.
+
+**The radii are not sound, and the reason is measurable.** The viewer reported radius as mean
+distance from the centroid, which is only right if the points go all the way round. Re-fitting
+as an algebraic circle in each plane:
+
+| valve | viewer r | circle r | area | expected | arc covered | largest gap |
+|---|---|---|---|---|---|---|
+| tricuspid | 17.25 mm | 21.90 mm | 1506 mm2 | 1000-1200 | 173 deg | 187 deg |
+| mitral | 10.50 mm | 13.56 mm | 578 mm2 | 800-1000 | 218 deg | 142 deg |
+
+Roughly half of each ring was traced, so the fit extrapolates the rest; the two estimates
+differ by 27%. Tricuspid reads large, mitral small. **Completing the arcs is the cheapest fix
+available** and would settle both.
+
+**A WITHDRAWAL.** The 08:13 entry applied an "Ebstein bound" - right-atrial lumen may not lie
+more than 10 mm apical of the mitral floor - and moved 10.8 mL of RA into the RV on it. **That
+bound is wrong and is retracted.** It assumed the tricuspid annulus sits at one apicobasal
+height. The traced annulus is oblique: its normal carries a base component of 0.83, so the rim
+descends to base **-29 mm**, and the lumen at -26 mm that the bound reassigned is ABOVE the
+annulus, not below it. Round five is rebuilt from the round-four labels as they stood before
+that fix.
+
+**The mitral disc works; the tricuspid does not.** Cutting the mask at both discs and
+re-flooding, the left ventricle comes out in its own connected component - the mitral orifice
+is genuinely closed. The right does not separate: RA and RV seeds stay in one component, and
+the shortest route between them through the cut mask is **0.8 mm**.
+
+**Why, measured.** The residual RA-RV interface is 6,195 mm2 and it is not at the annulus:
+median **12.6 mm from the traced plane**, and **29% of it beyond the disc radius**. Classifying
+by the plane inside the disc moves 26 mL between the two and leaves the interface at 6,195 mm2.
+The two labels interpenetrate over a broad surface well away from the valve, which no annulus
+can fix.
+
+**The likely cause, and it is the standing one.** RA is 110 mL against an expected 25-45, with
+roughly 45 mL above +19 mm at great-vessel height. The label is carrying the caval stubs and
+the atrial appendage, which run alongside the right ventricle - so the two labels are neighbours
+far from the tricuspid because one of them is not only a right atrium. Tags 16 and 17 are in the
+viewer and unused.
+
+**Gates.** `npm run check:fast` green, exit 0.
+
+## 2026-08-21 14:08 ET — the stencil cap was the lag; the baked face replaces it
+
+**The stencil cap worked and has been removed.** It follows the app's own
+`src/viewer/caps.ts` and it costs two extra full passes over the myocardium every
+frame - back faces then front, `depthTest: false` so nothing is rejected early -
+roughly **1.6 M triangles of pure overdraw** on top of a 1.24 M scene, re-run on
+every frame of a drag. That was the rotation lag, and it appeared exactly when the
+caps went in.
+
+**It was also redundant, which the owner spotted: bake it instead of drawing it.**
+The cut face was already a texture sampled from the label volume and drawn as ONE
+quad - solid by construction, two triangles, no geometry pass. The only reason the
+stencil version was still in use was that the painted face had to be turned off to
+see into a chamber while tracing a rim. So the face now has a **wall-only** mode:
+paint tissue, leave lumen clear. The wall reads solid and you can still see into the
+chamber. Same picture, 1.6 M fewer triangles per frame.
+
+**Interaction downgrade kept.** Pixel ratio drops to 1 while the pointer is down and
+restores on release: ratio 2 on a Retina panel is four times the fragments, for a
+picture nobody is studying mid-drag.
+
+**A failed attempt, recorded because it cost the most time.** Render-on-demand -
+draw only when a dirty flag is set - was tried and reverted. Too many things move
+the picture for one flag to track, and a missed one is an invisible bug. Worse, the
+edit that removed it took the render loop with it: a non-greedy regex spanning
+newlines matched further than intended and deleted `tick()` entirely. The symptom
+was a blank canvas with the backing store stuck at the default 600x300 while CSS
+reported 1168x960, which is the tell that `setSize` never ran. Console was no help -
+the pane kept replaying a stale `invalidate` ReferenceError from an earlier load
+long after that identifier was gone from the served file, which sent me looking in
+the wrong place twice. **Check the canvas backing store against its CSS size before
+trusting a console message.**
+
+**Gates.** `npm run check:fast` green, exit 0.
+
+## 2026-08-21 13:47 ET — mesh density back down, and solid cut faces by stencil
+
+**Density.** Full-resolution meshes were 5.36 M triangles and made the viewer lag, and they
+were never what fixed the holes - stripping the 1,025 debris shells was. Meshes are back to
+192^3 and **1.24 M triangles**, a 4.3x reduction. The label volume stays at 384^3: picking
+and the cut face read the VOLUME, not the mesh, so precision where it matters is unchanged.
+
+Downsampled by **max over each 2x2x2 block**, not by stride. Striding drops every second
+plane, which would delete exactly the one-voxel walls it took three attempts to stop
+deleting.
+
+**Solid cut faces.** A clipped shell reads as hollow - clipping deletes fragments and leaves
+the inside of the surface staring back. Now capped by the stencil algorithm from the app's own
+`src/viewer/caps.ts`: render the geometry writing only stencil, back faces incrementing and
+front faces decrementing with the depth test off, so away from the cut every back face is
+matched and the counter returns to zero, while over the cross-section the matching front face
+has been clipped away and it does not. A quad masked to `stencil != 0` paints that solid.
+
+Two things carried over from the app's module because they are not obvious:
+
+* **`stencil: true` on the renderer is required.** three.js has defaulted it to false since
+  r163 and every cap silently renders nothing without it.
+* **Myocardium only; lumen is never capped.** The app documents why and it is the same reason
+  here: a chamber is a CAST, so capping it paints a solid disc across the opening and the
+  chamber reads as filled. It is filled in the file and it is not filled in a heart. Leaving
+  lumen open is the honest rendering, and it is exactly what "fill the non-lumen side" asks for.
+
+The painted cut face and the stencil cap coexist: the painted face carries the chamber colours
+and sits a hair in front, the stencil cap is what you see when the painted face is turned off
+for tracing.
+
+**Gates.** `npm run check:fast` green, exit 0.
+
+## 2026-08-21 13:40 ET — the holes were the rejection's defect (a), and the fix was already on the branch
+
+**The owner asked whether the holes are just the model. They are — and the branch solved
+this on day one, in `vhl_partition.strip_debris`, which was never applied here.**
+
+`pack.json` says it in as many words: *1,026 connected components - trabecular islands and
+segmentation debris - **render as voids through the tissue***. That is defect (a) of the
+2026-08-19 rejection. 1,025 of the 1,026 components are inward-wound shells sitting inside
+the wall, and `voxelise` fills by RAY PARITY, which subtracts a negatively wound component.
+Every bubble therefore punches a void straight through the tissue mask.
+
+Every grid on this branch since `cache_grid.py` was built from the RAW welded mesh:
+
+```
+surface, _ = geometry.weld(read_binary_stl(...))
+grid = voxelise(surface.vertices, surface.faces, 384)
+```
+
+No `analyse_debris`, no `strip_debris`. The 1,025 bubbles went straight into the voxels and
+then into every surface extracted from them.
+
+**Measured, on the stripped mesh.** 1,026 components, 1,025 inward-wound, separation ratio
+4,986x; 803,542 triangles down to 782,436. Voxelising the kept component instead:
+
+* voids filled: **9,730 voxels = 0.57 mL**
+* tissue removed: **0 voxels**
+* of the filled voids, sitting inside a chamber label: **0 voxels**
+
+So no chamber volume moves and no partition number changes. The tissue surface gains 0.57 mL
+of wall that was being carved out from underneath it.
+
+**This is the third and largest of three compounding causes**, and the two before it were
+real but partial: quads inverted on one axis, which lit as dark speckle; and a blur at sigma
+0.6 that erased ridges (0.441) and struts (0.293) below the 0.5 threshold, now 0.4. Fixing
+either alone left the surface looking broken, which is why two previous claims that it was
+fixed were wrong.
+
+**Verified by eye at six angles** after the change - apex, ventricular free wall, base from
+above at two distances, the atrial mass, and anterior-superior with the aortic stump open.
+Smooth wall, visible coronary grooves, no pitting.
+
+**Worth carrying forward.** Anything that voxelises this source must strip debris first. The
+partition itself was computed on the raw grid, but only ever inside `space`, which is the
+complement of tissue - so the bubbles, being inside the wall, never entered it. That is luck
+rather than design, and the next thing built on this grid may not be so lucky.
+
+**Gates.** `npm run check:fast` green, exit 0.
+
+## 2026-08-21 13:25 ET — two compounding faults in the surface extractor, and full resolution
+
+**Both found by looking at the render, and neither by a metric.** The surface was covered in
+dark rectangular speckle and in real perforations. They had separate causes and fixing one
+left the other, which the first version of this entry got wrong.
+
+**Fault one: quads on one axis were wound backwards.** Surface nets emits one quad per
+sign-changing grid edge from the four cells around it, and the two in-plane axes must form a
+RIGHT-handed basis with the edge direction. The cyclic rotations are (1,2), (2,0), (0,1); the
+code had (1,2), **(0,2)**, (0,1), and `(x, z, y)` is left-handed, so every y-facing face was
+inverted. Inverted normals light black - the speckle was not holes at all.
+
+*Why the original check missed it.* The extractor was validated on a cube: 3,024 triangles,
+Euler characteristic exactly 2. An inverted axis leaves the mesh perfectly closed, so that
+test cannot see it. It is now checked on a cube AND three axis-aligned slabs, one per axis,
+for zero boundary edges and a POSITIVE signed volume. The slabs are the part that matters.
+
+**Fault two: the blur was erasing thin structure, and 0.6 was not enough.** At sigma 1.0 a
+one-voxel sheet blurs to 0.399, under the 0.5 threshold, so thin sheets were deleted outright.
+Dropping to 0.6 fixed sheets and the holes stayed, because a sheet is the easy case:
+
+| sigma | plane | ridge | point |
+|---|---|---|---|
+| 0.4 | 0.919 | 0.845 | 0.777 |
+| 0.5 | 0.787 | 0.619 | 0.487 |
+| 0.6 | 0.664 | **0.441** | **0.293** |
+| 0.8 | 0.499 | 0.249 | 0.124 |
+
+A trabecular lattice is ridges and struts, not planes, and at 0.6 those fall under the
+threshold and vanish. Now **0.4**, where a ridge holds 0.845 and an isolated strut 0.777.
+
+**Also: Taubin instead of Laplacian smoothing.** Repeated Laplacian shrinks, and on a thin
+sheet pulls the two sides through each other into a self-intersecting surface that speckles
+however the normals are wound. The positive-then-negative pair does not shrink.
+
+**A proxy that was worthless, recorded so it is not repeated.** Boundary-edge counting on a
+100^3 test block said 3,190 open edges at every blur setting. That number means nothing here:
+the block cuts through the heart, so the surface is legitimately open at the block face and
+the count is dominated by it. The check that worked was looking at the thing.
+
+**Verified by eye at four angles** - ventricular free wall, base from above, the atrial mass,
+and the great-vessel stumps with aortic and caval lumen showing in their cut ends. No lattice,
+no speckle.
+
+**Full resolution.** Meshes and the label volume are now 384^3 rather than 192^3: half
+resolution smoothed away the trabecular detail that distinguishes an orifice rim from a
+crevice, which is exactly what is being traced. 5.36 M triangles across seven surfaces and a
+56.6 MB label volume behind the cut face. All scratch, none of it in the repository.
+
+**Presentation, following the app.** Myocardium is neutral grey and fully opaque so nothing
+competes with a chamber colour on the cut face, and materials are `MeshStandardMaterial` at
+roughness 0.55 and metalness 0.05 - the model `src/viewer/PackViewer.tsx` uses. The clearcoat
+sheen tried earlier was wrong for this surface: it turned every trabecular ridge into a
+highlight.
+
+**Gates.** `npm run check:fast` green, exit 0.
+
+## 2026-08-21 12:44 ET — the observer will trace the annuli; the tool now lets them
+
+**State.** No new partition this entry. The reviewer was rebuilt to collect the one input
+that neither geometry nor the seed flood can supply: the rim of each orifice.
+
+**Why this is the right move rather than more code.** The valve-plane search in
+`pipeline/vhl_valve_plane.py` settles the mitral and pulmonary cleanly - 0.00% of marks on
+the wrong side - and cannot settle the tricuspid, because the right ventricular outflow
+tract runs basally past that annulus, so any infinite plane separating right atrium from
+right ventricle also slices the outflow. A traced rim gives a CENTRE and a RADIUS, so the
+cut can be a bounded disc, which has no such problem. The same traces are what
+`identify_valve_planes` has been missing since the start: it derives a valve's identity from
+which chamber PAIR its plane borders, and every orifice in the tool carries that pair.
+
+**What changed in the tool.**
+
+* **A freely orientable cut.** The plane is now a general `{n . p = d}` rather than an
+  axis-aligned slab. `Face me` swings it onto the camera direction and keeps the far half,
+  so the fresh cut is the side turned towards the viewer; the three cardiac axes remain as
+  presets.
+* **A transparent cut face.** The painted face is on an opacity slider and drops to zero in
+  tracing mode, because a rim has to be seen THROUGH.
+* **No ghost.** With the face off, the remaining tissue is forced fully opaque. Front-face
+  culling was tried first and is wrong here: this wall is trabeculated and full of real
+  holes, so culling skeletonises it rather than solidifying it. Opacity is what removes the
+  ghost; the geometry stays double sided.
+* **A headlight on the camera.** The scene lights are fixed in world space, which suits the
+  outside of the organ and leaves the inside of a cut black - and the inside is the whole
+  point when hunting for a rim.
+* **Clicks land on anatomy, not on the plane.** In tracing mode the ray is cast at the
+  meshes rather than the face quad. This needed care: **three.js raycasting ignores material
+  clipping planes**, so a ray happily returns a hit on the half that has been cut away and is
+  not on screen. Hits on the removed side are rejected before the nearest is taken.
+* **Eleven orifices, not four.** The four valves plus four pulmonary vein ostia, both cavae
+  and the coronary sinus. Ranges are quoted only for the four valves, where a normal area at
+  this age is something that can be stated; a vein or caval ostium gets its measured area and
+  no verdict, since how much stub the specimen retains is a property of where it was trimmed.
+* **Disc fit.** Least-squares plane through the traced points by inverse iteration on the
+  3x3 scatter matrix, reporting centre, normal, radius, area and out-of-plane RMS. The RMS is
+  the honest part: it says how planar the traced ring actually was. Exports as
+  `valve-rims.json` carrying the chamber pair each orifice separates.
+
+**Verified end to end** by driving it: four points placed on tissue fitted to r 15.6 mm,
+area 762 mm2, out-of-plane rms 1.14 mm, correctly flagged small against a 1,000-1,200 mm2
+tricuspid. Cut-face audit still 0 of 2,000 on every axis.
+
+**Next, once rims come back:** cut right atrium from right ventricle inside the tricuspid
+disc only, leaving the outflow untouched; then emit tags 7-10 as valve-plane bands and try
+`identify_valve_planes` for the first time.
+
+## 2026-08-21 08:13 ET — round four: the mixing was real, and anatomy names it
+
+**State.** 4,361 further corrections. Every chamber is now a single connected component,
+and the "volume within volume" the observer saw has a measured cause rather than a
+description.
+
+**It was not islands.** Disconnected pieces total 0.25 mL across all six labels, so nothing
+a component filter would find. The interdigitation shows up instead as CONTACT AREA between
+labels that anatomy says must not touch, or must touch only at an orifice:
+
+| pair | contact | anatomy |
+|---|---|---|
+| RA-RV | **6,394 mm2** | tricuspid orifice, about 1,000-1,200 mm2 at this age |
+| LV-LA | 1,468 mm2 | mitral orifice, about 800-1,000 mm2 |
+| RV-PA | 363 mm2 | pulmonary orifice, about 500-600 mm2 |
+| RA-PA | 192 mm2 | **should be zero** |
+| LV-RV | 0 | septum intact |
+| LA-RA | 0 | septum intact |
+
+The septa are clean. The right atrium and right ventricle, however, share five times the
+area a tricuspid annulus has: they interleave.
+
+**A valve plane was tried and rejected on measurement.** `pipeline/vhl_valve_plane.py`
+searches 300 orientations and every offset for the least-area plane separating two seed
+sets. Mitral and pulmonary separate PERFECTLY — 0.00% of marks on the wrong side. RA/RV
+does not: the best plane in any direction misclassifies **7.67%**, and forcing one drives
+the cut to 3,240 mm2 when the same direction has a 1,302 mm2 minimum elsewhere. The reason
+is anatomical and worth recording: **the right ventricular outflow tract continues basally
+past the tricuspid annulus to the pulmonary valve**, so no single plane can separate the
+right atrium from the right ventricle. The module is kept because it settles the mitral and
+pulmonary planes cleanly, which is what `identify_valve_planes` will need.
+
+**What the cross-sections showed, and the constraint that follows.** Right-atrial lumen
+appeared at mid-ventricular level in short axis — impossible. On the apicobasal axis the
+left atrium's floor, which is the mitral annulus, sits at **-4.0 mm**; the right atrium
+reached **-34.8 mm**, 30.8 mm apical of it. A tricuspid annulus does sit apical to the
+mitral, but an offset past about 10 mm is the definition of Ebstein's anomaly, and this is
+a normal donor. So right-atrial lumen below -14.0 mm is not right atrium: 10.8 mL went to
+the right ventricle, which is the only thing that can be there. The bound is read off the
+left side of this same model rather than fitted, and the cost of every choice from 5 to
+20 mm is tabulated in `../diag/anatomy_fix.py` output.
+
+**Round four.**
+
+| tag | mL | expected | comps | height mm | round 3 |
+|---|---|---|---|---|---|
+| LV | **77.8** | 60-100 | 1 | -66 .. 20 | 69.7 |
+| RV | 127.7 | 60-100 | 1 | -75 .. 31 | 139.2 |
+| LA | **41.5** | 25-45 | 1 | -4 .. 57 | 49.6 |
+| RA | 95.8 | 25-45 | 1 | -14 .. 54 | 85.0 |
+| Aorta | 11.6 | 15-25 | 1 | 10 .. 56 | 11.6 |
+| PA | **20.8** | 15-25 | 1 | 16 .. 66 | 20.1 |
+
+Three of six in range, all six single components, both septa intact.
+
+**What is still wrong, and it is a question for the observer rather than for code.** The
+right atrium is 95.8 mL against an expected 25-45, and roughly 45 mL of it sits above +19 mm
+at great-vessel height. The most likely reading is that the label is carrying the caval
+stubs and the atrial appendage as well as the atrium proper — all continuous lumen in a
+model with no valves, and none of them separable by geometry. That is the same class of
+problem as the pulmonary artery before round three: it needs a name placed by a person, not
+a threshold. `anatomy.py` reserves tags 16 and 17 for the cavae and they are exactly what is
+missing.
+
+**Gates.** `npm run check:fast` green, exit 0. `pipeline/vhl_valve_plane.py` and
+`pipeline/vhl_surface_nets.py` are new; `anatomy.py` and `view_candidates.py` still only read.
+
+## 2026-08-21 07:45 ET — round three: the observer retags on the cut face, and the assignment changes
+
+**State.** The chamber ASSIGNMENT was wrong, and it is now corrected from 6,594 marks the
+observer placed directly on a cross-section. The partition machinery was right; what it was
+told to find was not.
+
+**What the corrections say, tabulated against what each voxel was labelled before.**
+
+| marked as | marks | had been |
+|---|---|---|
+| **pulmonary artery** | 1,556 | **RA 99%** |
+| **right atrium** | 1,488 | **RV 82%**, myocardium 11%, LA 7% |
+| right ventricle | 1,075 | RA 74%, RV 26% |
+| left atrium | 276 | LV 81%, LA 12% |
+| not lumen | 2,199 | myocardium 35%, LA 29%, RV 25%, unlabelled 11% |
+
+**The old right atrium was the pulmonary artery, essentially in its entirety**, and a large
+part of the old right ventricle was the right atrium. Six of the 27 original round-one seeds
+are overruled where they sit — four RA seeds to PA, two RV seeds to RA — and were retired
+rather than allowed to fight the corrections in the flood.
+
+This also explains §5d.5's standing anomaly without any appeal to the mask: the largest
+inscribed sphere in the model sat in the "RV" label because that label was carrying the right
+atrium as well.
+
+**Noise.** The observer's 2,199 not-lumen marks are not separate pockets — 2,193 of them fall
+inside the single 386.9 mL connected space, so they are thin bleeds into crevices, not stray
+components, and no component-size filter reaches them. They were used instead to SCORE a
+morphological opening of the space, which is the operation that removes what no ball of a
+given radius fits inside:
+
+| opening | space mL | bleeds surviving | chamber marks lost |
+|---|---|---|---|
+| none | 398.6 | 53.8% | 4.6% |
+| 0.75 mm | 389.4 | 38.2% | 4.8% |
+| **1.25 mm** | **375.1** | **18.1%** | **5.6%** |
+| 2.0 mm | 357.7 | 16.4% | 7.5% |
+| 2.5 mm | 347.2 | 15.7% | 8.9% |
+
+1.25 mm is a knee, not a preference: it clears two thirds of the surviving bleeds for one
+percentage point of lumen, and past it each further step buys about a point of bleed for two
+to three points of lumen. The space is opened rather than the labels, because opening a label
+erodes it where two labels meet — the open mitral and tricuspid orifices among them — and
+would carve away lumen that is real. Marked voxels are then struck directly, and per-label
+islands under 0.5 mL dropped.
+
+**Round three.**
+
+| tag | mL | expected | components | round two |
+|---|---|---|---|---|
+| LV | **69.7** | 60-100 | 1 | 89.1 |
+| RV | 139.2 | 60-100 | 2 | 216.9 |
+| LA | 49.6 | 25-45 | 1 | 43.8 |
+| RA | 85.0 | 25-45 | 2 | 37.1 |
+| Aorta | 11.6 | 15-25 | 1 | 11.7 |
+| **PA** | **20.1** | 15-25 | 1 | **0.0** |
+| total | 375.1 | | | 398.6 |
+
+**The pulmonary artery exists for the first time on this branch**, at 20.1 mL and in range,
+after five rounds in which no seed could be placed in it. The RV falls from 216.9 to 139.2 —
+still above range, and now the RA is above range instead at 85.0, so the RV/RA boundary is the
+next thing to look at rather than the mask.
+
+**A review tool, and it is what produced all of this.** A three.js viewer over real surfaces
+extracted from the label volume by surface nets (`pipeline/vhl_surface_nets.py`, written
+because `skimage` is not in `environment.yml` and marching cubes is not worth adding it for),
+posed in the measured cardiac frame, tissue at 0.90 opacity and lumen translucent, with a
+movable clip plane on any of the three cardiac axes. The cut face is not a stencil cap: it is
+sampled from the label volume, so it shows what is actually at that depth and a click on it
+lands on a real voxel. Marks export in the schema `vhl_seed_partition.py` already reads.
+
+**Two bugs found and fixed in that tool, both by measurement rather than by eye.** The cut
+face was a rotated `PlaneGeometry` textured in plane coordinates, so the rotation and three.js's
+`flipY` disagreed and the face came out mirrored against the body it was cutting; its corners
+now come from the same function that paints each pixel. `window.auditCap()` samples the painted
+face and the label volume at the same points and counts disagreements — 0 of 3,000 on each of
+the three axes at three depths. And the volume's tissue sentinel was 6, which collided with the
+pulmonary artery once tag 6 finally had voxels in it; tissue is 7 now.
+
+**Gates.** `npm run check:fast` green, exit 0. Nothing outside `pipeline/` and
+`output/vhl-partition/` touched; `anatomy.py` and `view_candidates.py` still only read.
+
+## 2026-08-21 03:25 ET — the mask is fixed; the RV survives it and is now an anatomy question
+
+**State.** The leak is closed. Chamber space is defined by line-of-sight occlusion from
+the observer's outside marks rather than by a morphological envelope, and the owner's
+rule holds exactly: **0 of 553 marks fall inside the chamber space, and all 27 chamber
+seeds are retained.** Six independent mask definitions were built and cross-checked; the
+three that satisfy the rule agree. The RV is still out of range, and it is no longer a
+mask problem.
+
+**The data bug that made round two look like a failure.** The `voxel` field on a tag-99
+mark is corrupt — it disagrees with `model_point_mm` by p50 2.40 mm, p90 9.62 mm, max
+13.56 mm, and no affine relates them. `vhl_label_tool_3d.classify(point, barrier ? 10 : 3)`
+searches up to ten steps of the 128^3 hit grid outward from an outside-surface click for a
+voxel flagged CAVITY, and returns the first one found — which is routinely on the far side
+of the wall, inside a chamber. A mark meaning "not lumen" was being snapped into lumen.
+`model_point_mm` records the true click and is sound. Details in NOTES.md §5d.1.
+
+**Run as delivered: RV 165.6 mL**, down from 238, still wrapping at 67 x 94 x 126 mm
+against a whole heart of 110.8 x 122.4 x 148.4. Projecting the dropped barrier seeds onto
+the nearest cavity voxel gave **RV 98.5 mL, inside 60-100 — and that number was wrong.**
+The barrier then held 235.1 mL of the 437.7 mL cavity, 69.1 mL of it wider than 3 mm
+clearance, in blobs of 28.8 and 21.9 mL. It had eaten the chambers. Recorded rather than
+reported as a pass, because it is the same shape of error as the retraction in §5c.1.
+
+**The fix, and it is the owner's own rule.** "If there is wall between a chamber and a
+mark, the mark must not affect that chamber" is a statement about visibility, and
+visibility is a per-voxel property with no race in it. `pipeline/vhl_mask_occlusion.py`:
+a free voxel is outside iff an unobstructed straight segment reaches some mark. It
+removes **31.7 mL of 437.7, of which only 1.74 mL is wider than 3 mm** — the film, and
+almost nothing else.
+
+| tag | mL | expected | comps | bbox mm |
+|---|---|---|---|---|
+| LV | 89.1 | 60-100 | 1 | 47.6 x 83.3 x 87.9 |
+| RV | **216.9** | 60-100 | 1 | 84.4 x 112.0 x 126.3 |
+| LA | 43.8 | 25-45 | 1 | 50.4 x 96.5 x 58.5 |
+| RA | 37.1 | 25-45 | 1 | 67.0 x 72.8 x 67.8 |
+| Aorta | 11.7 | 15-25 | 1 | 24.8 x 26.3 x 56.6 |
+| PA | 0.0 | 15-25 | 0 | no seed, expected |
+
+**Six masks, and what they agree on.** Occlusion, a rim watershed splitting the tissue
+surface into epicardium and endocardium, ray parity against a spherical-harmonic fit to
+the marks, a solid-angle enclosure field, a Hoppe SDF from mark normals, and a sealing
+shell of balls on the marks. **The LV is 89.1 mL in four of them, to 0.1 mL** — it is a
+genuinely closed cavity, so every definition finds the same space, and that is the
+strongest result on this branch. **The RV is 210-217 mL in all three that satisfy the
+containment rule.** Enclosure and the SDF fail it (37 and 67 marks inside) and their
+numbers are discarded rather than averaged. The seal shell fails the other way: it needed
+r = 17.25 mm to bridge a mark spacing that reaches 13.7 mm, against a 25th-percentile wall
+thickness of 2.5 mm, so it ate the wall — RA and aorta empty, 10 of 27 seeds left. Its
+in-range LV and RV are the residue of a destroyed partition. Full table in NOTES.md §5d.4.
+
+**The RV, measured three ways, and not resolved.** It is one component that survives
+erosion to 6 mm as a single piece. It is **not** a wrap: from the LV centroid, 1,000 rays
+first meet the RV in **25.7%** of directions, which is a septum plus part of a free wall;
+the 3D preview that looked like a wrap was a splat-renderer projection artefact. Only
+18.9 mL sits above the aortic seed where the envelope bridges the inter-vessel gap.
+**But the largest inscribed sphere in the model, 17.3 mm, is inside the RV label, and the
+LV label reaches only 13.8 mm** — in a real heart the left ventricular cavity holds the
+larger sphere, and §1 recorded that 17.75 mm figure as LV-scale. So the RV seed set bounds
+something bigger than a right ventricle, the model offers no neck to cut it at, and
+**nothing has been retagged: that is the observer's call.**
+
+**The anatomy gates: measured, and they refuse more than §6 said.** `anatomy.py` was
+called, never modified, against throwaway meshes carrying exactly the tags a VHL partition
+can supply. It needs **five fabrications, not three**: valve bands 7-10, a pulmonary artery
+at tag 6, an SVC at 16, an IVC at 17, and a `Z` field. Without tag 6,
+`identify_valve_planes` raises on the pulmonary valve; without tags 16 and 17,
+`derive_cardiac_frame` raises on the cavae. **After fabricating all five, at most two of
+the nine checks measure anything** — check 3 outright, check 4 with a caveat; the other
+seven are circular or rest on invented structures. Running them would yield a 9/9 pass
+meaning almost nothing. **They were not run.** Ladder and per-check breakdown in NOTES.md §6b.
+
+**Two adversarial challenges, both adjudicated with new measurements (NOTES.md §5d.6).**
+"The RV is a wrapping sheet" is **overruled**: only 6.6 mL of the 216.9 mL RV sits at
+outside-the-heart depth on the detour field, against 128.1 mL beyond 50 mm, and the LV has
+0.0 mL below 20 mm. A bounding box cannot tell a crescentic RV from a sheet. "The marks are
+dispensable" is **half right**: a 1.5 mm opening with no marks at all gives RV 216.7 but
+leaves 10 of 553 marks inside and costs the LV 8 mL, and no radius reaches zero — 2.0 mm
+still leaves 7 inside and takes 11 mL off the LV. The fitted surface is dispensable; the
+observer's marks are not. The no-mark baseline reproduces round one's RV at 238.1 mL exactly,
+which checks that nothing else drifted.
+
+**Written this session.** `pipeline/vhl_mask_occlusion.py`, `vhl_mask_rimwatershed.py`,
+`vhl_mask_rayparity.py`, `vhl_mask_enclosure.py`, `vhl_mask_sdfnormals.py`,
+`vhl_mask_sealshell.py` — all new modules. `output/vhl-partition/pack-orientation.proposed.md`
+is the fifth proposed delta, owed since 00:30 and now written: the declared orientation is
+wrong by 37.6 / 77.9 / 65.3 degrees, declared "up" points mostly posterior, and the whole
+declared basis is one 77.9-degree rotation from the measured one. Proposed only; nothing
+under `public/packs/` has been touched.
+
+**Gates.** `npm run check:fast` green, exit 0. `anatomy.py` and `view_candidates.py` read
+and called, never modified. No tracked file outside `pipeline/` and `output/vhl-partition/`
+has been changed. Derived outputs stay compressed — the labels are 566 KB.
+
+**Environment correction, repeated because HANDOFF.md still says otherwise.**
+`~/Library/CloudStorage` is **not** blocked for the agent process on this machine; `stat`,
+`head` and a full `json.load` of the Drive pack folder all succeed. The seed file was read
+directly from Drive. Nothing was written there.
+
+## 2026-08-21 01:43 ET — round-two barrier seeds run; RV leak stops, a barrier leak starts
+
+**State.** The round-two seed file is in. It carries **553 marks, all tag 99** and no
+chamber seeds, so it is the barrier coat only; the 27 round-one chamber seeds were
+merged with it into `seeds.observer-A-round2.merged.json` on the owner's confirmation.
+Both files are at resolution 384 on the same pack, no voxel collides, and the merge is
+recorded in the file's own `provenance` field so it is not mistaken for one export.
+
+**Run as given: RV 165.6 mL** against an expected 60-100, down from 238 but still
+wrapping — bounding extent 67.0 x 93.7 x 125.5 mm against a whole-heart 110.8 x 122.4 x
+148.4.
+
+**Why it only half-worked, and it is not the observer's fault.** Only **149 of the 553**
+barrier marks landed in the chamber space at all. 321 landed in tissue and 83 outside the
+envelope; `flood` silently drops any seed not already in `space`, so **73% of the
+observer's marks did nothing.** The marks are clicks on the epicardial *surface*, which
+the labeller snaps to the nearest surface point — and that point is tissue, not the film
+beside it. Every missed mark is 0.39 to 0.67 mm from space, one to two voxels. This is the
+same class of bug as "the barrier label first rejected the clicks it existed for", one
+layer further down: the tool now accepts the click and the partition module discards it.
+
+**Projecting each dropped seed onto its nearest chamber-space voxel** recovers all 553.
+That is a seeding fix, not a flood weighting — `flood` is untouched. It is safe: every
+projected barrier seed lands at clearance <= 1.16 mm, while the lowest chamber seed sits at
+1.40 mm, so no barrier mark lands inside a chamber. With it, RV is **98.5 mL, inside the
+60-100 range**, single component, extent 65.1 x 79.0 x 115.4 mm.
+
+**The partition is NOT done, and the RV number must not be read as a pass.** With the
+barrier active the flood is a race in both directions, and the barrier now wins territory
+it should not. Its 235.1 mL of the 437.7 mL space includes **69.1 mL at clearance greater
+than 3 mm** — space too wide to be film — as 187 blobs whose largest two are **28.8 mL and
+21.9 mL**. Those are chamber-sized cavities tagged "not lumen". 37% of all wide space in
+the model (69.1 of 187.6 mL) is inside the barrier. Cross-sections show it directly: every
+chamber label is a compact blob, but each sits inside a larger unlabelled cavity with a
+white halo the barrier took. LV falls to 50.9 mL and RA to 15.6 mL, both below range, for
+that reason.
+
+**So the leak did not stop; it reversed.** The barrier reaches the chamber interiors
+through the trabecular interstices exactly as the RV previously reached the outside
+through the film. A boundary decided by which label arrives first is not a boundary. RV
+98.5 mL is the outcome of that race and is not evidence the space is correctly defined.
+
+**Next step is the one already written down: fix the mask.** Per HANDOFF, define chamber
+space by ray parity against a smoothed epicardial surface rather than the morphological
+`epicardial_envelope`, which bridges the AV groove and the gaps between vessels. The 553
+barrier marks are now useful as something better than seeds: they are a 553-point sample
+of the true epicardial surface, placed by a person, and they can constrain that surface
+directly. New module; `vhl_seed_partition.py` keeps reproducing the recorded numbers.
+
+**Environment correction.** `~/Library/CloudStorage` is **not** blocked for the agent
+process on this machine — `stat`, `head` and a full `json.load` of the pack folder all
+succeed. `~/Downloads` untested. The HANDOFF note to ask for a paste is wrong as written
+and should be narrowed or dropped.
+
+**Gates.** `npm run check:fast` not yet re-run this session; no tracked file outside
+`output/vhl-partition/` has been modified. `anatomy.py` and `view_candidates.py` unread
+this session and unmodified. The nine anatomy checks remain correctly unrun — the
+partition they gate on is not established.
 
 ## 2026-08-21 01:10 ET — session closed for length; handoff written, round-two seeds pending
 

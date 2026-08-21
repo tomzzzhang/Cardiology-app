@@ -1,147 +1,135 @@
 # Handoff — `experiment/vhl-partition`
 
-**Last Updated:** 2026-08-21 01:10 EDT
+**Last Updated:** 2026-08-21 15:49 ET
 **Branch:** `experiment/vhl-partition`, cut from `dev` at `294751faf124b79693cae99d9335e881189a032c`
 
-Read `NOTES.md` for evidence and `progress_log.experiment-vhl-partition.md` for
-state. This file is only "what to do next, and how".
+Read `NOTES.md` for evidence and `progress_log.experiment-vhl-partition.md` for state.
+This file is only "what to do next, and how".
 
 ---
 
-## The very first thing
+## READ THIS FIRST: nothing is committed, and it lives in /tmp
 
-**The owner has a round-two seed file to paste.** It carries the same chamber
-seeds plus a coat of `Not lumen` barrier marks over the outside of the heart.
-Save it into the branch and run one command:
+Every change from the 2026-08-21 sessions is **uncommitted** in a clone under
+`/private/tmp/...`, which macOS clears on reboot. The clone also holds the source
+STL and about 150 MB of scratch render data that must NOT be committed.
 
-```bash
-# save the pasted JSON as output/vhl-partition/seeds.observer-A-round2.json, then:
-conda run -n cardiology-app python pipeline/vhl_seed_partition.py \
-  --seeds output/vhl-partition/seeds.observer-A-round2.json \
-  --source pipeline/.cache/vhl/Heart102_Tissue.stl
-```
+**Recover by committing the working tree of that clone, or by re-running the
+pipeline from the seed files, which ARE the durable input.** The seeds are small,
+they are in `output/vhl-partition/`, and everything else is derived from them.
 
-That prints the frame, the checks, and a volume per tag against normal ranges
-for a 14-year-old, and writes `seed-partition.json`.
+## Where the partition got to
 
-**The single number to look at: the RV.** It was 238 mL with the round-one seeds
-against an expected 60-100, because the label wrapped the whole organ. If the
-barrier marks work it should land in range. If it does, the partition is done
-and the anatomy gates below become runnable for the first time.
+Six chambers, all single connected components, both septa intact.
 
-Note the source STL is **not in the repository** — CC BY-NC 4.0, gitignored. It
-sits at `pipeline/.cache/vhl/Heart102_Tissue.stl` in the owner's checkout. It is
-not in `checksums.json`; SHA-256
-`5843eb9619ff9644c1ded5dd2911d9bbdfd3e5e43c8d622ff753b83272f41402`, 40,177,184 bytes.
+| tag | mL | expected | note |
+|---|---|---|---|
+| LV | 81.0 | 60-100 | in range |
+| RV | 138.0 | 60-100 | high |
+| LA | 38.2 | 25-45 | in range |
+| RA | 85.4 | 25-45 | high, see below |
+| aorta | 11.6 | 15-25 | short stub |
+| PA | 20.7 | 15-25 | in range |
 
-**File access:** `~/Downloads` and `~/Library/CloudStorage` are both blocked by
-macOS privacy protection for the agent process, sandbox settings notwithstanding.
-`/tmp` and the repo work. Ask for a paste or a copy into `/tmp`, not a path in
-either of those folders.
+Per-chamber MYOCARDIUM is also labelled now (`wall-labels.npz`), so the heart
+renders as a labelled organ from outside the way `normal-rodero` does.
 
-## What is already settled
+**The owner's stated purpose is orientation and eventual placement in a mock
+body, and for that the chamber set is adequate.** The two open items below are
+recorded as known, not as blockers.
 
-* **Debris: solved.** 1,025 of the 1,026 components are inward-wound bubbles
-  inside the tissue, separable by volume with a 4,986x margin, at a cost of
-  2.63% of triangles and 0.155% of volume. Cleaned mesh is watertight and single
-  component.
-* **The orientation: measured, and the declared one is WRONG.** Derived from the
-  seeds, it is off the declared axes by 37.6, 77.9 and 65.3 degrees — "up" is
-  nearly perpendicular to the true base-apex axis. Source and shipped glTF
-  bounding boxes agree to 0.1 mm in the same axis order, so ingest applied no
-  rotation and this carries to the pack directly. **A proposed delta for
-  `pack.json`'s orientation block has NOT been written yet — write it.**
-* **Four chambers already come out clean** from round one: LV, LA, RA and aorta
-  are each a single connected component, correctly shaped and placed. See
-  `chambers-3d.png`.
+## The inputs, in the order they were placed
 
-## The open problem, in one paragraph
+1. `seeds.observer-A.json` — round one, 27 chamber seeds.
+2. `seeds.observer-A-round2.merged.json` — plus 553 "not lumen" marks on the
+   epicardial surface. These define the chamber-space mask by line of sight.
+3. `seeds.observer-A-round3.json` — 6,594 corrections. **The old "RA" was the
+   pulmonary artery in its entirety, 99% of it.**
+4. `seeds.observer-A-round4.json` — 4,361 further corrections.
+5. `valve-rims.observer-A.json` — the tricuspid and mitral annuli, traced.
 
-`cavity = epicardial_envelope AND NOT tissue` is not only chamber: it also holds
-the film between the true epicardium and the envelope, and the trabecular
-interstices, both connected sheets wrapping the organ. First label to touch one
-inherits all of it. Four software fixes were tried — plain BFS (238 mL), priority
-watershed on the distance transform (279), Dijkstra with a narrowness penalty
-(257), and thresholding by clearance (179, still wrapping). None can work,
-because the bogus pockets the envelope bridges are **as wide as the valve
-orifices it must seal**, so no radius separates them. Hence the barrier marks.
+**For tag-99 marks use `model_point_mm`, never `voxel`.** `vhl_label_tool_3d`
+searches up to ten grid steps for a CAVITY voxel, which for a mark clicked on the
+outside of the heart lands on the far side of the wall - displacing it by up to
+13.56 mm. Chamber seeds are unaffected.
 
-**If round two still leaks**, do not tune the flood again. Fix the mask: define
-chamber space by ray parity against a smoothed epicardial *surface* rather than
-a morphological envelope that bridges external concavities.
+**Traced rims are in CARDIAC coordinates**, not model. The viewer raycasts posed
+meshes. Map with `ROT.T` before touching voxels. Getting this wrong cost a whole
+round and produced numbers that looked plausible.
 
-## Then, and only then: the anatomy gates
+## Two open items, both understood
 
-The brief gates these on a partition existing. Nothing has been run yet because
-nothing has been emitted. They need more than tags 1-6:
+* **RA at 85.4 mL** almost certainly carries the caval stubs and the atrial
+  appendage. Tags 16, 17 and 11 are wired into the viewer and unused. Tagging them
+  is the single highest-value thing left.
+* **The RA-RV interface is 6,262 mm2** against about 1,000-1,200 for a tricuspid
+  annulus. It is not at the annulus: median 12.6 mm away, 29% beyond the disc
+  radius. No plane fixes it; it is most likely the same caval/appendage lumen.
 
-* `identify_valve_planes` needs **separate valve-plane tags 7-10** and derives
-  their identity from which chamber *pair* each borders. It **raises** on
-  disagreement with the published Rodero mapping.
-* `derive_cardiac_frame` calls `apex_from_uvc`, needing a per-point `Z`
-  apicobasal field. The VHL source carries none.
-* Both take a `TetMesh`, not a surface.
+## What NOT to redo
 
-So: tetrahedralise the tagged voxels, synthesise valve-plane bands at the
-chamber interfaces, supply a `Z` field. **A `Z` field derived from one's own
-partition makes the apex check partly circular — say so, do not report it as an
-independent pass.** Report each of the nine checks individually.
+* Four flood variants, all failed, reasons in NOTES §5c.2.
+* Six mask definitions; occlusion from the epicardial marks won. NOTES §5d.4.
+* An "Ebstein" apicobasal bound on the RA — **withdrawn**, the annulus is oblique.
+* An automatic annulus refinement — it undershoots (934 vs 1405 mm2 traced).
+* Boundary-edge counting on a sub-block as a mesh-quality proxy: worthless, the
+  block cuts the heart.
 
-Watch the tag numbering: the barrier label is **99**, deliberately not 7,
-because 7-10 are the valve planes and a collision would be silent.
+## The wall boundaries are drawn (round six)
 
-## Things this branch got wrong, so they are not repeated
+`wall-paint.observer-A.json` holds 375 groove marks and 1,076 region points;
+`pipeline/vhl_wall_paint.py` turns them into `wall-labels.npz`. 0.14% of the
+epicardium was left unreached, so the grooves close well enough.
 
-* **A circular check was reported as passing.** "RV anterior to LV", +0.0 mm. The
-  frame's left-right axis is built FROM the LV-RV difference, so those centroids
-  cannot differ along the perpendicular. Retracted; deliberately absent from
-  `vhl_seed_partition.derive_frame`.
-* **"Handedness" and "mirror" were used for a rotation ambiguity**, which reads
-  as a claim about the specimen. No reflection occurs anywhere; every candidate
-  pose is a proper rotation. Say "which lobe it calls LV".
-* **The labeller shipped twice failing blank** — once from an ES module, which
-  cannot load from `file://`, and once from a surface-only point cloud that made
-  the cut face invisible. It now fails loudly with the error in a banner.
-* **A drag-direction test probed a point on the +x axis**, where cosine is even
-  and both rotation directions look identical. It passed while the control was
-  inverted. Test with a front-facing probe.
-* **The barrier label first rejected the clicks it existed for**, refusing any
-  point outside the cavity mask — i.e. the outside of the heart.
-* **"Not a chamber" was a dangerous name.** The aorta is not a chamber but IS
-  tag 5, so an anatomically correct reader would have excluded it. It is "Not
-  lumen" now.
+**The left-atrial wall includes the pulmonary veins on purpose** - too many to
+resolve on this model and topologically continuous with the atrium. That is why
+it reads 75.6 mL. Do not "fix" it.
 
-## Deferred, per the brief, and not started
+## Superseded: the wall boundaries WERE inferred
 
-Publishing this pack, any change to published packs or the loader, echo
-rendering, authoring-mode UI, and reversing the 2026-08-19 rejection. Four
-proposed deltas sit in `sources.proposed.md`, unapplied; a fifth for the
-orientation is owed.
+Assigning wall to the nearest labelled cavity gives ragged, patchy territories,
+because the nearest cavity is not what bounds a chamber on the OUTSIDE - the
+atrioventricular and interventricular grooves are, and on this specimen they are
+plainly visible. The observer is drawing them.
 
-## One piece of cleanup owed
+The viewer has a **Paint the wall** section: `Draw groove` lays a barrier stroke
+along a groove, `Name region` puts a chamber tag inside one. Export writes
+`wall-paint.json` in CARDIAC coordinates.
 
-Commit `37e9211` added `seed-partition-labels.npy` at **54 MB**, which GitHub
-warned about on push and which breaches the brief's "keep derived outputs small".
-It is removed from the working tree and the module now writes a compressed
-`.npz` instead — 685 KB for the same array, since it is almost all zeros over six
-distinct values.
+`pipeline/vhl_wall_paint.py` consumes it: a seeded watershed over the epicardial
+SURFACE, blocked by the grooves, after which the wall beneath inherits from the
+surface above it. Confining the flood to the surface is the whole trick - two
+points either side of a groove are millimetres apart in space but far apart across
+the surface, which is what a groove encodes and a distance transform through the
+wall cannot see.
 
-**The 54 MB blob is still in this branch's history.** Removing it needs a
-history rewrite, and the brief says not to force-push shared history, so the
-decision is left to the owner. If this branch is ever merged or kept, drop it
-first; if it is abandoned, it costs nothing. Anyone cloning the branch pays the
-54 MB either way.
+Plumbing is smoke-tested end to end with synthetic marks; it has not yet seen a
+real one.
 
-## Files
+## New modules
 
-Tools: `pipeline/vhl_partition.py` (analysis, morphology, renderers),
-`vhl_donor_labels.py` (the four failed automatic identifications),
-`vhl_label_tool.py` (slice labeller, superseded), `vhl_label_tool_3d.py` (mesh
-labeller, current), `vhl_seed_partition.py` (seeds to partition and frame).
+`vhl_surface_nets.py` (voxels to mesh), `vhl_valve_plane.py` (least-area
+separating plane; settles mitral and pulmonary, not tricuspid), `vhl_annulus.py`
+(refinement), `vhl_wall_labels.py` (per-chamber myocardium), `vhl_tags.py`
+(vocabulary including the vessel stubs, numbered to match `anatomy.py`),
+`vhl_wall_paint.py` (grooves drawn on the surface to a wall partition).
 
-Data: `seeds.observer-A.json` is round one, 27 chamber seeds, all landing in
-cavity. Round two is what the owner is pasting.
+## The anatomy gates still cannot run, and should not be faked
 
-Gate: `npm run check:fast` has been green at every commit on this branch, and
-**zero tracked files outside `pipeline/` and `output/vhl-partition/` have been
-modified.** `anatomy.py` and `view_candidates.py` were read but never edited.
+Measured, not read: `identify_valve_planes` needs a PA to border the pulmonary
+valve, and `derive_cardiac_frame` needs tags 16 and 17 for the cavae. Five
+fabrications are required in total, after which **at most two of the nine checks
+measure anything**. NOTES §6b has the ladder and the per-check breakdown.
+
+## Deferred, per the brief
+
+Publishing, the loader, echo rendering, authoring UI, and the 2026-08-19
+rejection, which stands. Five proposed deltas sit unapplied:
+`sources.proposed.md` (four) and `pack-orientation.proposed.md` (the fifth, for
+the orientation block - declared axes are wrong by 37.6 / 77.9 / 65.3 degrees).
+
+## Gate
+
+`npm run check:fast` green at every step. `anatomy.py` and `view_candidates.py`
+read and called, never modified. Nothing outside `pipeline/` and
+`output/vhl-partition/` has been touched.
