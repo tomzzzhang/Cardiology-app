@@ -72,6 +72,9 @@
       pulmonary artery ARE lumen even though they are vessels rather than chambers &mdash;
       do not mark them. <em>Not lumen</em> means the rim of space outside the heart's own
       surface, and the crevices between trabeculae: space blood does not occupy.
+      <br>Barrier marks are accepted anywhere near the heart, including on the wall &mdash;
+      click the outside freely and as often as you like. They help most in the wide gaps:
+      the groove between atria and ventricles, and the space between the great vessels.
       <br><em>Axis 1/2/3</em> choose which way the knife points; the model's orientation is
       unverified, so they are named by axis rather than by anatomy. <em>Face me</em> cuts
       square-on to wherever you have rotated. <em>Reverse</em> cuts from the other side.
@@ -4051,8 +4054,18 @@ function decodeHit(img) {
   }
   return v;
 }
-/** Model-space point -> {voxel, kind}, from the shipped occupancy grid. */
-function classify(point) {
+/**
+ * Model-space point -> {voxel, kind}, from the shipped occupancy grid.
+ *
+ * `reach` is how far to search outward for usable space, in grid steps. For a
+ * chamber seed it is small: the reader is pointing at a specific lumen and a
+ * long search would silently move the seed into a neighbouring one. For a
+ * "not lumen" mark it is large, because the whole point of that mark is to
+ * stand OUTSIDE the heart, where the nearest cavity voxel may be several
+ * millimetres away — refusing those clicks made the one job the barrier exists
+ * for impossible to do.
+ */
+function classify(point, reach) {
   const H = CFG.hit, n = H.grid;
   const k = Math.round((point.x - H.origin[0]) / H.pitch - 0.5);
   const j = Math.round((point.y - H.origin[1]) / H.pitch - 0.5);
@@ -4063,7 +4076,7 @@ function classify(point) {
   // A click on the cut face can land a voxel inside the wall. Search outward a
   // little rather than refusing: the reader pointed at a chamber, and this grid
   // is coarser than their aim.
-  for (let r = 1; r <= 3; r++)
+  for (let r = 1; r <= (reach || 3); r++)
     for (let dk = -r; dk <= r; dk++)
       for (let dj = -r; dj <= r; dj++)
         for (let di = -r; di <= r; di++) {
@@ -4161,13 +4174,19 @@ canvas.addEventListener('pointerup', e => {
   } else {
     note('Nothing under the cursor — rotate, or move the cut.'); return;
   }
-  const hit = classify(point);
-  if (!hit) { note('That is outside the heart.'); return; }
-  if (hit.kind === 'muscle') {
-    note(state.tag === CFG.excludeTag
-      ? 'That is muscle. For "Not lumen" click the empty space, not the wall.'
-      : 'That looks like muscle. Click the cream area.');
+  const barrier = state.tag === CFG.excludeTag;
+  const hit = classify(point, barrier ? 10 : 3);
+  if (!hit) {
+    note(barrier ? 'Too far from the heart — click nearer its surface.'
+                 : 'That is outside the heart.');
     return;
+  }
+  // A barrier mark is allowed to land on muscle. It is saying "nothing lives
+  // here", and the reader is pointing at the outside of the heart, where the
+  // nearest usable voxel may well be wall. Only chamber seeds are held to
+  // landing in lumen.
+  if (hit.kind === 'muscle' && !barrier) {
+    note('That looks like muscle. Click the cream area.'); return;
   }
   state.seeds.push({ voxel: hit.voxel, point: [point.x, point.y, point.z], tag: state.tag,
     confidence: document.getElementById('unsure').checked ? 'unsure' : 'sure' });
