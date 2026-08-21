@@ -6,6 +6,12 @@
       "path": "evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-001.json",
       "file_sha256": "8acc53578c346fe6442b3c1179ba65d2dab564b12e497d91c6d04e161f66f555",
       "canonical_payload_sha256": "555a249098a24f662073bb7b5dd82541f1651e8a55af7e295231d453fd3ac625"
+    },
+    {
+      "candidate_set_id": "normal-rodero-pack-0.1.1-candidate-set-002",
+      "path": "evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-002.json",
+      "file_sha256": "c7a7b1010b4ff42ebb1abcd1a87564572fe9894f0fc3f6ab82b991f9f331aa62",
+      "canonical_payload_sha256": "0567371866bdc04208cbd9d70f0802bb8c6481c5a16e0c83440dfc34d7b0f868"
     }
   ]
 }

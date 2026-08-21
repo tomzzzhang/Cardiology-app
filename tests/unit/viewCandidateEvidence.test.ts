@@ -22,6 +22,7 @@ import {
   ViewCandidateEvidence,
   ViewCandidateRegistry,
   VIEW_CANDIDATE_DERIVATION_FILES,
+  VIEW_CANDIDATE_V2_DERIVATION_FILES,
   candidatePayloadSha256,
   sha256File,
   validateViewCandidateEvidence,
@@ -72,12 +73,19 @@ const check = (checkId: string) => ({
   measurement: { value: 0, tolerance: 0.001 },
 });
 
-const coordinateChecks = (prefix: string, hasSweep = false) => [
+const coordinateChecks = (prefix: string, hasSweep = false, requireV2Checks = false) => [
   check(`${prefix}.pose-math`),
   check(`${prefix}.aperture`),
   check(`${prefix}.depth`),
   ...(hasSweep ? [check(`${prefix}.sweep-math`)] : []),
   check(`${prefix}.landmarks-contained`),
+  ...(requireV2Checks ? [
+    check(`${prefix}.aperture-gap-proxy`),
+    check(`${prefix}.fan-envelope`),
+    check(`${prefix}.plane-preserved`),
+    check(`${prefix}.focus-preserved`),
+    check(`${prefix}.depth-guard`),
+  ] : []),
 ];
 
 const globalChecks = () => [
@@ -90,10 +98,14 @@ const globalChecks = () => [
   check('policy.no-pack-promotion'),
 ];
 
-function unsignedEvidence(): any {
+function unsignedEvidence(candidateSetVersion: '001' | '002' = '001'): any {
+  const requiresV2Checks = candidateSetVersion === '002';
+  const derivationFiles = requiresV2Checks
+    ? VIEW_CANDIDATE_V2_DERIVATION_FILES
+    : VIEW_CANDIDATE_DERIVATION_FILES;
   const raw: any = {
     artifact_schema: 'view-candidates/v1',
-    candidate_set_id: 'normal-rodero-pack-0.1.1-candidate-set-001',
+    candidate_set_id: `normal-rodero-pack-0.1.1-candidate-set-${candidateSetVersion}`,
     status: 'draft_evidence_only',
     integrity: {
       algorithm: 'sha256',
@@ -127,9 +139,11 @@ function unsignedEvidence(): any {
           sha256: sha256File(join(repoRoot, ...echoVolumeRelativePath.split('/'))),
         },
       ],
-      derivation_files: VIEW_CANDIDATE_DERIVATION_FILES.map((path) => ({
+      derivation_files: derivationFiles.map((path) => ({
         path,
-        sha256: sha256File(join(repoRoot, ...path.split('/'))),
+        sha256: path === 'pipeline/view_candidates_v2.py'
+          ? '0'.repeat(64)
+          : sha256File(join(repoRoot, ...path.split('/'))),
       })),
       source_pack_revision: sourcePackRevision,
       coordinate_frame: {
@@ -166,7 +180,11 @@ function unsignedEvidence(): any {
           description: 'Test-only coordinate proposal.',
         },
         coordinates: { probe: structuredClone(b1.probe) },
-        checks: coordinateChecks('b4-apical-three-chamber-candidate-001'),
+        checks: coordinateChecks(
+          'b4-apical-three-chamber-candidate-001',
+          false,
+          requiresV2Checks,
+        ),
         limitations: ['Test-only coordinate proposal.'],
       },
       {
@@ -190,12 +208,15 @@ function unsignedEvidence(): any {
               derived_value: { unit: 'deg', value: 4 },
             },
             coordinates: { probe: structuredClone(b1.probe) },
-            checks: coordinateChecks('b2-t-0.550'),
+            checks: coordinateChecks('b2-t-0.550', false, requiresV2Checks),
           },
         ],
         checks: [
           check('b2-apical-sweep-series-001.variant-grid'),
           check('b2-apical-sweep-series-001.no-selection'),
+          ...(requiresV2Checks
+            ? [check('b2-apical-sweep-series-001.common-envelope-settings')]
+            : []),
         ],
         limitations: ['The machine checks do not choose a clinically meaningful variant.'],
       },
@@ -224,7 +245,7 @@ function unsignedEvidence(): any {
       source_pack_review_status: 'draft',
       candidate_review_status: 'draft',
       generation_writes_only:
-        'evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-001.json',
+        `evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-${candidateSetVersion}.json`,
     },
     checks: globalChecks(),
     limitations: ['Machine geometry evidence is not clinical review.'],
@@ -280,6 +301,9 @@ describe('view-candidates/v1 closed evidence envelope', () => {
     });
     expect(result.ok, messages(result)).toBe(true);
     if (!result.ok) return;
+    expect(result.evidence.binding.derivation_files.map((file) => file.path).sort())
+      .toEqual([...VIEW_CANDIDATE_DERIVATION_FILES].sort());
+    expect(result.evidence.binding.derivation_files).toHaveLength(8);
     const covered = [
       ...result.evidence.existing_views.map((entry) => entry.intended_view_id),
       ...result.evidence.candidates.map((entry) => entry.intended_view_id),
@@ -287,6 +311,144 @@ describe('view-candidates/v1 closed evidence envelope', () => {
       ...result.evidence.unsupported.map((entry) => entry.intended_view_id),
     ].sort();
     expect(covered).toEqual(VIEW_CANON.map((entry) => entry.viewId).sort());
+  });
+
+  it('requires the v2 derivation closure and containment gates for candidate-set-002', () => {
+    workDir = mkdtempSync(join(tmpdir(), 'view-candidate-v2-evidence-'));
+    const packDir = join(workDir, 'public', 'packs', 'normal-rodero');
+    const assetDir = join(packDir, 'assets');
+    mkdirSync(assetDir, { recursive: true });
+    copyFileSync(packPath, join(packDir, 'pack.json'));
+    copyFileSync(join(repoRoot, ...modelGltfRelativePath.split('/')), join(assetDir, 'model.gltf'));
+    copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
+    copyFileSync(
+      join(repoRoot, ...echoVolumeRelativePath.split('/')),
+      join(assetDir, 'echo-volume.raw'),
+    );
+    for (const path of VIEW_CANDIDATE_DERIVATION_FILES) {
+      const destination = join(workDir, ...path.split('/'));
+      mkdirSync(dirname(destination), { recursive: true });
+      copyFileSync(join(repoRoot, ...path.split('/')), destination);
+    }
+    const v2GeneratorPath = join(workDir, 'pipeline', 'view_candidates_v2.py');
+    writeFileSync(v2GeneratorPath, '# synthetic v2 generator fixture\n');
+
+    const raw = unsignedEvidence('002');
+    const v2Binding = raw.binding.derivation_files.find(
+      (file: any) => file.path === 'pipeline/view_candidates_v2.py',
+    );
+    v2Binding.sha256 = sha256File(v2GeneratorPath);
+    signEvidence(raw);
+
+    const accepted = validateViewCandidateEvidence(raw, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    });
+    expect(accepted.ok, messages(accepted)).toBe(true);
+
+    const withReplacement = structuredClone(raw);
+    const replacement = structuredClone(withReplacement.candidates[0]);
+    const oldPrefix = replacement.candidate_id;
+    replacement.candidate_id = 'b1-apical-four-chamber-fan-envelope-candidate-002';
+    replacement.intended_view_id = b1.view_id;
+    replacement.replaces_source_view_id = b1.view_id;
+    replacement.coordinates = { probe: structuredClone(b1.probe) };
+    replacement.checks = replacement.checks.map((entry: any) => ({
+      ...entry,
+      check_id: entry.check_id.replace(oldPrefix, replacement.candidate_id),
+    }));
+    withReplacement.existing_views = withReplacement.existing_views
+      .filter((entry: any) => entry.source_view_id !== b1.view_id);
+    withReplacement.candidates.unshift(replacement);
+    signEvidence(withReplacement);
+    const acceptedReplacement = validateViewCandidateEvidence(withReplacement, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    });
+    expect(acceptedReplacement.ok, messages(acceptedReplacement)).toBe(true);
+
+    const replacementWithSweep = structuredClone(withReplacement);
+    replacementWithSweep.candidates[0].coordinates.sweep = structuredClone(b1.sweep);
+    expect(messages(validateViewCandidateEvidence(replacementWithSweep, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toMatch(/replacement candidate must be probe-only/);
+
+    const legacyReplacement = unsignedEvidence('001');
+    const legacyCandidate = structuredClone(legacyReplacement.candidates[0]);
+    const legacyPrefix = legacyCandidate.candidate_id;
+    legacyCandidate.candidate_id = 'b1-apical-four-chamber-layout-replacement';
+    legacyCandidate.intended_view_id = b1.view_id;
+    legacyCandidate.replaces_source_view_id = b1.view_id;
+    legacyCandidate.coordinates = { probe: structuredClone(b1.probe) };
+    legacyCandidate.checks = legacyCandidate.checks.map((entry: any) => ({
+      ...entry,
+      check_id: entry.check_id.replace(legacyPrefix, legacyCandidate.candidate_id),
+    }));
+    legacyReplacement.existing_views = legacyReplacement.existing_views
+      .filter((entry: any) => entry.source_view_id !== b1.view_id);
+    legacyReplacement.candidates.unshift(legacyCandidate);
+    expect(messages(validateViewCandidateEvidence(legacyReplacement, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toMatch(/policy does not permit existing-view replacements/);
+
+    const missingGenerator = structuredClone(raw);
+    missingGenerator.binding.derivation_files = missingGenerator.binding.derivation_files
+      .filter((file: any) => file.path !== 'pipeline/view_candidates_v2.py');
+    signEvidence(missingGenerator);
+    expect(messages(validateViewCandidateEvidence(missingGenerator, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toMatch(/derivation_files.*must list exactly.*view_candidates_v2\.py/);
+
+    for (const suffix of [
+      'aperture-gap-proxy',
+      'fan-envelope',
+      'plane-preserved',
+      'focus-preserved',
+      'depth-guard',
+    ]) {
+      const missingCandidateGate = structuredClone(raw);
+      missingCandidateGate.candidates[0].checks = missingCandidateGate.candidates[0].checks
+        .filter((entry: any) => entry.check_id !== `${missingCandidateGate.candidates[0].candidate_id}.${suffix}`);
+      expect(messages(validateViewCandidateEvidence(missingCandidateGate, {
+        repoRoot: workDir,
+        verifyGitBinding: false,
+      }))).toContain(`missing required machine check "${missingCandidateGate.candidates[0].candidate_id}.${suffix}"`);
+
+      const missingVariantGate = structuredClone(raw);
+      const variant = missingVariantGate.candidates[1].variants[0];
+      variant.checks = variant.checks
+        .filter((entry: any) => entry.check_id !== `${variant.variant_id}.${suffix}`);
+      expect(messages(validateViewCandidateEvidence(missingVariantGate, {
+        repoRoot: workDir,
+        verifyGitBinding: false,
+      }))).toContain(`missing required machine check "${variant.variant_id}.${suffix}"`);
+    }
+
+    const missingSeriesGate = structuredClone(raw);
+    const series = missingSeriesGate.candidates[1];
+    series.checks = series.checks.filter(
+      (entry: any) => entry.check_id !== `${series.candidate_id}.common-envelope-settings`,
+    );
+    expect(messages(validateViewCandidateEvidence(missingSeriesGate, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toContain(
+      `missing required machine check "${series.candidate_id}.common-envelope-settings"`,
+    );
+  });
+
+  it.each([
+    'normal-rodero-pack-0.1.1-candidate-set-003',
+    'normal-rodero-pack-0.1.1-candidate-set-experimental',
+    'normal-rodero-pack-0.1.1-candidate-set-002-extra',
+  ])('fails closed for unsupported candidate-set policy %s', (candidateSetId) => {
+    const raw = evidence();
+    raw.candidate_set_id = candidateSetId;
+    expect(messages(validateViewCandidateEvidence(raw, { repoRoot })))
+      .toMatch(/candidate_set_id.*unsupported candidate-set policy/);
   });
 
   it('accepts a B2 variant series with no selected variant and coordinate-free deferrals', () => {

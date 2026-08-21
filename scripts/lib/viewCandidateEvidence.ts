@@ -42,6 +42,46 @@ export const VIEW_CANDIDATE_DERIVATION_FILES = Object.freeze([
   'environment.yml',
 ] as const);
 
+export const VIEW_CANDIDATE_V2_DERIVATION_FILES = Object.freeze([
+  ...VIEW_CANDIDATE_DERIVATION_FILES,
+  'pipeline/view_candidates_v2.py',
+] as const);
+
+const V2_CANDIDATE_CHECK_SUFFIXES = Object.freeze([
+  'aperture-gap-proxy',
+  'fan-envelope',
+  'plane-preserved',
+  'focus-preserved',
+  'depth-guard',
+] as const);
+
+interface CandidateSetPolicy {
+  derivationFiles: readonly string[];
+  candidateCheckSuffixes: readonly string[];
+  seriesCheckSuffixes: readonly string[];
+  allowExistingViewReplacement: boolean;
+}
+
+function candidateSetPolicy(candidateSetId: string): CandidateSetPolicy | null {
+  if (candidateSetId.endsWith('-candidate-set-001')) {
+    return {
+      derivationFiles: VIEW_CANDIDATE_DERIVATION_FILES,
+      candidateCheckSuffixes: [],
+      seriesCheckSuffixes: [],
+      allowExistingViewReplacement: false,
+    };
+  }
+  if (candidateSetId.endsWith('-candidate-set-002')) {
+    return {
+      derivationFiles: VIEW_CANDIDATE_V2_DERIVATION_FILES,
+      candidateCheckSuffixes: V2_CANDIDATE_CHECK_SUFFIXES,
+      seriesCheckSuffixes: ['common-envelope-settings'],
+      allowExistingViewReplacement: true,
+    };
+  }
+  return null;
+}
+
 const GLOBAL_CHECK_IDS = Object.freeze([
   'binding.source-pack',
   'binding.rodero-source',
@@ -126,6 +166,17 @@ function coordinateCheckIds(prefix: string, hasSweep: boolean): string[] {
   ];
 }
 
+function candidateCoordinateCheckIds(
+  prefix: string,
+  hasSweep: boolean,
+  policy: CandidateSetPolicy | null,
+): string[] {
+  return [
+    ...coordinateCheckIds(prefix, hasSweep),
+    ...(policy?.candidateCheckSuffixes ?? []).map((suffix) => `${prefix}.${suffix}`),
+  ];
+}
+
 const Coordinates = z.strictObject({
   probe: ProbePose,
   sweep: Sweep.optional(),
@@ -151,6 +202,8 @@ const SingleCandidate = z.strictObject({
   kind: z.literal('single'),
   candidate_id: EvidenceId,
   intended_view_id: Slug,
+  /** Explicitly names an existing Draft pack view when this is a proposed replacement pose. */
+  replaces_source_view_id: Slug.optional(),
   candidate_status: z.literal('draft'),
   derivation: Derivation,
   coordinates: Coordinates,
@@ -364,6 +417,15 @@ export const ViewCandidateEvidence = z
     limitations: z.array(NonEmptyString).min(1),
   })
   .superRefine((document, ctx) => {
+    const policy = candidateSetPolicy(document.candidate_set_id);
+    if (policy === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['candidate_set_id'],
+        message:
+          'unsupported candidate-set policy; expected an id ending in "candidate-set-001" or "candidate-set-002"',
+      });
+    }
     const candidateIds = new Set<string>();
     const variantIds = new Set<string>();
     const usedViewIds = new Map<string, string>();
@@ -400,9 +462,37 @@ export const ViewCandidateEvidence = z
       addCandidateId(candidate.candidate_id, ['candidates', index, 'candidate_id']);
       addViewId(candidate.intended_view_id, 'candidates', ['candidates', index, 'intended_view_id']);
       if (candidate.kind === 'single') {
+        if (candidate.replaces_source_view_id !== undefined
+          && !policy?.allowExistingViewReplacement) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['candidates', index, 'replaces_source_view_id'],
+            message: 'this candidate-set policy does not permit existing-view replacements',
+          });
+        }
+        if (candidate.replaces_source_view_id !== undefined
+          && candidate.replaces_source_view_id !== candidate.intended_view_id) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['candidates', index, 'replaces_source_view_id'],
+            message: 'a replacement candidate must preserve the existing source view id',
+          });
+        }
+        if (candidate.replaces_source_view_id !== undefined
+          && candidate.coordinates.sweep !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['candidates', index, 'coordinates', 'sweep'],
+            message: 'a replacement candidate must be probe-only for authoring-slots/v1',
+          });
+        }
         requireCheckIds(
           candidate.checks,
-          coordinateCheckIds(candidate.candidate_id, candidate.coordinates.sweep !== undefined),
+          candidateCoordinateCheckIds(
+            candidate.candidate_id,
+            candidate.coordinates.sweep !== undefined,
+            policy,
+          ),
           ctx,
           ['candidates', index, 'checks'],
         );
@@ -410,7 +500,12 @@ export const ViewCandidateEvidence = z
       }
       requireCheckIds(
         candidate.checks,
-        [`${candidate.candidate_id}.variant-grid`, `${candidate.candidate_id}.no-selection`],
+        [
+          `${candidate.candidate_id}.variant-grid`,
+          `${candidate.candidate_id}.no-selection`,
+          ...(policy?.seriesCheckSuffixes ?? [])
+            .map((suffix) => `${candidate.candidate_id}.${suffix}`),
+        ],
         ctx,
         ['candidates', index, 'checks'],
       );
@@ -425,7 +520,11 @@ export const ViewCandidateEvidence = z
         variantIds.add(variant.variant_id);
         requireCheckIds(
           variant.checks,
-          coordinateCheckIds(variant.variant_id, variant.coordinates.sweep !== undefined),
+          candidateCoordinateCheckIds(
+            variant.variant_id,
+            variant.coordinates.sweep !== undefined,
+            policy,
+          ),
           ctx,
           ['candidates', index, 'variants', variantIndex, 'checks'],
         );
@@ -898,12 +997,20 @@ function verifyBinding(
 
   const declaredDerivationFiles = [...binding.derivation_files]
     .sort((a, b) => a.path.localeCompare(b.path));
-  const expectedDerivationPaths = [...VIEW_CANDIDATE_DERIVATION_FILES].sort();
+  const policy = candidateSetPolicy(evidence.candidate_set_id);
+  const expectedDerivationPaths = [...(policy?.derivationFiles ?? [])]
+    .sort((a, b) => a.localeCompare(b));
   const declaredDerivationPaths = declaredDerivationFiles.map((file) => file.path);
+  if (policy === null) {
+    fail(
+      'candidate_set_id',
+      'unsupported candidate-set policy; derivation closure cannot be validated',
+    );
+  }
   if (!jsonEqual(declaredDerivationPaths, expectedDerivationPaths)) {
     fail(
       'binding.derivation_files',
-      `must list exactly the coordinate-derivation closure; expected ${JSON.stringify(expectedDerivationPaths)}`,
+      `must list exactly the coordinate-derivation closure; expected ${JSON.stringify(expectedDerivationPaths)}, found ${JSON.stringify(declaredDerivationPaths)}`,
     );
   }
   for (const [index, file] of binding.derivation_files.entries()) {
@@ -943,9 +1050,19 @@ function verifyBinding(
   });
 
   const packViews = new Map(pack.views.map((view) => [view.view_id, view]));
-  const evidencedSourceViewIds = new Set(
-    evidence.existing_views.map((entry) => entry.source_view_id),
+  const replacementSourceViewIds = new Set(
+    evidence.candidates.flatMap((candidate) => (
+      policy?.allowExistingViewReplacement
+        && candidate.kind === 'single'
+        && candidate.replaces_source_view_id !== undefined
+        ? [candidate.replaces_source_view_id]
+        : []
+    )),
   );
+  const evidencedSourceViewIds = new Set([
+    ...evidence.existing_views.map((entry) => entry.source_view_id),
+    ...replacementSourceViewIds,
+  ]);
   for (const view of pack.views) {
     if (CANON_VIEW_IDS.has(view.view_id) && !evidencedSourceViewIds.has(view.view_id)) {
       fail(
@@ -980,9 +1097,21 @@ function verifyBinding(
   const existingIds = new Set(pack.views.map((view) => view.view_id));
   evidence.candidates.forEach((candidate, index) => {
     if (existingIds.has(candidate.intended_view_id)) {
+      if (!policy?.allowExistingViewReplacement
+        || candidate.kind !== 'single'
+        || candidate.replaces_source_view_id !== candidate.intended_view_id) {
+        fail(
+          `candidates.${index}.intended_view_id`,
+          `candidate "${candidate.intended_view_id}" already exists in the bound pack; `
+            + 'an explicit same-id replacement is required',
+        );
+      }
+      return;
+    }
+    if (candidate.kind === 'single' && candidate.replaces_source_view_id !== undefined) {
       fail(
-        `candidates.${index}.intended_view_id`,
-        `candidate "${candidate.intended_view_id}" already exists in the bound pack`,
+        `candidates.${index}.replaces_source_view_id`,
+        `replacement source "${candidate.replaces_source_view_id}" is absent from the bound pack`,
       );
     }
   });
