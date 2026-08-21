@@ -61,6 +61,23 @@ from vhl_label_tool import TAG_CHOICES
 from vhl_partition import (analyse_debris, components, epicardial_envelope,
                            strip_debris, write_png)
 
+#: A seventh, non-anatomical label: "this space is not a chamber".
+#:
+#: The flood leaks because the space it runs through is not only chamber. The
+#: film between the true epicardium and the morphological envelope, and the
+#: trabecular interstices, are connected sheets wrapping the whole organ, so
+#: whichever chamber touches one first inherits all of it — the right ventricle
+#: took 257 mL that way, wrapping the heart.
+#:
+#: A barrier label fixes it with the machinery already here rather than with a
+#: better mask: mark the leak as its own territory and it competes for that
+#: space on equal terms, so no chamber can cross through it. 99 rather than 7,
+#: because 7-10 are the valve-plane tags in `anatomy.py` and a collision there
+#: would be silent.
+EXCLUDE_TAG = 99
+EXCLUDE_LABEL = "Not a chamber"
+EXCLUDE_COLOUR = "#78909c"
+
 #: Triangle budget. The largest that keeps the vertex count under 65,535 so
 #: indices fit in Uint16 — that one constraint halves the index buffer, which is
 #: the biggest single part of the payload.
@@ -165,7 +182,9 @@ def build(mesh: dict, tissue: np.ndarray, cavity: np.ndarray, grid_origin: np.nd
             "scaleToFull": factor,
         },
         "fullResolution": full_resolution,
-        "tags": [{"tag": t, "label": lab, "colour": col} for t, lab, col in TAG_CHOICES],
+        "tags": ([{"tag": t, "label": lab, "colour": col} for t, lab, col in TAG_CHOICES]
+                 + [{"tag": EXCLUDE_TAG, "label": EXCLUDE_LABEL, "colour": EXCLUDE_COLOUR}]),
+        "excludeTag": EXCLUDE_TAG,
     }
 
     if "</script>" in three_source:
@@ -246,6 +265,9 @@ _TEMPLATE = r"""<!doctype html>
     <p class="muted" id="hint" style="display:none;margin:8px 0 0">
       <strong>Red is muscle, cream is the space inside a chamber.</strong> Click on the flat cut
       face. The dot lands exactly on the cutting plane, so there is nothing to judge about depth.
+      <br><strong>If a label leaks</strong>, click the space it leaked into with
+      <em>Not a chamber</em>. That space then belongs to nothing and no chamber can spread
+      through it — it is the fastest way to stop the right ventricle wrapping the heart.
       <br><em>Axis 1/2/3</em> choose which way the knife points; the model's orientation is
       unverified, so they are named by axis rather than by anatomy. <em>Face me</em> cuts
       square-on to wherever you have rotated. <em>Reverse</em> cuts from the other side.
@@ -545,10 +567,14 @@ function refresh() {
       t.colour + '"></span> ' + t.label + ': <strong>' + n + '</strong>';
     counts.appendChild(el);
   });
-  const covered = CFG.tags.filter(t =>
+  const chambers = CFG.tags.filter(t => t.tag !== CFG.excludeTag);
+  const covered = chambers.filter(t =>
     state.seeds.some(s => s.tag === t.tag && s.confidence !== 'unsure')).length;
-  document.getElementById('progressNote').innerHTML = covered === CFG.tags.length
-    ? '<span class="done">All six labelled.</span>' : covered + ' of 6 labelled.';
+  const barriers = state.seeds.filter(s => s.tag === CFG.excludeTag).length;
+  document.getElementById('progressNote').innerHTML =
+    (covered === chambers.length ? '<span class="done">All six chambers labelled.</span>'
+                                 : covered + ' of 6 chambers labelled.') +
+    '<br>' + barriers + ' "not a chamber" marks placed.';
   rebuildMarkers(); draw();
 }
 function payload() {
@@ -570,7 +596,9 @@ document.getElementById('copy').onclick = async () => {
   await navigator.clipboard.writeText(payload()); note('Copied.');
 };
 window.addEventListener('keydown', e => {
-  if (e.key >= '1' && e.key <= '6') { state.tag = CFG.tags[+e.key - 1].tag; drawTags(); }
+  if (e.key >= '1' && e.key <= '7' && CFG.tags[+e.key - 1]) {
+    state.tag = CFG.tags[+e.key - 1].tag; drawTags();
+  }
   else if (e.key === 'u') { const c = document.getElementById('unsure'); c.checked = !c.checked; }
   else if ((e.metaKey || e.ctrlKey) && e.key === 'z') { state.seeds.pop(); refresh(); }
 });
