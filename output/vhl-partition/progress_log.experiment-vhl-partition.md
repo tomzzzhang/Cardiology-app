@@ -2,7 +2,7 @@
 
 **Branch:** `experiment/vhl-partition`
 **Branched from `dev` at:** `294751faf124b79693cae99d9335e881189a032c`
-**Last Updated:** 2026-08-20 22:50 EDT
+**Last Updated:** 2026-08-20 23:05 EDT
 
 Branch log. Interleave these entries by timestamp into the planning folder's
 `progress_log.md` at merge, then delete this file.
@@ -10,6 +10,35 @@ Branch log. Interleave these entries by timestamp into the planning folder's
 Newest first.
 
 ---
+
+## 2026-08-20 23:05 EDT — Rodero tried as label donor; two variants disagree on handedness
+
+**State.** Fourth identification route, and the best-motivated one: `normal-rodero` is tagged
+MYOCARDIUM with a ready-made labelled 192^3 volume whose structures map onto tags 1-10 exactly,
+so registration is tissue-against-tissue rather than lumen-against-cast. It also carries the
+LV:RV wall asymmetry (135.4 vs 52.4 mL, 2.6:1) that VHL itself does not exhibit, so a correct
+pose would transfer exactly what §5b.2 could not measure.
+
+**Result: still not usable, and now for a demonstrable reason.** Registering on tissue gives
+Dice 0.398 with margin 0.094 — four times the bodyparts3d margin, still under the 0.10 threshold.
+Registering on the epicardial envelope gives Dice 0.771 with margin 0.012. The two variants pick
+OPPOSITE handedness. Absolute fit and discriminative power trade off directly: smoothing the
+target to fit better erases the asymmetry that distinguishes left from right. This is positive
+evidence the pose is undetermined by shape overlap, not a tuning problem.
+
+**Rendered anyway, as labelled evidence.** `label-transfer-UNVERIFIED.png` shows Rodero in its
+real tags beside VHL wearing transferred ones. Committed because it is useful for judging
+plausibility, named UNVERIFIED because the colours may be mirrored.
+
+**3D preview added.** `heart-3d.png` — exterior plus cutaway with the recovered chamber space
+coloured. Renderer lives in `vhl_partition.preview_3d` so the image is reproducible rather than
+an orphan artefact. Worth noting what it shows: the exterior looks like an entirely ordinary
+heart from every angle, which is why this source's defect survived to ingest before anyone
+noticed there were no chambers in it.
+
+**Recommendation unchanged and now better supported.** Four human-placed watershed markers remain
+first. Four automatic identification routes have now failed, three of them on handedness. A
+single human click carries the one bit that none of them could recover.
 
 ## 2026-08-20 22:50 EDT — identification is the real blocker; all three automatic routes fail
 

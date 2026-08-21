@@ -222,6 +222,41 @@ Contributing: the donor is an adult, the subject is 14; the VHL cavity (425 mL) 
 pulmonary veins and caval lumen that the six donor casts (392 mL total) do not cover, which caps
 achievable Dice below 1 even for a perfect registration.
 
+### 5b.1b Donor registration against `normal-rodero` — better donor, same verdict
+
+Tried after bodyparts3d, and the better idea: Rodero is **tagged myocardium**, not lumen casts,
+so registration is tissue-against-tissue rather than cast-against-space. Its `echo-volume.raw`
+is already a labelled 192³ volume, and its structures map onto `anatomy.CHAMBER_TAGS` exactly —
+`lv-`/`rv-`/`ra-`/`la-myocardium`, `aortic-wall`, `pulmonary-artery-wall` (tags 1-6) plus the
+four valve rings (tags 7-10). It also **carries the LV/RV asymmetry that VHL lacks**: LV
+myocardium 135.4 mL against RV 52.4 mL, a 2.6:1 ratio, so what §5b.2 could not measure on VHL is
+present in the donor and would transfer with a correct pose.
+
+Two variants were run, and the pair of results is the finding:
+
+| registered on | best Dice | margin over 2nd | winning handedness |
+|---|---|---|---|
+| tissue (myocardium to myocardium) | 0.398 | **0.094** | (+1, +1) |
+| epicardial envelope | **0.771** | 0.012 | (−1, −1) |
+
+**They disagree on handedness.** The envelope fits far better and discriminates nothing — it is
+a smooth blob, so every pose lands on it. The tissue fits poorly (VHL carries 362 mL of
+trabeculated tissue against Rodero's 259 mL of smooth myocardium, so they cannot overlap well)
+but retains the most discriminative power of anything tried: margin 0.094, four times
+bodyparts3d's 0.022, though still under the 0.10 threshold `MIN_DICE_MARGIN` requires.
+
+Two variants of one method, on one pair of models, choosing **opposite mirrors**. That is not a
+weak result to be improved by tuning; it is positive evidence that the pose is undetermined by
+shape overlap on this pair, and it explains why: absolute fit and discriminative power trade off
+against each other here. Smoothing the target to fit better erases exactly the asymmetry that
+would tell left from right.
+
+`label-transfer-UNVERIFIED.png` shows Rodero in its genuine tags beside VHL wearing labels
+transferred under the tissue pose (LV 176.1, RV 70.1, LA 45.4, RA 41.7, aorta 22.8, PA 6.3 mL).
+It is committed as evidence and named for what it is. **The colours may be mirrored** — the red
+region may be the right ventricle — and the region boundaries are the donor's imposed through a
+0.398-Dice fit, not boundaries measured on VHL. It must not be read as a partition.
+
 ### 5b.2 Wall thickness (LV ≈ 3× RV) — does not discriminate on this model
 
 The orientation-independent discriminator: identify the LV as the lobe with the thicker

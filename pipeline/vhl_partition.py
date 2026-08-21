@@ -656,6 +656,148 @@ def region_panel(grid: Grid, regions: np.ndarray,
     return canvas
 
 
+
+# --------------------------------------------------------------------------- #
+# 3D preview                                                                   #
+# --------------------------------------------------------------------------- #
+#
+# A splat renderer with a z-buffer, ~50 lines, because the environment has no
+# renderer and the alternative is shipping a picture nobody can regenerate.
+#
+# Surface normals come from the GRADIENT OF THE SMOOTHED MASK, not from the
+# depth buffer. Screen-space normals were tried first and produce moire: point
+# splatting leaves single-pixel holes, the depth gradient across a hole is
+# enormous, and the result is a striped blob that looks like a rendering bug
+# because it is one. The volume gradient is defined everywhere the surface is.
+
+#: Two lights. A single key light leaves the away-facing half of a convex organ
+#: flat black, which reads as a hole rather than as shading.
+KEY_LIGHT = np.array([0.40, -0.50, 0.77])
+FILL_LIGHT = np.array([-0.50, 0.20, 0.50])
+
+
+def _unit(vector: np.ndarray) -> np.ndarray:
+    return vector / np.linalg.norm(vector)
+
+
+def surface_voxels(mask: np.ndarray) -> np.ndarray:
+    """Voxels of `mask` that touch its complement."""
+    return np.argwhere(mask & ~ndimage.binary_erosion(mask, FACE_CONNECTED))
+
+
+def surface_normals(points: np.ndarray, mask: np.ndarray,
+                    smoothing: float = 1.6) -> np.ndarray:
+    gradients = np.gradient(ndimage.gaussian_filter(mask.astype(np.float32), smoothing))
+    normals = np.stack([-g[tuple(points.T)] for g in gradients], axis=1)
+    length = np.linalg.norm(normals, axis=1, keepdims=True)
+    length[length == 0] = 1.0
+    return normals / length
+
+
+def camera(yaw: float, pitch: float) -> np.ndarray:
+    cy, sy = np.cos(yaw), np.sin(yaw)
+    cp, sp = np.cos(pitch), np.sin(pitch)
+    return (np.array([[1, 0, 0], [0, cp, -sp], [0, sp, cp]])
+            @ np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]]))
+
+
+def render_points(groups: list[tuple[np.ndarray, np.ndarray, tuple[int, int, int]]],
+                  yaw: float, pitch: float, size: int = 620, splat: int = 2,
+                  centre: np.ndarray | None = None, span: float | None = None
+                  ) -> tuple[np.ndarray, np.ndarray, float]:
+    """
+    Orthographic splat render. Returns the image plus the camera framing, so a
+    sequence of views can be rendered at one consistent scale by feeding
+    `centre` and `span` back in — otherwise each view self-scales and the organ
+    appears to breathe between angles.
+    """
+    rotation = camera(yaw, pitch)
+    if centre is None:
+        centre = np.vstack([p for p, _, _ in groups]).mean(axis=0)
+    projected = [((p - centre) @ rotation.T, n @ rotation.T, c) for p, n, c in groups]
+    if span is None:
+        flat = np.vstack([p for p, _, _ in projected])[:, :2]
+        span = float((flat.max(axis=0) - flat.min(axis=0)).max() * 1.15)
+
+    key, fill = _unit(KEY_LIGHT), _unit(FILL_LIGHT)
+    depth = np.full(size * size, np.inf)
+    canvas = np.zeros((size * size, 3), dtype=np.float32)
+
+    for points, normals, colour in projected:
+        shade = (0.42 + 0.62 * np.clip(normals @ key, 0, 1)
+                 + 0.22 * np.clip(normals @ fill, 0, 1))
+        shaded = np.clip(np.asarray(colour, np.float32)[None, :] * shade[:, None], 0, 255)
+        base = (points[:, :2] + span / 2) / span * size
+        for dx in range(splat):
+            for dy in range(splat):
+                xy = (base + np.array([dx, dy]) - splat / 2).astype(int)
+                on = np.all((xy >= 0) & (xy < size), axis=1)
+                index = xy[on, 1] * size + xy[on, 0]
+                z, rgb = points[on, 2], shaded[on]
+                # nearest wins: sort by (pixel, depth) and keep each pixel's first
+                order = np.lexsort((z, index))
+                index, z, rgb = index[order], z[order], rgb[order]
+                first = np.ones(len(index), bool)
+                first[1:] = index[1:] != index[:-1]
+                index, z, rgb = index[first], z[first], rgb[first]
+                nearer = z < depth[index]
+                depth[index[nearer]] = z[nearer]
+                canvas[index[nearer]] = rgb[nearer]
+
+    image = canvas.reshape(size, size, 3)
+    image[~np.isfinite(depth).reshape(size, size)] = BACKGROUND_COLOUR
+    return np.clip(image, 0, 255).astype(np.uint8), centre, span
+
+
+def montage(images: list[np.ndarray], columns: int, gap: int = 8) -> np.ndarray:
+    height, width = images[0].shape[:2]
+    rows = (len(images) + columns - 1) // columns
+    canvas = np.full((rows * height + (rows - 1) * gap,
+                      columns * width + (columns - 1) * gap, 3), 245, np.uint8)
+    for i, image in enumerate(images):
+        r, c = divmod(i, columns)
+        canvas[r * (height + gap):r * (height + gap) + height,
+               c * (width + gap):c * (width + gap) + width] = image
+    return canvas
+
+
+def preview_3d(grid: Grid, regions: np.ndarray, angles: tuple[float, ...] = (0.0, 2.094, 4.189)
+               ) -> np.ndarray:
+    """
+    Exterior on the top row, the same angles cut in half on the bottom.
+
+    The cutaway is the row that carries information. This model's defect was
+    never visible from outside — the epicardium looks like an ordinary heart
+    from every angle, which is exactly why it survived to the point of being
+    ingested before anyone noticed there were no chambers in it.
+    """
+    tissue = surface_voxels(grid.mask)
+    top: list[np.ndarray] = []
+    centre = span = None
+    for yaw in angles:
+        image, centre, span = render_points(
+            [(tissue.astype(float), surface_normals(tissue, grid.mask), (205, 88, 80))],
+            yaw, 0.15, centre=centre, span=span)
+        top.append(image)
+
+    half = np.zeros_like(grid.mask)
+    half[:, :, :grid.mask.shape[2] // 2] = True
+    cut_tissue = surface_voxels(grid.mask & half)
+    groups = [(cut_tissue.astype(float),
+               surface_normals(cut_tissue, grid.mask), (198, 96, 88))]
+    for label in range(1, int(regions.max()) + 1):
+        piece = (regions == label) & half
+        if not piece.any():
+            continue
+        points = surface_voxels(piece)
+        groups.append((points.astype(float), surface_normals(points, regions == label),
+                       REGION_COLOURS[(label - 1) % len(REGION_COLOURS)]))
+
+    bottom = [render_points(groups, yaw + 0.15, 0.15, centre=centre, span=span)[0]
+              for yaw in angles]
+    return montage(top + bottom, len(angles))
+
+
 # --------------------------------------------------------------------------- #
 # driver                                                                       #
 # --------------------------------------------------------------------------- #
@@ -845,6 +987,7 @@ def main() -> int:
         _, (iy, ix, iz) = ndimage.distance_transform_edt(seeds == 0, return_indices=True)
         grown = np.where(cavity, seeds[iy, ix, iz], 0)
         write_png(args.out / "chamber-cores.png", region_panel(grid, grown))
+        write_png(args.out / "heart-3d.png", preview_3d(grid, grown))
         volumes = [round(float((grown == r).sum()) * grid.voxel_mm3 / 1000, 1)
                    for r in range(1, len(chamber_scale) + 1)]
         findings["core_regions_ml"] = volumes
