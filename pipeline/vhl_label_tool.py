@@ -163,7 +163,15 @@ def build_html(specs: list[SliceSpec], crop_starts: dict[int, int],
             "png": s.png_base64,
         } for s in specs],
     }
-    return _TEMPLATE.replace("__PAYLOAD__", json.dumps(payload))
+    # The first slice is inlined into the markup as well as into the payload, so
+    # the anatomy is on screen before a single line of script has run. Without
+    # it, "scripts are blocked here" and "this file is broken" look identical to
+    # whoever opened it, and they have no way to tell you which one it is.
+    first = f'src="data:image/png;base64,{specs[0].png_base64}" ' \
+            f'width="{specs[0].width * 2}" height="{specs[0].height * 2}"'
+    return (_TEMPLATE
+            .replace("__PAYLOAD__", json.dumps(payload))
+            .replace("__FIRSTSRC__", first))
 
 
 # --------------------------------------------------------------------------- #
@@ -248,7 +256,8 @@ _TEMPLATE = r"""<!doctype html>
   .stage { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
            padding: 14px; }
   .canvasWrap { position: relative; display: inline-block; line-height: 0; cursor: crosshair; }
-  canvas { image-rendering: pixelated; border-radius: 6px; }
+  #slice { image-rendering: pixelated; border-radius: 6px; display: block; }
+  canvas { image-rendering: pixelated; position: absolute; inset: 0; }
   .side { display: flex; flex-direction: column; gap: 14px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
   .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
@@ -292,8 +301,24 @@ _TEMPLATE = r"""<!doctype html>
     </div>
     <input type="range" id="slider" min="0" value="0" step="1">
     <div style="margin:10px 0 0">
-      <div class="canvasWrap" id="wrap"><canvas id="view"></canvas></div>
+      <!-- The slice is a real <img>, with the canvas overlaid for markers only.
+           Drawing the bitmap INTO the canvas also works, but it fails silently
+           and identically to "the file is broken" in any viewer that restricts
+           canvas or defers decode — and a blank grey box gives the reader
+           nothing to report. An <img> shows the anatomy even with scripting off. -->
+      <div class="canvasWrap" id="wrap">
+        <img id="slice" alt="heart cross-section" __FIRSTSRC__>
+        <canvas id="view"></canvas>
+      </div>
     </div>
+    <p id="status" class="warn" style="margin:10px 0 0">
+      Starting up&hellip; if this message stays, the file is being shown by a viewer that
+      blocks scripts. Save it to disk and open it in Chrome, Safari or Edge directly.
+    </p>
+    <noscript>
+      <p class="warn">JavaScript is off. The slice above is visible but clicking will not record
+      anything &mdash; open this file in a normal browser window.</p>
+    </noscript>
     <p class="muted" style="margin:10px 0 0">
       Grey is heart muscle. Click <strong>inside a chamber cavity</strong> (the white space) and
       it records a seed for the selected label. Nothing is pre-labelled on purpose &mdash; you are
@@ -348,21 +373,13 @@ _TEMPLATE = r"""<!doctype html>
 <script>
 const DATA = __PAYLOAD__;
 const state = { i: 0, tag: 1, zoom: 2, seeds: [] };
-const images = {};
 
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
+const slice = document.getElementById('slice');
 document.getElementById('packLine').textContent =
   DATA.pack + ' · ' + DATA.resolution + '³ · ' + DATA.pitch_mm.toFixed(3) + ' mm/voxel';
 document.getElementById('slider').max = DATA.slices.length - 1;
-
-function preload() {
-  DATA.slices.forEach(s => {
-    const img = new Image();
-    img.src = 'data:image/png;base64,' + s.png;
-    images[s.key] = img;
-  });
-}
 
 function tagInfo(t) { return DATA.tags.find(x => x.tag === t); }
 
@@ -392,23 +409,13 @@ function drawMarkers(s) {
 }
 
 function render() {
-  const s = current(), img = images[s.key];
-  canvas.width = s.width * state.zoom;
-  canvas.height = s.height * state.zoom;
-  ctx.imageSmoothingEnabled = false;
-  // Markers must be painted AFTER the bitmap, in both branches. Drawing them
-  // once outside this and letting a late onload repaint the image on top is
-  // how a marker silently disappears the first time a slice is opened.
-  if (img.complete && img.naturalWidth) {
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    drawMarkers(s);
-  } else {
-    img.onload = () => {
-      if (current().key !== s.key) return;   // navigated away while decoding
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      drawMarkers(s);
-    };
-  }
+  const s = current();
+  const w = s.width * state.zoom, h = s.height * state.zoom;
+  slice.src = 'data:image/png;base64,' + s.png;
+  slice.width = w; slice.height = h;
+  canvas.width = w; canvas.height = h;
+  ctx.clearRect(0, 0, w, h);
+  drawMarkers(s);
 
   document.getElementById('sliceLine').textContent =
     'slice ' + (state.i + 1) + ' / ' + DATA.slices.length + ' · axis ' + s.axis + ' · index ' + s.index;
@@ -511,7 +518,9 @@ window.addEventListener('keydown', (e) => {
   else if ((e.metaKey || e.ctrlKey) && e.key === 'z') { state.seeds.pop(); render(); }
 });
 
-preload(); drawTags(); setTimeout(render, 60);
+drawTags();
+render();
+document.getElementById('status').style.display = 'none';
 </script>
 </body>
 </html>
