@@ -168,11 +168,8 @@ def build(mesh: dict, tissue: np.ndarray, cavity: np.ndarray, grid_origin: np.nd
         "tags": [{"tag": t, "label": lab, "colour": col} for t, lab, col in TAG_CHOICES],
     }
 
-    # three.js sits in a text/plain block and is imported from a Blob URL at
-    # runtime. A data: URI import is refused by some browsers, and an inline
-    # `type="module"` script would put three's own top-level names in scope.
     if "</script>" in three_source:
-        raise ValueError("three source contains a closing script tag")
+        raise ValueError("three bundle contains a closing script tag")
 
     html = (_TEMPLATE
             .replace("__PAYLOAD__", json.dumps(payload))
@@ -232,10 +229,12 @@ _TEMPLATE = r"""<!doctype html>
   <div class="stage">
     <div class="row" style="margin-bottom:8px">
       <button id="reset">Reset view</button>
-      <span class="muted">cut along</span>
-      <button data-axis="0">X</button><button data-axis="1">Y</button>
-      <button data-axis="2">Z</button><button data-axis="v">view</button>
-      <button id="flip">Flip</button>
+      <span class="muted">slice through</span>
+      <button data-axis="0" title="Cut along the model's first axis">Axis 1</button>
+      <button data-axis="1" title="Cut along the model's second axis">Axis 2</button>
+      <button data-axis="2" title="Cut along the model's third axis">Axis 3</button>
+      <button data-axis="v" title="Cut square-on to the camera, wherever you have rotated to">Face me</button>
+      <button id="flip" title="Cut from the other side">Reverse</button>
       <span class="muted" style="margin-left:auto">drag rotate &middot; scroll zoom &middot; click the cut face</span>
     </div>
     <canvas id="gl"></canvas>
@@ -247,6 +246,9 @@ _TEMPLATE = r"""<!doctype html>
     <p class="muted" id="hint" style="display:none;margin:8px 0 0">
       <strong>Red is muscle, cream is the space inside a chamber.</strong> Click on the flat cut
       face. The dot lands exactly on the cutting plane, so there is nothing to judge about depth.
+      <br><em>Axis 1/2/3</em> choose which way the knife points; the model's orientation is
+      unverified, so they are named by axis rather than by anatomy. <em>Face me</em> cuts
+      square-on to wherever you have rotated. <em>Reverse</em> cuts from the other side.
       Nothing is pre-labelled &mdash; the cream is the undivided cavity, not any guess about where
       the chambers divide.
     </p>
@@ -268,13 +270,17 @@ _TEMPLATE = r"""<!doctype html>
   </div>
 </main>
 
-<script id="threesrc" type="text/plain">__THREE__</script>
 <img id="hitimg" alt="" style="display:none" src="data:image/png;base64,__HITPNG__">
-<script type="module">
+<!-- three.js as a CLASSIC script exposing a global, NOT an ES module.
+     ES modules are fetched with CORS, and a file:// document has an opaque
+     origin, so `import` and `import()` are refused there — including from a
+     Blob URL. The first build of this tool used a module and died silently on
+     exactly that, leaving an empty canvas and a stuck banner. esbuild bundles
+     three into an IIFE at build time so the page has no module loading at all. -->
+<script>__THREE__</script>
+<script>
 const CFG = __PAYLOAD__;
-const blobUrl = URL.createObjectURL(
-  new Blob([document.getElementById('threesrc').textContent], { type: 'text/javascript' }));
-const THREE = await import(blobUrl);
+try {
 
 /* ---------------- geometry ---------------- */
 function bytes(b64) {
@@ -581,10 +587,48 @@ function start() {
 }
 const hitImg = document.getElementById('hitimg');
 if (hitImg.complete && hitImg.naturalWidth) start(); else hitImg.onload = start;
+
+} catch (err) {
+  // Never fail blank again. Two earlier versions showed an empty canvas and a
+  // stuck "Loading" banner, which is indistinguishable from a broken file and
+  // gives whoever opened it nothing to report back.
+  const box = document.getElementById('status');
+  box.textContent = 'Could not start: ' + (err && err.message ? err.message : err);
+  box.style.background = '#fdecea'; box.style.borderColor = '#f5c6c2';
+  throw err;
+}
 </script>
 </body>
 </html>
 """
+
+
+def bundle_three(root: Path) -> str:
+    """
+    Bundle three.js into a CLASSIC script that sets a global.
+
+    `three.module.min.js` is an ES module that re-exports from
+    `three.core.min.js`, so it is neither self-contained nor loadable without a
+    module loader — and a module CANNOT be loaded from a `file://` page, because
+    module fetches use CORS and a file document has an opaque origin. That is
+    what made the first build of this tool open to a blank canvas. esbuild is
+    already present as a vite dependency, so the bundle is produced at build
+    time rather than adding anything at runtime.
+    """
+    import subprocess
+    import tempfile
+
+    esbuild = root / "node_modules/.bin/esbuild"
+    if not esbuild.exists():
+        raise FileNotFoundError(f"esbuild not found at {esbuild}")
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "three.iife.js"
+        subprocess.run(
+            [str(esbuild), str(root / "node_modules/three/build/three.module.js"),
+             "--bundle", "--format=iife", "--global-name=THREE", "--minify",
+             f"--outfile={out}"],
+            check=True, capture_output=True)
+        return out.read_text()
 
 
 def main() -> int:
@@ -617,7 +661,7 @@ def main() -> int:
     cavity = labels == int(np.argmax(sizes))
     print(f"cavity {cavity.sum() * grid.pitch ** 3 / 1000:.1f} mL")
 
-    three = (root / "node_modules/three/build/three.module.min.js").read_text()
+    three = bundle_three(root)
     target = build(mesh, grid.mask, cavity, grid.origin, grid.pitch,
                    args.resolution, args.out, args.pack, three)
     print(f"wrote {target} ({target.stat().st_size / 1e6:.2f} MB)")
