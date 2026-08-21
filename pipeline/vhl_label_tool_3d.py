@@ -61,7 +61,13 @@ from vhl_label_tool import TAG_CHOICES
 from vhl_partition import (analyse_debris, components, epicardial_envelope,
                            strip_debris, write_png)
 
-#: A seventh, non-anatomical label: "this space is not a chamber".
+#: A seventh, non-anatomical label: "this space is not LUMEN".
+#:
+#: Named for lumen, not for "chamber". The aorta and the pulmonary artery are
+#: great vessels and not chambers in any anatomical sense, but they ARE tags 5
+#: and 6 and their blood space is exactly what must be kept. A barrier called
+#: "not a chamber" invites an anatomically correct reader to mark the aorta with
+#: it and delete a structure this experiment is trying to recover.
 #:
 #: The flood leaks because the space it runs through is not only chamber. The
 #: film between the true epicardium and the morphological envelope, and the
@@ -75,7 +81,7 @@ from vhl_partition import (analyse_debris, components, epicardial_envelope,
 #: because 7-10 are the valve-plane tags in `anatomy.py` and a collision there
 #: would be silent.
 EXCLUDE_TAG = 99
-EXCLUDE_LABEL = "Not a chamber"
+EXCLUDE_LABEL = "Not lumen"
 EXCLUDE_COLOUR = "#78909c"
 
 #: Triangle budget. The largest that keeps the vertex count under 65,535 so
@@ -263,11 +269,16 @@ _TEMPLATE = r"""<!doctype html>
       Save it to disk and open the saved file in Chrome or Safari.
     </p>
     <p class="muted" id="hint" style="display:none;margin:8px 0 0">
-      <strong>Red is muscle, cream is the space inside a chamber.</strong> Click on the flat cut
-      face. The dot lands exactly on the cutting plane, so there is nothing to judge about depth.
+      <strong>Red is muscle, cream is the space inside a chamber.</strong> Click the cut face and
+      the dot lands exactly on the cutting plane. Click anywhere else and it lands on the nearest
+      surface facing you. Either way there is nothing to judge about depth.
       <br><strong>If a label leaks</strong>, click the space it leaked into with
-      <em>Not a chamber</em>. That space then belongs to nothing and no chamber can spread
-      through it — it is the fastest way to stop the right ventricle wrapping the heart.
+      <em>Not lumen</em>. That space then belongs to nothing and no label can spread through
+      it &mdash; the fastest way to stop the right ventricle wrapping the heart.
+      <br><em>Lumen</em> means blood space belonging to one of the six tags. The aorta and
+      pulmonary artery ARE lumen even though they are vessels rather than chambers &mdash;
+      do not mark them. <em>Not lumen</em> means the rim of space outside the heart's own
+      surface, and the crevices between trabeculae: space blood does not occupy.
       <br><em>Axis 1/2/3</em> choose which way the knife points; the model's orientation is
       unverified, so they are named by axis rather than by anatomy. <em>Face me</em> cuts
       square-on to wherever you have rotated. <em>Reverse</em> cuts from the other side.
@@ -486,13 +497,43 @@ canvas.addEventListener('pointerup', e => {
     ((e.clientX - r.left) / r.width) * 2 - 1,
     -((e.clientY - r.top) / r.height) * 2 + 1);
   const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera);
-  // Intersect the mathematical plane: not geometry, not a depth buffer. The
-  // seed is on the cut plane by construction, so there is no depth to misjudge.
-  const point = new THREE.Vector3();
-  if (!ray.ray.intersectPlane(plane, point)) { note('The plane is edge-on — rotate a little.'); return; }
+
+  // Take whichever comes first along the ray: the cut plane, or the model
+  // surface you are actually looking at. Using the plane alone is wrong
+  // whenever the plane sits BEHIND the visible surface — the click then lands
+  // somewhere the reader cannot see and never intended.
+  //
+  // Mesh hits on the clipped-away side are discarded: raycasting ignores
+  // clipping planes entirely, so without this it happily returns the surface
+  // that was cut off and is no longer on screen.
+  const planePoint = new THREE.Vector3();
+  const hasPlane = !!ray.ray.intersectPlane(plane, planePoint);
+  const planeDist = hasPlane ? ray.ray.origin.distanceTo(planePoint) : Infinity;
+
+  let surfaceDist = Infinity, surfacePoint = null;
+  for (const it of ray.intersectObject(muscle, false)) {
+    if (plane.distanceToPoint(it.point) < 0) continue;   // this bit was cut away
+    surfaceDist = it.distance; surfacePoint = it.point.clone(); break;
+  }
+
+  let point;
+  if (surfacePoint && surfaceDist < planeDist) {
+    // Step a little back toward the camera so the seed sits in the space just
+    // in FRONT of the surface rather than inside the wall it landed on.
+    point = surfacePoint.addScaledVector(ray.ray.direction, -0.6);
+  } else if (hasPlane) {
+    point = planePoint;
+  } else {
+    note('Nothing under the cursor — rotate, or move the cut.'); return;
+  }
   const hit = classify(point);
   if (!hit) { note('That is outside the heart.'); return; }
-  if (hit.kind === 'muscle') { note('That looks like muscle. Click the cream area.'); return; }
+  if (hit.kind === 'muscle') {
+    note(state.tag === CFG.excludeTag
+      ? 'That is muscle. For "Not lumen" click the empty space, not the wall.'
+      : 'That looks like muscle. Click the cream area.');
+    return;
+  }
   state.seeds.push({ voxel: hit.voxel, point: [point.x, point.y, point.z], tag: state.tag,
     confidence: document.getElementById('unsure').checked ? 'unsure' : 'sure' });
   document.getElementById('unsure').checked = false;
