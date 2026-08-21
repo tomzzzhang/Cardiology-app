@@ -93,8 +93,11 @@ from pathlib import Path
 
 import numpy as np
 
+import fast_simplification
+from scipy.spatial import cKDTree
+
 from bodyparts3d import read_element_map
-from meshlib import read_gltf_surfaces, read_obj
+from meshlib import Surface, read_gltf_surfaces, read_obj, write_gltf
 
 REPO = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).resolve().parent / ".cache" / "bodyparts3d"
@@ -144,16 +147,61 @@ AXIS_CONCEPTS = {
     "right_clavicle": "FMA13322",
 }
 
-#: Thoracic context groups. Read here so the selection is one declaration for
-#: both the registration report and the later asset build.
-CHEST_CONCEPTS = {
+#: Thoracic context groups: display group -> the source concepts that make it.
+#:
+#: Selected through the source's own PART-OF concept table rather than by
+#: guessing at opaque element ids, so the selection is reproducible and every
+#: element that lands in an asset can be named in the report.
+#:
+#: SCAPULAE ARE EXCLUDED, and the reason is a measurement rather than a taste:
+#: the two of them are 54,278 triangles, roughly as much as the ribs and the
+#: spine together, and they sit behind the heart where they hide rather than
+#: orient. The clavicles cost 2,322 and frame the suprasternal notch and the
+#: parasternal windows, so they stay. Recorded in the report either way.
+CHEST_CONCEPTS: dict[str, tuple[str, ...]] = {
     "skin": ("FMA7163",),
     "ribs": ("FMA7480",),
     "sternum": ("FMA7485",),
     "spine": ("FMA9140",),
     "lungs": ("FMA7309", "FMA7310"),
     "diaphragm": ("FMA13295",),
+    "shoulder": ("FMA13322", "FMA13323"),
 }
+
+#: Triangles allowed per display group after decimation.
+#:
+#: This is scene CONTEXT, not the subject. The heart is what the learner reads;
+#: a chest that cost as much as the heart would be spending the frame budget on
+#: the wrong thing. Totals ~120k against 698,510 raw.
+#:
+#: The sternum and the clavicles are under budget already and are left ALONE:
+#: they are small, they are the landmarks the parasternal and suprasternal
+#: windows are named for, and decimating them would buy nothing.
+CHEST_TRIANGLE_BUDGET: dict[str, int] = {
+    "skin": 30_000,
+    "ribs": 35_000,
+    "sternum": 10_000,
+    "spine": 16_000,
+    "lungs": 26_000,
+    "diaphragm": 12_000,
+    "shoulder": 4_000,
+}
+
+#: The z band the SKIN is cropped to, in body millimetres.
+#:
+#: The source ships one skin surface for the whole body — 1,719 mm of it, from
+#: sole to scalp. Only the thorax is context for a heart, so it is cropped to a
+#: band that comfortably contains every other group (ribs 1008-1370, spine
+#: 1050-1377, lungs 1015-1356, diaphragm 986-1193).
+#:
+#: The cut edge is left OPEN. Capping it would be inventing a surface that is
+#: not in the source, which is the same rule the geometry ingest already
+#: follows: an open boundary here is a crop, and a crop should look like one.
+SKIN_CROP_Z_MM = (960.0, 1400.0)
+
+#: Total asset budget for the whole chest, in bytes. Context is not allowed to
+#: cost what a pack costs.
+CHEST_BUDGET_BYTES = 8_000_000
 
 #: How apical a point has to be to count as apex, as a percentile along the long
 #: axis. Mirrors `anatomy.APEX_PERCENTILE`: the mean of an extreme percentile is
@@ -641,11 +689,190 @@ def anatomy_checks(rotation: np.ndarray, translation: np.ndarray,
 
 
 # --------------------------------------------------------------------------- #
+# the chest                                                                    #
+# --------------------------------------------------------------------------- #
+
+
+def _merge(blocks: list[tuple[np.ndarray, np.ndarray]], name: str) -> Surface:
+    """Concatenate `(vertices, faces)` pairs into one surface, reindexing faces."""
+    vertices: list[np.ndarray] = []
+    faces: list[np.ndarray] = []
+    offset = 0
+    for verts, tris in blocks:
+        vertices.append(verts)
+        faces.append(tris + offset)
+        offset += len(verts)
+    return Surface(
+        name=name,
+        vertices=np.ascontiguousarray(np.vstack(vertices), dtype=np.float32),
+        faces=np.ascontiguousarray(np.vstack(faces), dtype=np.int32),
+    )
+
+
+def _crop_z(verts: np.ndarray, faces: np.ndarray, low: float, high: float
+            ) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Keep triangles whose centroid lies in `[low, high]`, leaving the edge open.
+
+    By centroid rather than by "all three vertices inside", which would erode a
+    band of triangles at the boundary and make the crop look like damage instead
+    of a cut.
+    """
+    centroids = verts[faces].mean(axis=1)
+    keep = (centroids[:, 2] >= low) & (centroids[:, 2] <= high)
+    kept = faces[keep]
+    used = np.unique(kept)
+    remap = np.full(len(verts), -1, dtype=np.int64)
+    remap[used] = np.arange(len(used))
+    return verts[used], remap[kept].astype(np.int32)
+
+
+def _decimate(surface: Surface, budget: int) -> tuple[Surface, float]:
+    """
+    Reduce to `budget` triangles and MEASURE what that cost.
+
+    The error reported is the distance from each surviving vertex to the nearest
+    vertex of the original mesh. It is a vertex-to-vertex figure, not a true
+    surface Hausdorff distance, and it is named that way in the report rather
+    than dressed up as something stronger: on a source this dense it is a fair
+    proxy, and claiming a Hausdorff distance we did not compute would be exactly
+    the kind of overstatement this pipeline exists to avoid.
+    """
+    if surface.triangle_count <= budget:
+        return surface, 0.0
+    reduction = min(max(1.0 - budget / surface.triangle_count, 0.0), 0.98)
+    points, faces = fast_simplification.simplify(
+        surface.vertices.astype(np.float32), surface.faces.astype(np.int32), reduction
+    )
+    reduced = Surface(
+        name=surface.name,
+        vertices=np.ascontiguousarray(points, dtype=np.float32),
+        faces=np.ascontiguousarray(faces, dtype=np.int32),
+    )
+    distance, _ = cKDTree(surface.vertices.astype(np.float64)).query(
+        reduced.vertices.astype(np.float64), k=1
+    )
+    return reduced, float(distance.max())
+
+
+def build_chest(cache: Path, by_concept: dict[str, set[str]], to_body: np.ndarray
+                ) -> tuple[list[Surface], dict]:
+    """
+    Select, crop, merge and decimate the thoracic context.
+
+    Coordinates stay in SOURCE millimetres throughout, which for this source is
+    the body frame. Nothing is rescaled and nothing is recentred: the chest and
+    the registration target have to sit in one frame or the heart inside them
+    means nothing, and a chest quietly centred on its own bounds — which is what
+    the geometry pack ingest does to a pack — would break exactly that.
+    """
+    surfaces: list[Surface] = []
+    report: dict = {"groups": {}, "excluded": {
+        "scapulae": (
+            "FMA13395 and FMA13396, 54,278 triangles for the pair. Excluded on budget: "
+            "comparable in cost to the ribs and the spine together, and positioned behind the "
+            "heart where they occlude rather than orient."
+        ),
+    }}
+
+    for group, concepts in CHEST_CONCEPTS.items():
+        blocks: list[tuple[np.ndarray, np.ndarray]] = []
+        elements: list[str] = []
+        for concept in concepts:
+            for element in sorted(by_concept.get(concept, ())):
+                path = cache / ARCHIVE_DIR / f"{element}.obj"
+                if not path.exists():
+                    continue
+                surface = read_obj(path)
+                verts = np.asarray(surface.vertices, dtype=np.float64) @ to_body.T
+                blocks.append((verts, np.asarray(surface.faces, dtype=np.int64)))
+                elements.append(element)
+        if not blocks:
+            raise SystemExit(f"chest group {group!r}: no geometry found")
+
+        merged = _merge(blocks, group)
+        raw_triangles = merged.triangle_count
+        raw_bounds = (merged.vertices.min(axis=0), merged.vertices.max(axis=0))
+
+        cropped_note = None
+        if group == "skin":
+            verts, faces = _crop_z(
+                merged.vertices.astype(np.float64), merged.faces.astype(np.int64),
+                *SKIN_CROP_Z_MM,
+            )
+            merged = Surface(
+                name=group,
+                vertices=np.ascontiguousarray(verts, dtype=np.float32),
+                faces=np.ascontiguousarray(faces, dtype=np.int32),
+            )
+            cropped_note = (
+                f"cropped to z in [{SKIN_CROP_Z_MM[0]:.0f}, {SKIN_CROP_Z_MM[1]:.0f}] mm; "
+                f"{raw_triangles:,} -> {merged.triangle_count:,} triangles. The cut edge is "
+                "left open rather than capped."
+            )
+
+        before_decimation = merged.triangle_count
+        merged, error_mm = _decimate(merged, CHEST_TRIANGLE_BUDGET[group])
+        surfaces.append(merged)
+
+        report["groups"][group] = {
+            "concepts": list(concepts),
+            "source_elements": elements,
+            "source_element_count": len(elements),
+            "raw_triangles": int(raw_triangles),
+            "triangles_before_decimation": int(before_decimation),
+            "triangles": int(merged.triangle_count),
+            "triangle_budget": CHEST_TRIANGLE_BUDGET[group],
+            "decimated": bool(before_decimation != merged.triangle_count),
+            "max_vertex_to_source_vertex_mm": round(error_mm, 4),
+            "bounds_before_mm": {
+                "min": [round(v, 3) for v in raw_bounds[0].tolist()],
+                "max": [round(v, 3) for v in raw_bounds[1].tolist()],
+            },
+            "bounds_after_mm": {
+                "min": [round(float(v), 3) for v in merged.vertices.min(axis=0).tolist()],
+                "max": [round(float(v), 3) for v in merged.vertices.max(axis=0).tolist()],
+            },
+            **({"crop": cropped_note} if cropped_note else {}),
+        }
+
+    report["totals"] = {
+        "raw_triangles": sum(g["raw_triangles"] for g in report["groups"].values()),
+        "triangles": sum(g["triangles"] for g in report["groups"].values()),
+        "groups": len(surfaces),
+        "draw_calls": len(surfaces),
+    }
+    return surfaces, report
+
+
+def chest_clearances(surfaces: list[Surface], heart_body: np.ndarray) -> dict:
+    """
+    How close the registered heart comes to each chest structure.
+
+    UNSIGNED nearest-surface distance, sampled vertex to vertex, and reported as
+    an observation rather than as a gate. Organs in a real chest touch: the RV
+    sits against the sternum, the heart rests on the diaphragm, the lungs hug it.
+    A number near zero here is anatomy, not an error, and the point of measuring
+    is that the composition can be judged instead of assumed.
+    """
+    out: dict = {}
+    for surface in surfaces:
+        distance, _ = cKDTree(surface.vertices.astype(np.float64)).query(heart_body, k=1)
+        out[surface.name] = {
+            "min_mm": round(float(distance.min()), 3),
+            "median_mm": round(float(np.median(distance)), 3),
+            "heart_points_within_5mm": int((distance < 5).sum()),
+            "heart_points": int(len(heart_body)),
+        }
+    return out
+
+
+# --------------------------------------------------------------------------- #
 # output                                                                       #
 # --------------------------------------------------------------------------- #
 
 
-def build(cache: Path = CACHE) -> tuple[dict, dict]:
+def build(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dict, dict]:
     """Derive everything, returning `(descriptor, evidence)`."""
     pack_dir = REPO / "public" / "packs" / BOUND_PACK_ID
     pack_path = pack_dir / "pack.json"
@@ -669,11 +896,55 @@ def build(cache: Path = CACHE) -> tuple[dict, dict]:
     }
     rodero = rodero_landmarks(pack)
 
+    chest_surfaces, chest_report = build_chest(cache, by_concept, to_body)
     gltf_agreement = check_against_gltf(pack_dir, rodero)
     report = fit_registration(rodero, bodyparts)
     rotation, translation = report["rotation"], report["translation"]
     rigid = validate_rigid(rotation, translation)
     anatomy = anatomy_checks(rotation, translation, rodero, pack_dir)
+
+    # The chest assets, and the measurements that justify them.
+    assets_dir = CONTEXT_DIR / "assets"
+    gltf_path = assets_dir / "chest.gltf"
+    if write_assets:
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        gltf_bytes, bin_bytes = write_gltf(gltf_path, chest_surfaces, bin_name="chest.bin")
+        total_bytes = gltf_bytes + bin_bytes
+        if total_bytes > CHEST_BUDGET_BYTES:
+            raise SystemExit(
+                f"chest assets are {total_bytes:,} bytes, over the "
+                f"{CHEST_BUDGET_BYTES:,} budget. Context must not cost what a pack costs."
+            )
+        chest_report["totals"]["gltf_bytes"] = gltf_bytes
+        chest_report["totals"]["bin_bytes"] = bin_bytes
+        chest_report["totals"]["total_bytes"] = total_bytes
+
+    # Clearances, measured against the heart as it actually lands in the body.
+    heart_nodes = pack_node_vertices(pack_dir / "assets" / "model.gltf")
+    heart_model = np.vstack(list(heart_nodes.values()))
+    heart_body = heart_model @ rotation.T + translation
+    chest_report["clearance_to_registered_heart"] = chest_clearances(chest_surfaces, heart_body)
+    chest_report["registered_heart_bounds_body_mm"] = {
+        "min": [round(float(v), 2) for v in heart_body.min(axis=0).tolist()],
+        "max": [round(float(v), 2) for v in heart_body.max(axis=0).tolist()],
+    }
+
+    bin_path = assets_dir / "chest.bin"
+    context_assets = [{
+        "gltf": "assets/chest.gltf",
+        "bin": "assets/chest.bin",
+        "sha256": sha256_of(gltf_path),
+        "bin_sha256": sha256_of(bin_path),
+        "bytes": gltf_path.stat().st_size + bin_path.stat().st_size,
+        "groups": [
+            {
+                "group": surface.name,
+                "triangles": int(surface.triangle_count),
+                "source_elements": chest_report["groups"][surface.name]["source_elements"],
+            }
+            for surface in chest_surfaces
+        ],
+    }] if gltf_path.exists() and bin_path.exists() else []
 
     descriptor = {
         "schema_version": SCHEMA_VERSION,
@@ -738,7 +1009,7 @@ def build(cache: Path = CACHE) -> tuple[dict, dict]:
             "rigid_validation": rigid,
             "anatomy_checks": anatomy["checks"],
         },
-        "context_assets": [],
+        "context_assets": context_assets,
         "provenance": {
             "creator": (
                 "The Database Center for Life Science (DBCLS), Research Organization of "
@@ -824,6 +1095,7 @@ def build(cache: Path = CACHE) -> tuple[dict, dict]:
         },
         "published_landmarks_agree_with_shipped_gltf_mm": gltf_agreement,
         "fit": {k: v for k, v in report.items() if k not in ("rotation", "translation")},
+        "chest": chest_report,
         "rigid_validation": rigid,
         "anatomy": anatomy,
     }

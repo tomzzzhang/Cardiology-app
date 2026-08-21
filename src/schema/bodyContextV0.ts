@@ -158,19 +158,35 @@ export const ModelToBody = z.strictObject({
   scale: z.literal(1),
 });
 
+/** The display groups the chest is drawn and toggled in. */
+export const ContextGroup = z.enum([
+  'skin', 'ribs', 'sternum', 'spine', 'lungs', 'diaphragm', 'shoulder',
+]);
+export type ContextGroup = z.infer<typeof ContextGroup>;
+
 /**
- * One display group of context geometry.
+ * One context geometry FILE, and the display groups inside it.
  *
- * Empty until the chest assets land. Present in v0 so the descriptor's shape
- * does not change when they do.
+ * A file rather than a group, because the groups share one glTF: they are one
+ * download and one set of buffers, and each is a node in it. Describing them as
+ * separate assets would mean repeating one digest and one byte count per group,
+ * which reads as seven files that do not exist.
+ *
+ * Both the glTF and its `.bin` are digested. The `.bin` is where every vertex
+ * actually lives, so a record that pinned only the JSON would pin the part that
+ * matters least.
  */
 export const ContextAsset = z.strictObject({
-  group: z.enum(['skin', 'ribs', 'sternum', 'spine', 'lungs', 'diaphragm', 'shoulder']),
   gltf: z.string().min(1),
+  bin: z.string().min(1),
   sha256: Sha256,
-  triangles: z.number().int().nonnegative(),
+  bin_sha256: Sha256,
   bytes: z.number().int().nonnegative(),
-  source_elements: z.array(z.string().min(1)).min(1),
+  groups: z.array(z.strictObject({
+    group: ContextGroup,
+    triangles: z.number().int().nonnegative(),
+    source_elements: z.array(z.string().min(1)).min(1),
+  })).min(1),
 });
 
 export const Registration = z.looseObject({

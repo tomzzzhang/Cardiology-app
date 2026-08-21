@@ -9,10 +9,13 @@ on:
       - src/schema/**
       - pipeline/**
       - evidence/view-candidates/**
+      - evidence/body-context/**
+      - public/body-context/**
       - .gitattributes
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
       - scripts/check-view-candidates.ts
+      - scripts/check-frame-decoupling.ts
       - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**
@@ -27,10 +30,13 @@ on:
       - src/schema/**
       - pipeline/**
       - evidence/view-candidates/**
+      - evidence/body-context/**
+      - public/body-context/**
       - .gitattributes
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
       - scripts/check-view-candidates.ts
+      - scripts/check-frame-decoupling.ts
       - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**

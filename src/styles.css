@@ -354,6 +354,35 @@ body {
   white-space: nowrap;
 }
 
+/*
+ * BODY CONTEXT sub-controls.
+ *
+ * Indented under the master Chest toggle and set slightly back, so the row
+ * reads as "the chest, and what it is made of" rather than as five more
+ * peers of Cut, Ghost, Beam and Level. The chest is scenery; its controls
+ * should not compete with the ones that read the heart.
+ */
+.cutter__toggle--sub {
+  margin-left: 0.15rem;
+  color: #9aa6b2;
+  font-size: 0.8rem;
+}
+
+.cutter__slider--short {
+  flex: 0 0 5rem;
+  min-width: 4rem;
+}
+
+/*
+ * The chest failed to load, and the app says so instead of quietly showing a
+ * heart with no context and no explanation.
+ */
+.viewer__context-warning {
+  margin: 0;
+  color: #d8b48a;
+  font-size: 0.78rem;
+}
+
 .cutter__slider {
   flex: 1 1 8rem;
   min-width: 6rem;

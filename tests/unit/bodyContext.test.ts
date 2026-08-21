@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import { readBodyContext, rigidProblem, type Mat3 } from '../../src/schema/bodyContextV0.ts';
 import { rigidTransform, pointToBody } from '../../src/viewer/bodyFrame.ts';
+import { GROUP_CONTROLS, GROUP_STYLE } from '../../src/viewer/chestContext.ts';
 import type { Vec3 } from '../../src/schema/primitives.ts';
 
 const repoRoot = join(import.meta.dirname, '..', '..');
@@ -91,6 +92,69 @@ describe('the committed descriptor', () => {
     // descriptor exists to carry, so it is asserted rather than trusted.
     expect(provenance.subject).toMatch(/NOT a\s+cadaver|not a cadaver/i);
     expect(provenance.not_a_patient).toMatch(/not clinical ground truth/i);
+  });
+});
+
+describe('the committed chest assets', () => {
+  it('are described as one shared file, digested on both halves', () => {
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const assets = parsed.context.context_assets;
+    expect(assets).toHaveLength(1);
+    const asset = assets[0];
+
+    const dir = join(repoRoot, 'public', 'body-context', 'adult-reference-chest-bp3d');
+    const gltf = readFileSync(join(dir, asset.gltf));
+    const bin = readFileSync(join(dir, asset.bin));
+    expect(createHash('sha256').update(gltf).digest('hex')).toBe(asset.sha256);
+    expect(createHash('sha256').update(bin).digest('hex')).toBe(asset.bin_sha256);
+    expect(asset.bytes).toBe(gltf.length + bin.length);
+  });
+
+  it('stays inside the context budget', () => {
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const asset = parsed.context.context_assets[0];
+    // Context is not allowed to cost what a pack costs. 8 MB is the pipeline's
+    // own ceiling; asserting it here catches a rebuild that blew past it.
+    expect(asset.bytes).toBeLessThan(8_000_000);
+    const triangles = asset.groups.reduce((sum, g) => sum + g.triangles, 0);
+    expect(triangles).toBeLessThan(150_000);
+    expect(triangles).toBeGreaterThan(0);
+  });
+
+  it('names a source element for every group, so nothing is unattributed', () => {
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    for (const group of parsed.context.context_assets[0].groups) {
+      expect(group.source_elements.length).toBeGreaterThan(0);
+      for (const element of group.source_elements) {
+        // BodyParts3D element ids, e.g. FJ2420.
+        expect(element).toMatch(/^FJ\d+$/);
+      }
+    }
+  });
+
+  it('reaches every display group from a control, so none is unreachable', () => {
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const reachable = new Set(Object.values(GROUP_CONTROLS).flat());
+    for (const group of parsed.context.context_assets[0].groups) {
+      expect(reachable.has(group.group), `${group.group} has no control`).toBe(true);
+    }
+    // And every styled group is a real group, so the style table cannot drift
+    // into describing geometry that is not there.
+    for (const group of reachable) expect(GROUP_STYLE[group]).toBeDefined();
+  });
+
+  it('keeps the chest translucent enough to read a heart through', () => {
+    // The heart is the subject. A default that drew opaque scenery in front of
+    // it would be a regression the screenshots would catch late and this
+    // catches immediately.
+    for (const [group, style] of Object.entries(GROUP_STYLE)) {
+      expect(style.opacity, `${group} is too opaque`).toBeLessThanOrEqual(0.35);
+      expect(style.opacity).toBeGreaterThan(0);
+    }
   });
 });
 

@@ -1,0 +1,475 @@
+{
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 15331,
+   "max": [
+    276.67779541015625,
+    45.285335540771484,
+    1403.175048828125
+   ],
+   "min": [
+    -277.9017028808594,
+    -225.5290069580078,
+    943.9520263671875
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 15331,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5125,
+   "count": 89997,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 18859,
+   "max": [
+    135.7959747314453,
+    -3.5723586082458496,
+    1370.5350341796875
+   ],
+   "min": [
+    -137.17088317871094,
+    -213.78778076171875,
+    1008.0679931640625
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 18859,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5125,
+   "count": 104997,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 5632,
+   "max": [
+    27.44969940185547,
+    -130.80099487304688,
+    1325.25
+   ],
+   "min": [
+    -27.44969940185547,
+    -213.83200073242188,
+    1164.02001953125
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5126,
+   "count": 5632,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 8,
+   "componentType": 5125,
+   "count": 24342,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 9,
+   "componentType": 5126,
+   "count": 13466,
+   "max": [
+    36.268402099609375,
+    0.018549900501966476,
+    1376.8699951171875
+   ],
+   "min": [
+    -37.37263870239258,
+    -101.42951965332031,
+    1049.8697509765625
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 10,
+   "componentType": 5126,
+   "count": 13466,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 11,
+   "componentType": 5125,
+   "count": 48000,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 12,
+   "componentType": 5126,
+   "count": 17250,
+   "max": [
+    125.43199920654297,
+    -20.313899993896484,
+    1355.879150390625
+   ],
+   "min": [
+    -116.4905014038086,
+    -177.78399658203125,
+    1014.5381469726562
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 13,
+   "componentType": 5126,
+   "count": 17250,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 14,
+   "componentType": 5125,
+   "count": 77997,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 15,
+   "componentType": 5126,
+   "count": 6394,
+   "max": [
+    120.88996887207031,
+    -25.94102668762207,
+    1192.6036376953125
+   ],
+   "min": [
+    -122.33284759521484,
+    -205.322998046875,
+    985.873779296875
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 16,
+   "componentType": 5126,
+   "count": 6394,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 17,
+   "componentType": 5125,
+   "count": 35997,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 18,
+   "componentType": 5126,
+   "count": 1185,
+   "max": [
+    143.94200134277344,
+    -54.38750076293945,
+    1355.43994140625
+   ],
+   "min": [
+    -145.27699279785156,
+    -147.0780029296875,
+    1308.530029296875
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 19,
+   "componentType": 5126,
+   "count": 1185,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 20,
+   "componentType": 5125,
+   "count": 6966,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "generator": "Cardiology app ingest pipeline (pipeline/ingest.py)",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 183972,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 183972,
+   "byteOffset": 183972,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 359988,
+   "byteOffset": 367944,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 226308,
+   "byteOffset": 727932,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 226308,
+   "byteOffset": 954240,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 419988,
+   "byteOffset": 1180548,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 67584,
+   "byteOffset": 1600536,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 67584,
+   "byteOffset": 1668120,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 97368,
+   "byteOffset": 1735704,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 161592,
+   "byteOffset": 1833072,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 161592,
+   "byteOffset": 1994664,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 192000,
+   "byteOffset": 2156256,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 207000,
+   "byteOffset": 2348256,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 207000,
+   "byteOffset": 2555256,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 311988,
+   "byteOffset": 2762256,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 76728,
+   "byteOffset": 3074244,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 76728,
+   "byteOffset": 3150972,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 143988,
+   "byteOffset": 3227700,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 14220,
+   "byteOffset": 3371688,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 14220,
+   "byteOffset": 3385908,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 27864,
+   "byteOffset": 3400128,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 3427992,
+   "uri": "chest.bin"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "skin",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0
+     },
+     "indices": 2,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "ribs",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 4,
+      "POSITION": 3
+     },
+     "indices": 5,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "sternum",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 7,
+      "POSITION": 6
+     },
+     "indices": 8,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "spine",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 10,
+      "POSITION": 9
+     },
+     "indices": 11,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "lungs",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 13,
+      "POSITION": 12
+     },
+     "indices": 14,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "diaphragm",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 16,
+      "POSITION": 15
+     },
+     "indices": 17,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "shoulder",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 19,
+      "POSITION": 18
+     },
+     "indices": 20,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "skin"
+  },
+  {
+   "mesh": 1,
+   "name": "ribs"
+  },
+  {
+   "mesh": 2,
+   "name": "sternum"
+  },
+  {
+   "mesh": 3,
+   "name": "spine"
+  },
+  {
+   "mesh": 4,
+   "name": "lungs"
+  },
+  {
+   "mesh": 5,
+   "name": "diaphragm"
+  },
+  {
+   "mesh": 6,
+   "name": "shoulder"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  }
+ ]
+}

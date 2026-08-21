@@ -69,6 +69,25 @@ thing on every pack and no imaging view can move it. A pack with no registration
 its own model space, where `Level` still holds `+Z`; that is honestly the model's `+Z` rather than a
 claim about a patient. See `src/viewer/bodyFrame.ts` and `pipeline/body_context.py`.
 
+**The reference chest — SCENE CONTEXT, off by default.** *(Added 2026-08-21.)* When a body
+context supplies geometry, BodyParts3D thoracic structures (skin, ribs, sternum, thoracic spine,
+lungs, diaphragm, clavicles) are drawn around the registered heart in body millimetres. It is a
+REFERENCE COMPOSITE — one adult male's chest around a population-average heart — and never a
+patient or clinical ground truth.
+
+The heart is the subject and the chest is scenery, and each of these is a rule:
+
+- not pickable, not isolatable, and absent from the structure list;
+- never beam-dimmed: the beam images the pack's echo volume, not the reference chest;
+- never capped by the heart cutter, which is a tool for reading the heart;
+- never labelled in Echo;
+- never part of heart bounds, pivot, default framing or probe clearance. **Fit chest** is an
+  explicit action and never becomes the default; `Reset` returns to the heart's framing.
+
+Load failure leaves the heart and the echo fully working and says so on screen. Colour, opacity and
+default visibility are provisional and freely reversible; they are display choices, not clinical
+ones.
+
 *(Supersedes "familiar globe-viewer orbit feel is the reference", 2026-08-19.)* A globe has a fixed
 axis and is never turned over; a heart read from underneath is neither, and reading that clause as a
 turntable made some orientations unreachable — there was no drag that rolled the model, and near the

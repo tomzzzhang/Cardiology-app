@@ -1687,3 +1687,102 @@ test('the learner build opens no IndexedDB database at all', async ({ page }) =>
   expect(databases).not.toContain('cardiology-authoring');
   expect(databases).toEqual([]);
 });
+
+/* -------------------------------------------------------------------------- */
+/* body context: the registered reference chest                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The chest is SCENERY, and these check the ways it must not become anatomy.
+ *
+ * The heart's framing, its structure list and its probe clearance are all
+ * measured from heart geometry. A rib cage that leaked into any of them would
+ * move the camera, put ribs in a cardiac structure list, or decide how close a
+ * transducer may stand to tissue — so each is asserted rather than assumed.
+ */
+test('the reference chest is scene context and never anatomy', async ({ page }) => {
+  await page.goto('?freeze=1');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await expect(viewer).toHaveAttribute('data-chest', 'loaded', { timeout: 30_000 });
+
+  const show = page.getByTestId('chest-show');
+  await expect(show).not.toBeChecked(); // off by default: the chest is opt-in
+
+  const before = {
+    structures: await viewer.getAttribute('data-structure-count'),
+    drawn: await viewer.getAttribute('data-drawn-structures'),
+  };
+
+  await show.check();
+  await expect(page.getByTestId('chest-skin')).toBeVisible();
+  await expect(page.getByTestId('chest-skeleton')).toBeVisible();
+  await expect(page.getByTestId('chest-lungs')).toBeVisible();
+  await expect(page.getByTestId('chest-fit')).toBeVisible();
+
+  // Showing a chest adds no structures: the list is the pack's, and the pack
+  // has no ribs in it.
+  await expect(viewer).toHaveAttribute('data-structure-count', before.structures ?? '');
+  await expect(viewer).toHaveAttribute('data-drawn-structures', before.drawn ?? '');
+
+  // Each group toggles without disturbing the heart.
+  for (const control of ['chest-skin', 'chest-skeleton', 'chest-lungs']) {
+    await page.getByTestId(control).uncheck();
+    await expect(viewer).toHaveAttribute('data-drawn-structures', before.drawn ?? '');
+    await page.getByTestId(control).check();
+  }
+
+  // Transparency is a live control, not a fixed style.
+  const opacity = page.getByTestId('chest-skin-opacity');
+  await opacity.fill('0.4');
+  await expect(opacity).toHaveValue('0.4');
+
+  // Hiding it again leaves no trace on the heart.
+  await show.uncheck();
+  await expect(page.getByTestId('chest-skin')).toHaveCount(0);
+  await expect(viewer).toHaveAttribute('data-drawn-structures', before.drawn ?? '');
+});
+
+test('an explicit Fit frames the chest, and Reset gives the heart back', async ({ page }) => {
+  await page.goto('?freeze=1');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await expect(viewer).toHaveAttribute('data-chest', 'loaded', { timeout: 30_000 });
+
+  // Showing the chest must NOT reframe on its own. That is the whole reason
+  // Fit is a button: the heart is the subject and stays framed as one.
+  const framedOnHeart = await viewer.screenshot();
+  await page.getByTestId('chest-show').check();
+  await page.getByTestId('chest-fit').click();
+  await page.waitForTimeout(1200);
+  const framedOnChest = await viewer.screenshot();
+  expect(Buffer.compare(framedOnHeart, framedOnChest)).not.toBe(0);
+
+  await page.getByTestId('cut-reset').click();
+  await page.waitForTimeout(1200);
+  const afterReset = await viewer.screenshot();
+  expect(Buffer.compare(afterReset, framedOnChest)).not.toBe(0);
+});
+
+test('a chest that fails to load leaves the heart and the echo working', async ({ page }) => {
+  // The context asset is the only thing that fails. Everything the learner came
+  // for has to survive it, and the app has to say so rather than silently
+  // showing a heart with no context and no explanation.
+  await page.route('**/body-context/**/chest.gltf', (route) => route.abort());
+
+  await page.goto('?freeze=1');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await expect(viewer).toHaveAttribute('data-chest', 'failed', { timeout: 30_000 });
+
+  // The honest warning, and no controls for a chest that is not there.
+  await expect(page.getByTestId('chest-failed')).toBeVisible();
+  await expect(page.getByTestId('chest-show')).toHaveCount(0);
+
+  // The heart is untouched.
+  await expect(viewer).toHaveAttribute('data-structure-count', '24');
+  await expect(viewer).toHaveAttribute('data-drawn-structures', '24');
+
+  // And the echo still renders.
+  await expect(page.getByTestId('echo-canvas')).toBeVisible();
+});

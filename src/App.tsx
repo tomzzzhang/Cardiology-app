@@ -222,6 +222,19 @@ export default function App() {
    * a body pose derived from a registration that did not validate.
    */
   const bodyContext = packState.status === 'ok' ? packState.loaded.bodyContext : null;
+  /*
+   * The chest asset, resolved against the context's own directory.
+   *
+   * Null when no context is bound, and null when a bound context ships no
+   * geometry — a registration without a chest is a perfectly good state, and
+   * the viewer shows no chest controls for it rather than empty ones.
+   */
+  const chestGltfUrl = bodyContext?.state === 'bound'
+    && bodyContext.context.context_assets.length > 0
+    ? `${import.meta.env.BASE_URL}body-context/`
+      + `${bodyContext.context.context_id}/`
+      + `${bodyContext.context.context_assets[0].gltf}`
+    : null;
   const modelToBody: RigidTransform = useMemo(() => {
     if (bodyContext?.state !== 'bound') return IDENTITY_TRANSFORM;
     try {
@@ -443,6 +456,7 @@ export default function App() {
           <PackViewer
             pack={packState.loaded.pack}
             modelToBody={modelToBody}
+            chestGltfUrl={chestGltfUrl}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
             scrub={scrub}
             viewIndex={viewIndex}

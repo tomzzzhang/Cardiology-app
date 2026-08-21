@@ -247,3 +247,21 @@ Nothing this pipeline emits has been read by a clinician. Every pack it writes i
 `vetted.status: "draft"` with an empty vetters list, without exception, and its single view
 is an ingest reference pose that is named and flagged as not being a clinical view. Vetted
 probe poses are wave 1d's job, with a clinical vetter.
+
+## `body_context.py` — the patient/body frame and the reference chest
+
+Separate from the pack ingest, and deliberately so. It measures BodyParts3D's own axes rather than
+trusting a declaration, fits a rigid unit-scale `model_to_body` from documented landmarks between
+the Rodero heart and the BodyParts3D reference heart, and builds the thoracic context assets. It
+writes `public/body-context/<id>/` and `evidence/body-context/<id>/`; `--check` replays the whole
+derivation and fails if the committed files differ from a fresh one.
+
+It carries its OWN source registry and SHA-256 pins rather than using `sources.py`, because
+`sources.py` is byte-pinned inside the committed Rodero candidate evidence and changing it would
+break that binding. The upstream path is `LATEST/` and therefore mutable, so the pins are the only
+guard: a mismatch fails the run instead of being recorded as the new truth.
+
+Raw BodyParts3D archives are never committed; they live in the gitignored cache like every other
+source. The BodyParts3D subject is a LIVING adult male MRI reference, not a cadaver — older text in
+`sources.py` and in the committed `anatomy-bodyparts3d-heart` pack says otherwise and is recorded
+for a separate evidence-safe migration.

@@ -62,6 +62,7 @@ import {
   vectorToBody,
   type RigidTransform,
 } from './bodyFrame.ts';
+import { loadChestContext, type ChestContext, type ChestControl } from './chestContext.ts';
 import {
   AUTHORING_GLIDE_MS,
   GLIDE_MS,
@@ -128,6 +129,15 @@ interface PackViewerProps {
    * into `canonical_pose` instead.
    */
   modelToBody?: RigidTransform;
+  /**
+   * URL of the reference chest glTF, when a body context supplies one.
+   *
+   * Separate from `modelToBody` because the registration is what places the
+   * heart and the chest is only what surrounds it: a pack can be correctly
+   * registered into the body frame with no chest to show, and that is a normal
+   * state rather than a degraded one.
+   */
+  chestGltfUrl?: string | null;
   /** Scrub position of the selected view's sweep, 0..1. Drives the probe. */
   scrub: number;
   viewIndex?: number;
@@ -239,6 +249,16 @@ interface ViewerApi {
   setHorizonLock: (on: boolean) => void;
   /** Distance from a MODEL-space point to the nearest heart surface, in pack units. */
   clearanceMm: (point: readonly [number, number, number]) => number;
+  /** BODY CONTEXT: show or hide the whole reference chest. */
+  setChestVisible: (on: boolean) => void;
+  /** BODY CONTEXT: show or hide one control's groups. */
+  setChestGroupVisible: (control: ChestControl, on: boolean) => void;
+  /** BODY CONTEXT: skin shell opacity, 0..1. */
+  setChestSkinOpacity: (opacity: number) => void;
+  /** BODY CONTEXT: explicitly frame the chest. Never automatic. */
+  fitChest: () => void;
+  /** BODY CONTEXT: whether the chest loaded, and why not if it did not. */
+  chestState: () => { loaded: boolean; problem: string | null };
   /** Whether the cutter should be reversed for the cut to open toward the camera. */
   cutShouldFaceCamera: () => boolean;
   setMode: (mode: ViewerMode) => void;
@@ -272,7 +292,7 @@ interface ViewerApi {
 }
 
 export default function PackViewer({
-  pack, gltfUrl, modelToBody = IDENTITY_TRANSFORM,
+  pack, gltfUrl, modelToBody = IDENTITY_TRANSFORM, chestGltfUrl = null,
   scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
   freePose = null, onScrubChange, onFreePoseChange, onStructureClick, apexFlipped = false,
   imagingActive = true, onImagingActiveChange, isolatedLabel = null,
@@ -349,6 +369,19 @@ export default function PackViewer({
    * to compete with the cut faces. Off, the cut is a clean section.
    */
   const [ghostCutaway, setGhostCutaway] = useState(true);
+  /*
+   * BODY CONTEXT: the reference chest.
+   *
+   * Off by default. The chest is provisional, it is a composite rather than a
+   * patient, and turning it on changes what the app IS on first load — that is
+   * an owner decision, not something the presence of an asset should decide.
+   */
+  const [chestShown, setChestShown] = useState(false);
+  const [chestGroups, setChestGroups] = useState<Record<ChestControl, boolean>>({
+    skin: true, skeleton: true, lungs: true,
+  });
+  const [skinOpacity, setSkinOpacity] = useState(0.06);
+  const [chestFailed, setChestFailed] = useState(false);
   /*
    * The model's reach is no longer needed in React — the depth slider it
    * bounded is gone, and the shift-wheel's clamp lives in the scene where the
@@ -507,6 +540,17 @@ export default function PackViewer({
     let framedReach = 0;
     let framed = false;
     let loaded = false;
+    /**
+     * The reference chest, once it has loaded. Null until then, and null
+     * forever if it fails.
+     *
+     * Deliberately not awaited before the heart is built. Context arriving late
+     * costs a redraw; a heart that waited for scenery would be a heart that a
+     * failed CDN could stop from rendering at all.
+     */
+    let chest: ChestContext | null = null;
+    let chestProblem: string | null = null;
+    let chestShown = false;
 
     /* --- modes ------------------------------------------------------------ */
     let viewerMode: ViewerMode = mode;
@@ -1714,6 +1758,42 @@ export default function PackViewer({
         syncProbeObjects();
 
         /*
+         * The reference chest, loaded BEHIND the standing heart.
+         *
+         * Deliberately after `loaded = true`: the heart is already framed and
+         * interactive by this point, and the chest is scenery. If this never
+         * resolves, everything above it still works — which is the requirement,
+         * not a happy accident of ordering.
+         *
+         * It is added to the scene but starts HIDDEN. Showing a chest by
+         * default would change what the app is on first load, and that is the
+         * owner's call rather than a side effect of the assets existing.
+         */
+        if (chestGltfUrl) {
+          loadChestContext(chestGltfUrl)
+            .then((context) => {
+              if (controller.signal.aborted || disposed) {
+                context.dispose();
+                return;
+              }
+              chest = context;
+              context.setVisible(chestShown);
+              scene.add(context.object);
+              host.dataset.chest = 'loaded';
+              schedule();
+            })
+            .catch((error: unknown) => {
+              if (controller.signal.aborted || disposed) return;
+              chestProblem = (error as Error).message;
+              host.dataset.chest = 'failed';
+              // Nothing else happens. The heart and the echo are untouched.
+              schedule();
+            });
+        } else {
+          host.dataset.chest = 'absent';
+        }
+
+        /*
          * The remaining keyframes, loaded BEHIND the standing scene.
          *
          * Frame 0 is already built, framed and interactive; the rest arrive
@@ -1946,6 +2026,41 @@ export default function PackViewer({
           };
         }
         : () => null,
+      /*
+       * BODY CONTEXT: the reference chest.
+       *
+       * Every one of these acts on scenery. None of them touches `bounds`,
+       * `reach`, `framedReach`, `pivot` or `surfacePoints` — the chest must not
+       * be able to move the camera's default framing or decide how close the
+       * probe may stand to tissue — except `fitChest`, which is an EXPLICIT
+       * action the learner asks for and which never becomes the default.
+       */
+      setChestVisible: (on) => {
+        chestShown = on;
+        chest?.setVisible(on);
+        schedule();
+      },
+      setChestGroupVisible: (control, on) => {
+        chest?.setGroupVisible(control, on);
+        schedule();
+      },
+      setChestSkinOpacity: (opacity) => {
+        chest?.setSkinOpacity(opacity);
+        schedule();
+      },
+      fitChest: () => {
+        if (!chest || !chestShown) return;
+        // Frames the chest without touching `radius`'s own inputs, so `Reset`
+        // still returns to the heart's framing exactly.
+        const chestRadius = chest.radiusAbout(pivot);
+        if (chestRadius <= 0) return;
+        radius = chestRadius / Math.sin((camera.fov * Math.PI) / 360) * 0.85;
+        applyCamera();
+        schedule();
+      },
+      chestState: () => (chest === null
+        ? { loaded: false, problem: chestProblem }
+        : { loaded: true, problem: null }),
       setGhost: (on) => {
         ghostOn = on;
         ghosts.visible = cutActive && ghostOn;
@@ -2017,6 +2132,9 @@ export default function PackViewer({
     onCutOffset = (value) => setCutOffset(value);
 
     return () => {
+      chest?.dispose();
+      chest = null;
+      delete host.dataset.chest;
       disposed = true;
       controller.abort();
       if (AUTHORING_ENABLED && glide?.pose) {
@@ -2069,7 +2187,7 @@ export default function PackViewer({
     // through `setMode`; listing it would reload a five-megabyte glTF on a
     // mode switch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gltfUrl, pack, viewIndex, modelToBody]);
+  }, [gltfUrl, pack, viewIndex, modelToBody, chestGltfUrl]);
 
   /*
    * The cine axis.
@@ -2160,6 +2278,44 @@ export default function PackViewer({
   useEffect(() => {
     apiRef.current?.setGhost(ghostCutaway);
   }, [ghostCutaway, status]);
+
+  /* --- body context: the reference chest -------------------------------- */
+
+  useEffect(() => {
+    apiRef.current?.setChestVisible(chestShown);
+  }, [chestShown, status]);
+
+  useEffect(() => {
+    for (const [control, on] of Object.entries(chestGroups)) {
+      apiRef.current?.setChestGroupVisible(control as ChestControl, on);
+    }
+  }, [chestGroups, status, chestShown]);
+
+  useEffect(() => {
+    apiRef.current?.setChestSkinOpacity(skinOpacity);
+  }, [skinOpacity, status, chestShown]);
+
+  /*
+   * Whether the context failed, polled once the chest has had a chance to load.
+   *
+   * Polled rather than pushed because the load is fire-and-forget inside the
+   * scene effect — deliberately, so that a failure cannot block the heart. The
+   * cost of that choice is that React has to ask; the benefit is that a context
+   * that never resolves cannot leave the viewer waiting.
+   */
+  useEffect(() => {
+    if (status !== 'ready' || !chestGltfUrl) return undefined;
+    const poll = window.setInterval(() => {
+      const state = apiRef.current?.chestState();
+      if (state?.problem) {
+        setChestFailed(true);
+        window.clearInterval(poll);
+      } else if (state?.loaded) {
+        window.clearInterval(poll);
+      }
+    }, 400);
+    return () => window.clearInterval(poll);
+  }, [status, chestGltfUrl]);
 
   /*
    * The lock is Echo's, so leaving Echo drops it rather than carrying a mode's
@@ -3083,6 +3239,95 @@ export default function PackViewer({
           )}
 
           {/*
+            * BODY CONTEXT: the reference chest.
+            *
+            * PROVISIONAL, and reversible in one line each: a master toggle, one
+            * per display group, an opacity for the skin shell, and an EXPLICIT
+            * fit. The fit is a button rather than an automatic reframe because
+            * the heart is the subject — a chest that pulled the camera back on
+            * its own would decide, every time it loaded, that the scenery
+            * matters more than the anatomy.
+            *
+            * Absent entirely when no chest is bound, rather than shown disabled:
+            * a greyed-out control for a thing that does not exist for this pack
+            * is a puzzle, not an affordance.
+            */}
+          {chestGltfUrl && chestFailed && (
+            <p className="viewer__context-warning" data-testid="chest-failed">
+              The reference chest could not be loaded, so the heart is shown without it.
+              Everything else on this screen is unaffected.
+            </p>
+          )}
+
+          {chestGltfUrl && !chestFailed && (
+            <>
+              <label
+                className="cutter__toggle"
+                data-hint="Show the registered adult reference chest around the heart."
+              >
+                <input
+                  type="checkbox"
+                  checked={chestShown}
+                  onChange={(event) => setChestShown(event.target.checked)}
+                  data-testid="chest-show"
+                />
+                Chest
+              </label>
+
+              {chestShown && (
+                <>
+                  {(['skin', 'skeleton', 'lungs'] as ChestControl[]).map((control) => (
+                    <label
+                      key={control}
+                      className="cutter__toggle cutter__toggle--sub"
+                      data-hint={`Show the ${control} of the reference chest.`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={chestGroups[control]}
+                        onChange={(event) => setChestGroups((previous) => ({
+                          ...previous, [control]: event.target.checked,
+                        }))}
+                        data-testid={`chest-${control}`}
+                      />
+                      {control === 'skin' ? 'Skin'
+                        : control === 'skeleton' ? 'Skeleton' : 'Lungs'}
+                    </label>
+                  ))}
+
+                  <label
+                    className="cutter__toggle cutter__toggle--sub"
+                    data-hint="How solid the skin shell is drawn."
+                  >
+                    Skin opacity
+                    <input
+                      type="range"
+                      min={0}
+                      max={0.6}
+                      step={0.02}
+                      value={skinOpacity}
+                      onChange={(event) => setSkinOpacity(Number(event.target.value))}
+                      disabled={!chestGroups.skin}
+                      data-testid="chest-skin-opacity"
+                      className="cutter__slider cutter__slider--short"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    className="viewer__button"
+                    onClick={() => apiRef.current?.fitChest()}
+                    data-testid="chest-fit"
+                    title="Frame the whole chest. Reset returns to the heart."
+                  >
+                    Fit chest
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {/*
             * WHICH WAY IS UP. Echo only, off by default.
             *
             * Trackball orbit is the default everywhere and the only option in
@@ -3091,11 +3336,15 @@ export default function PackViewer({
             * up is diagnostic rather than cosmetic, so holding the heart's own
             * long axis vertical is offered — as an option, not as the
             * behaviour, because the reason the turntable went is still true.
+            *
+            * The axis is BODY +Z (superior) since 2026-08-21. It used to be the
+            * pack's declared up, repointable by saving an apical four-chamber;
+            * a view does not get to say which way a patient's head is.
             */}
           {echoMode && (
             <label
               className="cutter__toggle"
-              title="Hold the heart's long axis vertical while orbiting"
+              title="Hold body up (+Z, superior) vertical while orbiting"
             >
               <input
                 type="checkbox"
