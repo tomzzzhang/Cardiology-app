@@ -12,8 +12,10 @@ narrative. This file is what to do next.
 ## 1. Recover the state first
 
 The work is committed to `experiment/vhl-partition` in a clone under
-`/private/tmp/...`, which macOS clears on reboot. A durable copy sits in
-**`~/Downloads/vhl-partition-handoff/`**:
+`/private/tmp/...`, which macOS clears on reboot. A durable copy sits on Google Drive, which syncs off this machine:
+
+**`My Drive/Cardiology app temp/vhl-partition-handoff/`**
+(a second copy is in `~/Downloads/vhl-partition-handoff/`):
 
 * `vhl-partition-session.bundle` — every commit this session, 2.9 MB
 * `seeds/` — every observer input; **these are the real source of truth**
@@ -25,8 +27,9 @@ To restore:
 ```bash
 git clone https://github.com/tomzzzhang/Cardiology-app.git <dir>
 cd <dir> && git checkout experiment/vhl-partition
-git bundle verify ~/Downloads/vhl-partition-handoff/vhl-partition-session.bundle
-git pull ~/Downloads/vhl-partition-handoff/vhl-partition-session.bundle experiment/vhl-partition
+B="$HOME/Library/CloudStorage/GoogleDrive-tomzzzhang@gmail.com/My Drive/Cardiology app temp/vhl-partition-handoff/vhl-partition-session.bundle"
+git bundle verify "$B"
+git pull "$B" experiment/vhl-partition
 ```
 
 Then copy `Heart102_Tissue.stl` into `pipeline/.cache/vhl/` (CC BY-NC, gitignored,
