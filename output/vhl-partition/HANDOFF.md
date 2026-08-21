@@ -118,6 +118,20 @@ rendering, authoring-mode UI, and reversing the 2026-08-19 rejection. Four
 proposed deltas sit in `sources.proposed.md`, unapplied; a fifth for the
 orientation is owed.
 
+## One piece of cleanup owed
+
+Commit `37e9211` added `seed-partition-labels.npy` at **54 MB**, which GitHub
+warned about on push and which breaches the brief's "keep derived outputs small".
+It is removed from the working tree and the module now writes a compressed
+`.npz` instead — 685 KB for the same array, since it is almost all zeros over six
+distinct values.
+
+**The 54 MB blob is still in this branch's history.** Removing it needs a
+history rewrite, and the brief says not to force-push shared history, so the
+decision is left to the owner. If this branch is ever merged or kept, drop it
+first; if it is abandoned, it costs nothing. Anyone cloning the branch pays the
+54 MB either way.
+
 ## Files
 
 Tools: `pipeline/vhl_partition.py` (analysis, morphology, renderers),

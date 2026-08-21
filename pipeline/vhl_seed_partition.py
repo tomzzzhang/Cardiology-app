@@ -282,7 +282,11 @@ def main() -> int:
         print(f"{row['name']:>8} {row['ml']:>8.1f} {str(row['expected_ml']):>10}   "
               f"{row['extent_voxels']}{flag}")
 
-    np.save(args.out / "seed-partition-labels.npy", labels)
+    # Compressed, not raw. The raw uint8 array is 54 MB at 384^3, which was
+    # committed once and should not be again: it is a derived artefact that
+    # regenerates from the seeds in about a minute. It is almost all zeros and
+    # six distinct values, so it compresses to a fraction of a megabyte.
+    np.savez_compressed(args.out / "seed-partition-labels.npz", labels=labels)
     (args.out / "seed-partition.json").write_text(json.dumps({
         "seeds": counts,
         "frame": {
@@ -297,7 +301,7 @@ def main() -> int:
         },
         "chambers": report(labels, grid.voxel_mm3),
     }, indent=2) + "\n")
-    print(f"\nwrote seed-partition.json and seed-partition-labels.npy to {args.out}")
+    print(f"\nwrote seed-partition.json and seed-partition-labels.npz to {args.out}")
     return 0
 
 
