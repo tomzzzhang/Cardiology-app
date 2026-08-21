@@ -158,6 +158,13 @@ export default function App() {
   const [freePose, setFreePose] = useState<ProbePose | null>(null);
   /** Authoring-only: one shared transition clock also fades categorical echo conventions. */
   const [viewTransition, setViewTransition] = useState({ active: false, echoOpacity: 1 });
+  /**
+   * Authoring presentation state: a saved/working probe view is on screen, or
+   * the neutral full-heart presentation is. Learners stay on the existing
+   * first-view path until the learner view rail exists; the authoring selector
+   * is the only surface that can currently choose `None`.
+   */
+  const [imagingViewActive, setImagingViewActive] = useState(!AUTHORING_ENABLED);
   /** The exact saved authoring pose on screen after an automatic selection lands. */
   const [workingAuthoringView, setWorkingAuthoringView] = useState<{
     label: string;
@@ -220,6 +227,7 @@ export default function App() {
     setFreePose(null);
     setViewTransition({ active: false, echoOpacity: 1 });
     setWorkingAuthoringView(null);
+    setImagingViewActive(!AUTHORING_ENABLED);
     setPackState({ status: 'loading' });
 
     loadPackById(packId, { signal: controller.signal })
@@ -313,7 +321,7 @@ export default function App() {
          * a claim that is still true. The distinction matters in the direction
          * that costs nothing: the moment they move it, the claim goes.
          */
-        const offTrack = freePose !== null && view !== undefined
+        const offTrack = imagingViewActive && freePose !== null && view !== undefined
           && hasLeftTrack(freePose, view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe);
         const echoVolume = pack.echo_volume;
         /*
@@ -399,6 +407,7 @@ export default function App() {
           */}
         <div
           className={effectiveMode === 'explore' || echoVolume === undefined
+            || (AUTHORING_ENABLED && !imagingViewActive)
             ? 'stage stage--solo'
             : 'stage'}
         >
@@ -410,6 +419,7 @@ export default function App() {
             mode={effectiveMode}
             frameUrls={frameUrls}
             freePose={freePose}
+            imagingActive={!AUTHORING_ENABLED || imagingViewActive}
             hidden={hiddenIds}
             apexFlipped={apexFlipped}
             isolatedLabel={effectiveMode === 'explore' && visibility.isolated !== null
@@ -417,6 +427,7 @@ export default function App() {
               : null}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
+            onImagingActiveChange={AUTHORING_ENABLED ? setImagingViewActive : undefined}
             onViewTransitionChange={AUTHORING_ENABLED ? setViewTransition : undefined}
             onAuthoringWorkingViewChange={AUTHORING_ENABLED
               ? setWorkingAuthoringView
@@ -438,7 +449,8 @@ export default function App() {
             * in the footer stays in BOTH modes: it is not behind a toggle
             * (`contracts/app-shell.md` rule 4).
             */}
-          {effectiveMode === 'echo' && echoVolume !== undefined && (
+          {effectiveMode === 'echo' && echoVolume !== undefined
+            && (!AUTHORING_ENABLED || imagingViewActive) && (
             <EchoPanel
               pack={packState.loaded.pack}
               volumeUrl={resolveAsset(packState.loaded, echoVolume.asset)}

@@ -98,6 +98,7 @@ describe('the emitted learner bundle is checked for authoring transition code', 
   it('keeps the original surface marker and adds transition-specific markers', () => {
     const markers = new Set(AUTHORING_BUNDLE_MARKERS.map((marker) => marker.needle));
     expect(markers).toContain('Place from camera');
+    expect(markers).toContain('None — full heart');
     expect(markers).toContain('Prevent auto-rotation');
     expect(markers).toContain('authoring-prevent-auto-rotation');
     expect(markers).toContain('data-prevent-auto-rotation');

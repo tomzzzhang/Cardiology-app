@@ -67,6 +67,8 @@ export interface AuthoringControlsProps {
   onPreventAutoRotationChange: (prevent: boolean) => void;
   /** Replace the working pose from a stored view and face its imaging plane. */
   onActivatePose: (pose: ProbePose, view: AuthoringViewIdentity) => void;
+  /** Clear the applied imaging view and return to the unobstructed anatomy presentation. */
+  onShowFullHeart: () => void;
   /** Replace only the working pose; camera-derived placement must leave the camera alone. */
   onPose: (pose: ProbePose) => void;
   /** The selected view's pose, so the pad's centre can recall it. */
@@ -102,10 +104,10 @@ export default function AuthoringControls({
   packId, packVersion, packSchemaVersion, seeds, template, standoffOverrideMm,
   readAnchor, currentPose, transitioning = false, ready = true,
   onPreventAutoRotationChange,
-  onActivatePose, onPose, onActiveSlotPose, onLevelAxis,
+  onActivatePose, onShowFullHeart, onPose, onActiveSlotPose, onLevelAxis,
 }: AuthoringControlsProps) {
   const [saved, setSaved] = useState<SavedSlot[]>([]);
-  const [activeSlotId, setActiveSlotId] = useState<string>(seeds[0]?.slotId ?? '');
+  const [activeSlotId, setActiveSlotId] = useState('');
   const [report, setReport] = useState<AnchorReport | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -116,7 +118,9 @@ export default function AuthoringControls({
   const [preventAutoRotation, setPreventAutoRotation] = useState(false);
 
   const slots = mergeSlots(seeds, saved);
-  const active = slots.find((slot) => slot.slotId === activeSlotId) ?? slots[0] ?? null;
+  const active = activeSlotId === ''
+    ? null
+    : slots.find((slot) => slot.slotId === activeSlotId) ?? null;
 
   const fail = useCallback((error: unknown) => {
     setProblem(error instanceof Error ? error.message : String(error));
@@ -135,7 +139,7 @@ export default function AuthoringControls({
 
   useEffect(() => {
     void refresh();
-    setActiveSlotId(seeds[0]?.slotId ?? '');
+    setActiveSlotId('');
     setConfirming(null);
     setReport(null);
     setProblem(null);
@@ -260,8 +264,9 @@ export default function AuthoringControls({
    *
    * This belongs in the change event, not an effect: refreshing storage,
    * renaming a row, or resetting for a new pack must not unexpectedly move the
-   * probe or camera. Empty rows still become the active authoring target, but
-   * there is no pose to apply and the working pose stays exactly where it was.
+   * probe or camera. None clears the applied imaging view. Empty rows still
+   * become the active authoring target, but also show the full heart so the
+   * selector never claims one view while another view remains on screen.
    */
   const selectView = (slotId: string) => {
     const target = slots.find((slot) => slot.slotId === slotId) ?? null;
@@ -276,6 +281,7 @@ export default function AuthoringControls({
     setNotice(identity ? `Selected ${identity.label}.` : null);
 
     if (pose && identity) onActivatePose(pose, identity);
+    else onShowFullHeart();
   };
 
   /* --- store ------------------------------------------------------------ */
@@ -361,6 +367,7 @@ export default function AuthoringControls({
   };
 
   const removeSaved = async (slot: Slot) => {
+    if (transitioning || !ready) return;
     try {
       await deleteSlot(packId, slot.slotId);
       setConfirming(null);
@@ -368,7 +375,15 @@ export default function AuthoringControls({
       setNotice(slot.authored !== null
         ? `Reverted ${slot.label} to the pose the pack authored.`
         : `Cleared ${slot.label}.`);
-      if (slot.kind === 'custom') setActiveSlotId(seeds[0]?.slotId ?? '');
+      if (slot.authored !== null) {
+        onActivatePose(structuredClone(slot.authored) as ProbePose, {
+          label: slot.label,
+          source: 'pack',
+        });
+      } else {
+        onShowFullHeart();
+      }
+      if (slot.kind === 'custom' || slot.kind === 'orphan') setActiveSlotId('');
       await refresh();
     } catch (error) {
       fail(error);
@@ -445,7 +460,7 @@ export default function AuthoringControls({
   };
 
   const state = active === null
-    ? ''
+    ? 'Full heart. No view selected.'
     : active.overridden
       ? 'Overridden locally. The pack is unchanged.'
       : active.kind === 'orphan'
@@ -487,7 +502,7 @@ export default function AuthoringControls({
           data-hint="Choose a saved view to apply it, or an empty view to place next."
           data-testid="authoring-slot"
         >
-          {slots.length === 0 && <option value="">No views</option>}
+          <option value="">None — full heart</option>
           {/*
             * The current draft starter list, whether or not this pack has
             * authored any of it. It is a convenience, not a required-content
@@ -564,7 +579,7 @@ export default function AuthoringControls({
           type="button"
           className="authoring__button"
           onClick={placeFromCamera}
-          disabled={transitioning || !ready}
+          disabled={transitioning || !ready || !active}
           data-hint="Put the probe on the axis you are looking down."
           data-testid="authoring-anchor"
           title={
@@ -676,7 +691,7 @@ export default function AuthoringControls({
             type="button"
             className="authoring__button"
             onClick={() => void removeSaved(active)}
-            disabled={transitioning}
+            disabled={transitioning || !ready}
             data-testid="authoring-revert"
             title={active.authored !== null
               ? 'Drop the local override. The pack’s authored pose was never changed, so this '

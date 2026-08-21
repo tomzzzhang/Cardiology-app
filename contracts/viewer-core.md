@@ -39,6 +39,10 @@ dot(N, X - C) = s          closest point   Q = C + sN
   as a rectangle rather than a disk, and in echo-synced mode its long edge is the sector's lateral
   axis, so it reads as the same slice the echo panel shows rather than an arbitrarily rolled one.
 - Reversing the oriented plane changes which side remains visible.
+- When a saved authoring view lands with an Echo-plane cut enabled, the viewer chooses the side
+  that removes tissue between the actual offset plane `Q = C + sN` and the current camera. This is
+  an endpoint correction, not a camera observer: manual Reverse remains sticky through ordinary
+  orbit and Free cutter mode is never auto-reversed.
 - Cut faces render **solid**, via stencil-buffer caps. A hollow cut is a bug, not a style.
 - The cutter is runtime inspection state. It is never written into `views[]`, and it makes no claim
   to be a reachable or clinically useful echo view.
@@ -104,6 +108,10 @@ Switching to Free **adopts the current plane**, so the transition is continuous 
 switching back re-acquires the echo plane. The echo panel does **not** blank in Free mode: the mode
 name carries the distinction, which beats teaching it by an absence, and blanking on every stray
 drag would be hostile now that the plane is directly draggable.
+
+With no imaging view selected, the authoring presentation has no saved echo wedge. The probe,
+beam, and Echo-plane relationship are absent; the cutter is Free and starts off, leaving the whole
+heart visible. This neutral runtime state is not a `views[]` entry and does not alter the pack.
 
 **Ghost cutaway.** The half the cutter removes is drawn back as a faint translucent shell, ON by
 default and behind a toggle. It shares geometry with the anatomy and carries the reversed clipping

@@ -79,6 +79,31 @@ export function planeAnchor(state: CutPlaneState, pivot: THREE.Vector3): THREE.V
 }
 
 /**
+ * Which `flipped` value opens this plane toward the camera.
+ *
+ * The decision is made against the plane itself, not merely against its pivot:
+ * the closest point on the plane is `Q = C + sN`, so the camera's signed side
+ * is `dot(N, camera - Q)`. An unflipped cutter removes the `+N` half; therefore
+ * it already opens toward a camera on the positive side, while a camera on the
+ * negative side needs the cutter reversed.
+ *
+ * A camera exactly on the plane has no meaningful side. Preserve the current
+ * value in that narrow band so tiny floating-point changes cannot make the cut
+ * chatter between its two halves.
+ */
+export function cameraFacingFlip(
+  state: CutPlaneState,
+  pivot: THREE.Vector3,
+  camera: THREE.Vector3,
+  epsilon = 1e-6,
+): boolean {
+  const side = state.normal.dot(camera.clone().sub(planeAnchor(state, pivot)));
+  if (side > epsilon) return false;
+  if (side < -epsilon) return true;
+  return state.flipped;
+}
+
+/**
  * An orthonormal in-plane basis for the cut, given a preferred long axis.
  *
  * The mathematical cutter is `{N, s}` and has no in-plane orientation at all.

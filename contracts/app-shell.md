@@ -19,8 +19,11 @@ is forced free because there is no probe to sync to.
 
 Explore is a **first-class mode, not a tool** *(owner decision, 2026-08-19, deliberately reversing
 the earlier note that the free cutter is a tool rather than a global mode)*. The app is a free
-heart-model explorer as well as an echo trainer. Echo remains the default on a cold link with no
-param, so the open-link-to-an-oriented-view path is unchanged for someone arriving cold.
+heart-model explorer as well as an echo trainer. Echo remains the default top-level mode. Until the
+learner rail exists, the learner subset retains its first-view cold path so it cannot strand a
+learner with no way to choose a view. The authoring review surface instead opens at
+`None — full heart`: a real nullable presentation state with the model at rest and no probe, echo
+panel, beam, or cut. It is not a pack view or exported slot.
 
 - **Desktop / hospital desktop:** viewport and echo panel side by side, view rail persistent. This
   is the active interface target.
@@ -106,6 +109,11 @@ licence state and publication state on each offered entry; `?mode=`, `?view=`, `
 and `?polar=` read on load, with `?mode=` and `?pack=` written back; the anatomy viewer beside the
 echo panel on a wide viewport, plus an unsupported retained narrow stack; the pack-status panel;
 and the non-diagnostic notice in the footer, present in both modes and not behind a toggle.
+
+The flag-gated authoring selector additionally offers `None — full heart`. In that state the shell
+uses the solo anatomy layout and withholds the echo panel; selecting a populated authoring slot
+restores the two-panel presentation. This is the platform precursor to the rail's already-nullable
+`currentView()`, not the deferred learner rail itself.
 
 Switching pack is state, not a page load: the viewer's scene effect already keys on the pack and its
 glTF URL, so choosing a chip rebuilds the scene and nothing else.

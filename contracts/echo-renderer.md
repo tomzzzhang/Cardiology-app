@@ -10,6 +10,8 @@ per-view tuning; every frame is labelled simulated. Outstanding: motion, seconda
 
 Render the simulated echo image for the **selected saved view or sweep position**, from the labelled
 `echo_volume` and the view's probe pose. Review status does not change the rendering path.
+When the authoring presentation has no selected imaging view, this component is not mounted: a
+full-heart model-only state must not silently render `views[0]` under a hidden selection.
 
 ## Approach (fixed)
 

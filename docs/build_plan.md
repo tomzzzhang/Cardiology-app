@@ -177,6 +177,8 @@ per-structure inspection, and the authoring placement/export/ingestion round tri
 Rodero non-clinical reference view.
 The authoring review surface can also hold the current anatomy angle while saved-view selection
 moves only the probe, echo-synced cutter, and live echo; manual camera controls remain available.
+It opens at a neutral `None — full heart` presentation with no probe/echo/cut claim, and an enabled
+Echo-plane cut is opened toward the current camera once each app-driven saved-view transition lands.
 This is a flag-gated review aid, not the learner rail.
 
 Active, in order:

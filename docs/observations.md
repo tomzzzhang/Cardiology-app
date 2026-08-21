@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-20 17:36 EDT
+**Last Updated:** 2026-08-20 23:52 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2136,3 +2136,26 @@ assets, provenance, validators, and complete registry entries remain untouched. 
 from the normal development droplist but remain reachable by an explicit development `?pack=` URL for
 research or comparison. Removing one id from the hidden list restores it without re-ingest. Pages
 is unchanged: none of these packs was published there.
+
+---
+
+## 60. Authoring opens on the whole heart, and saved-view cuts face the author
+
+**Owner direction, 2026-08-20.** The first authoring frame must not silently present B1 while the
+authoring selector names an empty A1 slot. `None — full heart` is now a real neutral presentation:
+it is selected on cold authoring load, draws no probe or beam, leaves Cut off, withholds the echo
+panel, and frames the loaded anatomy alone. It is not a pack view, local slot, export row, or review
+state. Selecting an empty canon row keeps that row as the next placement target but also keeps the
+neutral presentation, rather than leaving a different view visible behind its name.
+
+**The learner boundary is deliberate.** The learner subset has no view rail yet. Making its cold
+state None would leave no route to an echo view, so its existing first-view cold path remains until
+the rail is built. The authoring selector is the current place where nullable view selection can be
+used honestly; the future rail contract already permits `currentView() = null`.
+
+**The opaque-side cut bug was the same kind of stale presentation.** The cutter previously chose
+its camera-facing half only when Cut was enabled. B1/B4 and F1 need opposite retained halves, so a
+sticky flip from the preceding view could put intact opaque tissue in front of the section. At an
+app-driven saved-view landing, Echo-plane mode now evaluates the camera against the actual offset
+plane `Q = C + sN` and applies Reverse if needed. It does not watch manual orbit, does not touch the
+Free cutter, and does not override a manual Reverse until another saved view is applied.

@@ -60,9 +60,12 @@ with authoring absent; ordinary platform work does not wait on that release chec
    default until explicit naming consent exists.
 8. **Stylized geometry is declared, not hidden.** Substrate completion (shelled myocardium, sculpted
    leaflets, interface-only pericardium) sets `structures[i].stylized` and a `modified` note.
-9. **Selecting a populated authoring slot applies it immediately.** Empty slots become the active
-   placement target without moving the current probe. A populated selection replaces the working
-   pose and explains the change with one 850 ms quintic-eased clock shared by camera, wedge, cutter,
+9. **Selecting a populated authoring slot applies it immediately.** `None — full heart` is the cold
+   authoring default and a presentation state only: it is not a slot, is never persisted/exported,
+   and shows the loaded model with no probe, echo, beam, or cut claim. Empty slots become the active
+   placement target while keeping that same neutral full-heart presentation, so the selector can
+   never name one view while a previous view remains on screen. A populated selection replaces the
+   working pose and explains the change with one 850 ms quintic-eased clock shared by camera, wedge, cutter,
    and simulated echo. The probe origin follows an arc about the model centre, never a chord through
    the anatomy, while its beam follows interpolated endpoint aim points so the heart remains inside
    the moving fan. Intermediate planes are explicitly labelled unauthored, are never named as either
@@ -76,6 +79,10 @@ with authoring absent; ordinary platform work does not wait on that release chec
    the same clock, while the current anatomy orientation stays exact. Manual camera controls —
    orbit, Level, Match echo, Reset, and zoom — remain available. The toggle itself never moves the
    heart; it is session-only, defaults off, and never enters a save or export.
+   When the transition lands with the cutter enabled in Echo-plane mode, the visible half is
+   reconciled once against the actual offset plane and current camera. This is the automatic form
+   of Reverse for view presentation; manual Reverse remains sticky during ordinary orbit and is
+   reconsidered only on the next app-driven saved-view landing.
 10. **Fan depth is a local pose control.** The authoring-only vertical rocker immediately left of
     the probe D-pad changes `fan.depth_cm` by 0.5 cm per press. It never moves the origin, changes an
     axis, or writes the loaded pack. Decreasing stops before the focus or the 1 cm authoring floor.

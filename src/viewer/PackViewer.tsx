@@ -71,6 +71,7 @@ import {
 } from './orbit.ts';
 import {
   alignedToPlane,
+  cameraFacingFlip,
   clippingPlane,
   enclosingRadius,
   initialCutPlane,
@@ -135,6 +136,13 @@ interface PackViewerProps {
    */
   frameUrls?: readonly string[];
   freePose?: ProbePose | null;
+  /**
+   * Whether an imaging view is currently presented. `false` is the neutral
+   * full-heart state: no probe, beam, echo-synchronised cut, or echo panel.
+   */
+  imagingActive?: boolean;
+  /** Authoring selector owns the current neutral/view presentation choice. */
+  onImagingActiveChange?: (active: boolean) => void;
   /**
    * The one path the probe control pad's fan buttons write through — the same
    * one the sweep slider uses. Without it the pad is not drawn, because an
@@ -227,6 +235,8 @@ interface ViewerApi {
   /** Whether the cutter should be reversed for the cut to open toward the camera. */
   cutShouldFaceCamera: () => boolean;
   setMode: (mode: ViewerMode) => void;
+  /** Toggle the runtime probe presentation without rebuilding the loaded model. */
+  setImagingActive: (active: boolean, moveCamera: boolean) => void;
   /** Show one keyframe. Ignored until every frame has loaded. */
   setCineFrame: (index: number) => void;
   /** Returns the depth the slider should now show, in the new mode's terms. */
@@ -257,7 +267,8 @@ interface ViewerApi {
 export default function PackViewer({
   pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
   freePose = null, onScrubChange, onFreePoseChange, onStructureClick, apexFlipped = false,
-  isolatedLabel = null, onViewTransitionChange, onAuthoringWorkingViewChange,
+  imagingActive = true, onImagingActiveChange, isolatedLabel = null,
+  onViewTransitionChange, onAuthoringWorkingViewChange,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   /*
@@ -281,7 +292,7 @@ export default function PackViewer({
   const apiRef = useRef<ViewerApi | null>(null);
 
   const seeded = pack.interaction?.free_cut;
-  const [cutEnabled, setCutEnabled] = useState(seeded !== undefined);
+  const [cutEnabled, setCutEnabled] = useState(seeded !== undefined && imagingActive);
   /**
    * The cutter's signed depth value.
    *
@@ -338,7 +349,7 @@ export default function PackViewer({
    */
   /** Explore has no probe to sync to, so the cutter is forced free there. */
   const [cutterMode, setCutterModeState] = useState<CutterMode>(
-    mode === 'explore' ? 'free' : 'echo',
+    mode === 'explore' || !imagingActive ? 'free' : 'echo',
   );
   const [coarsePointer, setCoarsePointer] = useState(isCoarsePointer);
   const [poseTransitioning, setPoseTransitioning] = useState(false);
@@ -351,8 +362,12 @@ export default function PackViewer({
   onViewTransitionRef.current = onViewTransitionChange;
   const onAuthoringWorkingViewRef = useRef(onAuthoringWorkingViewChange);
   onAuthoringWorkingViewRef.current = onAuthoringWorkingViewChange;
+  const onImagingActiveRef = useRef(onImagingActiveChange);
+  onImagingActiveRef.current = onImagingActiveChange;
   const freePoseRef = useRef(freePose);
   freePoseRef.current = freePose;
+  const imagingActiveRef = useRef(imagingActive);
+  imagingActiveRef.current = imagingActive;
   const poseTransitioningRef = useRef(false);
   const preventAuthoringAutoRotationRef = useRef(false);
   const holdRef = useRef<{ delay: number; repeat: number } | null>(null);
@@ -487,7 +502,9 @@ export default function PackViewer({
 
     /* --- modes ------------------------------------------------------------ */
     let viewerMode: ViewerMode = mode;
-    let cutter: CutterMode = mode === 'explore' ? 'free' : 'echo';
+    let imagingViewActive = imagingActive;
+    host.dataset.imagingActive = String(imagingViewActive);
+    let cutter: CutterMode = mode === 'explore' || !imagingViewActive ? 'free' : 'echo';
     let coarse = isCoarsePointer();
     /** The beam dim the learner asked for; Explore forces it off without losing it. */
     let beamStrength = 1;
@@ -586,6 +603,9 @@ export default function PackViewer({
       camera.position.copy(pivot).add(pose.offset);
       camera.up.copy(pose.up);
       camera.lookAt(pivot);
+      host.dataset.cutOpenToCamera = String(
+        cutActive && cameraFacingFlip(cut, pivot, camera.position) === cut.flipped,
+      );
       if (AUTHORING_ENABLED) {
         host.setAttribute(
           'data-authoring-camera-orientation',
@@ -630,6 +650,28 @@ export default function PackViewer({
       else delete host.dataset.probeTransition;
       setPoseTransitioning(active);
       onViewTransitionRef.current?.({ active, echoOpacity });
+    };
+
+    /**
+     * Open an echo-synchronised cut toward the camera at a saved-view landing.
+     *
+     * This is deliberately an endpoint operation, not a camera observer. A
+     * learner may orbit around to inspect the retained half and their manual
+     * Reverse choice must remain sticky; only an app-driven saved-view change
+     * gets to choose the initially presented side again.
+     *
+     * Mutate the scene before publishing React state so the destination frame
+     * itself is correct. The state update then keeps the button and the next
+     * effect-driven `setCut` call in agreement with what was drawn.
+     */
+    const reconcileEchoCutFacingCamera = () => {
+      if (!cutActive || cutter !== 'echo') return;
+      const next = cameraFacingFlip(cut, pivot, camera.position);
+      if (next !== cut.flipped) {
+        cut.flipped = next;
+        applyCut();
+      }
+      setCutFlipped(next);
     };
 
     const stepGlide = (now: number) => {
@@ -689,6 +731,7 @@ export default function PackViewer({
         setPoseTransitionState(true, echoOpacity);
       }
       if (step.done && displayFadeDone) {
+        if (AUTHORING_ENABLED && active.pose) reconcileEchoCutFacingCamera();
         glide = null;
         delete host.dataset.cameraGlide;
         if (AUTHORING_ENABLED && active.pose) setPoseTransitionState(false, 1);
@@ -702,6 +745,7 @@ export default function PackViewer({
       if (!active) return;
       if (AUTHORING_ENABLED && finishPose && active.pose) {
         publishAuthoringPose(structuredClone(active.pose.to) as ProbePose, false);
+        reconcileEchoCutFacingCamera();
       }
       glide = null;
       delete host.dataset.cameraGlide;
@@ -785,7 +829,7 @@ export default function PackViewer({
      */
     const measureFraming = () => {
       framedReach = reach;
-      if (viewerMode !== 'echo') return;
+      if (viewerMode !== 'echo' || !imagingViewActive) return;
       const view = pack.views[viewIndex];
       if (!view) return;
       for (const point of probeTravelPath(view.probe, view.sweep)) {
@@ -1075,6 +1119,11 @@ export default function PackViewer({
       }
 
       planes[0].copy(clippingPlane(cut, pivot));
+      host.dataset.cutActive = String(cutActive);
+      host.dataset.cutFlipped = String(cut.flipped);
+      host.dataset.cutOpenToCamera = String(
+        cutActive && cameraFacingFlip(cut, pivot, camera.position) === cut.flipped,
+      );
       // The ghost is the other half-space of the same plane.
       ghostPlanes[0].copy(planes[0]).negate();
       ghosts.visible = cutActive && ghostOn;
@@ -1128,6 +1177,7 @@ export default function PackViewer({
       const authoringPose = AUTHORING_ENABLED && freePoseRef.current !== null;
       const wanted = loaded
         && viewerMode === 'echo'
+        && imagingViewActive
         && (view !== undefined || authoringPose);
 
       if (!wanted) {
@@ -1673,13 +1723,13 @@ export default function PackViewer({
        * this was invisible, because the cut faces painted straight over the
        * tissue in front of them.)
        *
-       * Evaluated when the cut is set up rather than continuously: a cut that
-       * flipped itself halfway through an orbit would be worse than one facing
-       * the wrong way, and `Reverse` is right there.
+       * Evaluated when the cut is set up and at saved-view transition endpoints,
+       * rather than continuously: a cut that flipped itself halfway through a
+       * manual orbit would be worse than one facing the wrong way, and `Reverse`
+       * is right there.
        */
       cutShouldFaceCamera: () => {
-        const toCamera = camera.position.clone().sub(pivot);
-        return cut.normal.dot(toCamera) < 0;
+        return cameraFacingFlip(cut, pivot, camera.position);
       },
       setFrame: (frame) => {
         applyImagingFrame(frame, true);
@@ -1748,11 +1798,11 @@ export default function PackViewer({
           radius = framingRadius();
           applyCamera();
         }
-        if (next === 'explore') cutter = 'free';
+        if (next === 'explore' || !imagingViewActive) cutter = 'free';
         // Explore has no beam, so nothing is marked as outside one — and the
         // learner's own choice is kept, not overwritten, so it returns with the
         // mode.
-        const strength = next === 'explore' ? 0 : beamStrength;
+        const strength = next === 'explore' || !imagingViewActive ? 0 : beamStrength;
         for (const uniforms of dimUniforms) uniforms.uBeamDim.value = strength;
         syncProbeObjects();
         applyCut();
@@ -1853,7 +1903,7 @@ export default function PackViewer({
       },
       setBeamDim: (strength) => {
         beamStrength = strength;
-        const value = viewerMode === 'explore' ? 0 : strength;
+        const value = viewerMode === 'explore' || !imagingViewActive ? 0 : strength;
         for (const uniforms of dimUniforms) uniforms.uBeamDim.value = value;
         schedule();
       },
@@ -1868,6 +1918,31 @@ export default function PackViewer({
        * cutter's `{N, s}` and the saved `views[]` are both untouched.
        */
       matchEchoOrientation: (frame) => glideTo(echoOrientation(frame)),
+      setImagingActive: (next, moveCamera) => {
+        cancelGlide(false);
+        imagingViewActive = next;
+        host.dataset.imagingActive = String(next);
+
+        if (!next) {
+          cutter = 'free';
+          cutActive = false;
+          ghosts.visible = false;
+        }
+
+        measureFraming();
+        if (framed) {
+          radius = framingRadius();
+          applyCamera();
+          if (!next && moveCamera) glideTo(REST);
+        }
+
+        const strength = viewerMode === 'echo' && next ? beamStrength : 0;
+        for (const uniforms of dimUniforms) uniforms.uBeamDim.value = strength;
+        syncProbeObjects();
+        applyCut();
+        applyReveal(null, null);
+        schedule();
+      },
       transitionAuthoringPose: AUTHORING_ENABLED && glideToAuthoringPose
         ? (input) => glideToAuthoringPose(input)
         : () => {},
@@ -2055,6 +2130,7 @@ export default function PackViewer({
 
   const view = pack.views[viewIndex];
   const echoMode = mode === 'echo';
+  const imagingEchoMode = echoMode && imagingActive;
   /**
    * In Echo plane mode the cut IS the imaging plane, so there is no depth to
    * choose: the slider is disabled rather than removed, so the control the
@@ -2062,7 +2138,7 @@ export default function PackViewer({
    * nothing. The Cut checkbox stays live in both modes — turning the cut off to
    * see the whole heart WITH the echo fan on it is a thing worth doing.
    */
-  const depthLocked = echoMode && cutterMode === 'echo';
+  const depthLocked = imagingEchoMode && cutterMode === 'echo';
 
   /**
    * Unlock the probe from its view's sweep track, or lock it again.
@@ -2168,6 +2244,47 @@ export default function PackViewer({
     if (AUTHORING_ENABLED) onAuthoringWorkingViewRef.current?.(null);
   }, [gltfUrl, pack.meta.pack_version, viewIndex]);
 
+  /** Enter the authoring imaging presentation before publishing a probe pose. */
+  const beginAuthoringImaging = () => {
+    if (!AUTHORING_ENABLED) return true;
+    const wasActive = imagingActiveRef.current;
+    if (!wasActive) {
+      imagingActiveRef.current = true;
+      onImagingActiveRef.current?.(true);
+      apiRef.current?.setImagingActive(true, false);
+      if (mode === 'echo') {
+        const adopted = apiRef.current?.setCutterMode('echo');
+        setCutterModeState('echo');
+        if (adopted !== undefined) setCutOffset(adopted);
+        setCutEnabled(true);
+        apiRef.current?.setCut({
+          enabled: true,
+          offset: adopted ?? cutOffset,
+          flipped: cutFlipped,
+        });
+      }
+    }
+    return wasActive;
+  };
+
+  /** Authoring `None`: the loaded model remains, while every probe claim leaves. */
+  const showFullHeart = () => {
+    if (!AUTHORING_ENABLED) return;
+    imagingActiveRef.current = false;
+    onImagingActiveRef.current?.(false);
+    onAuthoringWorkingViewRef.current?.(null);
+    freePoseRef.current = null;
+    onFreePoseRef.current?.(null);
+    setCutEnabled(false);
+    setCutterModeState('free');
+    const adopted = apiRef.current?.setCutterMode('free');
+    if (adopted !== undefined) setCutOffset(adopted);
+    apiRef.current?.setImagingActive(
+      false,
+      !preventAuthoringAutoRotationRef.current,
+    );
+  };
+
   /**
    * AUTHORING: make a stored view the working pose and explain the change by
    * turning the camera toward its imaging plane, unless automatic rotation is
@@ -2183,13 +2300,16 @@ export default function PackViewer({
    */
   const activateAuthoringPose = (pose: ProbePose, identity: AuthoringViewIdentity) => {
     const target = structuredClone(pose) as ProbePose;
-    const source = freePoseRef.current
-      ?? (view
-        ? (view.sweep ? poseAt(view.probe, view.sweep, scrubRef.current) : view.probe)
-        : target);
     const api = apiRef.current;
     const anchor = api?.viewAnchor();
     if (!api || !anchor || status !== 'ready') return;
+    const wasActive = beginAuthoringImaging();
+    const source = wasActive
+      ? (freePoseRef.current
+        ?? (view
+          ? (view.sweep ? poseAt(view.probe, view.sweep, scrubRef.current) : view.probe)
+          : target))
+      : target;
     onAuthoringWorkingViewRef.current?.(identity);
     api.transitionAuthoringPose({
       source,
@@ -2404,7 +2524,8 @@ export default function PackViewer({
   const canIncreaseFanDepth = freePose !== null && steppedFanDepth(freePose, 1) !== null;
   const canDecreaseFanDepth = freePose !== null && steppedFanDepth(freePose, -1) !== null;
   const hasSweep = view?.sweep !== undefined;
-  const padPresent = echoMode && (probeFree || (hasSweep && onScrubChange !== undefined));
+  const padPresent = imagingEchoMode
+    && (probeFree || (hasSweep && onScrubChange !== undefined));
 
   const chooseCutterMode = (next: CutterMode) => {
     const adopted = apiRef.current?.setCutterMode(next);
@@ -2787,7 +2908,7 @@ export default function PackViewer({
           * silently decays the first time the plane is nudged.
           */}
         <div className="cutter-mode" data-testid="cutter-mode">
-          {echoMode ? (
+          {imagingEchoMode ? (
             <div role="radiogroup" aria-label="What the cut plane follows" className="cutter-mode__group">
               {([
                 ['echo', 'Echo plane', "Follows this view's imaging plane as the sweep scrubs"],
@@ -2822,7 +2943,7 @@ export default function PackViewer({
             * unvetted. Nothing here writes to `views[]` — the free pose is
             * runtime state and dies with the session.
             */}
-          {echoMode && onFreePoseChange && view?.sweep && (
+          {imagingEchoMode && onFreePoseChange && view?.sweep && (
             <label className="cutter__toggle" title="Turn the probe by hand with the control pad, off this view's saved sweep. The echo then stops claiming to be this view.">
               <input
                 type="checkbox"
@@ -2846,6 +2967,8 @@ export default function PackViewer({
               */}
             {!echoMode
               ? 'Explore — no probe, so the cut is free.'
+              : !imagingActive
+                ? 'Full heart — no probe view selected.'
               : freePose !== null
                 ? 'Probe unlocked — not a saved view once moved.'
                 : cutterMode === 'echo'
@@ -2903,7 +3026,7 @@ export default function PackViewer({
             Ghost
           </label>
 
-          {echoMode && (
+          {imagingEchoMode && (
             <label
               className="cutter__toggle"
               data-hint="Dim the tissue the beam does not reach."
@@ -2961,7 +3084,7 @@ export default function PackViewer({
             * written to at all. `contracts/README.md`: the two objects may
             * coincide visually and never merge.
             */}
-          {echoMode && (view !== undefined || freePose !== null) && (
+          {imagingEchoMode && (view !== undefined || freePose !== null) && (
             <button
               type="button"
               onClick={() => {
@@ -3031,8 +3154,10 @@ export default function PackViewer({
             ready={status === 'ready'}
             onPreventAutoRotationChange={setPreventAuthoringAutoRotation}
             onActivatePose={activateAuthoringPose}
+            onShowFullHeart={showFullHeart}
             onPose={(pose) => {
               if (poseTransitioningRef.current) return;
+              beginAuthoringImaging();
               freePoseRef.current = pose;
               onAuthoringWorkingViewRef.current?.(null);
               onFreePoseChange?.(pose);
