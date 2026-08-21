@@ -30,9 +30,10 @@
  *   fan-and-display template and frozen seeds. There is no object here that
  *   `views[]` could be written through — the same structural guarantee
  *   `freeProbe.ts` makes, for the same reason.
- * * **Storing over a pack view writes a local override, never the pack.** The
- *   authored pose stays where it was; the row says it is overridden and offers
- *   a revert that restores the authored value bit for bit.
+ * * **Storing a working definition never edits the pack.** The authored pose
+ *   stays where it was, and the restore action can recover that value bit for
+ *   bit. The UI treats the browser-local pose as the view being defined rather
+ *   than labelling it as an override.
  * * **It does not write the model's axes either.** The four-chamber pose
  *   DERIVES them and the export carries them out; `meshes.anatomical_frame` is
  *   pack content with a recorded derivation and the v1 ingest ignores that frame.
@@ -306,7 +307,7 @@ export default function AuthoringControls({
       setProblem(null);
       setNotice(
         slot.overridden || slot.authored !== null
-          ? `Saved a LOCAL OVERRIDE over ${slot.label}. The pack is unchanged.`
+          ? `Saved the working definition for ${slot.label}. The loaded pack is unchanged.`
           : slot.definesFrame
             ? `Saved ${slot.label}. The model's axes now come from this pose.`
             : `Saved ${slot.label}.`,
@@ -454,7 +455,6 @@ export default function AuthoringControls({
   const orphans = slots.filter((slot) => slot.kind === 'orphan');
 
   const optionLabel = (slot: Slot) => {
-    if (slot.overridden) return `${slot.label} — overridden`;
     if (slot.pose === null) return `${slot.label} — empty`;
     return slot.label;
   };
@@ -462,7 +462,7 @@ export default function AuthoringControls({
   const state = active === null
     ? 'Full heart. No view selected.'
     : active.overridden
-      ? 'Overridden locally. The pack is unchanged.'
+      ? 'Working definition. The loaded pack is unchanged.'
       : active.kind === 'orphan'
         ? 'Stored under an id this build does not use. Clear it or export it.'
         : active.pose === null
@@ -619,7 +619,7 @@ export default function AuthoringControls({
           <>
             <span className="authoring__confirm" data-testid="authoring-confirm">
               {active.authored !== null
-                ? `Overwrite ${active.label} with a local override?`
+                ? `Replace the working definition for ${active.label}?`
                 : `Overwrite ${active.label}?`}
             </span>
             <button
@@ -654,8 +654,8 @@ export default function AuthoringControls({
                   ? 'The pose on screen is an unauthored transition frame and cannot be saved.'
                   : canSave
                   ? 'Write the pose on screen into the selected view. Confirmed before it '
-                    + 'writes. A pack view gets a local override; the pack itself is never '
-                    + 'edited.'
+                    + 'writes. A pack view is stored as a browser-local working definition; '
+                    + 'the loaded pack itself is never edited.'
                   : 'There is no pose on screen to save. Place the probe first.'
               }
             >
@@ -694,11 +694,11 @@ export default function AuthoringControls({
             disabled={transitioning || !ready}
             data-testid="authoring-revert"
             title={active.authored !== null
-              ? 'Drop the local override. The pack’s authored pose was never changed, so this '
-                + 'restores it exactly.'
+              ? 'Drop the browser-local working definition. The pack’s authored pose was never '
+                + 'changed, so this restores it exactly.'
               : 'Clear what is stored for this view.'}
           >
-            {active.authored !== null ? 'Revert to authored' : 'Clear'}
+            {active.authored !== null ? 'Restore pack pose' : 'Clear'}
           </button>
         )}
       </div>

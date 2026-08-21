@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-20 20:36 EDT
+**Updated:** 2026-08-21 00:47 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -62,16 +62,24 @@ and later clinical review, never a review promotion or a runtime input.
 ```bash
 conda run --no-capture-output -n cardiology-app python pipeline/view_candidates.py --check
 conda run --no-capture-output -n cardiology-app python pipeline/view_candidates.py --write
+conda run --no-capture-output -n cardiology-app python pipeline/view_candidates_v2.py --check
+conda run --no-capture-output -n cardiology-app python pipeline/view_candidates_v2.py --write
 npm run check:view-candidates
 ```
 
-`--write` atomically creates the pinned evidence JSON or no-ops when its bytes already match. It
-never calls pack-writing code, and it refuses to replace a tracked set with different bytes. After
-a candidate set is shared, revisions use a new immutable set number; review observations go in a
-separate assessment sidecar. The content gate checks the independent accepted-digest registry; the
-registry and every previously committed candidate blob are append-only against Git history. The
-Python `--check` command remains the required raw-source geometry replay before sharing a set. See
-`evidence/view-candidates/README.md`.
+`--write` atomically writes the generated evidence JSON and may intentionally replace its current
+tracked file; it no-ops when the bytes already match and never calls pack-writing code. Update the
+separate current-digest registry in the same checkpoint. The Node content gate verifies the
+current registered file bytes, canonical payload, source revision, pack/assets, derivation closure,
+and schema boundary. It does not use Git history as an append-only authority. The Python `--check`
+command remains the required raw-source geometry replay before current coordinates are shared.
+
+The current set 002 uses full fan-envelope correction for B1, B4, F1, and the seven unselected B2
+variants. C1 and C2 instead apply distance-only corrections while preserving their 70-degree probe
+heads; lateral FoV misses are measured and deferred to later probe-head work. A separately derived
+12-slot `authoring-slots/v1` carrier mounts the five single candidates plus seven B2 variants for a
+browser-local visual-review session. Its `--write` path safely replaces the named carrier after
+validating the input and output boundary. See `evidence/view-candidates/README.md`.
 
 ## Files
 
@@ -85,7 +93,8 @@ Python `--check` command remains the required raw-source geometry replay before 
 | `anatomy.py` | Valve identification by face adjacency, and the cardiac frame derived from it. |
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
-| `view_candidates.py` | Deterministic, revision-bound Rodero coordinate evidence; never pack content. |
+| `view_candidates.py` | Deterministic first-generation, revision-bound Rodero coordinate evidence; never pack content. |
+| `view_candidates_v2.py` | Current distance/envelope correction pass and source-replay checks for set 002. |
 
 ## Steps
 

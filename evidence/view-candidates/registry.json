@@ -4,14 +4,14 @@
     {
       "candidate_set_id": "normal-rodero-pack-0.1.1-candidate-set-001",
       "path": "evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-001.json",
-      "file_sha256": "8acc53578c346fe6442b3c1179ba65d2dab564b12e497d91c6d04e161f66f555",
-      "canonical_payload_sha256": "555a249098a24f662073bb7b5dd82541f1651e8a55af7e295231d453fd3ac625"
+      "file_sha256": "82ab67f5e21dcafedb0e0115f18c2b45deb46c8703d0b879832f77b2c75e4297",
+      "canonical_payload_sha256": "7627a6d00b86c19d7180abedc27c8cbc2f904170a7ec5585a9b9e2c1fa807564"
     },
     {
       "candidate_set_id": "normal-rodero-pack-0.1.1-candidate-set-002",
       "path": "evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-002.json",
-      "file_sha256": "c7a7b1010b4ff42ebb1abcd1a87564572fe9894f0fc3f6ab82b991f9f331aa62",
-      "canonical_payload_sha256": "0567371866bdc04208cbd9d70f0802bb8c6481c5a16e0c83440dfc34d7b0f868"
+      "file_sha256": "2aa85b0fc9bf69dc631126d7e31b61158391fe65e9ce9f05a5e31ae1d7b6b1e2",
+      "canonical_payload_sha256": "bee89f979d3d434b8b05c8511a878bfa48298fcff16988562dc3e072566b8f46"
     }
   ]
 }

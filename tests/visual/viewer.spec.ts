@@ -104,6 +104,87 @@ test('renders the simulated echo over the real labelled volume', async ({ page }
   expect(greys!.mid).toBeGreaterThan(greys!.total * 0.05);
 });
 
+test('calibrates the echo with one-centimetre depth dots on the screen-right fan edge', async ({ page }) => {
+  await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
+  const scale = page.getByTestId('echo-depth-markers');
+  await expect(scale).toBeVisible();
+  await expect(scale).toHaveAttribute('data-interval-mm', '10');
+  await expect(page.getByTestId('echo-canvas')).toHaveAttribute(
+    'aria-label',
+    /Depth scale: one dot per centimetre; full depth [\d.]+ centimetres\./,
+  );
+
+  const result = await scale.evaluate((element) => {
+    const stage = element.parentElement?.getBoundingClientRect();
+    const depthMm = Number(element.getAttribute('data-depth-mm'));
+    const markers = [...element.querySelectorAll<HTMLElement>('.echo__depth-marker')].map(
+      (marker) => {
+        const rect = marker.getBoundingClientRect();
+        return {
+          depthMm: Number(marker.dataset.depthMm),
+          left: Number.parseFloat(marker.style.left),
+          top: Number.parseFloat(marker.style.top),
+          box: {
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: rect.height,
+          },
+          background: getComputedStyle(marker).backgroundColor,
+        };
+      },
+    );
+    return {
+      depthMm,
+      markerCount: Number(element.getAttribute('data-marker-count')),
+      stage: stage && {
+        left: stage.left,
+        right: stage.right,
+        top: stage.top,
+        bottom: stage.bottom,
+      },
+      markers,
+    };
+  });
+
+  // Integer centimetres strictly inside the live depth: never the vertex, and
+  // never a half-clipped dot on an exact distal boundary.
+  let expectedCount = 0;
+  for (let depthMm = 10; depthMm < result.depthMm - 1e-9; depthMm += 10) {
+    expectedCount += 1;
+  }
+  expect(result.markerCount).toBe(expectedCount);
+  expect(result.markers).toHaveLength(expectedCount);
+  expect(result.markers.map((marker) => marker.depthMm)).toEqual(
+    result.markers.map((_marker, index) => (index + 1) * 10),
+  );
+
+  // Assert rendered CSS geometry, not merely inline coordinates. Every dot is
+  // an actual visible 3 px square and its whole box stays inside the stage.
+  expect(result.stage).not.toBeNull();
+  for (const marker of result.markers) {
+    expect(marker.box.width).toBeCloseTo(3, 3);
+    expect(marker.box.height).toBeCloseTo(3, 3);
+    expect(marker.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(marker.box.left).toBeGreaterThanOrEqual(result.stage!.left - 0.01);
+    expect(marker.box.right).toBeLessThanOrEqual(result.stage!.right + 0.01);
+    expect(marker.box.top).toBeGreaterThanOrEqual(result.stage!.top - 0.01);
+    expect(marker.box.bottom).toBeLessThanOrEqual(result.stage!.bottom + 0.01);
+  }
+
+  // The default B1 presentation is vertex-down. A radial screen-right ruler
+  // therefore travels up and out along the fan edge as depth increases.
+  for (let index = 1; index < result.markers.length; index += 1) {
+    expect(result.markers[index].left).toBeGreaterThan(result.markers[index - 1].left);
+    expect(result.markers[index].top).toBeLessThan(result.markers[index - 1].top);
+  }
+});
+
 test('renders the sector vertex-down, the paediatric default for family B', async ({ page }) => {
   /*
    * `docs/view_canon.md` makes vertex-DOWN the paediatric convention for the

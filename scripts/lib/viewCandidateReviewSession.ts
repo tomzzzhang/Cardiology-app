@@ -1,5 +1,5 @@
 /**
- * Build a read-only visual-review carrier from immutable view-candidate evidence.
+ * Build a read-only visual-review carrier from generated view-candidate evidence.
  *
  * `view-candidates/v1` remains the evidence record. This helper extracts only
  * probe poses into the existing `authoring-slots/v1` transport understood by

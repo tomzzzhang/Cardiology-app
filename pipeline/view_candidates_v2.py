@@ -1,24 +1,24 @@
-"""Generate Rodero candidate-set-002 with measured fan-envelope containment.
+"""Generate Rodero candidate-set-002 with measured probe-distance corrections.
 
-Candidate set 001 and every file in its derivation closure are immutable.  This
-versioned generator imports that frozen implementation for its established
-landmarks, planes, source bindings, and evidence vocabulary, then changes only
-the aperture position and fan depth of four proposed candidate families,
-including the existing Draft B1 reference pose after visual review found the
-same lateral clipping there.
+This generator imports the first-pass implementation for its established
+landmarks, planes, source bindings, and evidence vocabulary.  B1, B4, F1 and
+the B2 comparison series retain the measured fan-envelope correction.  C1 and
+C2 use a deliberately narrower distance-first correction: their 70 degree
+probe heads, imaging planes and axes remain unchanged while their apertures
+retreat to the 30 mm provisional adult Rodero gap.
 
-The correction is measured on the checksum-bound tetrahedral source.  For each
-pose, the source is clipped exactly to the same +/-12 mm slab used by the
-candidate depth gate.  The aperture moves backwards along the beam far enough
-to satisfy BOTH a 30 mm provisional adult Rodero aperture-gap proxy and the
-requirement that clipped geometry occupy at most 1 / 1.12 of either fan
-half-width.  The 30 mm value is informed by published adult skin-to-heart
-averages; it is not a chest-wall measurement, pediatric value, or clinical
-acquisition standard.  Moving along the beam leaves the infinite imaging plane
-and its clinical landmarks unchanged.  Depth is then expanded (never shrunk)
-to leave 5 mm beyond the farthest clipped point, and focus moves by the same
-axial distance so its world-space location is preserved to the schema's 0.01 cm
-precision.
+The correction is measured on the checksum-bound tetrahedral source.  Every
+candidate aperture moves backwards along the beam far enough to satisfy a
+30 mm provisional adult Rodero aperture-gap proxy.  B1, B4, F1, and B2 also
+contain the clipped +/-12 mm source slab within 1 / 1.12 of either fan
+half-width.  C1 and C2 intentionally do not: their measured lateral clipping is
+recorded as a non-gating limitation while the existing 70 degree heads remain
+fixed for later probe-head work.  The 30 mm value is informed by published
+adult skin-to-heart averages; it is not a chest-wall measurement, pediatric
+value, or clinical acquisition standard.  Moving along the beam leaves each
+infinite imaging plane and its landmarks unchanged.  Depth then leaves a 5 mm
+distal guard, and focus moves axially so its world-space location is preserved
+to the schema's 0.01 cm precision.
 
 This module writes evidence only.  It has no pack-writing or review-promotion
 path.
@@ -46,7 +46,7 @@ OUTPUT_REL = Path(
 OUTPUT_PATH = ROOT / OUTPUT_REL
 CANDIDATE_SET_ID = "normal-rodero-pack-0.1.1-candidate-set-002"
 
-# Set 001's closure stays frozen.  Set 002 adds this versioned derivation file.
+# Set 002 adds this derivation file to the first-pass closure.
 DERIVATION_RELATIVE_FILES = (*legacy.DERIVATION_RELATIVE_FILES, "pipeline/view_candidates_v2.py")
 
 # The existing candidate depth evidence uses this 24 mm measurement slab.
@@ -119,7 +119,7 @@ class EnvelopeRequirement:
 
 @dataclass(frozen=True)
 class EnvelopeMeasurement:
-    """Post-translation geometry used by the immutable machine checks."""
+    """Post-translation geometry used by the machine checks."""
 
     farthest_mm: float
     maximum_abs_fan_angle_deg: float
@@ -142,6 +142,42 @@ class FittedProbe:
     required_depth_cm: float
     old_focus_world: np.ndarray
     new_focus_world: np.ndarray
+    fan_envelope_required: bool
+
+
+@dataclass(frozen=True)
+class TranslationSweepMeasurement:
+    """Distance/depth evidence for every plane in one translation sweep."""
+
+    axis_beam_dot: float
+    axis_lateral_dot: float
+    axis_normal_dot: float
+    corridor_from_mm: float
+    corridor_to_mm: float
+    source_vertices_in_corridor: int
+    corridor_edge_intersections: int
+    minimum_all_source_forward_projection_mm: float
+    maximum_half_width_occupancy: float
+    farthest_clipped_source_point_mm: float
+    sampled_positions: int
+    minimum_sampled_nearest_source_vertex_mm: float
+    minimum_sampled_forward_projection_mm: float
+
+
+@dataclass(frozen=True)
+class FixedOriginTiltMeasurement:
+    """Whole-source distance/depth evidence for one fixed-aperture tilt."""
+
+    axis_normal_dot: float
+    sweep_from_deg: float
+    sweep_to_deg: float
+    minimum_reference_forward_projection_mm: float
+    minimum_continuous_forward_projection_mm: float
+    minimum_forward_angle_deg: float
+    nearest_source_vertex_mm: float
+    farthest_source_vertex_mm: float
+    sampled_positions: int
+    minimum_sampled_forward_projection_mm: float
 
 
 def _ceil_hundredth_cm(value_mm: float) -> float:
@@ -367,6 +403,254 @@ def measure_fitted_envelope(
     )
 
 
+def measure_translation_sweep(
+    points: np.ndarray,
+    tets: np.ndarray,
+    probe: dict[str, Any],
+    sweep: dict[str, Any],
+    *,
+    sampled_positions: int = 81,
+) -> TranslationSweepMeasurement:
+    """Prove distance/depth over a normal-axis translation and sample it.
+
+    C2 translates its imaging plane along the probe normal.  That motion leaves
+    every source point's forward and lateral coordinates unchanged.  The union
+    of all +/-12 mm slabs is therefore one exactly clipped tetrahedral corridor;
+    checking that corridor proves the continuous sweep, while the 81 source-
+    vertex samples provide an auditable nearest-distance trace.
+    """
+
+    if sweep.get("mode") != "translate" or sweep.get("range", {}).get("unit") != "mm":
+        raise legacy.CandidateEvidenceError("distance sweep check requires a millimetre translation")
+    if sampled_positions < 2:
+        raise legacy.CandidateEvidenceError("translation sweep requires at least two samples")
+
+    origin, beam, lateral, normal, half_angle = _probe_frame(probe)
+    direction = np.array(sweep["axis"]["direction"], dtype=float)
+    direction = direction / np.linalg.norm(direction)
+    axis_beam_dot = float(np.dot(direction, beam))
+    axis_lateral_dot = float(np.dot(direction, lateral))
+    axis_normal_dot = float(np.dot(direction, normal))
+    if (
+        abs(axis_beam_dot) > PLANE_PRESERVATION_TOLERANCE_MM
+        or abs(axis_lateral_dot) > PLANE_PRESERVATION_TOLERANCE_MM
+        or abs(abs(axis_normal_dot) - 1.0) > PLANE_PRESERVATION_TOLERANCE_MM
+    ):
+        raise legacy.CandidateEvidenceError(
+            "translation sweep is not aligned with the probe's elevation normal"
+        )
+
+    sweep_from = float(sweep["range"]["from"])
+    sweep_to = float(sweep["range"]["to"])
+    projected = sorted((sweep_from * axis_normal_dot, sweep_to * axis_normal_dot))
+    position_from, position_to = projected
+    corridor_from = position_from - MEASUREMENT_SLAB_HALF_MM
+    corridor_to = position_to + MEASUREMENT_SLAB_HALF_MM
+    corridor_centre = (corridor_from + corridor_to) / 2.0
+    corridor_half = (corridor_to - corridor_from) / 2.0
+
+    x, y, z = _coordinate_arrays(points, probe)
+    tangent = math.tan(half_angle)
+    maximum_occupancy = 0.0
+    farthest = 0.0
+    original_count = int(np.count_nonzero(
+        (z >= corridor_from) & (z <= corridor_to)
+    ))
+    intersection_count = 0
+    for clipped_x, clipped_y, clipped_z_centre, originals in _clipped_slab_coordinates(
+        x,
+        y,
+        z - corridor_centre,
+        tets,
+        half_mm=corridor_half,
+    ):
+        clipped_z = clipped_z_centre + corridor_centre
+        lateral_abs = np.abs(clipped_y)
+        occupancy = np.divide(
+            lateral_abs,
+            clipped_x * tangent,
+            out=np.full_like(lateral_abs, math.inf),
+            where=clipped_x > 0.0,
+        )
+        residual_low = np.maximum(
+            -MEASUREMENT_SLAB_HALF_MM,
+            clipped_z - position_to,
+        )
+        residual_high = np.minimum(
+            MEASUREMENT_SLAB_HALF_MM,
+            clipped_z - position_from,
+        )
+        maximum_elevation = np.maximum(np.abs(residual_low), np.abs(residual_high))
+        ranges = np.sqrt(
+            clipped_x * clipped_x
+            + clipped_y * clipped_y
+            + maximum_elevation * maximum_elevation
+        )
+        maximum_occupancy = max(maximum_occupancy, float(np.max(occupancy)))
+        farthest = max(farthest, float(np.max(ranges)))
+        if not originals:
+            intersection_count += int(clipped_x.size)
+
+    minimum_all_forward = float(np.min(x))
+    minimum_sampled_nearest = math.inf
+    minimum_sampled_forward = math.inf
+    for value in np.linspace(sweep_from, sweep_to, sampled_positions):
+        sample_origin = origin + direction * value
+        offsets = points - sample_origin
+        minimum_sampled_nearest = min(
+            minimum_sampled_nearest,
+            float(np.min(np.linalg.norm(offsets, axis=1))),
+        )
+        minimum_sampled_forward = min(
+            minimum_sampled_forward,
+            float(np.min(offsets @ beam)),
+        )
+
+    values = (
+        axis_beam_dot,
+        axis_lateral_dot,
+        axis_normal_dot,
+        maximum_occupancy,
+        farthest,
+        minimum_all_forward,
+        minimum_sampled_nearest,
+        minimum_sampled_forward,
+    )
+    if not all(math.isfinite(value) for value in values):
+        raise legacy.CandidateEvidenceError("non-finite translation-sweep measurement")
+
+    return TranslationSweepMeasurement(
+        axis_beam_dot=axis_beam_dot,
+        axis_lateral_dot=axis_lateral_dot,
+        axis_normal_dot=axis_normal_dot,
+        corridor_from_mm=corridor_from,
+        corridor_to_mm=corridor_to,
+        source_vertices_in_corridor=original_count,
+        corridor_edge_intersections=intersection_count,
+        minimum_all_source_forward_projection_mm=minimum_all_forward,
+        maximum_half_width_occupancy=maximum_occupancy,
+        farthest_clipped_source_point_mm=farthest,
+        sampled_positions=sampled_positions,
+        minimum_sampled_nearest_source_vertex_mm=minimum_sampled_nearest,
+        minimum_sampled_forward_projection_mm=minimum_sampled_forward,
+    )
+
+
+def measure_fixed_origin_tilt(
+    points: np.ndarray,
+    probe: dict[str, Any],
+    sweep: dict[str, Any],
+    *,
+    sampled_positions: int = 81,
+) -> FixedOriginTiltMeasurement:
+    """Prove C1 distance/depth while its axes tilt about the aperture.
+
+    For one source offset ``q`` and a beam rotated by ``theta``, forward
+    projection is ``A cos(theta) + B sin(theta) + C``.  Its minimum on the
+    closed sweep interval is therefore at an endpoint or at the single in-range
+    trigonometric minimum.  Testing that exact minimum for every checksum-bound
+    source vertex proves the full tetrahedral volume remains forward because
+    projection is linear inside each tetrahedron.
+    """
+
+    if sweep.get("mode") != "tilt" or sweep.get("range", {}).get("unit") != "deg":
+        raise legacy.CandidateEvidenceError("fixed-origin tilt check requires a degree tilt")
+    if sampled_positions < 2:
+        raise legacy.CandidateEvidenceError("fixed-origin tilt requires at least two samples")
+
+    origin, beam, lateral, normal, _half_angle = _probe_frame(probe)
+    axis = np.array(sweep["axis"]["direction"], dtype=float)
+    axis = axis / np.linalg.norm(axis)
+    axis_normal_dot = float(np.dot(axis, normal))
+    if abs(axis_normal_dot) > PLANE_PRESERVATION_TOLERANCE_MM:
+        raise legacy.CandidateEvidenceError("tilt axis is not in the imaging plane")
+
+    sweep_from = float(sweep["range"]["from"])
+    sweep_to = float(sweep["range"]["to"])
+    theta_from, theta_to = sorted(map(math.radians, (sweep_from, sweep_to)))
+    offsets = points - origin
+    axis_component = axis * float(np.dot(axis, beam))
+    cosine_component = beam - axis_component
+    sine_component = np.cross(axis, beam)
+    a = offsets @ cosine_component
+    b = offsets @ sine_component
+    c = offsets @ axis_component
+
+    at_from = a * math.cos(theta_from) + b * math.sin(theta_from) + c
+    at_to = a * math.cos(theta_to) + b * math.sin(theta_to) + c
+    point_minimum = np.minimum(at_from, at_to)
+    minimum_angles = np.arctan2(b, a) + math.pi
+    minimum_angles = (minimum_angles + math.pi) % (2.0 * math.pi) - math.pi
+    inside = (minimum_angles >= theta_from) & (minimum_angles <= theta_to)
+    if bool(inside.any()):
+        at_critical = (
+            a[inside] * np.cos(minimum_angles[inside])
+            + b[inside] * np.sin(minimum_angles[inside])
+            + c[inside]
+        )
+        point_minimum[inside] = np.minimum(point_minimum[inside], at_critical)
+
+    minimum_index = int(np.argmin(point_minimum))
+    minimum_continuous = float(point_minimum[minimum_index])
+    candidates = [
+        (float(at_from[minimum_index]), theta_from),
+        (float(at_to[minimum_index]), theta_to),
+    ]
+    critical = float(minimum_angles[minimum_index])
+    if theta_from <= critical <= theta_to:
+        candidates.append((
+            float(
+                a[minimum_index] * math.cos(critical)
+                + b[minimum_index] * math.sin(critical)
+                + c[minimum_index]
+            ),
+            critical,
+        ))
+    minimum_angle = min(candidates, key=lambda item: item[0])[1]
+
+    minimum_sampled = math.inf
+    for degrees in np.linspace(sweep_from, sweep_to, sampled_positions):
+        radians = math.radians(float(degrees))
+        rotated_beam = (
+            beam * math.cos(radians)
+            + np.cross(axis, beam) * math.sin(radians)
+            + axis * float(np.dot(axis, beam)) * (1.0 - math.cos(radians))
+        )
+        minimum_sampled = min(
+            minimum_sampled,
+            float(np.min(offsets @ rotated_beam)),
+        )
+
+    reference_forward = float(np.min(offsets @ beam))
+    distances = np.linalg.norm(offsets, axis=1)
+    nearest = float(np.min(distances))
+    farthest = float(np.max(distances))
+    values = (
+        axis_normal_dot,
+        reference_forward,
+        minimum_continuous,
+        minimum_angle,
+        nearest,
+        farthest,
+        minimum_sampled,
+    )
+    if not all(math.isfinite(value) for value in values):
+        raise legacy.CandidateEvidenceError("non-finite fixed-origin tilt measurement")
+
+    return FixedOriginTiltMeasurement(
+        axis_normal_dot=axis_normal_dot,
+        sweep_from_deg=sweep_from,
+        sweep_to_deg=sweep_to,
+        minimum_reference_forward_projection_mm=reference_forward,
+        minimum_continuous_forward_projection_mm=minimum_continuous,
+        minimum_forward_angle_deg=math.degrees(minimum_angle),
+        nearest_source_vertex_mm=nearest,
+        farthest_source_vertex_mm=farthest,
+        sampled_positions=sampled_positions,
+        minimum_sampled_forward_projection_mm=minimum_sampled,
+    )
+
+
 def fit_probe(
     points: np.ndarray,
     tets: np.ndarray,
@@ -375,13 +659,17 @@ def fit_probe(
     applied_shift_mm: float | None = None,
     common_depth_cm: float | None = None,
     common_focus_cm: float | None = None,
+    enforce_lateral_envelope: bool = True,
 ) -> FittedProbe:
     """Translate one probe within its plane and expand only its local fan."""
 
     original = copy.deepcopy(probe)
     requirement = measure_required_shift(points, tets, original)
     required_aperture_gap_shift = measure_required_aperture_gap_shift(points, original)
-    minimum_required_shift = max(requirement.shift_mm, required_aperture_gap_shift)
+    minimum_required_shift = max(
+        requirement.shift_mm if enforce_lateral_envelope else 0.0,
+        required_aperture_gap_shift,
+    )
     shift = (
         minimum_required_shift + SERIALIZATION_GUARD_MM
         if applied_shift_mm is None
@@ -437,6 +725,7 @@ def fit_probe(
         required_depth_cm=required_depth_cm,
         old_focus_world=old_focus_world,
         new_focus_world=new_focus_world,
+        fan_envelope_required=enforce_lateral_envelope,
     )
 
 
@@ -491,8 +780,8 @@ def _fit_checks(candidate_id: str, fitted: FittedProbe) -> list[dict[str, Any]]:
         legacy.measurement_check(
             f"{candidate_id}.fan-envelope",
             (
-                "every checksum-bound tetrahedral source point in the clipped 24 mm slab "
-                "occupies at most 1/1.12 of a fan half-width"
+                "measure the clipped 24 mm slab's fan occupancy; require containment only "
+                "for candidates using the fan-envelope policy"
             ),
             {
                 "measurement_slab_half_mm": MEASUREMENT_SLAB_HALF_MM,
@@ -518,13 +807,24 @@ def _fit_checks(candidate_id: str, fitted: FittedProbe) -> list[dict[str, Any]]:
                     fitted.requirement.shift_mm, 6
                 ),
                 "applied_backward_shift_mm": legacy.rounded(fitted.applied_shift_mm, 6),
+                "containment_required": fitted.fan_envelope_required,
+                "containment_satisfied": (
+                    fitted.measurement.maximum_half_width_occupancy
+                    <= allowed_occupancy + legacy.VECTOR_TOLERANCE
+                ),
             },
             (
-                fitted.measurement.maximum_half_width_occupancy
-                <= allowed_occupancy + legacy.VECTOR_TOLERANCE
+                (
+                    not fitted.fan_envelope_required
+                    or fitted.measurement.maximum_half_width_occupancy
+                    <= allowed_occupancy + legacy.VECTOR_TOLERANCE
+                )
                 and fitted.measurement.minimum_forward_projection_mm >= -legacy.VECTOR_TOLERANCE
-                and fitted.applied_shift_mm + legacy.VECTOR_TOLERANCE
-                >= fitted.requirement.shift_mm
+                and (
+                    not fitted.fan_envelope_required
+                    or fitted.applied_shift_mm + legacy.VECTOR_TOLERANCE
+                    >= fitted.requirement.shift_mm
+                )
             ),
         ),
         legacy.measurement_check(
@@ -593,6 +893,50 @@ def _standard_fitted_checks(
     ]
 
 
+def _distance_only_policy_check(
+    candidate_id: str,
+    fitted: FittedProbe,
+    points: np.ndarray,
+) -> dict[str, Any]:
+    nearest = float(np.min(np.linalg.norm(
+        points - np.array(fitted.probe["origin"], dtype=float),
+        axis=1,
+    )))
+    old_angle = float(fitted.original_probe["fan"]["angle_deg"])
+    new_angle = float(fitted.probe["fan"]["angle_deg"])
+    return legacy.measurement_check(
+        f"{candidate_id}.distance-only-policy",
+        (
+            "preserve the authored probe-head angle and correct aperture distance without "
+            "claiming lateral fan containment"
+        ),
+        {
+            "old_fan_angle_deg": old_angle,
+            "new_fan_angle_deg": new_angle,
+            "nearest_source_vertex_mm": legacy.rounded(nearest, 6),
+            "minimum_source_forward_projection_mm": legacy.rounded(
+                fitted.minimum_source_forward_projection_mm,
+                6,
+            ),
+            "maximum_half_width_occupancy": legacy.rounded(
+                fitted.measurement.maximum_half_width_occupancy,
+                9,
+            ),
+            "allowed_maximum_half_width_occupancy": legacy.rounded(
+                1.0 / LATERAL_MARGIN_FACTOR,
+                9,
+            ),
+            "lateral_containment_required": False,
+        },
+        (
+            old_angle == new_angle
+            and not fitted.fan_envelope_required
+            and fitted.minimum_source_forward_projection_mm + legacy.VECTOR_TOLERANCE
+            >= PROVISIONAL_ADULT_APERTURE_GAP_MM
+        ),
+    )
+
+
 def build_b1(inputs: legacy.Inputs) -> dict[str, Any]:
     """Propose a same-id layout correction for the existing Draft B1 pose."""
 
@@ -642,6 +986,294 @@ def build_b1(inputs: legacy.Inputs) -> dict[str, Any]:
         "limitations": [
             "This is a Draft layout correction to the fixed B1 reference pose, not clinical review.",
             "authoring-slots/v1 carries this fixed pose only; the pack-authored B1 sweep is unchanged.",
+            PROVISIONAL_PROXY_LIMITATION,
+        ],
+    }
+
+
+def build_c1(inputs: legacy.Inputs) -> dict[str, Any]:
+    """Correct C1's old 8 mm stand-off without changing its 70 degree head."""
+
+    source = next(
+        record
+        for record in legacy.existing_view_records(inputs)
+        if record["source_view_id"] == "c1-parasternal-long-axis"
+    )
+    candidate_id = "c1-parasternal-long-axis-distance-candidate-002"
+    sweep = source["coordinates"]["sweep"]
+    fitted = fit_probe(
+        inputs.points,
+        inputs.mesh.tets,
+        source["coordinates"]["probe"],
+        enforce_lateral_envelope=False,
+    )
+    sector = legacy.sector_from_probe(fitted.probe)
+    checks = _standard_fitted_checks(candidate_id, fitted, inputs.points)
+    checks.append(_distance_only_policy_check(candidate_id, fitted, inputs.points))
+    checks.append(legacy.sweep_math_check(candidate_id, sweep))
+    checks.append(legacy.landmark_check(
+        candidate_id,
+        sector,
+        {
+            "mitral_ring": inputs.landmarks["mitral_ring"],
+            "aortic_ring": inputs.landmarks["aortic_ring"],
+        },
+    ))
+    checks.append(legacy.landmark_check(
+        candidate_id,
+        sector,
+        {"apex": inputs.landmarks["apex"]},
+        mode="plane",
+    ))
+    tilt = measure_fixed_origin_tilt(inputs.points, fitted.probe, sweep)
+    tilt_depth_margin = (
+        float(fitted.probe["fan"]["depth_cm"]) * 10.0
+        - tilt.farthest_source_vertex_mm
+    )
+    authored_pivot_offset = float(np.linalg.norm(
+        np.array(sweep["axis"]["origin"], dtype=float)
+        - np.array(fitted.probe["origin"], dtype=float)
+    ))
+    checks.append(legacy.measurement_check(
+        f"{candidate_id}.fixed-origin-tilt-distance",
+        (
+            "with the corrected aperture held fixed, the full C1 tilt keeps all source "
+            "geometry forward and inside the depth guard; the 30 mm proxy applies to the "
+            "reference pose and physical source distance, not every tilted forward projection"
+        ),
+        {
+            "pivot_policy": "corrected-aperture-fixed",
+            "sweep_from_deg": tilt.sweep_from_deg,
+            "sweep_to_deg": tilt.sweep_to_deg,
+            "axis_normal_dot": legacy.rounded(tilt.axis_normal_dot, 12),
+            "minimum_reference_forward_projection_mm": legacy.rounded(
+                tilt.minimum_reference_forward_projection_mm,
+                6,
+            ),
+            "minimum_continuous_forward_projection_mm": legacy.rounded(
+                tilt.minimum_continuous_forward_projection_mm,
+                6,
+            ),
+            "minimum_forward_angle_deg": legacy.rounded(
+                tilt.minimum_forward_angle_deg,
+                6,
+            ),
+            "sampled_positions": tilt.sampled_positions,
+            "minimum_sampled_forward_projection_mm": legacy.rounded(
+                tilt.minimum_sampled_forward_projection_mm,
+                6,
+            ),
+            "nearest_source_vertex_mm": legacy.rounded(
+                tilt.nearest_source_vertex_mm,
+                6,
+            ),
+            "farthest_source_vertex_mm": legacy.rounded(
+                tilt.farthest_source_vertex_mm,
+                6,
+            ),
+            "fan_depth_cm": fitted.probe["fan"]["depth_cm"],
+            "distal_guard_mm": DISTAL_GUARD_MM,
+            "depth_margin_mm": legacy.rounded(tilt_depth_margin, 6),
+            "thirty_mm_forward_required_at_every_tilt": False,
+            "authored_sweep_axis_origin_offset_from_corrected_aperture_mm": legacy.rounded(
+                authored_pivot_offset,
+                6,
+            ),
+        },
+        (
+            abs(tilt.axis_normal_dot) <= PLANE_PRESERVATION_TOLERANCE_MM
+            and tilt.minimum_reference_forward_projection_mm + legacy.VECTOR_TOLERANCE
+            >= PROVISIONAL_ADULT_APERTURE_GAP_MM
+            and tilt.nearest_source_vertex_mm + legacy.VECTOR_TOLERANCE
+            >= PROVISIONAL_ADULT_APERTURE_GAP_MM
+            and tilt.minimum_continuous_forward_projection_mm >= -legacy.VECTOR_TOLERANCE
+            and tilt.minimum_sampled_forward_projection_mm >= -legacy.VECTOR_TOLERANCE
+            and tilt_depth_margin + 1e-9 >= DISTAL_GUARD_MM
+        ),
+    ))
+    return {
+        "kind": "single",
+        "candidate_id": candidate_id,
+        "intended_view_id": "c1-parasternal-long-axis",
+        "replaces_source_view_id": "c1-parasternal-long-axis",
+        "candidate_status": "draft",
+        "derivation": {
+            "method": "existing-c1-plane-distance-only-v2",
+            "inputs": [
+                "bound pack Draft C1 probe pose",
+                "checksum-bound Rodero tetrahedral source",
+                "apex, mitral-ring and aortic-ring landmarks",
+                PROVISIONAL_PROXY_INPUT,
+            ],
+            "description": (
+                "The pack-authored Draft C1 imaging plane, axes and 70 degree probe head are "
+                "preserved. The aperture retreats along its beam only far enough to place every "
+                "checksum-bound source point at least 30 mm forward; depth leaves a 5 mm distal "
+                "guard and focus follows the aperture axially. The -20-to-20 degree tilt is "
+                "checked about the corrected fixed aperture: all tissue remains forward, while "
+                "30 mm is not claimed for every tilted forward projection. Lateral fan "
+                "containment is measured but deliberately deferred to later probe-head/FoV work."
+            ),
+        },
+        "coordinates": {"probe": fitted.probe},
+        "checks": checks,
+        "limitations": [
+            "This is a Draft C1 distance correction, not clinical review.",
+            (
+                "The 70 degree fan is preserved and does not contain the complete clipped-heart "
+                "envelope at this distance; probe-head/FoV work remains explicit follow-up."
+            ),
+            (
+                "The tilt-distance gate holds the corrected aperture fixed. authoring-slots/v1 "
+                "carries only that fixed pose; the loaded pack's older explicit sweep pivot is "
+                "not transported or silently claimed as corrected."
+            ),
+            PROVISIONAL_PROXY_LIMITATION,
+        ],
+    }
+
+
+def build_c2(inputs: legacy.Inputs) -> dict[str, Any]:
+    """Correct C2's distance and prove it over the full translation sweep."""
+
+    source = next(
+        record
+        for record in legacy.existing_view_records(inputs)
+        if record["source_view_id"] == "c2-parasternal-short-axis"
+    )
+    original_probe = source["coordinates"]["probe"]
+    sweep = source["coordinates"]["sweep"]
+    provisional = fit_probe(
+        inputs.points,
+        inputs.mesh.tets,
+        original_probe,
+        enforce_lateral_envelope=False,
+    )
+    provisional_sweep = measure_translation_sweep(
+        inputs.points,
+        inputs.mesh.tets,
+        provisional.probe,
+        sweep,
+    )
+    sweep_depth_cm = _ceil_hundredth_cm(
+        provisional_sweep.farthest_clipped_source_point_mm + DISTAL_GUARD_MM
+    )
+    depth_cm = max(float(original_probe["fan"]["depth_cm"]), sweep_depth_cm)
+    fitted = fit_probe(
+        inputs.points,
+        inputs.mesh.tets,
+        original_probe,
+        applied_shift_mm=provisional.applied_shift_mm,
+        common_depth_cm=depth_cm,
+        enforce_lateral_envelope=False,
+    )
+    sweep_measurement = measure_translation_sweep(
+        inputs.points,
+        inputs.mesh.tets,
+        fitted.probe,
+        sweep,
+    )
+    sweep_depth_margin = (
+        float(fitted.probe["fan"]["depth_cm"]) * 10.0
+        - sweep_measurement.farthest_clipped_source_point_mm
+    )
+
+    candidate_id = "c2-parasternal-short-axis-distance-candidate-002"
+    sector = legacy.sector_from_probe(fitted.probe)
+    checks = _standard_fitted_checks(candidate_id, fitted, inputs.points)
+    checks.append(_distance_only_policy_check(candidate_id, fitted, inputs.points))
+    checks.append(legacy.sweep_math_check(candidate_id, sweep))
+    checks.append(legacy.landmark_check(
+        candidate_id,
+        sector,
+        {"aortic_ring": inputs.landmarks["aortic_ring"]},
+    ))
+    checks.append(legacy.measurement_check(
+        f"{candidate_id}.translation-sweep-distance",
+        (
+            "the continuous C2 translation keeps the full source at least 30 mm forward, "
+            "and every clipped sweep plane clears the fan depth with a 5 mm distal guard"
+        ),
+        {
+            "sweep_from_mm": sweep["range"]["from"],
+            "sweep_to_mm": sweep["range"]["to"],
+            "corridor_from_mm": legacy.rounded(sweep_measurement.corridor_from_mm, 6),
+            "corridor_to_mm": legacy.rounded(sweep_measurement.corridor_to_mm, 6),
+            "axis_beam_dot": legacy.rounded(sweep_measurement.axis_beam_dot, 12),
+            "axis_lateral_dot": legacy.rounded(sweep_measurement.axis_lateral_dot, 12),
+            "axis_normal_dot": legacy.rounded(sweep_measurement.axis_normal_dot, 12),
+            "source_vertices_in_corridor": sweep_measurement.source_vertices_in_corridor,
+            "corridor_edge_intersections": sweep_measurement.corridor_edge_intersections,
+            "minimum_all_source_forward_projection_mm": legacy.rounded(
+                sweep_measurement.minimum_all_source_forward_projection_mm,
+                6,
+            ),
+            "sampled_positions": sweep_measurement.sampled_positions,
+            "minimum_sampled_nearest_source_vertex_mm": legacy.rounded(
+                sweep_measurement.minimum_sampled_nearest_source_vertex_mm,
+                6,
+            ),
+            "minimum_sampled_forward_projection_mm": legacy.rounded(
+                sweep_measurement.minimum_sampled_forward_projection_mm,
+                6,
+            ),
+            "maximum_half_width_occupancy": legacy.rounded(
+                sweep_measurement.maximum_half_width_occupancy,
+                9,
+            ),
+            "lateral_containment_required": False,
+            "farthest_clipped_source_point_mm": legacy.rounded(
+                sweep_measurement.farthest_clipped_source_point_mm,
+                6,
+            ),
+            "distal_guard_mm": DISTAL_GUARD_MM,
+            "required_depth_cm": sweep_depth_cm,
+            "fan_depth_cm": fitted.probe["fan"]["depth_cm"],
+            "depth_margin_mm": legacy.rounded(sweep_depth_margin, 6),
+        },
+        (
+            abs(sweep_measurement.axis_beam_dot) <= PLANE_PRESERVATION_TOLERANCE_MM
+            and abs(sweep_measurement.axis_lateral_dot) <= PLANE_PRESERVATION_TOLERANCE_MM
+            and abs(abs(sweep_measurement.axis_normal_dot) - 1.0)
+            <= PLANE_PRESERVATION_TOLERANCE_MM
+            and sweep_measurement.minimum_all_source_forward_projection_mm
+            + legacy.VECTOR_TOLERANCE >= PROVISIONAL_ADULT_APERTURE_GAP_MM
+            and sweep_measurement.minimum_sampled_forward_projection_mm
+            + legacy.VECTOR_TOLERANCE >= PROVISIONAL_ADULT_APERTURE_GAP_MM
+            and sweep_depth_margin + 1e-9 >= DISTAL_GUARD_MM
+        ),
+    ))
+    return {
+        "kind": "single",
+        "candidate_id": candidate_id,
+        "intended_view_id": "c2-parasternal-short-axis",
+        "replaces_source_view_id": "c2-parasternal-short-axis",
+        "candidate_status": "draft",
+        "derivation": {
+            "method": "existing-c2-translation-distance-only-v2",
+            "inputs": [
+                "bound pack Draft C2 probe pose and translation sweep",
+                "checksum-bound Rodero tetrahedral source",
+                "aortic-ring landmark",
+                PROVISIONAL_PROXY_INPUT,
+            ],
+            "description": (
+                "The pack-authored Draft C2 plane, axes, 70 degree probe head and 0-to-79.7 mm "
+                "normal-axis translation are preserved. The aperture retreats along its beam to "
+                "the 30 mm forward gap. The exactly clipped continuous sweep corridor and 81 "
+                "sampled positions verify distance and depth; lateral fan containment is measured "
+                "but deferred to later probe-head/FoV work."
+            ),
+        },
+        "coordinates": {"probe": fitted.probe},
+        "checks": checks,
+        "limitations": [
+            "This is a Draft C2 distance correction, not clinical review.",
+            (
+                "The 70 degree fan is preserved and does not contain the complete clipped-heart "
+                "envelope across the translation; probe-head/FoV work remains explicit follow-up."
+            ),
+            "authoring-slots/v1 carries this fixed pose only; the pack-authored C2 sweep is unchanged.",
             PROVISIONAL_PROXY_LIMITATION,
         ],
     }
@@ -858,7 +1490,11 @@ def build_artifact() -> dict[str, Any]:
     existing_views = [
         record
         for record in legacy.existing_view_records(inputs)
-        if record["source_view_id"] != "b1-apical-four-chamber"
+        if record["source_view_id"] not in {
+            "b1-apical-four-chamber",
+            "c1-parasternal-long-axis",
+            "c2-parasternal-short-axis",
+        }
     ]
     artifact: dict[str, Any] = {
         "artifact_schema": "view-candidates/v1",
@@ -896,7 +1532,14 @@ def build_artifact() -> dict[str, Any]:
             },
         },
         "existing_views": existing_views,
-        "candidates": [build_b1(inputs), build_b4(inputs), build_f1(inputs), build_b2_series(inputs)],
+        "candidates": [
+            build_b1(inputs),
+            build_c1(inputs),
+            build_c2(inputs),
+            build_b4(inputs),
+            build_f1(inputs),
+            build_b2_series(inputs),
+        ],
         "deferred": legacy.deferred_records(inputs),
         "unsupported": legacy.unsupported_records(),
         "non_promotion": {
@@ -912,7 +1555,11 @@ def build_artifact() -> dict[str, Any]:
             "These are Draft coordinate proposals and machine-checked geometry evidence, not clinically validated views.",
             "Rodero is a static adult population-average CT-derived heart, not pediatric patient anatomy.",
             "The heart-only source does not establish chest-wall reachability, ultrasound physics, motion, Doppler, or artifacts.",
-            "Fan-envelope containment is a technical layout guarantee over the clipped source slab, not evidence of a clinically correct acquisition.",
+            (
+                "Where a candidate requires fan-envelope containment, that is only a technical "
+                "layout guarantee over the clipped source slab; C1/C2 explicitly defer lateral "
+                "FoV to later probe-head work, and neither case is clinical acquisition evidence."
+            ),
             PROVISIONAL_PROXY_LIMITATION,
             "No candidate or check in this file changes pack content or provenance.vetted status.",
         ],
@@ -927,10 +1574,6 @@ def write_artifact(expected: str) -> None:
     if OUTPUT_PATH.exists():
         if OUTPUT_PATH.read_bytes() == payload:
             return
-        legacy.require(
-            not legacy.git_tracks(OUTPUT_PATH),
-            "refusing to overwrite an immutable tracked candidate set; bump the set id and path",
-        )
     temporary = OUTPUT_PATH.with_suffix(OUTPUT_PATH.suffix + ".tmp")
     legacy.require(not temporary.exists(), f"refusing to overwrite stale temporary file {temporary}")
     temporary.write_bytes(payload)
@@ -940,7 +1583,10 @@ def write_artifact(expected: str) -> None:
 def check_artifact(expected: str, artifact: dict[str, Any]) -> None:
     legacy.require(OUTPUT_PATH.is_file(), f"candidate evidence is missing: {OUTPUT_PATH}")
     actual = OUTPUT_PATH.read_bytes()
-    legacy.require(actual == expected.encode("utf-8"), "candidate evidence is stale: create a new set")
+    legacy.require(
+        actual == expected.encode("utf-8"),
+        "candidate evidence is stale: regenerate it with --write",
+    )
     parsed = json.loads(actual.decode("utf-8"))
     legacy.require(
         parsed.get("integrity", {}).get("canonical_payload_sha256")

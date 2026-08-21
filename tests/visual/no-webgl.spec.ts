@@ -44,6 +44,8 @@ test.describe('WebGL unavailable', () => {
     await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'unavailable');
     await expect(page.getByTestId('echo-unavailable')).toContainText('WebGL2');
     await expect(page.getByTestId('echo-simulated')).toBeVisible();
+    await expect(page.getByTestId('echo-depth-markers')).toHaveCount(0);
+    await expect(page.getByTestId('echo-canvas')).not.toHaveAttribute('aria-label', /Depth scale/);
 
     // The page must not be blank.
     const rendered = await page.evaluate(() => document.body.innerText.trim().length);

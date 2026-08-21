@@ -2,7 +2,7 @@
  * Fail-closed validation for generated Rodero view-coordinate evidence.
  *
  * A candidate set is deliberately not a content pack. This module validates
- * its closed evidence envelope, reuses the pack's coordinate schemas, and
+ * its current generated evidence envelope, reuses the pack's coordinate schemas, and
  * binds the document to the exact pack and model bytes currently in the
  * checkout. It never writes either the evidence document or a pack.
  */
@@ -58,6 +58,7 @@ const V2_CANDIDATE_CHECK_SUFFIXES = Object.freeze([
 interface CandidateSetPolicy {
   derivationFiles: readonly string[];
   candidateCheckSuffixes: readonly string[];
+  candidateCheckSuffixesByViewId: Readonly<Record<string, readonly string[]>>;
   seriesCheckSuffixes: readonly string[];
   allowExistingViewReplacement: boolean;
 }
@@ -67,6 +68,7 @@ function candidateSetPolicy(candidateSetId: string): CandidateSetPolicy | null {
     return {
       derivationFiles: VIEW_CANDIDATE_DERIVATION_FILES,
       candidateCheckSuffixes: [],
+      candidateCheckSuffixesByViewId: {},
       seriesCheckSuffixes: [],
       allowExistingViewReplacement: false,
     };
@@ -75,6 +77,18 @@ function candidateSetPolicy(candidateSetId: string): CandidateSetPolicy | null {
     return {
       derivationFiles: VIEW_CANDIDATE_V2_DERIVATION_FILES,
       candidateCheckSuffixes: V2_CANDIDATE_CHECK_SUFFIXES,
+      candidateCheckSuffixesByViewId: {
+        'c1-parasternal-long-axis': [
+          'distance-only-policy',
+          'sweep-math',
+          'fixed-origin-tilt-distance',
+        ],
+        'c2-parasternal-short-axis': [
+          'distance-only-policy',
+          'sweep-math',
+          'translation-sweep-distance',
+        ],
+      },
       seriesCheckSuffixes: ['common-envelope-settings'],
       allowExistingViewReplacement: true,
     };
@@ -170,10 +184,13 @@ function candidateCoordinateCheckIds(
   prefix: string,
   hasSweep: boolean,
   policy: CandidateSetPolicy | null,
+  intendedViewId: string,
 ): string[] {
   return [
     ...coordinateCheckIds(prefix, hasSweep),
     ...(policy?.candidateCheckSuffixes ?? []).map((suffix) => `${prefix}.${suffix}`),
+    ...(policy?.candidateCheckSuffixesByViewId[intendedViewId] ?? [])
+      .map((suffix) => `${prefix}.${suffix}`),
   ];
 }
 
@@ -300,6 +317,7 @@ const BoundFile = z.strictObject({
   sha256: Sha256,
 });
 
+/** Current file and canonical-payload digests; this is not a historical lock. */
 const RegisteredCandidateSet = z.strictObject({
   candidate_set_id: EvidenceId,
   path: AssetPath,
@@ -492,6 +510,7 @@ export const ViewCandidateEvidence = z
             candidate.candidate_id,
             candidate.coordinates.sweep !== undefined,
             policy,
+            candidate.intended_view_id,
           ),
           ctx,
           ['candidates', index, 'checks'],
@@ -524,6 +543,7 @@ export const ViewCandidateEvidence = z
             variant.variant_id,
             variant.coordinates.sweep !== undefined,
             policy,
+            candidate.intended_view_id,
           ),
           ctx,
           ['candidates', index, 'variants', variantIndex, 'checks'],
@@ -607,9 +627,9 @@ export type ViewCandidateValidation =
 export interface ViewCandidateValidationOptions {
   repoRoot: string;
   evidencePath?: string;
-  /** Independent accepted-digest lock supplied by the repository registry. */
+  /** Separate current-digest lock supplied by the repository registry. */
   registryEntry?: RegisteredCandidateSet;
-  /** Tests with a synthetic non-Git repo may disable only the historical Git-object check. */
+  /** Tests with a synthetic non-Git repo may disable the source-revision Git-object check. */
   verifyGitBinding?: boolean;
 }
 
@@ -689,117 +709,6 @@ function safeRepoPath(repoRoot: string, relativePath: string): string | null {
   const absolute = resolve(repoRoot, ...relativePath.split('/'));
   const root = resolve(repoRoot);
   return absolute === root || absolute.startsWith(`${root}${sep}`) ? absolute : null;
-}
-
-function gitBlob(repoRoot: string, revision: string, path: string): Buffer | null {
-  try {
-    return execFileSync('git', ['show', `${revision}:${path}`], {
-      cwd: repoRoot,
-      maxBuffer: 64 * 1024 * 1024,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Enforce immutable history for accepted sets while allowing new registry
- * entries. HEAD catches local pre-commit edits; every commit that changed the
- * registry keeps the first accepted bytes authoritative even if a failed
- * direct-push commit is followed by an unchanged commit.
- */
-export function verifyViewCandidateAppendOnlyHistory(
-  repoRoot: string,
-  currentRegistry: ViewCandidateRegistry,
-  revisions?: readonly string[],
-): ViewCandidateIssue[] {
-  const issues: ViewCandidateIssue[] = [];
-  const currentByPath = new Map(
-    currentRegistry.candidate_sets.map((entry) => [entry.path, entry]),
-  );
-  const registryRelativePath = 'evidence/view-candidates/registry.json';
-  let revisionsToCheck = revisions;
-  if (revisionsToCheck === undefined) {
-    let registryHistory: string[] = [];
-    try {
-      const history = execFileSync(
-        'git',
-        ['log', '--format=%H', '--', registryRelativePath],
-        { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-      );
-      registryHistory = history.split(/\r?\n/).filter(Boolean);
-    } catch {
-      // The source-revision binding reports a missing or unusable Git checkout.
-    }
-    revisionsToCheck = [...new Set(['HEAD', ...registryHistory])];
-  }
-
-  for (const revision of revisionsToCheck) {
-    const registryBytes = gitBlob(repoRoot, revision, registryRelativePath);
-    if (registryBytes === null) continue;
-
-    let historicalRaw: unknown;
-    try {
-      historicalRaw = JSON.parse(registryBytes.toString('utf8')) as unknown;
-    } catch (error) {
-      issues.push({
-        path: registryRelativePath,
-        message: `${revision} registry is not JSON: ${(error as Error).message}`,
-      });
-      continue;
-    }
-    const historical = ViewCandidateRegistry.safeParse(historicalRaw);
-    if (!historical.success) {
-      issues.push({
-        path: registryRelativePath,
-        message: `${revision} registry does not satisfy view-candidate-registry/v1`,
-      });
-      continue;
-    }
-
-    for (const historicalEntry of historical.data.candidate_sets) {
-      const currentEntry = currentByPath.get(historicalEntry.path);
-      if (currentEntry === undefined) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable candidate set registered in ${revision} was removed`,
-        });
-        continue;
-      }
-      if (!jsonEqual(currentEntry, historicalEntry)) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable registry entry differs from ${revision}`,
-        });
-      }
-
-      const historicalCandidate = gitBlob(repoRoot, revision, historicalEntry.path);
-      if (historicalCandidate === null) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `${revision} registry points to a missing candidate blob`,
-        });
-        continue;
-      }
-      const currentPath = safeRepoPath(repoRoot, historicalEntry.path);
-      if (currentPath === null || !existsSync(currentPath)) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable candidate file from ${revision} is missing`,
-        });
-        continue;
-      }
-      if (!historicalCandidate.equals(readFileSync(currentPath))) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable candidate bytes differ from ${revision}`,
-        });
-      }
-    }
-  }
-
-  return issues;
 }
 
 function repoRelative(repoRoot: string, absolutePath: string): string {
@@ -1171,24 +1080,24 @@ export function validateViewCandidateEvidence(
     if (registered.candidate_set_id !== parsed.data.candidate_set_id) {
       issues.push({
         path: 'candidate_set_id',
-        message: `does not match immutable registry id "${registered.candidate_set_id}"`,
+        message: `does not match registry id "${registered.candidate_set_id}"`,
       });
     }
     if (registered.canonical_payload_sha256 !== parsed.data.integrity.canonical_payload_sha256) {
       issues.push({
         path: 'integrity.canonical_payload_sha256',
-        message: 'does not match the independently pinned immutable registry digest',
+        message: 'does not match the separately pinned current registry digest',
       });
     }
     if (options.evidencePath === undefined) {
       issues.push({
         path: '<file>',
-        message: 'an immutable registry entry requires evidencePath for exact file-byte checking',
+        message: 'a registry entry requires evidencePath for exact file-byte checking',
       });
     } else if (registered.file_sha256 !== sha256File(options.evidencePath)) {
       issues.push({
         path: '<file>',
-        message: 'exact file-byte digest does not match the independently pinned immutable registry',
+        message: 'exact file-byte digest does not match the separately pinned current registry',
       });
     }
   }

@@ -1,4 +1,4 @@
-"""Focused geometry tests for the immutable candidate-set-002 derivation."""
+"""Focused geometry tests for the generated candidate-set-002 derivation."""
 from __future__ import annotations
 
 import math
@@ -174,6 +174,123 @@ class ClippedTetraEnvelopeTests(unittest.TestCase):
             places=6,
         )
         self.assertGreaterEqual(envelope["measurement"]["minimum_side_clearance_mm"], 4.6)
+
+    def test_c1_and_c2_use_distance_only_replacements_with_70_degree_heads(self) -> None:
+        inputs = subject.legacy.load_inputs()
+        c1 = subject.build_c1(inputs)
+        c2 = subject.build_c2(inputs)
+
+        for candidate, expected in (
+            (c1, {
+                "view_id": "c1-parasternal-long-axis",
+                "depth_cm": 14.32,
+                "focus_cm": 9.21,
+                "shift_mm": 22.009892,
+                "nearest_mm": 31.812369,
+            }),
+            (c2, {
+                "view_id": "c2-parasternal-short-axis",
+                "depth_cm": 13.93,
+                "focus_cm": 8.89,
+                "shift_mm": 22.000124,
+                "nearest_mm": 30.052534,
+            }),
+        ):
+            self.assertEqual(candidate["kind"], "single")
+            self.assertEqual(candidate["intended_view_id"], expected["view_id"])
+            self.assertEqual(candidate["replaces_source_view_id"], expected["view_id"])
+            self.assertNotIn("sweep", candidate["coordinates"])
+            probe = candidate["coordinates"]["probe"]
+            self.assertEqual(probe["fan"]["angle_deg"], 70)
+            self.assertEqual(probe["fan"]["depth_cm"], expected["depth_cm"])
+            self.assertEqual(probe["fan"]["focus_cm"], expected["focus_cm"])
+
+            proxy = next(
+                check
+                for check in candidate["checks"]
+                if check["check_id"].endswith(".aperture-gap-proxy")
+            )["measurement"]
+            self.assertAlmostEqual(
+                proxy["minimum_source_forward_projection_mm"],
+                30.000001,
+                places=6,
+            )
+            self.assertAlmostEqual(
+                proxy["applied_backward_shift_mm"],
+                expected["shift_mm"],
+                places=6,
+            )
+
+            policy = next(
+                check
+                for check in candidate["checks"]
+                if check["check_id"].endswith(".distance-only-policy")
+            )["measurement"]
+            self.assertEqual(policy["old_fan_angle_deg"], 70.0)
+            self.assertEqual(policy["new_fan_angle_deg"], 70.0)
+            self.assertAlmostEqual(
+                policy["nearest_source_vertex_mm"],
+                expected["nearest_mm"],
+                places=6,
+            )
+            self.assertFalse(policy["lateral_containment_required"])
+
+            envelope = next(
+                check
+                for check in candidate["checks"]
+                if check["check_id"].endswith(".fan-envelope")
+            )["measurement"]
+            self.assertFalse(envelope["containment_required"])
+            self.assertFalse(envelope["containment_satisfied"])
+
+        sweep = next(
+            check
+            for check in c2["checks"]
+            if check["check_id"].endswith(".translation-sweep-distance")
+        )["measurement"]
+        self.assertEqual(sweep["sampled_positions"], 81)
+        self.assertEqual(sweep["axis_beam_dot"], 0.0)
+        self.assertEqual(sweep["axis_lateral_dot"], 0.0)
+        self.assertEqual(sweep["axis_normal_dot"], 1.0)
+        self.assertAlmostEqual(
+            sweep["minimum_all_source_forward_projection_mm"],
+            30.000001,
+            places=6,
+        )
+        self.assertAlmostEqual(
+            sweep["minimum_sampled_nearest_source_vertex_mm"],
+            30.052534,
+            places=6,
+        )
+        self.assertEqual(sweep["required_depth_cm"], 13.93)
+        self.assertGreaterEqual(sweep["depth_margin_mm"], subject.DISTAL_GUARD_MM)
+        self.assertFalse(sweep["lateral_containment_required"])
+
+        tilt = next(
+            check
+            for check in c1["checks"]
+            if check["check_id"].endswith(".fixed-origin-tilt-distance")
+        )["measurement"]
+        self.assertEqual(tilt["pivot_policy"], "corrected-aperture-fixed")
+        self.assertEqual(tilt["sampled_positions"], 81)
+        self.assertAlmostEqual(
+            tilt["minimum_reference_forward_projection_mm"],
+            30.000001,
+            places=6,
+        )
+        self.assertAlmostEqual(
+            tilt["minimum_continuous_forward_projection_mm"],
+            19.633777,
+            places=6,
+        )
+        self.assertAlmostEqual(tilt["minimum_forward_angle_deg"], 20.0, places=6)
+        self.assertAlmostEqual(
+            tilt["farthest_source_vertex_mm"],
+            138.111224,
+            places=6,
+        )
+        self.assertGreaterEqual(tilt["depth_margin_mm"], subject.DISTAL_GUARD_MM)
+        self.assertFalse(tilt["thirty_mm_forward_required_at_every_tilt"])
 
 
 if __name__ == "__main__":

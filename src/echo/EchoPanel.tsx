@@ -23,6 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
 import { AUTHORING_ENABLED } from '../authoring/flag.ts';
 import { describePack, resolveTuning } from './acoustics.ts';
+import { DEPTH_MARKER_INTERVAL_MM, echoDepthMarkers } from './depthMarkers.ts';
 import { DEFAULT_POLAR, EchoRenderer, EchoRendererError, fetchVolume } from './EchoRenderer.ts';
 import { frameAt, imagingFrame, withApexFlip } from './probeFrame.ts';
 
@@ -126,6 +127,17 @@ export default function EchoPanel({
     : 1;
   const descriptor = useMemo(() => describePack(pack), [pack]);
   const tuning = useMemo(() => resolveTuning(view?.echo_tuning), [view]);
+  /** One displayed frame drives both the simulated raster and its physical ruler. */
+  const displayedFrame = useMemo(() => view
+    ? withApexFlip(
+      freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
+      apexFlipped,
+    )
+    : null, [apexFlipped, freePose, scrub, view]);
+  const depthMarkers = useMemo(
+    () => displayedFrame ? echoDepthMarkers(displayedFrame) : [],
+    [displayedFrame],
+  );
 
   // Set up the renderer and upload the volume once per pack.
   useEffect(() => {
@@ -175,7 +187,7 @@ export default function EchoPanel({
   /** Redraw for the latest pose without rebuilding the size observer. */
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || status.kind !== 'ready' || !view) return;
+    if (!canvas || status.kind !== 'ready' || !view || !displayedFrame) return;
 
     const draw = () => {
       const renderer = rendererRef.current;
@@ -188,13 +200,7 @@ export default function EchoPanel({
         canvas.width = width;
         canvas.height = height;
       }
-      renderer.render(
-        withApexFlip(
-          freePose ? imagingFrame(freePose) : frameAt(view.probe, view.sweep, scrub),
-          apexFlipped,
-        ),
-        tuning,
-      );
+      renderer.render(displayedFrame, tuning);
       canvas.dataset.echoFrame = String(Number(canvas.dataset.echoFrame ?? '0') + 1);
     };
 
@@ -203,7 +209,7 @@ export default function EchoPanel({
     return () => {
       if (drawRef.current === draw) drawRef.current = () => {};
     };
-  }, [scrub, status, tuning, view, freePose, apexFlipped]);
+  }, [displayedFrame, status, tuning, view]);
 
   /*
    * The resize half is not optional: the canvas is laid out by CSS, so at first
@@ -225,6 +231,17 @@ export default function EchoPanel({
   const sweepValue = sweep
     ? sweep.range.from + (sweep.range.to - sweep.range.from) * scrub
     : null;
+  const echoImageLabel = showTransition
+    ? 'Simulated echocardiogram, unauthored transition between saved views'
+    : shownWorkingView
+      ? `Simulated echocardiogram, ${shownWorkingView.label}, authoring working view`
+      : offTrack
+        ? 'Simulated echocardiogram, free probe, not a saved view'
+        : `Simulated echocardiogram, ${view.name}`;
+  const hasDepthScale = status.kind === 'ready' && displayedFrame && depthMarkers.length > 0;
+  const echoAriaLabel = hasDepthScale
+    ? `${echoImageLabel}. Depth scale: one dot per centimetre; full depth ${(displayedFrame.depthMm / 10).toFixed(1)} centimetres.`
+    : echoImageLabel;
 
   return (
     <section
@@ -277,14 +294,31 @@ export default function EchoPanel({
             ? { 'data-transition-opacity': shownOpacity.toFixed(3) }
             : {})}
           role="img"
-          aria-label={showTransition
-            ? 'Simulated echocardiogram, unauthored transition between saved views'
-            : shownWorkingView
-              ? `Simulated echocardiogram, ${shownWorkingView.label}, authoring working view`
-              : offTrack
-                ? 'Simulated echocardiogram, free probe, not a saved view'
-                : `Simulated echocardiogram, ${view.name}`}
+          aria-label={echoAriaLabel}
         />
+        {hasDepthScale && (
+          <div
+            className="echo__depth-markers"
+            style={{ opacity: shownOpacity }}
+            data-testid="echo-depth-markers"
+            data-depth-mm={displayedFrame.depthMm}
+            data-interval-mm={DEPTH_MARKER_INTERVAL_MM}
+            data-marker-count={depthMarkers.length}
+            aria-hidden="true"
+          >
+            {depthMarkers.map((marker) => (
+              <span
+                key={marker.depthMm}
+                className="echo__depth-marker"
+                style={{
+                  left: `${marker.leftPercent}%`,
+                  top: `${marker.topPercent}%`,
+                }}
+                data-depth-mm={marker.depthMm}
+              />
+            ))}
+          </div>
+        )}
         {status.kind === 'unavailable' && (
           <p className="echo__message" data-testid="echo-unavailable">
             The simulated echo needs WebGL2 with float render targets, which this browser did not

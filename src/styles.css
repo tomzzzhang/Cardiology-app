@@ -203,6 +203,23 @@ body {
   height: 100%;
 }
 
+/* Physical calibration, kept separate from the simulated tissue raster. */
+.echo__depth-markers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.echo__depth-marker {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(207 224 242 / 60%);
+  transform: translate(-50%, -50%);
+}
+
 .echo__message {
   position: absolute;
   inset: 0;

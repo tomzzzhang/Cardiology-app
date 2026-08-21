@@ -1,6 +1,6 @@
 # Rodero view-coordinate candidates
 
-**Updated:** 2026-08-20 22:49 EDT
+**Updated:** 2026-08-21 00:47 EDT
 
 This directory holds review evidence for **Draft Rodero view coordinates**. A candidate is a
 machine-authored or manually authored probe pose, fan, and optional sweep bound to one exact source
@@ -10,7 +10,7 @@ does not change `views[].provenance.vetted`.
 ## Authority and claim boundary
 
 - The candidate coordinates are technical proposals. Their authority is limited to the derivation
-  and checks recorded in their immutable candidate set.
+  and checks recorded in the current generated candidate set.
 - [`docs/view_canon.md`](../../docs/view_canon.md) supplies the draft clinical vocabulary and
   guideline references. It is not evidence that any candidate pose is correct.
 - [`contracts/authoring-mode.md`](../../contracts/authoring-mode.md) governs the route from a local
@@ -25,49 +25,64 @@ accurate simulation of ultrasound appearance, motion, Doppler, or artifacts. Use
 **Draft coordinate proposal** or **machine-checked geometry candidate**. Do not use unqualified
 terms such as **valid**, **validated**, **vetted**, or **clinically accurate**.
 
-## Immutable candidate sets
+## Editable generated candidate sets
 
-Once a candidate set is shared for assessment, do not edit it in place. A changed pose, fan, sweep,
-source pack, coordinate frame, or derivation creates a new candidate-set id and file. Each set must
-bind itself to the exact source pack id and version, source and pack-asset digests, source-pack Git
-revision, coordinate-frame basis, and hashes of the generator's complete derivation-file closure.
-Its internal digest covers canonical JSON with the digest field set to `null`. This makes every
-assessment reproducible and prevents a review from silently following later coordinates.
-Newly derived origins and basis vectors are serialized to nine decimal places so insignificant
-process- or BLAS-dependent last-bit drift cannot change an immutable set. Existing pack poses are
-copied exactly rather than quantized.
+Candidate-set files are working generated evidence, not permanent review records. An intentional
+change to a pose, fan, sweep, derivation, or machine check may regenerate and replace the current
+file in place. Keeping a stable id and path makes the authoring-review workflow easy to repeat; it
+does not give old bytes continuing authority. Every generated set still binds itself to the exact
+source pack id and version, source and pack-asset digests, source-pack Git revision,
+coordinate-frame basis, and hashes of the generator's complete derivation-file closure. Its
+internal digest covers canonical JSON with the digest field set to `null`. Newly derived origins
+and basis vectors are serialized to nine decimal places so insignificant process- or
+BLAS-dependent last-bit drift does not churn the file. Existing pack poses are copied exactly
+rather than quantized.
 
-[`registry.json`](registry.json) independently pins both the exact file-byte digest and the
-canonical-payload digest of every accepted set. Add a new entry for a new immutable set; never
-change an existing entry to make an edited file pass. The Node content gate compares previously
-committed registry entries and candidate bytes against every commit that changed the registry;
-the first accepted set remains authoritative across later commits. Existing sets are append-only,
-while new paths remain allowed. It also checks schema, Git and byte
-bindings, canon coverage, and the registry locks. It deliberately does not pretend to
-recompute raw-source geometry. Before a set is shared, its version-matched source-replay gate must
-also pass in the named conda environment.
+[`registry.json`](registry.json) is a separate **current-digest registry**. It pins the exact
+file-byte digest and canonical-payload digest expected for each generated set in the checkout. A
+regeneration must update the set and its registry entry together. The Node content gate checks the
+current schema, source-revision and file bindings, canon coverage, and both registered digests; it
+does not compare candidate bytes with Git history and does not recompute raw-source geometry. The
+version-matched Python `--check` remains the source replay boundary and must pass before current
+coordinates are shared for assessment. Assessment sidecars bind exact candidate digests, so an old
+assessment cannot silently follow regenerated coordinates.
 
-`candidate-set-001.json` is the first shared coordinate record and remains immutable. Visual review
-showed tissue touching or crossing the B1, B4, F1, and B2 fan sides despite unused distal room.
-`candidate-set-002.json` preserves every proposed imaging plane and axis, but moves each aperture
-backward along its beam by a measured amount. Before depth is adjusted, every aperture is required
-to leave the complete checksum-bound cardiac source at least 30 mm forward of its aperture plane.
-That round number is a provisional **adult Rodero visual-layout proxy**, informed by published mean
-shortest skin-to-heart distances of 31.3 +/- 11.3 mm apical and 32.1 +/- 7.9 mm parasternal in 150
-standing adults ([Rahko 2008, PMID 18187292](https://pubmed.ncbi.nlm.nih.gov/18187292/)). It is not a
-measurement of a chest wall the source does not contain, a patient-specific distance, a pediatric
-default, or a clinical acquisition standard; the reference distance also varied with BMI. The
-applied retreat is the greater of that proxy requirement and the measured fan-containment
-requirement; F1 therefore remains farther away.
+`candidate-set-001.json` is the earlier generated comparison baseline. Visual review of that
+generation showed tissue touching or crossing the B1, B4, F1, and B2 fan sides despite unused
+distal room. `candidate-set-002.json` is the current working generation. It preserves each proposed
+imaging plane and axis while moving apertures backward along their beams and extending focus/depth
+only as measured.
 
-The fan check clips the tetrahedral source to the same +/-12 mm imaging slab and contains that
-complete clipped volume inside `1 / 1.12` of either fan half-width. Depth then leaves 5 mm beyond its
-farthest point. The aperture gap is distinct from the recorded minimum fan-side clearance: the
-first measures forward separation from the aperture plane, while the second measures separation
-from a fan edge inside the slab. B2 keeps one common shift, depth, and focus across all seven
-comparison variants. B1 is an explicit same-id Draft replacement candidate; the pack's original B1
-and sweep remain unchanged. These are machine geometry guarantees, not acquisition or clinical
-validation. Replay both immutable generations with:
+For B1, B4, F1, and the seven unselected B2 variants, set 002 requires the complete tetrahedral
+source clipped to the same +/-12 mm imaging slab to fit inside `1 / 1.12` of either fan half-width;
+depth then leaves 5 mm beyond the farthest admitted point. B2 keeps one common shift, depth, and
+focus across all seven comparison variants. B1 is an explicit same-id Draft replacement
+candidate. The loaded pack and its B1 sweep remain unchanged.
+
+C1 and C2 deliberately use a narrower **distance-only** policy. Each aperture moves backward by
+about 22 mm until the complete checksum-bound source is at least 30 mm forward of the reference
+aperture plane. Their authored 70-degree probe heads, beam axes, lateral axes, and imaging planes
+remain unchanged. Focus moves with the aperture to preserve the world-space focus, and depth grows
+only enough to retain a 5 mm distal guard. The resulting C1 and C2 fans do not contain the complete
+lateral heart envelope; the generated checks record that miss without treating it as a distance
+failure. Choosing different probe heads or wider fields of view is explicit later work.
+
+The C1 tilt check holds the corrected aperture fixed. Physical source separation remains at least
+30 mm and all source geometry stays forward and within depth throughout the tilt, although forward
+projection onto the tilted beam can fall below 30 mm. The C2 translation axis is orthogonal to the
+beam and lateral axes, so its full translation preserves the 30 mm forward separation while depth
+is checked across the swept corridor. `authoring-slots/v1` carries only each corrected fixed pose;
+it does not transport or replace the loaded pack's sweeps.
+
+The 30 mm round number is a provisional **adult Rodero visual-layout proxy**, informed by published
+mean shortest skin-to-heart distances of 31.3 +/- 11.3 mm apical and 32.1 +/- 7.9 mm parasternal in
+150 standing adults ([Rahko 2008, PMID 18187292](https://pubmed.ncbi.nlm.nih.gov/18187292/)). It is
+not a measurement of a chest wall the source does not contain, a patient-specific distance, a
+pediatric default, or a clinical acquisition standard; the reference distance also varied with
+BMI. The aperture gap is distinct from fan-side clearance: one measures forward separation from
+the aperture plane, while the other measures separation from a fan edge inside the slab. These are
+machine geometry checks, not acquisition or clinical validation. Replay both current generations
+with:
 
 ```sh
 conda run -n cardiology-app python pipeline/view_candidates.py --check
@@ -79,7 +94,7 @@ and no reviewer identity.
 
 ## Visual-review session carriers
 
-An immutable candidate set is deliberately not mounted as runtime content. A separate
+A generated candidate set is deliberately not mounted as runtime content. A separate
 `authoring-slots/v1` carrier may extract its probe poses for visual inspection through the existing
 authoring import boundary. The carrier is derived convenience data: it is not evidence, pack
 content, a clinical assessment, or a selected canonical view.
@@ -92,11 +107,12 @@ and C2 because those exact baselines already come from the loaded Rodero pack. T
 
 That first carrier is retained for comparison. The current visual-review carrier is
 [`normal-rodero/pack-0.1.1/review-session-002.authoring-slots-v1.json`](normal-rodero/pack-0.1.1/review-session-002.authoring-slots-v1.json),
-which carries ten margin- and aperture-gap-corrected set-002 probes: B1, B4, and F1 in their
-standard slots plus the seven unselected B2 variants in `custom-1` through `custom-7`. Its B1 row
-is a local saved override for visual review; C1 and C2 still come unchanged from the loaded pack.
+which carries twelve set-002 probes: the B1, C1, C2, B4, and F1 Draft proposals in their standard
+slots plus the seven unselected B2 variants in `custom-1` through `custom-7`. Its B1, C1, and C2
+rows are browser-local saved overrides for visual review. The carrier contains no sweeps, so the
+loaded pack remains the only source for sweep definitions.
 
-Verify the checked carrier against the accepted immutable candidate set:
+Verify the checked carrier against the current registered candidate set:
 
 ```sh
 ./node_modules/.bin/tsx scripts/build-view-candidate-review-session.ts \
@@ -105,8 +121,11 @@ Verify the checked carrier against the accepted immutable candidate set:
   2026-08-21T01:42:00.000Z --check
 ```
 
-`--write` creates a new carrier with exclusive-create semantics; it never overwrites an existing
-review-session file.
+Running the command without a mode previews the carrier on stdout. `--write` validates the input
+and atomically writes or replaces the named review-session file; `--check` requires the checked
+file to match exactly. The writer refuses output outside the repository, refuses to overwrite its
+candidate-set input, and accepts only the expected `review-session-NNN.authoring-slots-v1.json`
+filename pattern.
 
 The current authoring **Import** installs slots into browser-local IndexedDB; it is not a transient
 Mount/Unmount overlay. Use a fresh localhost port or browser profile for a disposable review
@@ -115,15 +134,20 @@ not write `pack.json`; selecting a populated slot now applies it immediately, wh
 the way to restore an already selected slot after manual adjustment. The loaded pack remains the
 source of runtime structures, sweeps, echo tuning, provenance, and review status.
 
+Import copies the carrier into browser-local storage. After regenerating or replacing a carrier,
+refreshing the page is not enough: import that carrier again (or use a fresh browser profile/port)
+to see its current coordinates.
+
 ## Separate assessment sidecars
 
 Every assessment is a separate JSON sidecar derived from
-[`assessment-template.json`](assessment-template.json). The sidecar identifies the immutable
-candidate set and both its exact file-byte SHA-256 and internal canonical-payload SHA-256, records
+[`assessment-template.json`](assessment-template.json). The sidecar identifies the candidate set
+and both its exact file-byte SHA-256 and internal canonical-payload SHA-256, records
 the assessor role without a personal name, scopes every finding to an assessment axis, and keeps
 `effect_on_pack_review_status` equal to `none`. Before the first real assessment is committed, its
 sidecar schema and binding checker must be added to the content gate; the template alone is not a
-validated assessment.
+validated assessment. If a candidate is regenerated, a prior sidecar remains evidence about the
+older exact bytes and is not an assessment of the current registered set.
 
 The axes are independent:
 

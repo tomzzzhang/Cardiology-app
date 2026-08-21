@@ -38,6 +38,18 @@ transcribed the specular term as an addition, which would have changed the model
 **Post:** TGC, log compression + dynamic range, polar→Cartesian scan-conversion LUT, sector mask,
 subtle near-field clutter.
 
+**Depth scale:** the panel overlays one pointer-inert dot per centimetre along the screen-right fan
+edge. Dot positions are radial from the displayed sector vertex and come from the exact live
+`ImagingFrame.depthMm` used to render that frame, so saved sweeps, free-probe depth edits, authoring
+transitions, and Flip apex cannot leave the ruler behind. Zero and an exact distal boundary are
+omitted. The scale is presentation chrome outside the WebGL raster: it does not change simulated
+tissue pixels, follow `flip_lr`, or reuse the probe-notch `marker_side` convention. If a valid wide
+sector extends beyond the 4:3 canvas, a dot moves to the inset screen-right crop boundary and its
+axial coordinate is solved again on the same radial depth circle; screen clipping must not turn a
+physical scale into a decorative vertical or x-clamped row.
+An imported pose that would exceed the bounded marker budget draws no ruler and makes no depth-scale
+accessibility claim; arbitrary finite schema input must not create an unbounded DOM workload.
+
 ## Inputs — and the boundary
 
 ```

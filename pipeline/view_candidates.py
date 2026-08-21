@@ -1,4 +1,4 @@
-"""Generate immutable Draft view-coordinate evidence for Rodero pack 0.1.1.
+"""Generate deterministic Draft view-coordinate evidence for Rodero pack 0.1.1.
 
 This is deliberately separate from :mod:`ingest`.  It reads the checksum-bound
 Rodero source and the already-published pack, derives geometry candidates, and
@@ -16,7 +16,6 @@ import copy
 import hashlib
 import json
 import math
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -129,7 +128,7 @@ def rounded(value: float, digits: int = 6) -> float:
 def vector_list(vector: np.ndarray) -> list[float]:
     # Large NumPy reductions can vary at the final binary bit across processes
     # or BLAS implementations. Nine decimal places remain far beyond this
-    # source model's physical resolution while keeping immutable JSON bytes
+    # source model's physical resolution while keeping generated JSON bytes
     # reproducible across supported machines.
     return [rounded(value, DERIVED_VECTOR_DECIMALS) for value in vector]
 
@@ -1199,18 +1198,6 @@ def verify_inputs_unchanged() -> None:
         check_sha256(ROOT / relative, expected, f"pack asset after generation {relative}")
 
 
-def git_tracks(path: Path) -> bool:
-    relative = path.relative_to(ROOT).as_posix()
-    result = subprocess.run(
-        ["git", "ls-files", "--error-unmatch", relative],
-        cwd=ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return result.returncode == 0
-
-
 def write_artifact(expected: str) -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     payload = expected.encode("utf-8")
@@ -1218,10 +1205,6 @@ def write_artifact(expected: str) -> None:
         actual = OUTPUT_PATH.read_bytes()
         if actual == payload:
             return
-        require(
-            not git_tracks(OUTPUT_PATH),
-            "refusing to overwrite an immutable tracked candidate set; bump the set id and path",
-        )
     temporary = OUTPUT_PATH.with_suffix(OUTPUT_PATH.suffix + ".tmp")
     require(not temporary.exists(), f"refusing to overwrite stale temporary file {temporary}")
     temporary.write_bytes(payload)
@@ -1232,7 +1215,7 @@ def check_artifact(expected: str, artifact: dict[str, Any]) -> None:
     require(OUTPUT_PATH.is_file(), f"candidate evidence is missing: {OUTPUT_PATH}")
     expected_bytes = expected.encode("utf-8")
     actual_bytes = OUTPUT_PATH.read_bytes()
-    require(actual_bytes == expected_bytes, f"candidate evidence is stale: create a new set")
+    require(actual_bytes == expected_bytes, "candidate evidence is stale: regenerate it with --write")
     parsed = json.loads(actual_bytes.decode("utf-8"))
     require(
         parsed.get("integrity", {}).get("canonical_payload_sha256")

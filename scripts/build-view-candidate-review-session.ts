@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Build one explicit authoring-slots/v1 visual-review carrier. */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { repoRoot } from './lib/discoverPacks.ts';
 import {
   ViewCandidateRegistry,
@@ -40,6 +40,12 @@ if (isAbsolute(evidenceRelative) || isAbsolute(outputRelative)
 if (dirname(outputPath) !== dirname(evidencePath)) {
   fail('the review-session carrier must stay beside its candidate set');
 }
+if (outputPath === evidencePath) {
+  fail('the review-session carrier cannot overwrite its candidate set');
+}
+if (!/^review-session-\d{3}\.authoring-slots-v1\.json$/.test(basename(outputPath))) {
+  fail('the output must be named review-session-NNN.authoring-slots-v1.json');
+}
 const evidenceLabel = evidenceRelative.split(sep).join('/');
 const outputLabel = outputRelative.split(sep).join('/');
 
@@ -48,7 +54,7 @@ const registry = ViewCandidateRegistry.parse(JSON.parse(readFileSync(
   'utf8',
 )) as unknown);
 const registryEntry = registry.candidate_sets.find((entry) => entry.path === evidenceLabel);
-if (registryEntry === undefined) fail(`${evidenceLabel} is not in the immutable registry`);
+if (registryEntry === undefined) fail(`${evidenceLabel} is not in the candidate-set registry`);
 
 const raw = JSON.parse(readFileSync(evidencePath, 'utf8')) as unknown;
 const validated = validateViewCandidateEvidence(raw, {
@@ -63,7 +69,7 @@ const serialized = `${JSON.stringify(session, null, 2)}\n`;
 if (check) {
   if (!existsSync(outputPath)) fail(`${outputLabel} does not exist`);
   if (readFileSync(outputPath, 'utf8') !== serialized) {
-    fail(`${outputLabel} does not match the accepted candidate set`);
+    fail(`${outputLabel} does not match the current registered candidate set`);
   }
   console.log(`ok  ${outputLabel} (${session.slots.length} Draft test views)`);
   process.exit(0);
@@ -74,6 +80,13 @@ if (!write) {
   process.exit(0);
 }
 
-if (existsSync(outputPath)) fail(`${outputLabel} already exists; refusing to overwrite it`);
-writeFileSync(outputPath, serialized, { encoding: 'utf8', flag: 'wx' });
+const temporaryPath = `${outputPath}.tmp`;
+if (existsSync(temporaryPath)) fail(`${outputLabel}.tmp already exists`);
+try {
+  writeFileSync(temporaryPath, serialized, { encoding: 'utf8', flag: 'wx' });
+  renameSync(temporaryPath, outputPath);
+} catch (error) {
+  if (existsSync(temporaryPath)) unlinkSync(temporaryPath);
+  throw error;
+}
 console.log(`wrote ${outputLabel} (${session.slots.length} Draft test views)`);

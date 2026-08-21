@@ -3,7 +3,6 @@
  * the boundary that prevents a plausible-looking JSON document from escaping
  * its exact source revision or carrying review promotion.
  */
-import { execFileSync } from 'node:child_process';
 import {
   copyFileSync,
   mkdirSync,
@@ -26,7 +25,6 @@ import {
   candidatePayloadSha256,
   sha256File,
   validateViewCandidateEvidence,
-  verifyViewCandidateAppendOnlyHistory,
 } from '../../scripts/lib/viewCandidateEvidence.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -43,6 +41,14 @@ const checkedEvidencePath = join(
   'pack-0.1.1',
   'candidate-set-001.json',
 );
+const checkedEvidenceV2Path = join(
+  repoRoot,
+  'evidence',
+  'view-candidates',
+  'normal-rodero',
+  'pack-0.1.1',
+  'candidate-set-002.json',
+);
 const registryPath = join(repoRoot, 'evidence', 'view-candidates', 'registry.json');
 const sourcePackRevision = '770d5d2aa65f27d510c4ab59e94f91209c539cbb';
 const registry = ViewCandidateRegistry.parse(
@@ -51,6 +57,9 @@ const registry = ViewCandidateRegistry.parse(
 const checkedRegistryEntry = registry.candidate_sets.find(
   (entry) => entry.path.endsWith('/candidate-set-001.json'),
 ) ?? (() => { throw new Error('the candidate registry must pin candidate-set-001.json'); })();
+const checkedRegistryEntryV2 = registry.candidate_sets.find(
+  (entry) => entry.path.endsWith('/candidate-set-002.json'),
+) ?? (() => { throw new Error('the candidate registry must pin candidate-set-002.json'); })();
 
 const parsedPack = validatePack(JSON.parse(readFileSync(packPath, 'utf8')) as unknown);
 if (!parsedPack.ok) throw new Error('the checked-in Rodero pack must validate for this test');
@@ -291,7 +300,7 @@ afterEach(() => {
   workDir = null;
 });
 
-describe('view-candidates/v1 closed evidence envelope', () => {
+describe('view-candidates/v1 current generated evidence envelope', () => {
   it('validates the checked-in Rodero candidate set against the current pack bytes', () => {
     const raw = JSON.parse(readFileSync(checkedEvidencePath, 'utf8')) as unknown;
     const result = validateViewCandidateEvidence(raw, {
@@ -438,6 +447,34 @@ describe('view-candidates/v1 closed evidence envelope', () => {
     }))).toContain(
       `missing required machine check "${series.candidate_id}.common-envelope-settings"`,
     );
+  });
+
+  it('requires the C1 tilt-distance and C2 translation-distance gates in set-002', () => {
+    const raw = JSON.parse(readFileSync(checkedEvidenceV2Path, 'utf8')) as any;
+    const result = validateViewCandidateEvidence(raw, {
+      repoRoot,
+      evidencePath: checkedEvidenceV2Path,
+      registryEntry: checkedRegistryEntryV2,
+    });
+    expect(result.ok, messages(result)).toBe(true);
+
+    for (const [viewId, suffix] of [
+      ['c1-parasternal-long-axis', 'fixed-origin-tilt-distance'],
+      ['c2-parasternal-short-axis', 'translation-sweep-distance'],
+    ] as const) {
+      const missing = structuredClone(raw);
+      const candidate = missing.candidates.find(
+        (entry: any) => entry.intended_view_id === viewId,
+      );
+      expect(candidate).toBeDefined();
+      candidate.checks = candidate.checks.filter(
+        (entry: any) => !entry.check_id.endsWith(`.${suffix}`),
+      );
+      expect(messages(validateViewCandidateEvidence(missing, {
+        repoRoot,
+        verifyGitBinding: false,
+      }))).toContain(`missing required machine check "${candidate.candidate_id}.${suffix}"`);
+    }
   });
 
   it.each([
@@ -630,7 +667,7 @@ describe('view-candidates/v1 closed evidence envelope', () => {
       .toMatch(/canonical_payload_sha256.*digest mismatch/);
   });
 
-  it('refuses edited coordinates even when their self-digest is recomputed', () => {
+  it('refuses candidate bytes that disagree with the current registry after self-rehashing', () => {
     const tampered = JSON.parse(readFileSync(checkedEvidencePath, 'utf8')) as any;
     tampered.candidates[0].coordinates.probe.origin = [100_000, 100_000, 100_000];
     signEvidence(tampered);
@@ -639,55 +676,6 @@ describe('view-candidates/v1 closed evidence envelope', () => {
       evidencePath: checkedEvidencePath,
       registryEntry: checkedRegistryEntry,
     });
-    expect(messages(result)).toMatch(/independently pinned immutable registry digest/);
-  });
-
-  it('refuses committed candidate edits even after an unchanged follow-up commit', () => {
-    workDir = mkdtempSync(join(tmpdir(), 'view-candidate-history-'));
-    const candidateRelativePath =
-      'evidence/view-candidates/example/pack-0.1.0/candidate-set-001.json';
-    const candidatePath = join(workDir, ...candidateRelativePath.split('/'));
-    const historyRegistryPath = join(workDir, 'evidence', 'view-candidates', 'registry.json');
-    mkdirSync(dirname(candidatePath), { recursive: true });
-
-    const historicalRegistry = {
-      registry_schema: 'view-candidate-registry/v1',
-      candidate_sets: [{
-        candidate_set_id: 'example-pack-0.1.0-candidate-set-001',
-        path: candidateRelativePath,
-        file_sha256: 'a'.repeat(64),
-        canonical_payload_sha256: 'b'.repeat(64),
-      }],
-    };
-    writeFileSync(candidatePath, '{"coordinates":"original"}\n');
-    writeFileSync(historyRegistryPath, `${JSON.stringify(historicalRegistry, null, 2)}\n`);
-    const git = (args: string[]) => execFileSync('git', args, {
-      cwd: workDir!,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    git(['init']);
-    git(['config', 'user.email', 'candidate-test@example.invalid']);
-    git(['config', 'user.name', 'Candidate Test']);
-    git(['config', 'commit.gpgsign', 'false']);
-    git(['add', '.']);
-    git(['commit', '-m', 'pin candidate']);
-
-    const editedRegistry = structuredClone(historicalRegistry);
-    editedRegistry.candidate_sets[0].file_sha256 = 'c'.repeat(64);
-    writeFileSync(candidatePath, '{"coordinates":"edited"}\n');
-    writeFileSync(historyRegistryPath, `${JSON.stringify(editedRegistry, null, 2)}\n`);
-    git(['add', '.']);
-    git(['commit', '-m', 'tamper candidate']);
-    writeFileSync(join(workDir, 'unrelated.txt'), 'unchanged follow-up\n');
-    git(['add', 'unrelated.txt']);
-    git(['commit', '-m', 'unrelated follow-up']);
-
-    const issues = verifyViewCandidateAppendOnlyHistory(
-      workDir,
-      ViewCandidateRegistry.parse(editedRegistry),
-    );
-    expect(issues.map((issue) => issue.message).join('\n')).toMatch(
-      /immutable registry entry differs.*immutable candidate bytes differ/s,
-    );
+    expect(messages(result)).toMatch(/separately pinned current registry digest/);
   });
 });

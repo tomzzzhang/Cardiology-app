@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-20 23:52 EDT
+**Last Updated:** 2026-08-21 01:00 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2159,3 +2159,48 @@ sticky flip from the preceding view could put intact opaque tissue in front of t
 app-driven saved-view landing, Echo-plane mode now evaluates the camera against the actual offset
 plane `Q = C + sN` and applies Reverse if needed. It does not watch manual orbit, does not touch the
 Free cutter, and does not override a manual Reverse until another saved view is applied.
+
+---
+
+## 61. Echo depth now has a visible physical scale
+
+**Owner direction, 2026-08-21.** The echo image now shows small calibration dots at one-centimetre
+radial intervals along the screen-right fan edge. If an unusually wide sector runs outside the
+canvas, its markers follow the visible right crop edge while remaining on their exact radial depth
+circles. The ruler uses the exact live fan depth: changing depth, scrubbing, or moving between
+authoring views changes its spacing with the image. Flip apex mirrors the radial direction
+vertically, while `flip_lr` and the separate probe-notch `marker_side` convention do not move the
+screen-right ruler.
+
+**What to look at.** The dots should read as quiet device chrome, not bright anatomy: 3 CSS px,
+cool grey, no glow, no labels, no focus marker. The vertex and exact distal boundary carry no dot,
+so neither end is half-clipped. The overlay is outside the WebGL echo raster, preserving the
+renderer’s grey-level and performance measurements. Numeric depth labels, a focus marker, and the
+removed probe-orientation mark remain separate decisions.
+
+---
+
+## 62. C1 and C2 now use distance-first review poses, not wider probe heads
+
+**Owner correction, 2026-08-21.** The first C1/C2 poses inherited the pipeline's old 8 mm
+visual stand-off and looked implausibly close. The current generated review set moves both
+apertures backwards without changing their imaging axes or 70 degree fan heads. C1 now has a
+30.000001 mm reference forward gap (31.812369 mm to the nearest source vertex), 14.32 cm depth,
+and 9.21 cm focus. C2 has the same measured forward lower bound throughout its normal-axis
+translation, 30.052534 mm nearest sampled vertex distance, 13.93 cm depth, and 8.89 cm focus.
+Both depths leave more than the required 5 mm distal guard.
+
+**What this does not claim.** C1's apex and part of its projected heart envelope remain outside
+the retained 70 degree sector; C2 also has measured lateral clipping. Those are visible,
+non-gating probe-head limitations for later work, not reasons to push the current aperture an
+implausible distance away or silently widen the head. The 30 mm rule remains an adult Rodero
+visual-layout proxy on a heart-only source, not a chest wall, patient measurement, pediatric
+default, or clinical validation. Candidate files are generated working evidence and may be
+regenerated in place; the registry locks their current bytes and the Python replay checks the
+geometry.
+
+**Working-definition wording.** These imported coordinates are the views currently being defined,
+so the authoring selector no longer appends `— overridden` or presents that as their status. The
+browser still keeps the loaded pack pose intact underneath and offers **Restore pack pose**; the
+storage boundary remains exact without turning implementation language into the author-facing
+meaning of the row.

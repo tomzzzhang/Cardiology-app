@@ -74,6 +74,10 @@ with authoring absent; ordinary platform work does not wait on that release chec
    frame; direct camera input lands the selected pose exactly and stops the presentation motion.
    Recall remains available because choosing an already selected native option does not fire a
    change event, and it is the explicit way back after manual adjustment.
+   Browser-local poses over a pack row are presented as **working definitions**, without an
+   `overridden` suffix. The original pack pose remains untouched and can still be restored exactly;
+   that storage distinction is an internal safety boundary, not the author-facing status of a view
+   being defined.
    The authoring-only **Prevent auto-rotation** mode removes the camera from that shared transition:
    selecting or recalling a saved view still animates the probe, wedge, cutter, and live echo on
    the same clock, while the current anatomy orientation stays exact. Manual camera controls —
