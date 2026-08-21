@@ -2,7 +2,7 @@
 
 **Branch:** `experiment/vhl-partition`
 **Branched from `dev` at:** `294751faf124b79693cae99d9335e881189a032c`
-**Last Updated:** 2026-08-21 00:30 EDT
+**Last Updated:** 2026-08-21 01:10 EDT
 
 Branch log. Interleave these entries by timestamp into the planning folder's
 `progress_log.md` at merge, then delete this file.
@@ -10,6 +10,41 @@ Branch log. Interleave these entries by timestamp into the planning folder's
 Newest first.
 
 ---
+
+## 2026-08-21 01:10 ET — session closed for length; handoff written, round-two seeds pending
+
+**State.** Work paused mid-task by choice, not by failure. The observer has placed a
+second seed round — the same chamber seeds plus a coat of "not lumen" barrier marks
+over the outside of the heart — and it is pending paste into the next session. Nothing
+else blocks.
+
+**What changed this entry.** The flood and frame code had been living in throwaway
+scripts, which would have forced a rewrite. It is now `pipeline/vhl_seed_partition.py`
+and reproduces the round-one numbers exactly, so the next session runs one command
+instead of reconstructing an afternoon. `output/vhl-partition/HANDOFF.md` carries the
+resume instructions, the open problem, the gate requirements, and a list of the
+mistakes this branch made so they are not repeated.
+
+**Next step is one command,** given in HANDOFF.md: run `vhl_seed_partition.py` against
+the round-two seeds. The single number that decides it is the right ventricle, 238 mL
+on round one against an expected 60-100 because the label wrapped the whole organ. If
+the barrier marks bring it into range the partition is done and the anatomy gates
+become runnable for the first time on this branch.
+
+**If it still leaks, do not tune the flood again.** Four variants have been tried and
+the reason none can work is recorded: the bogus pockets the sealing envelope bridges
+are as wide as the valve orifices it must seal, so no radius separates them. The fix
+is upstream — define chamber space by ray parity against a smoothed epicardial surface
+instead of a morphological envelope.
+
+**Owed and not written:** a proposed delta for `pack.json`'s orientation block. The
+declared orientation is measurably wrong by 37.6, 77.9 and 65.3 degrees and that is
+the most consequential finding on this branch, but no proposal has been drafted for
+it yet. The four existing deltas in `sources.proposed.md` remain unapplied.
+
+**Environment note for the next session.** `~/Downloads` and `~/Library/CloudStorage`
+are blocked by macOS privacy protection for the agent process regardless of sandbox
+settings; `/tmp` and the repo work. Ask for a paste or a copy into `/tmp`.
 
 ## 2026-08-21 00:30 ET — human seeding lands; orientation SETTLED, partition still blocked
 

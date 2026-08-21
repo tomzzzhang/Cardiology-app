@@ -1,0 +1,138 @@
+{
+  "seeds": {
+    "5": 1,
+    "1": 4,
+    "2": 9,
+    "4": 5,
+    "3": 8
+  },
+  "frame": {
+    "patient_left": [
+      0.7920507442286407,
+      -0.48842602466877577,
+      -0.36619071123270275
+    ],
+    "base": [
+      0.5139748304843037,
+      0.20990598219700565,
+      0.8317267293207197
+    ],
+    "anterior": [
+      -0.32937135910016146,
+      -0.8469825836840842,
+      0.4172948726504385
+    ],
+    "raw_axis_angle_deg": 89.36,
+    "declared_disagreement_deg": {
+      "patient_left": 37.6,
+      "base": 77.9,
+      "anterior": 65.3
+    },
+    "checks": {
+      "LA posterior to RA": {
+        "pass": true,
+        "margin_mm": 42.3
+      },
+      "RA right of LA": {
+        "pass": false,
+        "margin_mm": -11.4
+      },
+      "aorta basal to ventricles": {
+        "pass": true,
+        "margin_mm": 48.2
+      }
+    }
+  },
+  "chambers": [
+    {
+      "tag": 1,
+      "name": "LV",
+      "ml": 89.1,
+      "expected_ml": [
+        60,
+        100
+      ],
+      "in_range": true,
+      "extent_voxels": [
+        122,
+        214,
+        226
+      ]
+    },
+    {
+      "tag": 2,
+      "name": "RV",
+      "ml": 238.1,
+      "expected_ml": [
+        60,
+        100
+      ],
+      "in_range": false,
+      "extent_voxels": [
+        241,
+        288,
+        364
+      ]
+    },
+    {
+      "tag": 3,
+      "name": "LA",
+      "ml": 58.0,
+      "expected_ml": [
+        25,
+        45
+      ],
+      "in_range": false,
+      "extent_voxels": [
+        193,
+        315,
+        312
+      ]
+    },
+    {
+      "tag": 4,
+      "name": "RA",
+      "ml": 37.1,
+      "expected_ml": [
+        25,
+        45
+      ],
+      "in_range": true,
+      "extent_voxels": [
+        172,
+        185,
+        174
+      ]
+    },
+    {
+      "tag": 5,
+      "name": "Aorta",
+      "ml": 15.3,
+      "expected_ml": [
+        15,
+        25
+      ],
+      "in_range": true,
+      "extent_voxels": [
+        122,
+        138,
+        151
+      ]
+    },
+    {
+      "tag": 6,
+      "name": "PA",
+      "ml": 0.0,
+      "expected_ml": [
+        15,
+        25
+      ],
+      "in_range": false,
+      "extent_voxels": [
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}
