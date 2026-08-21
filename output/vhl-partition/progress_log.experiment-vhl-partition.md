@@ -2,7 +2,7 @@
 
 **Branch:** `experiment/vhl-partition`
 **Branched from `dev` at:** `294751faf124b79693cae99d9335e881189a032c`
-**Last Updated:** 2026-08-20 23:05 EDT
+**Last Updated:** 2026-08-21 00:30 EDT
 
 Branch log. Interleave these entries by timestamp into the planning folder's
 `progress_log.md` at merge, then delete this file.
@@ -10,6 +10,52 @@ Branch log. Interleave these entries by timestamp into the planning folder's
 Newest first.
 
 ---
+
+## 2026-08-21 00:30 ET — human seeding lands; orientation SETTLED, partition still blocked
+
+**State.** One observer placed 27 seeds in the 3D labeller, covering five of six
+tags. All 27 land in cavity. This is the first result on this branch that came from
+a person rather than an algorithm, and it immediately produced the thing four
+automatic methods could not.
+
+**Orientation is now measured, and the declared one is wrong.** The tool never asks
+which way is patient-left; chambers are named and the frame is derived from where
+they sit. Derived patient-left is 37.6 deg off the declared +x, base/superior is
+77.9 deg off +y, anterior is 65.3 deg off +z. The model is not axis-aligned to
+anatomy at all. Internal coherence is strong and independent: the raw left-right and
+base axes come out 89.4 deg apart unforced, LA is 42.3 mm posterior to RA, the aorta
+is 48.2 mm basal to the ventricles. Source and shipped glTF bounding boxes agree to
+0.1 mm in the same axis order, so ingest applied no rotation and the frame carries to
+the pack directly. Proposed delta to follow for pack.json's orientation block.
+
+**Partition: four tags plausible, RV badly wrong.** LV 86.6 mL, RA 22.8, aorta 15.3
+are anatomically shaped and correctly sized for a 14-year-old. LA 55.8 is high. RV
+comes out at 257 mL with a bounding extent of essentially the whole heart.
+
+**Cause is this branch's cavity definition, not the seeds.** `envelope AND NOT
+tissue` includes the film between the true epicardium and the morphological
+envelope, plus the trabecular interstices. Both are connected sheets wrapping the
+organ, so the first label to touch one inherits all of it, and the RV seeds are the
+most peripheral. Three flood variants were tried — plain geodesic BFS, priority
+watershed on the distance transform, and Dijkstra with a narrowness penalty — giving
+238, 279 and 257 mL. None fixes it because none can: no flood weighting repairs a
+mask that contains the wrong space. Eroding the film out instead disconnects the
+lumen and strands 14 of 27 seeds.
+
+**Next step, and it is upstream of everything.** Define chamber space against a
+proper epicardial surface — ray parity against a smoothed epicardial mesh — rather
+than a morphological envelope that bridges the AV groove and the gaps between
+vessels. Every downstream number on this branch inherits that definition.
+
+**Observer notes, both confirmed.** The pulmonary artery stub is too short to seed.
+The AV valves are modelled open, so atrium and ventricle are one connected space with
+no neck to cut at — the same blocker §5b.3 found from the automatic side, and the
+likely explanation for LA reading high.
+
+**A retraction.** An earlier check in this session, "RV anterior to LV", was reported
+as passing. It is circular: the frame's left-right axis is built from the LV-RV
+difference, so those centroids cannot differ along the perpendicular. It measured
+nothing and is withdrawn in NOTES.md §5c.1.
 
 ## 2026-08-20 23:05 EDT — Rodero tried as label donor; two variants disagree on which lobe is the LV
 

@@ -1,6 +1,6 @@
 # VHL heart0102 partition experiment — technical findings
 
-**Last Updated:** 2026-08-20 23:20 EDT
+**Last Updated:** 2026-08-21 00:30 EDT
 
 Branch `experiment/vhl-partition`, cut from `dev` at `294751faf124b79693cae99d9335e881189a032c`.
 
@@ -371,6 +371,117 @@ With both routes failing, the three regions in `chamber-cores.png` are coloured 
 palette and remain **unidentified**. No tag in 1–6 is assigned to anything. Assigning them would
 mean picking between a coin-flip registration and a non-discriminating measurement, and calling
 the result anatomy.
+
+
+## 5c. Human seeding — the orientation falls out, the partition does not
+
+27 seeds placed by one observer in the 3D labeller (`seeds.observer-A.json`),
+covering five of the six tags. **All 27 land in cavity**, which is the first
+thing checked and not a given.
+
+### 5c.1 The orientation, settled
+
+The seeds were never asked which way is patient-left; they name chambers, and
+the frame is derived from where those chambers turn out to be. The derived axes,
+in the model's own coordinates:
+
+| axis | direction | angle from the DECLARED axis |
+|---|---|---|
+| patient-left | `[ 0.792, -0.488, -0.366]` | 37.6 deg from `+x` |
+| base / superior | `[ 0.514, 0.210, 0.832]` | **77.9 deg** from `+y` |
+| anterior | `[-0.329, -0.847, 0.417]` | 65.3 deg from `+z` |
+
+**The pack's declared orientation is wrong**, and not marginally: its "up" is
+78 degrees from the true base-apex axis. The model is not axis-aligned to anatomy
+at all. `pack.json` has always said ORIENTATION UNVERIFIED; it is now measured.
+The source STL and the shipped glTF have bounding boxes agreeing to 0.1 mm in
+the same axis order, so ingest applied no rotation and this frame carries over
+to the pack unchanged.
+
+Supporting evidence that the seeds are internally coherent, none of it used to
+build the frame:
+
+- The raw left-right axis (LV to RV) and the raw base axis (ventricles to atria)
+  come out **89.4 degrees apart** without being orthogonalised.
+- LA is posterior to RA by 42.3 mm — passes, and passes strongly.
+- The aorta seed is 48.2 mm basal to the ventricular centroids — passes.
+- LV and RV centroids are 45.2 mm apart along the derived left-right axis.
+
+One check FAILS: RA sits 11.4 mm to the patient-LEFT of LA, where normal anatomy
+puts it to the right. That axis is the weak one — the interatrial septum is
+oblique and the atria genuinely overlap left-to-right, so an 11 mm discrepancy
+is within the range where the ordering is not diagnostic. A straight LA/RA label
+swap is ruled out by the posterior check, which would have inverted.
+
+**A check that was reported and must be retracted:** "RV anterior to LV" was
+scored and passed at +0.0 mm. It is circular. The frame's left-right axis is
+built FROM the LV-RV difference, so those two centroids cannot differ along the
+perpendicular by construction. It measured nothing.
+
+### 5c.2 The partition: four tags plausible, one badly wrong
+
+Geodesic flood from the seeds through the cavity, so no label can cross the
+septum. Volumes against normal ranges for a 14-year-old:
+
+| tag | mL | expected | verdict |
+|---|---|---|---|
+| LV | 86.6 | 60-100 | plausible |
+| RV | **257.1** | 60-100 | **wrong** |
+| LA | 55.8 | 25-45 | high |
+| RA | 22.8 | 25-45 | plausible |
+| aorta | 15.3 | 15-25 | plausible |
+| PA | ~0 | 15-25 | no seed |
+
+LV, RA and aorta come out anatomically shaped and correctly sized. **The RV label
+wraps the entire organ** — its bounding extent is 101 x 112 x 141 mm, essentially
+the whole heart.
+
+**The cause is this experiment's cavity definition, not the seeds.** `cavity =
+epicardial_envelope AND NOT tissue` includes two things that are not chamber:
+the film between the true epicardial surface and the morphological envelope,
+which bridges the AV groove and the gaps between vessels, and the trabecular
+interstices. Both are connected sheets running the whole way around the heart,
+so whichever label reaches one first inherits everything. The RV seeds are the
+most peripheral and the most numerous, so the RV won.
+
+Three flood variants were tried and none fixes it, because none of them can:
+
+1. **Plain BFS** (geodesic, equal step cost): RV 238 mL.
+2. **Priority flood by descending clearance**, the textbook watershed on the
+   distance transform: RV 279 mL. It also has a specific failure — priority is
+   the voxel's ABSOLUTE clearance, so a seed inside a wide chamber sweeps up
+   narrow territory before a seed sitting in that narrow structure is ever
+   processed. The PA seeds claimed a handful of voxels for this reason.
+3. **Dijkstra with cost `1/(clearance + 0.5)`**, making narrow passages
+   expensive to traverse: RV 257 mL. A 20x penalty is not enough over a long
+   path.
+
+Eroding the film away instead (clearance > 1.5 mm) disconnects the lumen: only
+13 of 27 seeds land in the largest remaining piece, and LV, LA and aorta come
+out empty.
+
+**No flood weighting repairs a mask that includes the wrong space.** The fix is
+upstream: define the chamber space against a proper epicardial surface — ray
+parity against a smoothed epicardial mesh — rather than against a morphological
+envelope that bridges external concavities.
+
+### 5c.3 Two observations from the observer, both confirmed
+
+- *"Very short pulmonary artery portion"* — confirmed. No PA seed could be
+  placed, and the aorta region is itself only 15 mL. The great-vessel stubs on
+  this source are short enough that the PA may not be separably present.
+- *"The valves between atrium and ventricle are both open, so it might be hard
+  to draw the boundary"* — confirmed, and it is the same finding as §5b.3 from
+  the automatic side: the AV orifices are modelled open, so atrium and ventricle
+  are one connected space with no neck to cut at. LA at 55.8 mL against an
+  expected 25-45 is most likely this, the LA label reaching through the open
+  mitral orifice.
+
+Two of the observer's nine RV seeds sit at base +56 mm and +47 mm, level with
+the aorta seed at +48 mm and the RA centroid at +52 mm, while the other seven
+run from +12 down to -42 mm. They are at great-vessel height and are plausibly
+RVOT or pulmonary artery rather than RV cavity. **Not retagged** — that is the
+observer's call, not this module's.
 
 ## 6. Gates
 
