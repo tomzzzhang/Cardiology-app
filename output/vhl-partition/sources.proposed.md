@@ -83,3 +83,44 @@ worth closing even if the pack stays rejected and unpublished.
 
 **Not proposed:** adding the STL to the repository. It is CC BY-NC 4.0 and stays out, per the
 uncertain-rights rule. Only the checksum record is proposed.
+
+## Delta 4 — the bodyparts3d donor is described inaccurately
+
+**Target:** wherever `anatomy-bodyparts3d-heart` is characterised as a label donor — the
+handoff brief for this unit stated it "lacks ventricular myocardium and models lumen as solid
+casts, so it can carry at most part of the labels". Both halves need correcting.
+
+**Measured 2026-08-20 from the committed pack** (`public/packs/anatomy-bodyparts3d-heart/pack.json`,
+119 structures):
+
+1. **It does not lack ventricular myocardium.** `free-wall-of-left-ventricle`,
+   `free-wall-of-right-ventricle`, `anterior-wall-of-left-ventricle`,
+   `inflow-part-of-left-ventricle`, `outflow-part-of-left-ventricle`, `wall-of-left-atrium`,
+   `wall-of-right-atrium`, papillary muscles and valve leaflets are all present as named parts.
+
+2. **It carries a 1:1 cover of tags 1–6**, all flagged `blood_pool: true`:
+
+   | tag | structure | volume |
+   |---|---|---|
+   | 1 LV | `cavity-of-left-ventricle` | 97.9 mL |
+   | 2 RV | `cavity-of-right-ventricle` | 117.0 mL |
+   | 3 LA | `cavity-of-left-atrium` | 51.9 mL |
+   | 4 RA | `cavity-of-right-atrium` | 84.6 mL |
+   | 5 aorta | `ascending-aorta` | 21.5 mL |
+   | 6 PA | `pulmonary-trunk` | 19.2 mL |
+
+   Plus `superior-vena-cava`, useful for registration coverage though not one of the six tags.
+
+3. **The solid casts are an advantage for this use, not a limitation.** A cast is the shape of a
+   lumen, and lumen space is what a void-based partition of a tissue-only source recovers. Cast
+   against lumen is a like-for-like match; it is myocardium-against-myocardium that would be the
+   hard direction.
+
+**Why this matters:** the brief's characterisation reads as a reason to treat the donor as a
+partial fallback. On the measurements it is the single most promising route to identification,
+and the reason it did not work here is a **pose-search failure, not a content failure** — PCA
+initialisation is degenerate on a near-ellipsoidal cavity and all four proper-rotation starts
+converge within 0.05 Dice (see NOTES.md §5b.1). That is a fixable problem and worth someone's
+time; "the donor cannot carry the labels" would wrongly close it off.
+
+**Not proposed:** any change to the donor pack itself, or to its published/vetted status.

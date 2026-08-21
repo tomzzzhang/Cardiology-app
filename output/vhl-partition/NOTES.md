@@ -175,6 +175,152 @@ Grown back by nearest-core assignment at the auto-selected 8 mm threshold: **3 r
 The 273.6 mL region is plainly over-large and has swallowed more than one chamber plus the
 great-vessel lumens.
 
+## 5b. Identification — both available routes fail
+
+Finding two lobes is not naming them. Two independent routes were tried to decide which lobe
+is the left ventricle. **Both fail, for different reasons.** This is the real blocker, not the
+splitting.
+
+### 5b.1 Donor registration against `anatomy-bodyparts3d-heart` — ambiguous
+
+The handoff described this pack as lacking ventricular myocardium and modelling lumen as solid
+casts, and therefore able to carry at most part of the labels. **That characterisation is wrong
+on the first count and backwards on the second.** The pack carries **119** structures, including:
+
+- `cavity-of-left-ventricle` (97.9 mL), `cavity-of-right-ventricle` (117.0 mL),
+  `cavity-of-left-atrium` (51.9 mL), `cavity-of-right-atrium` (84.6 mL),
+  `ascending-aorta` (21.5 mL), `pulmonary-trunk` (19.2 mL) — all flagged `blood_pool: true`.
+  That is a **1:1 cover of tags 1–6.**
+- `free-wall-of-left-ventricle`, `free-wall-of-right-ventricle`, `anterior-wall-of-left-ventricle`,
+  `wall-of-left-atrium`, `wall-of-right-atrium` — so ventricular myocardium **is** present.
+- Valve leaflets and cusps, papillary muscles, coronary tree, `superior-vena-cava`.
+
+And the solid casts are an **advantage**, not a limitation: what this experiment recovers from
+VHL is lumen space, and a cast is exactly the shape to match lumen against.
+
+So the donor is right in principle. The registration is what fails.
+
+| initialisation | Dice after ICP | mean NN (mm) | fitted scale |
+|---|---|---|---|
+| (+1,+1) | 0.5112 | 1.76 | 0.998 |
+| (+1,−1) | 0.5020 | 1.73 | 0.997 |
+| **(−1,+1)** | **0.5473** | 1.63 | 0.986 |
+| (−1,−1) | 0.5252 | 1.68 | 0.986 |
+
+**Best Dice 0.5473, margin over second best 0.0221.** All four proper-rotation starts converge
+to within 0.05 Dice of each other. The cavity blob is close enough to an ellipsoid that its
+principal axes do not discriminate, and trimmed point-to-point ICP does not break the tie.
+
+**A 2% margin cannot distinguish a left–right mirror, and a mirror swaps LV and RV.** Labels
+transferred on this basis would look entirely plausible and be a coin flip. Not done.
+
+Mean nearest-neighbour distance of 1.63 mm is *not* evidence of a good fit here — the target is
+dense, so donor points land near *some* target point regardless of whether the correspondence is
+anatomically right. Dice is the honest measure.
+
+Contributing: the donor is an adult, the subject is 14; the VHL cavity (425 mL) includes
+pulmonary veins and caval lumen that the six donor casts (392 mL total) do not cover, which caps
+achievable Dice below 1 even for a perfect registration.
+
+### 5b.2 Wall thickness (LV ≈ 3× RV) — does not discriminate on this model
+
+The orientation-independent discriminator: identify the LV as the lobe with the thicker
+surrounding myocardium. Measured at 384³ (0.387 mm pitch) on *compact* myocardium only
+(opening at 1.5 mm strips trabeculae, leaving 295.6 mL of 363.6 mL), restricted for each lobe to
+the tissue nearer that lobe than the other, so each is judged on its own free wall:
+
+| lobe | cavity (mL) | median | p75 | p90 | p99 | max |
+|---|---|---|---|---|---|---|
+| core 2 | 59.8 | 1.16 | 1.64 | 2.23 | 3.49 | 4.12 |
+| core 11 | 22.0 | 1.16 | 1.78 | 2.54 | 3.67 | 4.12 |
+
+(half-thickness, mm)
+
+**No separation.** Identical medians and identical maxima; the p90 differs by 0.31 mm, and in
+the direction *opposite* to the expected reading — the smaller cavity has the marginally thicker
+wall. The expected ~3:1 LV:RV ratio (LV 8–12 mm, RV 3–5 mm) appears nowhere: implied full wall
+thickness is 4.5 mm and 5.1 mm at p90, and 8.2 mm at maximum, for both.
+
+Most likely cause: so much of this segmentation's wall is trabecular that the compact layer is
+thin and roughly uniform everywhere, and the MR segmentation does not resolve compact myocardium
+as a distinct layer. Whatever the cause, **this model does not carry the thickness contrast the
+method depends on**, so the discriminator is unavailable here even though it is sound in general.
+
+**Checked before accepting this negative: is a ~3:1 ratio the right expectation at 14?** It
+would be a bad failure to reject a working method against a wrong pediatric baseline. It is the
+right expectation. RV:LV proportions are steeply age-dependent in infancy — a newborn's RV mass
+index sits ~20% above adult while its LV is ~30% under-developed, and the RV:LV end-systolic
+diameter ratio falls from 0.83 in neonates to 0.55 by 12–24 months — but the decline flattens by
+a body surface area of roughly 0.5 m² and is **almost constant thereafter**. A 14-year-old is far
+past that plateau, so adult-like proportions apply and the ~3:1 target is correct. The negative
+is a property of this model, not of the age of its subject.
+
+The same question applies to the donor in §5b.1, which is an **adult**. At 14 the proportions
+transfer; absolute size does not necessarily. Worth noting the direction is unexpected — donor
+casts total 392 mL against 425 mL of recovered VHL lumen, so the *child* measures larger. That
+is most likely over-recovery on the VHL side (the connected cavity picks up pulmonary venous and
+caval lumen that the six donor casts do not model) rather than a real size difference, and it is
+a further reason the achievable Dice is capped well below 1.
+
+### 5b.3 Cross-sectional circularity (LV circular, RV crescentic) — contaminated
+
+The third discriminator, and the one that needs neither donor nor wall thickness: the LV cavity
+is circular in short axis, the RV is crescentic and wraps it. Measured as the ratio of the two
+minor principal axes of each lobe, per slab along its long axis (1.0 = circular):
+
+| lobe | volume | global ratio | per-slab median | p25 / p75 |
+|---|---|---|---|---|
+| 1 | 274.2 mL | 0.601 | 0.590 | 0.538 / 0.649 |
+| 2 | 151.1 mL | 0.697 | 0.705 | 0.650 / 0.747 |
+
+**Inconclusive, and for an instructive reason.** Neither lobe is near 1.0, and the separation is
+modest. The cause is not the metric — it is that these lobes are 274 mL and 151 mL, far larger
+than any single chamber. Each has an atrium and great-vessel lumen merged into it through the
+open orifices, so a per-*chamber* shape signature is measured across a union of chambers and
+diluted away.
+
+**This is the same root cause as §5b.1 and §5b.2, not a third independent failure.** Every
+identification signature — donor overlap, wall thickness, cross-sectional shape — is a property
+of an individual chamber. None survives being measured on a merged union of several. Splitting
+and identification are not two separate problems to be attacked in either order: **the merge is
+upstream of all of them**, and nothing downstream can be fixed while it stands.
+
+### 5b.4 What would actually work: a human-placed seed
+
+Attempted and abandoned: rendering all four candidate donor poses and choosing between them by
+eye (`work/four_poses.png`, not committed). At Dice ≈ 0.5 no pose reads as anatomically right —
+donor casts sit partly on tissue in all four — so the eye has nothing clean to prefer.
+
+But the underlying instinct is correct, and this experiment has evidence for it: **the two
+errors in §3 were both caught by looking at a cross-section, not by any number.** A reader can
+identify a four-chamber view immediately in `cross-sections.png`, and in the tissue-only slices
+the left ventricle is recognisable from its own signature — round lumen, thick compact rim,
+papillary muscles as isolated islands within the cavity — with no orientation assumed and no
+donor required.
+
+The mistake was asking the eye to *rank automatic fits*, when what it is good at is *supplying
+the seed*. Concretely, and cheaply:
+
+> Show a handful of slices. Have a person click once inside each of LV, RV, LA and RA. Use those
+> four clicks as watershed markers.
+
+That is a couple of minutes of human work, and it breaks the merge, the identification, and the
+left-right mirror **simultaneously** — because a marker is both a seed and a label. It needs no
+registration, no orientation, no thickness contrast, and none of the three failed signatures.
+Nothing else in this document has that property.
+
+It is a human-in-the-loop step and should be recorded as one: the resulting labels would carry
+"seeded by hand on N slices" as their provenance, not "derived". For a single non-published
+evidence pack that is an acceptable trade; for a repeatable pipeline over many sources it is
+not, which is the honest argument against it.
+
+### 5b.5 Consequence
+
+With both routes failing, the three regions in `chamber-cores.png` are coloured from a neutral
+palette and remain **unidentified**. No tag in 1–6 is assigned to anything. Assigning them would
+mean picking between a coin-flip registration and a non-discriminating measurement, and calling
+the result anatomy.
+
 ## 6. Gates
 
 - **`npm run check:fast`: PASS, exit code 0.** typecheck, lint, and 28 test files —
@@ -232,16 +378,33 @@ this experiment knocks out one and bends the other without breaking it.
   a way to cut them apart at the valve planes, because the model leaves every orifice open. That
   is a tractable engineering problem, not an absence of information.
 
-What would settle it, in order of cost:
+**The binding constraint is identification, not splitting.** Both routes to naming a lobe fail
+(§5b): donor registration is ambiguous at a 0.02 Dice margin, and this model does not carry the
+LV/RV wall-thickness contrast the geometric discriminator needs. Any further splitting effort
+produces more unnamed regions.
 
-1. **A geodesic watershed** confined to the cavity (needs `skimage`, or ~40 lines of
-   priority-flood). This would respect the septum and probably separate LV from RV properly.
-   Cheap, and the obvious next step.
-2. **Valve cut planes.** The AV separation needs a plane, not a distance maximum. Fitting an
-   annulus at each orifice is the real work, and it is where a donor pack could genuinely help —
-   `anatomy-bodyparts3d-heart` models lumen as solid casts, which is useless as a myocardial
-   label donor but is *exactly* the right shape to register a valve plane against.
-3. **Only then** the tet mesh, valve tags, and the nine anatomy checks.
+What would settle it, in order of expected value:
+
+1. **Four human clicks as watershed markers** (§5b.4). One click inside each of LV, RV, LA, RA on
+   a handful of slices. This is first by a wide margin because a marker is simultaneously a seed
+   and a label, so it breaks the merge, the identification and the left–right mirror at once,
+   with no registration, no orientation and no thickness contrast required. Minutes of work.
+   Cost: the labels are hand-seeded provenance, not derived — acceptable for one evidence pack,
+   not for a repeatable multi-source pipeline.
+2. **A geodesic watershed** confined to the cavity (~40 lines of priority-flood; `skimage` is not
+   in `environment.yml` and should not be added for an experiment) to flood from those markers
+   while respecting the septum, rather than cutting a Euclidean plane through it.
+3. **A better donor registration initialisation**, if a fully automatic route is wanted. The
+   donor is a genuine 1:1 cover of tags 1–6 and the failure is purely pose search. PCA is
+   degenerate on a near-ellipsoidal blob; the great-vessel tubes are the only directional
+   features and matching those would pin handedness. An exhaustive coarse rotation search scored
+   by Dice is affordable at this size and cannot stick in a local optimum. Note this is now
+   *third*: it is the only route that keeps the pipeline hand-free, but (1) is far cheaper and
+   more certain, and a donor registration could be validated against (1) rather than trusted on
+   its own.
+4. **Valve cut planes** for atrium/ventricle separation. The donor's valve leaflets and
+   `fibrous-ring-of-mitral-valve` are the right shapes to fit annuli against.
+5. **Only then** the tet mesh, valve tags, and the nine anatomy checks.
 
 Two independent constraints are untouched by any of this and should be weighed first: the model
 is **CC BY-NC 4.0**, and its **orientation is unverified**. A successful partition would remove

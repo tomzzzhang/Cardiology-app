@@ -2,7 +2,7 @@
 
 **Branch:** `experiment/vhl-partition`
 **Branched from `dev` at:** `294751faf124b79693cae99d9335e881189a032c`
-**Last Updated:** 2026-08-20 22:25 EDT
+**Last Updated:** 2026-08-20 22:50 EDT
 
 Branch log. Interleave these entries by timestamp into the planning folder's
 `progress_log.md` at merge, then delete this file.
@@ -10,6 +10,51 @@ Branch log. Interleave these entries by timestamp into the planning folder's
 Newest first.
 
 ---
+
+## 2026-08-20 22:50 EDT — identification is the real blocker; all three automatic routes fail
+
+**State.** Follow-on to the 22:25 entry, same branch. The splitting result stands. Three
+independent routes to NAMING the lobes were tried; all three fail, and they fail for one shared
+reason that reframes the problem.
+
+**Route 1, donor registration.** `anatomy-bodyparts3d-heart` is a much better donor than the
+handoff brief describes — 119 structures including a 1:1 cover of tags 1-6 as labelled lumen
+casts, plus ventricular free walls and valve leaflets. The brief's "lacks ventricular myocardium
+and models lumen as solid casts" is wrong on the first count, and the casts are an advantage
+rather than a limitation, since lumen is exactly what this experiment recovers. It fails on POSE,
+not content: all four proper-rotation starts converge under ICP to within 0.05 Dice (best 0.547,
+margin 0.022), which cannot separate a left-right mirror, and a mirror exchanges LV and RV. Not
+used. Proposed delta 4 written to correct the donor's characterisation.
+
+**Route 2, wall thickness.** No contrast on this model — identical medians and maxima for both
+lobes, p90 differing by 0.31 mm in the wrong direction. Verified the ~3:1 expectation is correct
+for a 14-year-old (RV:LV proportions plateau by ~0.5 m² BSA) before accepting the negative, so
+this is a property of the model rather than a wrong pediatric baseline.
+
+**Route 3, cross-sectional circularity.** Inconclusive, 0.59 vs 0.71 with neither near circular.
+
+**The shared cause, which is the actual finding.** Every identification signature — donor
+overlap, wall thickness, cross-sectional shape — is a property of an INDIVIDUAL chamber. The
+lobes available to measure are 274 mL and 151 mL, each a union of a ventricle with an atrium and
+great-vessel lumen merged through the open orifices. No per-chamber signature survives being
+measured across a union. **The merge is upstream of all three failures**, so splitting and
+identification are not separable problems to be attacked in either order.
+
+**Next step changed as a result.** Previously "better donor registration". Now: **four human
+clicks as watershed markers** — one inside each of LV, RV, LA, RA on a handful of slices. A
+marker is simultaneously a seed and a label, so it breaks the merge, the identification and the
+mirror at once, needing no registration, no orientation and no thickness contrast. Minutes of
+work against an open-ended automatic search. The cost is provenance: labels become "seeded by
+hand", acceptable for one non-published evidence pack and not for a repeatable multi-source
+pipeline. Donor registration drops to third, useful mainly as a check against a hand-seeded
+result rather than as a primary route.
+
+**Method note worth keeping.** Both errors in the 22:25 entry, and the reframing above, came
+from LOOKING at cross-sections rather than from any metric. Numbers agreed with each wrong answer
+at every step. The renders are committed for that reason.
+
+**Gates unchanged.** `npm run check:fast` green, exit 0. `anatomy.py` frame and valve checks
+still correctly not run — no partition emitted, and nothing here changes that.
 
 ## 2026-08-20 22:25 EDT — VHL heart0102 partition experiment: debris solved, partition partial
 
