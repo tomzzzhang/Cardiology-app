@@ -16,10 +16,11 @@ the RIGHT shape for this: what a void-based partition of a tissue-only source
 recovers IS lumen, so cast-against-lumen is like-for-like.
 
 It fails on POSE, not on content. A heart cavity is close enough to an ellipsoid
-that its principal axes do not fix handedness, and all four proper-rotation
+that its principal axes do not fix which end is which, and all four proper-rotation
 starts converge under trimmed ICP to within 0.05 Dice of one another (best
-0.547, margin 0.022). A margin that size cannot separate a left-right mirror,
-and a mirror exchanges LV and RV. So the transfer is not performed.
+0.547, margin 0.022). A margin that size cannot separate the pose that puts
+the donor's LV on the VHL LV from the one that puts it on the RV. So the
+transfer is not performed.
 
 Note the trap in the obvious alternative metric: mean nearest-neighbour distance
 looks excellent (1.63 mm) for every start, because the target cloud is dense and
@@ -69,7 +70,7 @@ DONOR_TAGS: dict[str, int] = {
 
 #: Dice margin over the runner-up below which a registration is called
 #: ambiguous and NOT used. Set by what is at stake rather than by convention:
-#: the competing poses here differ by a mirror, so accepting a near-tie risks
+#: the competing poses here differ by roughly a half-turn, so accepting a near-tie risks
 #: exchanging LV and RV — an error that is invisible downstream because the
 #: result still looks like a heart.
 MIN_DICE_MARGIN = 0.10

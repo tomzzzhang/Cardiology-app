@@ -1,6 +1,6 @@
 # VHL heart0102 partition experiment — technical findings
 
-**Last Updated:** 2026-08-20 22:20 EDT
+**Last Updated:** 2026-08-20 23:20 EDT
 
 Branch `experiment/vhl-partition`, cut from `dev` at `294751faf124b79693cae99d9335e881189a032c`.
 
@@ -14,6 +14,20 @@ ventricle-scale lobes. A six-tag partition needs valve cut planes this experimen
 have.** Nothing here reverses the rejection; see the recommendation at the bottom.
 
 ---
+
+> **Terminology note.** Earlier drafts of this document said "handedness" and "mirror". Both were
+> borrowed from linear algebra and both are actively misleading here, because they read as claims
+> about the specimen. They are not. **No reflection is involved anywhere in this work**: every
+> candidate pose is a proper rotation, forced to determinant +1 in the PCA starts and again by the
+> Kabsch correction inside ICP. The specimen is an ordinary heart and nothing measured here
+> suggests dextrocardia or situs inversus.
+>
+> The real ambiguity is that a roughly half-turn rotation about the long axis lands the donor's
+> left ventricle on the subject's right ventricle. The geometry stays a normal heart throughout;
+> only which chamber receives which LABEL changes. And the open question about this pack's
+> `orientation` is a question about **which direction in the FILE is patient-left**, not about the
+> patient's anatomy.
+
 
 ## 1. Source and provenance
 
@@ -211,7 +225,8 @@ So the donor is right in principle. The registration is what fails.
 to within 0.05 Dice of each other. The cavity blob is close enough to an ellipsoid that its
 principal axes do not discriminate, and trimmed point-to-point ICP does not break the tie.
 
-**A 2% margin cannot distinguish a left–right mirror, and a mirror swaps LV and RV.** Labels
+**A 2% margin cannot distinguish the pose that puts the donor's LV on the VHL LV from the one
+that puts it on the RV.** Labels
 transferred on this basis would look entirely plausible and be a coin flip. Not done.
 
 Mean nearest-neighbour distance of 1.63 mm is *not* evidence of a good fit here — the target is
@@ -234,18 +249,19 @@ present in the donor and would transfer with a correct pose.
 
 Two variants were run, and the pair of results is the finding:
 
-| registered on | best Dice | margin over 2nd | winning handedness |
+| registered on | best Dice | margin over 2nd | which lobe it calls LV |
 |---|---|---|---|
 | tissue (myocardium to myocardium) | 0.398 | **0.094** | (+1, +1) |
 | epicardial envelope | **0.771** | 0.012 | (−1, −1) |
 
-**They disagree on handedness.** The envelope fits far better and discriminates nothing — it is
+**They disagree on which lobe is the LV.** The envelope fits far better and discriminates nothing — it is
 a smooth blob, so every pose lands on it. The tissue fits poorly (VHL carries 362 mL of
 trabeculated tissue against Rodero's 259 mL of smooth myocardium, so they cannot overlap well)
 but retains the most discriminative power of anything tried: margin 0.094, four times
 bodyparts3d's 0.022, though still under the 0.10 threshold `MIN_DICE_MARGIN` requires.
 
-Two variants of one method, on one pair of models, choosing **opposite mirrors**. That is not a
+Two variants of one method, on one pair of models, choosing **opposite left-right assignments**.
+That is not a
 weak result to be improved by tuning; it is positive evidence that the pose is undetermined by
 shape overlap on this pair, and it explains why: absolute fit and discriminative power trade off
 against each other here. Smoothing the target to fit better erases exactly the asymmetry that
@@ -253,7 +269,7 @@ would tell left from right.
 
 `label-transfer-UNVERIFIED.png` shows Rodero in its genuine tags beside VHL wearing labels
 transferred under the tissue pose (LV 176.1, RV 70.1, LA 45.4, RA 41.7, aorta 22.8, PA 6.3 mL).
-It is committed as evidence and named for what it is. **The colours may be mirrored** — the red
+It is committed as evidence and named for what it is. **The left-right assignment may be swapped** — the red
 region may be the right ventricle — and the region boundaries are the donor's imposed through a
 0.398-Dice fit, not boundaries measured on VHL. It must not be read as a partition.
 
@@ -340,7 +356,7 @@ the seed*. Concretely, and cheaply:
 > four clicks as watershed markers.
 
 That is a couple of minutes of human work, and it breaks the merge, the identification, and the
-left-right mirror **simultaneously** — because a marker is both a seed and a label. It needs no
+left-right assignment **simultaneously** — because a marker is both a seed and a label. It needs no
 registration, no orientation, no thickness contrast, and none of the three failed signatures.
 Nothing else in this document has that property.
 
@@ -422,7 +438,7 @@ What would settle it, in order of expected value:
 
 1. **Four human clicks as watershed markers** (§5b.4). One click inside each of LV, RV, LA, RA on
    a handful of slices. This is first by a wide margin because a marker is simultaneously a seed
-   and a label, so it breaks the merge, the identification and the left–right mirror at once,
+   and a label, so it breaks the merge, the identification and the left-right assignment at once,
    with no registration, no orientation and no thickness contrast required. Minutes of work.
    Cost: the labels are hand-seeded provenance, not derived — acceptable for one evidence pack,
    not for a repeatable multi-source pipeline.
@@ -432,7 +448,8 @@ What would settle it, in order of expected value:
 3. **A better donor registration initialisation**, if a fully automatic route is wanted. The
    donor is a genuine 1:1 cover of tags 1–6 and the failure is purely pose search. PCA is
    degenerate on a near-ellipsoidal blob; the great-vessel tubes are the only directional
-   features and matching those would pin handedness. An exhaustive coarse rotation search scored
+   features and matching those would pin the left-right assignment. An exhaustive coarse rotation
+   search scored
    by Dice is affordable at this size and cannot stick in a local optimum. Note this is now
    *third*: it is the only route that keeps the pipeline hand-free, but (1) is far cheaper and
    more certain, and a donor registration could be validated against (1) rather than trusted on

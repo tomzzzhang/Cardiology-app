@@ -11,7 +11,7 @@ Newest first.
 
 ---
 
-## 2026-08-20 23:05 EDT — Rodero tried as label donor; two variants disagree on handedness
+## 2026-08-20 23:05 EDT — Rodero tried as label donor; two variants disagree on which lobe is the LV
 
 **State.** Fourth identification route, and the best-motivated one: `normal-rodero` is tagged
 MYOCARDIUM with a ready-made labelled 192^3 volume whose structures map onto tags 1-10 exactly,
@@ -22,13 +22,13 @@ pose would transfer exactly what §5b.2 could not measure.
 **Result: still not usable, and now for a demonstrable reason.** Registering on tissue gives
 Dice 0.398 with margin 0.094 — four times the bodyparts3d margin, still under the 0.10 threshold.
 Registering on the epicardial envelope gives Dice 0.771 with margin 0.012. The two variants pick
-OPPOSITE handedness. Absolute fit and discriminative power trade off directly: smoothing the
+OPPOSITE left-right assignments. Absolute fit and discriminative power trade off directly: smoothing the
 target to fit better erases the asymmetry that distinguishes left from right. This is positive
 evidence the pose is undetermined by shape overlap, not a tuning problem.
 
 **Rendered anyway, as labelled evidence.** `label-transfer-UNVERIFIED.png` shows Rodero in its
 real tags beside VHL wearing transferred ones. Committed because it is useful for judging
-plausibility, named UNVERIFIED because the colours may be mirrored.
+plausibility, named UNVERIFIED because the left-right assignment may be swapped.
 
 **3D preview added.** `heart-3d.png` — exterior plus cutaway with the recovered chamber space
 coloured. Renderer lives in `vhl_partition.preview_3d` so the image is reproducible rather than
@@ -37,7 +37,8 @@ heart from every angle, which is why this source's defect survived to ingest bef
 noticed there were no chambers in it.
 
 **Recommendation unchanged and now better supported.** Four human-placed watershed markers remain
-first. Four automatic identification routes have now failed, three of them on handedness. A
+first. Four automatic identification routes have now failed, three of them on telling left from
+right. A
 single human click carries the one bit that none of them could recover.
 
 ## 2026-08-20 22:50 EDT — identification is the real blocker; all three automatic routes fail
@@ -52,7 +53,8 @@ casts, plus ventricular free walls and valve leaflets. The brief's "lacks ventri
 and models lumen as solid casts" is wrong on the first count, and the casts are an advantage
 rather than a limitation, since lumen is exactly what this experiment recovers. It fails on POSE,
 not content: all four proper-rotation starts converge under ICP to within 0.05 Dice (best 0.547,
-margin 0.022), which cannot separate a left-right mirror, and a mirror exchanges LV and RV. Not
+margin 0.022), which cannot separate the pose putting the donor LV on the VHL LV from the one
+putting it on the RV. Not
 used. Proposed delta 4 written to correct the donor's characterisation.
 
 **Route 2, wall thickness.** No contrast on this model — identical medians and maxima for both
@@ -72,7 +74,7 @@ identification are not separable problems to be attacked in either order.
 **Next step changed as a result.** Previously "better donor registration". Now: **four human
 clicks as watershed markers** — one inside each of LV, RV, LA, RA on a handful of slices. A
 marker is simultaneously a seed and a label, so it breaks the merge, the identification and the
-mirror at once, needing no registration, no orientation and no thickness contrast. Minutes of
+left-right assignment at once, needing no registration, no orientation and no thickness contrast. Minutes of
 work against an open-ended automatic search. The cost is provenance: labels become "seeded by
 hand", acceptable for one non-published evidence pack and not for a repeatable multi-source
 pipeline. Donor registration drops to third, useful mainly as a check against a hand-seeded
