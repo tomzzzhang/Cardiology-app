@@ -49,9 +49,18 @@ export function bodyContextUrl(contextId: string): string {
  * A lookup table rather than a field on the pack: the pack does not know its
  * context exists, and adding a field to say so would make every pack carry a
  * pointer at something most of them do not have.
+ *
+ * ONE CONTEXT PER PACK, and never one context shared by two. A registration is
+ * a fact about a pairing, and the two entries here are fitted differently on
+ * purpose: `adult-reference-chest-bp3d` is the BodyParts3D thorax at its native
+ * size, and `fitted-chest-bp3d-heart0102-chambers` is the same thorax scaled
+ * uniformly until its bound heart fills it at the native pair's cardiothoracic
+ * ratio. Pointing a pack at the other one would place it in a chest that was
+ * sized for a different heart.
  */
 const CONTEXT_FOR_PACK: Readonly<Record<string, string>> = Object.freeze({
   'normal-rodero': 'adult-reference-chest-bp3d',
+  'normal-vhl-heart0102-chambers': 'fitted-chest-bp3d-heart0102-chambers',
 });
 
 export function contextIdForPack(packId: string): string | null {

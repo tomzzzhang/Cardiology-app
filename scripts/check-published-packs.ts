@@ -1,5 +1,5 @@
 /**
- * CI gate: the build ships exactly the published packs, and nothing else.
+ * CI gate: the build ships exactly the published packs and contexts, and nothing else.
  *
  *   npm run build && npm run check:published-packs
  *
@@ -12,11 +12,21 @@
  *
  * It also fails if a PUBLISHED pack is missing, because a build filter that
  * removes too much is just as wrong and much easier to miss.
+ *
+ * Body contexts get the same treatment for the same reason: they are the other
+ * directory copied out of `public/`, they carry several megabytes of
+ * third-party thoracic geometry each, and a context ships only if the pack it
+ * is bound to ships.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PUBLISHED_PACK_IDS, UNPUBLISHED_PACKS } from '../src/packs/published.ts';
+import {
+  PUBLISHED_CONTEXT_IDS,
+  PUBLISHED_PACK_IDS,
+  UNPUBLISHED_CONTEXTS,
+  UNPUBLISHED_PACKS,
+} from '../src/packs/published.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const distPacks = join(repoRoot, 'dist', 'packs');
@@ -56,8 +66,44 @@ for (const packId of Object.keys(UNPUBLISHED_PACKS)) {
   }
 }
 
+/*
+ * Body contexts are the other shippable directory under `public/`, and each one
+ * is several megabytes of third-party thoracic geometry. A context whose bound
+ * pack was pruned has nothing left to be context for, and shipping it would put
+ * that geometry on a public URL for a heart the site does not carry.
+ */
+const distContexts = join(repoRoot, 'dist', 'body-context');
+const shippedContexts = existsSync(distContexts)
+  ? readdirSync(distContexts, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort()
+  : [];
+
+for (const contextId of shippedContexts) {
+  if ((PUBLISHED_CONTEXT_IDS as readonly string[]).includes(contextId)) continue;
+  const rejection = UNPUBLISHED_CONTEXTS[contextId];
+  failures.push(
+    `body context "${contextId}" is in the build output but is not published.` +
+      (rejection ? `\n    ${rejection}` : ''),
+  );
+}
+
+for (const contextId of PUBLISHED_CONTEXT_IDS) {
+  if (!shippedContexts.includes(contextId)) {
+    failures.push(`body context "${contextId}" is published but missing from the build output`);
+  }
+}
+
+for (const contextId of Object.keys(UNPUBLISHED_CONTEXTS)) {
+  const stray = join(distContexts, contextId);
+  if (existsSync(stray)) {
+    failures.push(`body context "${contextId}" left files behind at ${stray}`);
+  }
+}
+
 if (failures.length > 0) {
-  console.error(`\n${failures.length} published-pack failure(s):\n`);
+  console.error(`\n${failures.length} published-artefact failure(s):\n`);
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
@@ -66,4 +112,12 @@ console.log(`ok  build ships ${shipped.length} pack(s): ${shipped.join(', ')}`);
 console.log(
   `ok  ${Object.keys(UNPUBLISHED_PACKS).length} unpublished pack(s) absent from the build: ` +
     `${Object.keys(UNPUBLISHED_PACKS).join(', ')}`,
+);
+console.log(
+  `ok  build ships ${shippedContexts.length} body context(s): ` +
+    `${shippedContexts.join(', ')}`,
+);
+console.log(
+  `ok  ${Object.keys(UNPUBLISHED_CONTEXTS).length} unpublished body context(s) absent from the ` +
+    `build: ${Object.keys(UNPUBLISHED_CONTEXTS).join(', ')}`,
 );

@@ -430,6 +430,27 @@ def bodyparts_to_body(axes: BodyAxes) -> np.ndarray:
 # --------------------------------------------------------------------------- #
 
 
+def cavity_apex(cavity: np.ndarray, base: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    The apex of a left-ventricular cavity, and the long axis it was found along.
+
+    The cavity's own principal axis, pointed away from `base`, and then the mean
+    of the most apical `APEX_PERCENTILE` of the cloud along it. One helper for
+    both hearts in a pairing, because an apex measured two different ways on the
+    two sides would put the difference between the methods into the residual and
+    call it anatomy.
+    """
+    centre = cavity.mean(axis=0)
+    _, _, right = np.linalg.svd(cavity - centre, full_matrices=False)
+    axis = right[0]
+    # Point it apex-ward: away from the base.
+    if float((base - centre) @ axis) > 0:
+        axis = -axis
+    projection = cavity @ axis
+    apex = cavity[projection >= np.percentile(projection, APEX_PERCENTILE)].mean(axis=0)
+    return apex, axis
+
+
 def bodyparts_landmarks(cache: Path, by_concept: dict[str, set[str]]) -> dict:
     """The jig's landmarks, in BodyParts3D source millimetres."""
     valves = {
@@ -439,14 +460,7 @@ def bodyparts_landmarks(cache: Path, by_concept: dict[str, set[str]]) -> dict:
     base = np.mean(list(valves.values()), axis=0)
 
     cavity = concept_vertices(cache, by_concept, LV_CAVITY_CONCEPT)
-    centre = cavity.mean(axis=0)
-    _, _, right = np.linalg.svd(cavity - centre, full_matrices=False)
-    axis = right[0]
-    # Point it apex-ward: away from the valve plane.
-    if float((base - centre) @ axis) > 0:
-        axis = -axis
-    projection = cavity @ axis
-    apex = cavity[projection >= np.percentile(projection, APEX_PERCENTILE)].mean(axis=0)
+    apex, axis = cavity_apex(cavity, base)
 
     return {"valves": valves, "base": base, "apex": apex, "lv_long_axis": axis}
 
@@ -515,38 +529,58 @@ def direction_landmark(base: np.ndarray, apex: np.ndarray, length: float) -> np.
     return base + length * unit
 
 
-def fit_registration(rodero: dict, bodyparts: dict) -> dict:
+def fit_registration(
+    rodero: dict,
+    bodyparts: dict,
+    *,
+    landmark_key: str = "valves",
+    landmark_names: tuple[str, ...] = ("mitral", "tricuspid", "aortic", "pulmonary"),
+    scheme_label: str = "valve_centres",
+    source_length_key: str = "rodero_base_to_apex_mm",
+    target_length_key: str = "bodyparts_base_to_apex_mm",
+    shared_length: float | None = None,
+) -> dict:
     """
-    Rodero model space -> body frame, and every number needed to judge it.
+    Pack model space -> body frame, and every number needed to judge it.
 
     Three schemes are computed. One is USED; the other two are recorded so the
     trade-off the chosen one makes is visible in the evidence rather than
     asserted in a comment.
+
+    The landmark FAMILY is a parameter because two packs in this repository
+    carry different ones and neither can be made to carry the other's.
+    `normal-rodero` publishes four valve-ring centres, which sit on the fibrous
+    skeleton and are the best landmarks available for placing a heart in a
+    chest. `normal-vhl-heart0102-chambers` has no valve-ring geometry at all —
+    its own provenance says the source has none and that none was invented — so
+    it is fitted on the four chamber-cavity centroids instead. Same estimator,
+    same scale lock, same three schemes; a cruder correspondence, and the
+    residuals say so rather than the method hiding it.
     """
-    names = ["mitral", "tricuspid", "aortic", "pulmonary"]
-    source_valves = np.array([rodero["valves"][n] for n in names])
-    target_valves = np.array([bodyparts["valves"][n] for n in names])
+    names = list(landmark_names)
+    source_points = np.array([rodero[landmark_key][n] for n in names])
+    target_points = np.array([bodyparts[landmark_key][n] for n in names])
 
     rodero_length = float(np.linalg.norm(rodero["apex"] - rodero["base"]))
     bodyparts_length = float(np.linalg.norm(bodyparts["apex"] - bodyparts["base"]))
-    shared = bodyparts_length
+    shared = bodyparts_length if shared_length is None else float(shared_length)
 
     source_direction = direction_landmark(rodero["base"], rodero["apex"], shared)
     target_direction = direction_landmark(bodyparts["base"], bodyparts["apex"], shared)
 
     schemes = {
-        "valve_centres_and_apex_direction": (
-            np.vstack([source_valves, source_direction]),
-            np.vstack([target_valves, target_direction]),
+        f"{scheme_label}_and_apex_direction": (
+            np.vstack([source_points, source_direction]),
+            np.vstack([target_points, target_direction]),
             np.ones(5),
             names + ["apex_direction"],
         ),
-        "valve_centres_only": (
-            source_valves, target_valves, np.ones(4), names,
+        f"{scheme_label}_only": (
+            source_points, target_points, np.ones(4), names,
         ),
-        "valve_centres_and_apex_point": (
-            np.vstack([source_valves, rodero["apex"]]),
-            np.vstack([target_valves, bodyparts["apex"]]),
+        f"{scheme_label}_and_apex_point": (
+            np.vstack([source_points, rodero["apex"]]),
+            np.vstack([target_points, bodyparts["apex"]]),
             np.ones(5),
             names + ["apex_point"],
         ),
@@ -577,12 +611,12 @@ def fit_registration(rodero: dict, bodyparts: dict) -> dict:
             "apex_separation_mm": apex_gap,
         }
 
-    chosen = "valve_centres_and_apex_direction"
+    chosen = f"{scheme_label}_and_apex_direction"
     report = reports[chosen]
     report["scheme"] = chosen
     report["shared_direction_length_mm"] = shared
-    report["rodero_base_to_apex_mm"] = rodero_length
-    report["bodyparts_base_to_apex_mm"] = bodyparts_length
+    report[source_length_key] = rodero_length
+    report[target_length_key] = bodyparts_length
     report["irreducible_length_difference_mm"] = abs(rodero_length - bodyparts_length)
     report["apex_separation_attributable_to_fit_mm"] = (
         report["apex_separation_mm"] - report["irreducible_length_difference_mm"]
@@ -649,8 +683,25 @@ def check_against_gltf(pack_dir: Path, rodero: dict) -> dict:
     return {"per_valve_mm": agreement, "max_mm": worst}
 
 
+def pleural_span(left_lung: np.ndarray, right_lung: np.ndarray,
+                 heart: np.ndarray) -> float:
+    """
+    Pleural span at the heart's own height: the CTR denominator.
+
+    Module level rather than a closure because the scale solver has to measure
+    the ratio the SAME way the composite validation reports it. Two copies of
+    this expression would let a fitted chest hit a target that the report then
+    measured differently and disagreed with.
+    """
+    low, high = heart[:, 2].min(), heart[:, 2].max()
+    band_left = left_lung[(left_lung[:, 2] > low) & (left_lung[:, 2] < high)]
+    band_right = right_lung[(right_lung[:, 2] > low) & (right_lung[:, 2] < high)]
+    return float(band_left[:, 0].max() - band_right[:, 0].min())
+
+
 def composite_validation(cache: Path, by_concept: dict[str, set[str]],
-                         heart_body: np.ndarray) -> dict:
+                         heart_body: np.ndarray,
+                         to_body: np.ndarray | None = None) -> dict:
     """
     Whether the registered heart is the right SIZE and PLACE for this chest.
 
@@ -677,8 +728,14 @@ def composite_validation(cache: Path, by_concept: dict[str, set[str]],
     a scaled heart is a heart with the wrong dimensions reported as the right
     ones.
     """
+    # `to_body` carries BOTH the source-to-body rotation and, for a fitted
+    # context, the uniform scale baked into the chest geometry. The control has
+    # to be measured in the same body the heart was placed in, or the native
+    # pair stops being a control.
+    transform = np.eye(3) if to_body is None else np.asarray(to_body, dtype=np.float64)
+
     def concept_points(*concepts: str) -> np.ndarray:
-        return np.vstack([concept_vertices(cache, by_concept, c) for c in concepts])
+        return np.vstack([concept_vertices(cache, by_concept, c) for c in concepts]) @ transform.T
 
     left_lung = concept_points("FMA7310")
     right_lung = concept_points("FMA7309")
@@ -688,11 +745,7 @@ def composite_validation(cache: Path, by_concept: dict[str, set[str]],
     native = concept_points("FMA7088")  # the heart concept: BodyParts3D own heart
 
     def internal_thoracic_width(heart: np.ndarray) -> float:
-        """Pleural span at the heart's own height: the CTR denominator."""
-        low, high = heart[:, 2].min(), heart[:, 2].max()
-        band_left = left_lung[(left_lung[:, 2] > low) & (left_lung[:, 2] < high)]
-        band_right = right_lung[(right_lung[:, 2] > low) & (right_lung[:, 2] < high)]
-        return float(band_left[:, 0].max() - band_right[:, 0].min())
+        return pleural_span(left_lung, right_lung, heart)
 
     # The diaphragm dome, gridded in the transverse plane. Coarse on purpose:
     # this asks "is the heart under the dome here", not "do these surfaces
@@ -871,7 +924,8 @@ def _decimate(surface: Surface, budget: int) -> tuple[Surface, float]:
     return reduced, float(distance.max())
 
 
-def build_chest(cache: Path, by_concept: dict[str, set[str]], to_body: np.ndarray
+def build_chest(cache: Path, by_concept: dict[str, set[str]], to_body: np.ndarray,
+                crop_z: tuple[float, float] = SKIN_CROP_Z_MM
                 ) -> tuple[list[Surface], dict]:
     """
     Select, crop, merge and decimate the thoracic context.
@@ -914,7 +968,7 @@ def build_chest(cache: Path, by_concept: dict[str, set[str]], to_body: np.ndarra
         if group == "skin":
             verts, faces = _crop_z(
                 merged.vertices.astype(np.float64), merged.faces.astype(np.int64),
-                *SKIN_CROP_Z_MM,
+                *crop_z,
             )
             merged = Surface(
                 name=group,
@@ -922,7 +976,7 @@ def build_chest(cache: Path, by_concept: dict[str, set[str]], to_body: np.ndarra
                 faces=np.ascontiguousarray(faces, dtype=np.int32),
             )
             cropped_note = (
-                f"cropped to z in [{SKIN_CROP_Z_MM[0]:.0f}, {SKIN_CROP_Z_MM[1]:.0f}] mm; "
+                f"cropped to z in [{crop_z[0]:.0f}, {crop_z[1]:.0f}] mm; "
                 f"{raw_triangles:,} -> {merged.triangle_count:,} triangles. The cut edge is "
                 "left open rather than capped."
             )
@@ -1219,44 +1273,820 @@ def build(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dict, dict
     return descriptor, evidence
 
 
+# --------------------------------------------------------------------------- #
+# the fitted context: one chest, scaled to one heart                           #
+# --------------------------------------------------------------------------- #
+
+#: The second context, and the pack it is FOR.
+#:
+#: A separate context rather than a second registration inside the first, for
+#: the same reason the first one is a document and not a pack field: a body
+#: context is a fact about a PAIRING. `adult-reference-chest-bp3d` is the
+#: pairing of the BodyParts3D thorax at its native size with `normal-rodero`,
+#: and nothing here may change it.
+FITTED_CONTEXT_ID = "fitted-chest-bp3d-heart0102-chambers"
+FITTED_CONTEXT_DIR = REPO / "public" / "body-context" / FITTED_CONTEXT_ID
+FITTED_EVIDENCE_DIR = REPO / "evidence" / "body-context" / FITTED_CONTEXT_ID
+FITTED_BOUND_PACK_ID = "normal-vhl-heart0102-chambers"
+
+#: The date the owner decided to fit a chest to this heart rather than source a
+#: new body, and to do it by uniform scale only.
+FITTED_OWNER_DECISION_DATE = "2026-08-22"
+
+#: The four chamber CAVITIES, which are this pairing's landmark correspondence.
+#:
+#: `normal-vhl-heart0102-chambers` has no valve-ring geometry — its own
+#: provenance records that the source has none and that none was invented — so
+#: the valve-centre jig the Rodero registration uses cannot be built for it.
+#: Chamber cavities are what both hearts actually have: four of them, named on
+#: both sides, and not collinear, so they determine an orientation.
+#:
+#: They are a CRUDER correspondence than valve centres. A cavity centroid moves
+#: with how full the cavity is, and this pack's right atrium and right ventricle
+#: are both larger than expected. The residuals are reported rather than the
+#: choice being presented as equivalent to the Rodero one.
+CHAMBER_CAVITY_CONCEPTS = {
+    "left_ventricle": "FMA9466",
+    "right_ventricle": "FMA9291",
+    "left_atrium": "FMA9465",
+    "right_atrium": "FMA11359",
+}
+
+#: The pack's own lumen nodes, in the same order.
+CHAMBER_PACK_NODES = {
+    "left_ventricle": "lv-lumen",
+    "right_ventricle": "rv-lumen",
+    "left_atrium": "la-lumen",
+    "right_atrium": "ra-lumen",
+}
+
+#: Bounds, step count and rounding for the uniform scale search.
+#:
+#: Bisection rather than a formula because the denominator is not a closed form:
+#: the pleural span is measured in the band the heart occupies, and that band
+#: moves as the chest is scaled. Fixed bounds and a fixed step count so the
+#: answer is the same on every machine and every run; the result is then ROUNDED
+#: and everything downstream is rebuilt from the rounded number, so the shipped
+#: geometry is a function of a short decimal rather than of a search trajectory.
+SCALE_SEARCH_BOUNDS = (0.5, 2.5)
+SCALE_BISECTION_STEPS = 60
+SCALE_DECIMALS = 6
+
+#: How far the achieved ratio may sit from the native pair's before the run
+#: fails. The gate the owner set is 0.01; this is that gate, in the pipeline.
+CTR_TOLERANCE = 0.01
+
+#: Transverse cell size for the containment tests, in body millimetres. Matches
+#: the diaphragm dome grid in `composite_validation`: coarse on purpose, because
+#: the question is "is the heart inside the cage here", not "do these two
+#: surfaces intersect".
+CONTAINMENT_CELL_MM = 6.0
+
+
+def chamber_landmarks(chambers: dict[str, np.ndarray]) -> dict:
+    """
+    Chamber-cavity landmarks, measured identically on both hearts of a pairing.
+
+    * each chamber's landmark is its cavity centroid;
+    * `base` is the midpoint of the two ATRIAL centroids, which is the same
+      basal reference the pack's own measured cardiac frame uses
+      (`meshes.anatomical_frame`: "basal is the ventricular midpoint to the
+      atrial midpoint");
+    * `apex` is `cavity_apex` of the left-ventricular cavity about that base.
+
+    One function for both sides. A landmark defined one way on the source and
+    another way on the target puts the difference between two definitions into
+    the residual and reports it as anatomy.
+    """
+    centroids = {name: points.mean(axis=0) for name, points in chambers.items()}
+    base = (centroids["left_atrium"] + centroids["right_atrium"]) / 2.0
+    apex, axis = cavity_apex(chambers["left_ventricle"], base)
+    return {"chambers": centroids, "base": base, "apex": apex, "lv_long_axis": axis}
+
+
+def bodyparts_chamber_landmarks(cache: Path, by_concept: dict[str, set[str]]) -> dict:
+    """The jig's chamber landmarks, in BodyParts3D source millimetres."""
+    return chamber_landmarks({
+        name: concept_vertices(cache, by_concept, concept)
+        for name, concept in CHAMBER_CAVITY_CONCEPTS.items()
+    })
+
+
+def pack_chamber_landmarks(nodes: dict[str, np.ndarray]) -> dict:
+    """
+    The pack's chamber landmarks, taken from the geometry that actually ships.
+
+    Straight off the glTF rather than out of `anatomical_frame`. The pack's
+    published `landmarks_source_mm.observer_seed_centroids` are the means of
+    hand-placed SEED MARKS, not of the labelled volumes those marks grew into,
+    so they are not the same quantity as a cavity centroid and using them would
+    silently mix two definitions. The seeds are compared against these in the
+    evidence file as an observation instead.
+    """
+    missing = [node for node in CHAMBER_PACK_NODES.values() if node not in nodes]
+    if missing:
+        raise SystemExit(
+            f"{FITTED_BOUND_PACK_ID}: expected lumen node(s) missing from the pack glTF: "
+            + ", ".join(missing)
+        )
+    return chamber_landmarks({
+        name: nodes[node] for name, node in CHAMBER_PACK_NODES.items()
+    })
+
+
+def scaled_to_body(to_body: np.ndarray, scale: float) -> np.ndarray:
+    """
+    Source axes -> body frame, with the fitted uniform scale folded in.
+
+    This is where the scaling LIVES: in the transform that builds the chest
+    asset, so the millimetres written into the glTF are already the fitted ones.
+    `model_to_body` in the descriptor stays rigid and unit-scale, because a
+    scale there would resize the HEART, which is the one thing that must not be
+    resized — and `rigidProblem` refuses it for exactly that reason.
+    """
+    return np.asarray(to_body, dtype=np.float64) * float(scale)
+
+
+def fit_chambers(pack: dict, body: dict, scale: float) -> dict:
+    """The chamber-landmark registration into a body scaled by `scale`."""
+    scaled = {
+        "chambers": {k: v * scale for k, v in body["chambers"].items()},
+        "base": body["base"] * scale,
+        "apex": body["apex"] * scale,
+    }
+    shared = float(np.linalg.norm(scaled["apex"] - scaled["base"]))
+    return fit_registration(
+        pack, scaled,
+        landmark_key="chambers",
+        landmark_names=tuple(CHAMBER_CAVITY_CONCEPTS),
+        scheme_label="chamber_centroids",
+        source_length_key="pack_base_to_apex_mm",
+        target_length_key="bodyparts_base_to_apex_mm",
+        shared_length=shared,
+    )
+
+
+def cardiothoracic_ratio(heart: np.ndarray, left_lung: np.ndarray,
+                         right_lung: np.ndarray) -> tuple[float, float, float]:
+    """`(ratio, transverse cardiac width, internal thoracic width)`, all in mm."""
+    width = float(heart[:, 0].max() - heart[:, 0].min())
+    span = pleural_span(left_lung, right_lung, heart)
+    return width / span, width, span
+
+
+def solve_chest_scale(pack_landmarks: dict, body_landmarks: dict, heart_model: np.ndarray,
+                      left_lung: np.ndarray, right_lung: np.ndarray,
+                      target_ratio: float) -> tuple[float, dict]:
+    """
+    The one number this context adds: how much to scale the chest.
+
+    THE RULE. BodyParts3D's own heart sits in its own thorax at a measured
+    cardiothoracic ratio. That ratio is the target, and the chest is scaled
+    UNIFORMLY until the bound pack's heart occupies the same fraction of it,
+    measured exactly the way `composite_validation` measures it.
+
+    Uniform and nothing else. Per-axis factors would invent proportions no
+    measurement in this repository supports — the source is one man's thorax and
+    there is no second body here to say how a chest that is deeper is also wide.
+    A uniform scale asserts one thing only: this thorax, at a different size.
+
+    The ratio falls monotonically as the chest grows, so this is a bisection.
+    The heart's own transverse width barely moves — the fit's rotation is almost
+    scale-independent — so the search is really solving for the denominator.
+    """
+    low, high = SCALE_SEARCH_BOUNDS
+    trace: list[dict] = []
+
+    def ratio_at(scale: float) -> tuple[float, float, float]:
+        report = fit_chambers(pack_landmarks, body_landmarks, scale)
+        heart = heart_model @ report["rotation"].T + report["translation"]
+        return cardiothoracic_ratio(heart, left_lung * scale, right_lung * scale)
+
+    if ratio_at(low)[0] < target_ratio or ratio_at(high)[0] > target_ratio:
+        raise SystemExit(
+            f"the target cardiothoracic ratio {target_ratio:.4f} is not bracketed by scales "
+            f"{low} to {high}. The pairing is further from the native one than a uniform "
+            "scale of this size can express; this needs an owner decision, not a wider search."
+        )
+
+    for _ in range(SCALE_BISECTION_STEPS):
+        middle = 0.5 * (low + high)
+        if ratio_at(middle)[0] > target_ratio:
+            low = middle
+        else:
+            high = middle
+    solved = 0.5 * (low + high)
+    scale = round(solved, SCALE_DECIMALS)
+
+    for probe in (1.0, scale):
+        ratio, width, span = ratio_at(probe)
+        trace.append({
+            "scale": probe,
+            "cardiothoracic_ratio": round(ratio, 4),
+            "transverse_cardiac_width_mm": round(width, 2),
+            "internal_thoracic_width_mm": round(span, 2),
+        })
+
+    achieved, width, span = ratio_at(scale)
+    if abs(achieved - target_ratio) > CTR_TOLERANCE:
+        raise SystemExit(
+            f"uniform scale {scale} achieves a cardiothoracic ratio of {achieved:.4f}, which is "
+            f"more than {CTR_TOLERANCE} from the native pair's {target_ratio:.4f}."
+        )
+
+    return scale, {
+        "target_cardiothoracic_ratio": round(target_ratio, 4),
+        "achieved_cardiothoracic_ratio": round(achieved, 4),
+        "uniform_scale_factor": scale,
+        "unrounded_solution": round(solved, 12),
+        "search_bounds": list(SCALE_SEARCH_BOUNDS),
+        "bisection_steps": SCALE_BISECTION_STEPS,
+        "rounded_to_decimals": SCALE_DECIMALS,
+        "transverse_cardiac_width_mm": round(width, 2),
+        "internal_thoracic_width_mm": round(span, 2),
+        "at_each_scale": trace,
+    }
+
+
+def _facing_wall(points: np.ndarray, heart: np.ndarray, key_axes: list[int],
+                 value_axis: int, mode: str) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Per transverse cell, the chest coordinate facing each heart point.
+
+    Both clouds are binned on the same grid and given cell ids in one pass, so
+    a heart point and the wall in front of it are matched by construction rather
+    than by a lookup that could silently miss. `matched` is false for a heart
+    point whose cell holds no chest geometry at all; those make no claim either
+    way and are excluded rather than counted as clearance.
+    """
+    chest_cells = np.floor_divide(points[:, key_axes], CONTAINMENT_CELL_MM).astype(np.int64)
+    heart_cells = np.floor_divide(heart[:, key_axes], CONTAINMENT_CELL_MM).astype(np.int64)
+    _, ids = np.unique(np.vstack([chest_cells, heart_cells]), axis=0, return_inverse=True)
+    ids = np.asarray(ids).reshape(-1)
+    chest_ids, heart_ids = ids[:len(chest_cells)], ids[len(chest_cells):]
+
+    extreme = np.full(int(ids.max()) + 1, -np.inf if mode == "max" else np.inf)
+    if mode == "max":
+        np.maximum.at(extreme, chest_ids, points[:, value_axis])
+    else:
+        np.minimum.at(extreme, chest_ids, points[:, value_axis])
+
+    wall = extreme[heart_ids]
+    return wall, np.isfinite(wall)
+
+
+def containment_report(chest_points: dict[str, np.ndarray], heart: np.ndarray,
+                       midline: float) -> dict:
+    """
+    Whether the placed heart is INSIDE the cage, with clearance, per structure.
+
+    The unsigned nearest-surface distances `chest_clearances` reports say how
+    CLOSE the heart comes to each group; they cannot say which SIDE of it the
+    heart is on, and "3 mm from the sternum" reads identically whether the heart
+    is behind it or through it. This is the directed test, one structure at a
+    time, in the direction each structure actually contains a heart:
+
+    * spine — the heart is anterior to the spine's anterior surface;
+    * sternum — the heart is posterior to the sternum's posterior surface;
+    * ribs — the heart is medial to the rib cage, tested per side against the
+      cage's own left and right extremes.
+
+    Each is measured per transverse cell so a curved cage is compared with the
+    part of the heart that actually faces it, rather than one global extreme
+    being compared with another somewhere else in the chest. A violation fails
+    the run: a heart through its own ribs is not a composite worth shipping.
+    """
+    ribs = chest_points["ribs"]
+    tests = {
+        "spine": ("heart anterior to the spine's anterior surface",
+                  chest_points["spine"], [2], 1, "min", -1.0),
+        "sternum": ("heart posterior to the sternum's posterior surface",
+                    chest_points["sternum"], [0, 2], 1, "max", +1.0),
+        "ribs_left": ("heart medial to the left rib cage",
+                      ribs[ribs[:, 0] > midline], [1, 2], 0, "max", -1.0),
+        "ribs_right": ("heart medial to the right rib cage",
+                       ribs[ribs[:, 0] < midline], [1, 2], 0, "min", +1.0),
+    }
+
+    structures: dict = {}
+    for name, (direction, points, key_axes, value_axis, mode, sign) in tests.items():
+        wall, matched = _facing_wall(points, heart, key_axes, value_axis, mode)
+        clearance = sign * (heart[matched][:, value_axis] - wall[matched])
+        structures[name] = {
+            "direction": direction,
+            "heart_points_facing_it": int(matched.sum()),
+            "heart_points_total": int(len(heart)),
+            "min_clearance_mm": round(float(clearance.min()), 3),
+            "median_clearance_mm": round(float(np.median(clearance)), 3),
+            "violations": int((clearance < 0).sum()),
+        }
+
+    failed = [n for n, s in structures.items() if s["violations"] > 0]
+    if failed:
+        detail = "; ".join(
+            f"{n}: {structures[n]['violations']} point(s), worst "
+            f"{structures[n]['min_clearance_mm']} mm"
+            for n in failed
+        )
+        raise SystemExit(
+            "the registered heart is not inside the fitted rib cage: " + detail
+        )
+
+    return {
+        "method": (
+            f"Per {CONTAINMENT_CELL_MM:.0f} mm transverse cell, the coordinate of the chest "
+            "structure facing each heart point, compared with the heart point in the direction "
+            "that structure contains a heart. Signed: positive is inside. Heart points with no "
+            "chest geometry in their own cell are not counted, because a cell with no wall in "
+            "it makes no claim either way."
+        ),
+        "structures": structures,
+        "all_clearances_positive": True,
+    }
+
+
+def seed_centroid_comparison(pack: dict, pack_landmarks: dict) -> dict:
+    """
+    How far the pack's published seed centroids sit from its lumen centroids.
+
+    An observation, not a check. The pack publishes the mean of the hand-placed
+    SEED MARKS per chamber; this registration uses the mean of the LABELLED
+    VOLUME each mark grew into. They are different quantities and are expected
+    to disagree — recorded so that using the geometry rather than the metadata
+    is a visible choice rather than a silent one.
+    """
+    frame = pack["meshes"]["anatomical_frame"]
+    basis = frame["basis_source_to_pack"]
+    rotation = np.array(
+        [basis["patient_left"], basis["basal"], basis["anterior"]], dtype=np.float64
+    )
+    seeds = frame["landmarks_source_mm"]["observer_seed_centroids"]
+    out = {}
+    for name, node in CHAMBER_PACK_NODES.items():
+        if name not in seeds:
+            continue
+        seed = rotation @ np.array(seeds[name], dtype=np.float64)
+        out[name] = {
+            "seed_centroid_pack_mm": [round(v, 3) for v in seed.tolist()],
+            "lumen_centroid_pack_mm": [
+                round(float(v), 3) for v in pack_landmarks["chambers"][name].tolist()
+            ],
+            "separation_mm": round(
+                float(np.linalg.norm(seed - pack_landmarks["chambers"][name])), 3
+            ),
+        }
+    return out
+
+
+def build_fitted(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dict, dict]:
+    """Derive the fitted context, returning `(descriptor, evidence)`."""
+    pack_dir = REPO / "public" / "packs" / FITTED_BOUND_PACK_ID
+    pack_path = pack_dir / "pack.json"
+    if not pack_path.exists():
+        raise SystemExit(
+            f"{pack_path.relative_to(REPO)} is missing. This context is bound to that pack and "
+            "cannot be derived without it."
+        )
+    pack = json.loads(pack_path.read_text())
+
+    verified = verify_sources(cache)
+    by_concept = elements_by_concept(cache)
+    axes = measure_body_axes(cache, by_concept)
+    to_body = bodyparts_to_body(axes)
+
+    source_landmarks = bodyparts_chamber_landmarks(cache, by_concept)
+    body_landmarks = {
+        "chambers": {k: to_body @ v for k, v in source_landmarks["chambers"].items()},
+        "base": to_body @ source_landmarks["base"],
+        "apex": to_body @ source_landmarks["apex"],
+    }
+
+    nodes = pack_node_vertices(pack_dir / "assets" / "model.gltf")
+    pack_landmarks = pack_chamber_landmarks(nodes)
+    heart_model = np.vstack(list(nodes.values()))
+
+    left_lung = concept_vertices(cache, by_concept, "FMA7310") @ to_body.T
+    right_lung = concept_vertices(cache, by_concept, "FMA7309") @ to_body.T
+    native = concept_vertices(cache, by_concept, "FMA7088") @ to_body.T
+
+    # The target is not a constant typed in from a document: it is measured here,
+    # from BodyParts3D's own heart in BodyParts3D's own thorax, so the number the
+    # chest is fitted to is re-derived on every run alongside the fit itself.
+    native_ratio, native_width, native_span = cardiothoracic_ratio(native, left_lung, right_lung)
+    target_ratio = round(native_ratio, 4)
+
+    scale, scaling = solve_chest_scale(
+        pack_landmarks, body_landmarks, heart_model, left_lung, right_lung, target_ratio
+    )
+    scaling["native_pair"] = {
+        "what": "BodyParts3D's own heart in its own thorax, at native size",
+        "transverse_cardiac_width_mm": round(native_width, 2),
+        "internal_thoracic_width_mm": round(native_span, 2),
+        "cardiothoracic_ratio": round(native_ratio, 4),
+        "note": (
+            "The ratio of a body to itself does not change when that body is scaled uniformly, "
+            "so this control reads the same in the fitted chest as at native size. That is the "
+            "check that the scaling really was uniform."
+        ),
+    }
+
+    to_body_scaled = scaled_to_body(to_body, scale)
+    crop_z = (SKIN_CROP_Z_MM[0] * scale, SKIN_CROP_Z_MM[1] * scale)
+    chest_surfaces, chest_report = build_chest(cache, by_concept, to_body_scaled, crop_z)
+    chest_report["uniform_scale_factor"] = scale
+    chest_report["skin_crop_z_mm"] = [round(v, 3) for v in crop_z]
+
+    report = fit_chambers(pack_landmarks, body_landmarks, scale)
+    rotation, translation = report["rotation"], report["translation"]
+    rigid = validate_rigid(rotation, translation)
+    anatomy = anatomy_checks(rotation, translation, pack_landmarks, pack_dir)
+
+    assets_dir = FITTED_CONTEXT_DIR / "assets"
+    gltf_path = assets_dir / "chest.gltf"
+    bin_path = assets_dir / "chest.bin"
+    if write_assets:
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        gltf_bytes, bin_bytes = write_gltf(gltf_path, chest_surfaces, bin_name="chest.bin")
+        total_bytes = gltf_bytes + bin_bytes
+        if total_bytes > CHEST_BUDGET_BYTES:
+            raise SystemExit(
+                f"chest assets are {total_bytes:,} bytes, over the "
+                f"{CHEST_BUDGET_BYTES:,} budget. Context must not cost what a pack costs."
+            )
+        chest_report["totals"]["gltf_bytes"] = gltf_bytes
+        chest_report["totals"]["bin_bytes"] = bin_bytes
+        chest_report["totals"]["total_bytes"] = total_bytes
+
+    heart_body = heart_model @ rotation.T + translation
+    chest_report["clearance_to_registered_heart"] = chest_clearances(chest_surfaces, heart_body)
+    chest_report["registered_heart_bounds_body_mm"] = {
+        "min": [round(float(v), 2) for v in heart_body.min(axis=0).tolist()],
+        "max": [round(float(v), 2) for v in heart_body.max(axis=0).tolist()],
+    }
+
+    # Containment is measured against the FULL-RESOLUTION source structures, not
+    # the decimated display meshes: decimation moves vertices by up to a
+    # millimetre, and a containment answer should not depend on a triangle
+    # budget chosen for frame rate.
+    sternum = concept_vertices(cache, by_concept, "FMA7485") @ to_body_scaled.T
+    containment = containment_report(
+        {
+            "ribs": concept_vertices(cache, by_concept, "FMA7480") @ to_body_scaled.T,
+            "sternum": sternum,
+            "spine": concept_vertices(cache, by_concept, "FMA9140") @ to_body_scaled.T,
+        },
+        heart_body,
+        float((sternum[:, 0].min() + sternum[:, 0].max()) / 2),
+    )
+    chest_report["heart_inside_the_rib_cage"] = containment
+
+    context_assets = [{
+        "gltf": "assets/chest.gltf",
+        "bin": "assets/chest.bin",
+        "sha256": sha256_of(gltf_path),
+        "bin_sha256": sha256_of(bin_path),
+        "bytes": gltf_path.stat().st_size + bin_path.stat().st_size,
+        "groups": [
+            {
+                "group": surface.name,
+                "triangles": int(surface.triangle_count),
+                "source_elements": chest_report["groups"][surface.name]["source_elements"],
+            }
+            for surface in chest_surfaces
+        ],
+    }] if gltf_path.exists() and bin_path.exists() else []
+
+    scaled_body_height_mm = round(1719.0 * scale, 1)
+
+    descriptor = {
+        "schema_version": SCHEMA_VERSION,
+        "context_id": FITTED_CONTEXT_ID,
+        "display_name": "Fitted reference chest — BodyParts3D scaled to this heart",
+        "pack_binding": {
+            "pack_id": pack["meta"]["id"],
+            "pack_version": pack["meta"]["pack_version"],
+            "pack_schema_version": pack["meta"]["schema_version"],
+            "pack_json_sha256": sha256_of(pack_path),
+        },
+        "body_frame": {
+            "patient_left": [1, 0, 0],
+            "posterior": [0, 1, 0],
+            "superior": [0, 0, 1],
+            "handedness": "right",
+            "units": "mm",
+            "note": (
+                "Anterior is -Y. cross(patient_left, superior) = -Y = anterior, the same "
+                "handedness convention meshes.anatomical_frame.basis_source_to_pack uses."
+            ),
+        },
+        "model_to_body": {
+            "rotation_row_major": [round(v, 12) for v in rotation.reshape(-1).tolist()],
+            "translation_mm": [round(v, 9) for v in translation.tolist()],
+            "scale": 1,
+        },
+        "registration": {
+            "method": "rigid-landmark-kabsch-scale-locked-v1",
+            "jig": (
+                "BodyParts3D 4.0 heart, uniformly scaled with its own thorax, used only to "
+                "measure where and how a heart sits in this body. It is never displayed; the "
+                "displayed heart is the bound pack."
+            ),
+            "scheme": report["scheme"],
+            "landmark_definitions": {
+                "left_ventricle/right_ventricle/left_atrium/right_atrium": (
+                    "target: vertex centroid of every element the source lists under the "
+                    "chamber-cavity concept (FMA9466/9291/9465/11359), in the uniformly scaled "
+                    "body. source: vertex centroid of the pack's own lumen node "
+                    "(lv-lumen/rv-lumen/la-lumen/ra-lumen) in the shipped glTF. Chamber "
+                    "cavities rather than valve rings because this pack HAS no valve-ring "
+                    "geometry: its source carries none and its provenance records that none "
+                    "was invented."
+                ),
+                "apex_direction": (
+                    "each heart's own base-to-apex unit vector taken out to a shared "
+                    f"{report['shared_direction_length_mm']:.6f} mm. Constrains long-axis "
+                    "DIRECTION without asserting the two hearts are the same length. Base on "
+                    "both sides is the midpoint of the two atrial cavity centroids, which is "
+                    "the basal reference the pack's own measured cardiac frame uses. Apex on "
+                    "both sides is the mean of the most apical percentile of the left "
+                    "ventricular cavity along that cavity's own principal axis."
+                ),
+            },
+            "weights": report["weights"],
+            "rms_residual_mm": report["rms_residual_mm"],
+            "max_residual_mm": report["max_residual_mm"],
+            "per_landmark_residual_mm": report["per_landmark_residual_mm"],
+            "long_axis_disagreement_deg": report["long_axis_disagreement_deg"],
+            "apex_separation_mm": report["apex_separation_mm"],
+            "irreducible_length_difference_mm": report["irreducible_length_difference_mm"],
+            "apex_separation_attributable_to_fit_mm": report[
+                "apex_separation_attributable_to_fit_mm"
+            ],
+            "landmark_caveat": (
+                "Chamber-cavity centroids are a CRUDER correspondence than the valve centres "
+                "adult-reference-chest-bp3d fits on, and the residuals are correspondingly "
+                "larger. A cavity centroid moves with how full the cavity is, and this pack's "
+                "right ventricular lumen is 148.3 mL against an expected 60-100 mL and remains "
+                "unresolved, so part of the residual is a labelling question rather than a "
+                "registration one."
+            ),
+            "chest_scaling": {
+                "what_was_scaled": (
+                    "THE CHEST, not the heart. The BodyParts3D source is uniformly scaled about "
+                    "the body-frame origin before the thoracic geometry is extracted, so the "
+                    "millimetres written into chest.bin are already the fitted ones."
+                ),
+                "why_not_in_model_to_body": (
+                    "model_to_body maps the HEART into the body and stays rigid at scale exactly "
+                    "1; body-context/v0 pins it to literal 1 and rigidProblem() refuses a scale, "
+                    "a shear and a reflection. A scale there would silently resize the anatomy "
+                    "the learner is reading. Baking the fit into the chest asset keeps the one "
+                    "thing that must not be resized unresized."
+                ),
+                "uniform_scale_factor": scale,
+                "uniform_not_per_axis": (
+                    "One factor on all three axes. Per-axis factors would invent proportions no "
+                    "measurement in this repository supports: the source is one man's thorax and "
+                    "there is no second body here to say how a chest that is deeper is also "
+                    "wide. The uniform fit clears the ribs, the sternum and the spine with "
+                    "positive margin on every heart point, so no per-axis fit was needed or "
+                    "considered."
+                ),
+                "rule": (
+                    "Scale uniformly until the bound pack's heart occupies the same fraction of "
+                    "the thorax that BodyParts3D's own heart occupies in its own thorax, "
+                    "measuring the cardiothoracic ratio exactly as the existing composite "
+                    "measures it."
+                ),
+                "ratio_method": (
+                    "Transverse cardiac width is the heart's own extent along body +X. The "
+                    "denominator is the pleural span — left lung maximum +X minus right lung "
+                    "minimum +X — taken in the z band the heart itself occupies, which is the "
+                    "radiographic internal thoracic diameter. Identical to the method "
+                    "composite_validation reports."
+                ),
+                "target_cardiothoracic_ratio": scaling["target_cardiothoracic_ratio"],
+                "achieved_cardiothoracic_ratio": scaling["achieved_cardiothoracic_ratio"],
+                "transverse_cardiac_width_mm": scaling["transverse_cardiac_width_mm"],
+                "internal_thoracic_width_mm": scaling["internal_thoracic_width_mm"],
+                "cardiothoracic_ratio_at_native_chest_size": (
+                    scaling["at_each_scale"][0]["cardiothoracic_ratio"]
+                ),
+                "scaled_whole_body_skin_height_mm": scaled_body_height_mm,
+                "direction_of_the_fit": (
+                    f"The factor is greater than 1: the chest was made LARGER, by "
+                    f"{(scale - 1) * 100:.1f} percent. This heart is wider than the one "
+                    "BodyParts3D's thorax was built around, which is partly that BodyParts3D's "
+                    "own heart is undersized for its body and partly that this pack's right "
+                    "atrial and right ventricular lumens are larger than expected. The fitted "
+                    "thorax is therefore bigger than the adult source it came from, not smaller."
+                ),
+                "owner_decision_date": FITTED_OWNER_DECISION_DATE,
+                "owner_decision": (
+                    "Reuse BodyParts3D 4.0 rather than sourcing a new body; scale the chest to "
+                    "fit THIS HEART rather than to an age; keep both contexts, one per pack, "
+                    "with adult-reference-chest-bp3d unchanged and still bound to normal-rodero."
+                ),
+            },
+            "rigid_validation": rigid,
+            "anatomy_checks": anatomy["checks"],
+            "heart_inside_the_rib_cage": containment["structures"],
+        },
+        "context_assets": context_assets,
+        "provenance": {
+            "creator": (
+                "The Database Center for Life Science (DBCLS), Research Organization of "
+                "Information and Systems"
+            ),
+            "source": (
+                "BodyParts3D 4.0, partof_BP3D_4.0_obj_99.zip and partof_element_parts.txt, "
+                "LSDB Archive"
+            ),
+            "source_urls": {
+                "description": "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/desc.html",
+                "download": "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html",
+                "license": "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html",
+                "paper": "https://academic.oup.com/nar/article/37/suppl_1/D782/1000752",
+                "source_cautions": "https://lifesciencedb.jp/bp3d/info_en/index.html",
+            },
+            "source_sha256": verified,
+            "copyright": "Copyright (c) 2008 Life Science Integrated Database Center",
+            "license": "CC-BY-SA-2.1-JP",
+            "license_url": "https://creativecommons.org/licenses/by-sa/2.1/jp/",
+            "license_state": "confirmed",
+            "attribution": (
+                "BodyParts3D, Copyright (c) 2008 Life Science Integrated Database Center "
+                "licensed under CC Attribution-Share Alike 2.1 Japan"
+            ),
+            "modified": (
+                f"YES. The thoracic geometry in chest.gltf is the BodyParts3D source scaled "
+                f"uniformly by {scale} about the body-frame origin, then selected by concept, "
+                "merged per display group, cropped (skin only) and decimated to a triangle "
+                "budget. No per-axis scaling, no reshaping, no invented surface, and no cap on "
+                "the skin crop."
+            ),
+            "derivation": [
+                "partof_BP3D_4.0_obj_99.zip and partof_element_parts.txt, verified by SHA-256",
+                "pipeline/body_context.py build_fitted(): measure the body axes, measure the "
+                "native pair's cardiothoracic ratio, solve one uniform scale by bisection, "
+                "build the chest from the scaled source, then fit the pack rigidly into it",
+                f"public/packs/{FITTED_BOUND_PACK_ID}/pack.json and its shipped glTF",
+            ],
+            "share_alike_consequence": (
+                "The scaled mesh is a DERIVATIVE of a share-alike source and ships under the "
+                "same licence. Anything further derived from chest.gltf or chest.bin carries "
+                "the same obligation."
+            ),
+            "license_history_caveat": (
+                "The licensing history for this source is NOT consistent, and this context and "
+                "adult-reference-chest-bp3d record different readings of it on purpose. The "
+                "rights holder's current licence page states CC Attribution 4.0 International "
+                "and is what adult-reference-chest-bp3d records; older project pages for the "
+                "same data state CC BY-SA 2.1 Japan, which is what the owner directed for this "
+                "derivative on "
+                f"{FITTED_OWNER_DECISION_DATE} and what is recorded here. Share-alike is the "
+                "more restrictive of the two, so honouring it satisfies either reading. The "
+                "disagreement is recorded rather than resolved; resolving it is an owner "
+                "decision about both contexts, not a pipeline change."
+            ),
+            "what_this_is": (
+                "AN ADULT MALE BodyParts3D THORAX, SCALED UNIFORMLY TO MATCH THIS HEART'S "
+                "CARDIOTHORACIC RATIO. It is not a scan or a model of an adolescent, and no "
+                "age is claimed for it anywhere. The bound pack is a 14-year-old's heart; this "
+                "chest around it is an adult male's, resized."
+            ),
+            "age_correctness_caveat": (
+                "RIB OBLIQUITY, INTERCOSTAL SPACING AND COSTAL CARTILAGE ARE THE ADULT SOURCE'S "
+                "AND ARE NOT AGE-CORRECT. A uniform scale changes every distance by one factor "
+                "and changes no angle and no proportion at all, so the ribs still run at adult "
+                "angles and the spaces between them are adult spaces, merely larger. A PROBE "
+                "WINDOW INDEXED TO AN INTERCOSTAL SPACE ON THIS CHEST IS APPROXIMATE. Authoring "
+                "or migrating echo view angles against it is deferred and depends on this "
+                "context being signed off first."
+            ),
+            "fit_inherits_the_pack_s_own_defect": (
+                "The scale factor was solved against this heart's transverse width, and this "
+                "pack's right ventricular lumen is 148.3 mL against an expected 60-100 mL and "
+                "is recorded as unresolved. A heart that is wider than it should be demands a "
+                "wider thorax to reach the same ratio, so the factor carries that error. If the "
+                "right ventricular lumen is resolved, this context has to be rebuilt."
+            ),
+            "subject": (
+                "A living adult male. BodyParts3D describes itself as a three-dimensional "
+                "whole-body model for an adult human male, and the underlying whole-body "
+                "reference is an MRI volunteer (the NICT/TARO adult male reference), NOT a "
+                "cadaver and NOT a post-mortem specimen. Whole-body skin height measured from "
+                "the source is 1719 mm; uniformly scaled by this context's factor that becomes "
+                f"{scaled_body_height_mm} mm, which is a CONSEQUENCE of fitting a chest to one "
+                "heart and is not an anthropometric claim about anybody."
+            ),
+            "source_cautions": (
+                "The publisher's own notice states there could be many errors for use as "
+                "anatomical education, and that some parts were made from scratch by artists "
+                "or distorted to fit into the environment. It also warns that OBJ sets are "
+                "versioned per organ and that sets differing in the one's place of their "
+                "version number do not necessarily share body coordinates."
+            ),
+            "not_published": (
+                "DEVELOPMENT ONLY. The bound pack derives from a CC BY-NC 4.0 source and its "
+                "license_state is non_commercial, so neither the pack nor this context reaches "
+                "the deployed site. Enforced at build time and asserted by "
+                "npm run check:published-packs."
+            ),
+            "not_a_patient": (
+                "One adult male reference thorax, uniformly resized, around one 14-year-old's "
+                "observer-labelled heart. A teaching composite: not a patient, not a matched "
+                "pair, not an age-appropriate body, and not clinical ground truth."
+            ),
+        },
+    }
+
+    evidence = {
+        "context_id": FITTED_CONTEXT_ID,
+        "body_axis_measurement": axes.evidence,
+        "bodyparts_to_body_rotation_row_major": to_body.reshape(-1).tolist(),
+        "chest_scaling": scaling,
+        "landmarks_body_mm": {
+            "chambers": {k: (v * scale).tolist() for k, v in body_landmarks["chambers"].items()},
+            "base": (body_landmarks["base"] * scale).tolist(),
+            "apex": (body_landmarks["apex"] * scale).tolist(),
+        },
+        "landmarks_pack_model_mm": {
+            "chambers": {k: v.tolist() for k, v in pack_landmarks["chambers"].items()},
+            "base": pack_landmarks["base"].tolist(),
+            "apex": pack_landmarks["apex"].tolist(),
+        },
+        "published_seed_centroids_against_lumen_centroids":
+            seed_centroid_comparison(pack, pack_landmarks),
+        "fit": {k: v for k, v in report.items() if k not in ("rotation", "translation")},
+        "chest": chest_report,
+        "rigid_validation": rigid,
+        "anatomy": anatomy,
+        "composite_validation": composite_validation(
+            cache, by_concept, heart_body, to_body_scaled
+        ),
+    }
+    return descriptor, evidence
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, default=CACHE)
     parser.add_argument("--check", action="store_true",
                         help="derive and compare against what is committed, writing nothing")
+    parser.add_argument(
+        "--context", choices=("all", CONTEXT_ID, FITTED_CONTEXT_ID), default="all",
+        help="which context to derive; the default is every context in this repository",
+    )
     args = parser.parse_args()
 
-    descriptor, evidence = build(args.cache)
+    #: Every context this module owns: how to derive it, and where it lands.
+    contexts = [
+        (CONTEXT_ID, build, CONTEXT_DIR, EVIDENCE_DIR),
+        (FITTED_CONTEXT_ID, build_fitted, FITTED_CONTEXT_DIR, FITTED_EVIDENCE_DIR),
+    ]
+    selected = [c for c in contexts if args.context in ("all", c[0])]
 
-    context_path = CONTEXT_DIR / "context.json"
-    evidence_path = EVIDENCE_DIR / "registration-report.json"
-    rendered = json.dumps(descriptor, indent=2, sort_keys=False) + "\n"
-    rendered_evidence = json.dumps(evidence, indent=2, sort_keys=False) + "\n"
+    problems: list[str] = []
+    for context_id, derive, context_dir, evidence_dir in selected:
+        descriptor, evidence = derive(args.cache)
+
+        context_path = context_dir / "context.json"
+        evidence_path = evidence_dir / "registration-report.json"
+        rendered = json.dumps(descriptor, indent=2, sort_keys=False) + "\n"
+        rendered_evidence = json.dumps(evidence, indent=2, sort_keys=False) + "\n"
+
+        if args.check:
+            for path, text in ((context_path, rendered), (evidence_path, rendered_evidence)):
+                if not path.exists():
+                    problems.append(f"{path.relative_to(REPO)}: missing")
+                elif path.read_text() != text:
+                    problems.append(f"{path.relative_to(REPO)}: differs from a fresh derivation")
+            continue
+
+        context_dir.mkdir(parents=True, exist_ok=True)
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        context_path.write_text(rendered)
+        evidence_path.write_text(rendered_evidence)
+
+        fit = descriptor["registration"]
+        print(f"body context written to {context_path.relative_to(REPO)}")
+        print(f"  scheme      {fit['scheme']}")
+        print(f"  RMS         {fit['rms_residual_mm']:.3f} mm")
+        print(f"  max         {fit['max_residual_mm']:.3f} mm")
+        print(f"  long axis   {fit['long_axis_disagreement_deg']:.3f} deg")
+        print(f"  determinant {fit['rigid_validation']['determinant']:.12f}")
+        scaling = fit.get("chest_scaling")
+        if scaling is not None:
+            print(f"  chest scale {scaling['uniform_scale_factor']} (uniform)")
+            print(f"  CTR         {scaling['achieved_cardiothoracic_ratio']:.4f} "
+                  f"against a target of {scaling['target_cardiothoracic_ratio']:.4f}")
 
     if args.check:
-        problems = []
-        for path, text in ((context_path, rendered), (evidence_path, rendered_evidence)):
-            if not path.exists():
-                problems.append(f"{path.relative_to(REPO)}: missing")
-            elif path.read_text() != text:
-                problems.append(f"{path.relative_to(REPO)}: differs from a fresh derivation")
         if problems:
             raise SystemExit("\n".join(problems))
-        print("body context: committed files match a fresh derivation")
-        return
-
-    CONTEXT_DIR.mkdir(parents=True, exist_ok=True)
-    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-    context_path.write_text(rendered)
-    evidence_path.write_text(rendered_evidence)
-
-    fit = descriptor["registration"]
-    print(f"body context written to {context_path.relative_to(REPO)}")
-    print(f"  scheme      {fit['scheme']}")
-    print(f"  RMS         {fit['rms_residual_mm']:.3f} mm")
-    print(f"  max         {fit['max_residual_mm']:.3f} mm")
-    print(f"  long axis   {fit['long_axis_disagreement_deg']:.3f} deg")
-    print(f"  determinant {fit['rigid_validation']['determinant']:.12f}")
+        names = ", ".join(c[0] for c in selected)
+        print(f"body context: committed files match a fresh derivation ({names})")
 
 
 if __name__ == "__main__":

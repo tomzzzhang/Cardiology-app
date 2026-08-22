@@ -12,9 +12,12 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_PACK_ID,
+  PUBLISHED_CONTEXT_IDS,
   PUBLISHED_PACK_IDS,
+  UNPUBLISHED_CONTEXTS,
   UNPUBLISHED_PACKS,
   UNVERIFIED_ORIENTATION_NOTE,
+  isPublishedContext,
   isPublishedPack,
   unpublishedReason,
   LICENSE_STATE_LABEL,
@@ -84,6 +87,22 @@ describe('the published allowlist', () => {
 
   it('does not apply the original substrate rejection to the chamber-labelled derivative', () => {
     expect(UNPUBLISHED_PACKS['normal-vhl-heart0102-chambers'].substrate).toBeUndefined();
+  });
+
+  it('ships a body context only when the pack it is bound to ships', () => {
+    // A context is several megabytes of third-party thoracic geometry, and one
+    // that shipped while its pack did not would put that geometry on a public
+    // URL for a heart the site does not carry.
+    expect([...PUBLISHED_CONTEXT_IDS]).toEqual(['adult-reference-chest-bp3d']);
+    expect(isPublishedContext('adult-reference-chest-bp3d')).toBe(true);
+    expect(isPublishedContext('fitted-chest-bp3d-heart0102-chambers')).toBe(false);
+
+    for (const [contextId, reason] of Object.entries(UNPUBLISHED_CONTEXTS)) {
+      expect(isPublishedContext(contextId)).toBe(false);
+      expect(reason.length, `${contextId} has no recorded reason`).toBeGreaterThan(0);
+    }
+    expect(UNPUBLISHED_CONTEXTS['fitted-chest-bp3d-heart0102-chambers'])
+      .toMatch(/CC BY-NC 4\.0/);
   });
 
   it('states that both rejected packs render in unverified orientations', () => {

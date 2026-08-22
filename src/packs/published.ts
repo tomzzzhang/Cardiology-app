@@ -332,6 +332,36 @@ export function cataloguedPacks(production: boolean): readonly CatalogueEntry[] 
     : PACK_CATALOGUE.filter((entry) => !pickerHiddenPackIds.has(entry.id));
 }
 
+/**
+ * Which BODY CONTEXTS reach the deployed site.
+ *
+ * A body context is a second kind of shippable directory under `public/`, and
+ * it needs the same control for the same reason: `public/body-context/<id>/`
+ * carries several megabytes of third-party thoracic geometry, and a context
+ * that shipped while the pack it is bound to did not would be a licence
+ * exposure attached to a heart that is not there.
+ *
+ * A context ships only if the pack it serves ships. `fitted-chest-bp3d-heart0102-chambers`
+ * is bound to `normal-vhl-heart0102-chambers`, whose source is CC BY-NC 4.0
+ * and whose `license_state` is `non_commercial`, so it is development-only —
+ * and its own chest mesh is a share-alike derivative besides.
+ *
+ * Enforced at BUILD time by `vite.config.ts` and asserted afterwards by
+ * `npm run check:published-packs`, exactly as the pack list is.
+ */
+export const PUBLISHED_CONTEXT_IDS = ['adult-reference-chest-bp3d'] as const;
+
+export const UNPUBLISHED_CONTEXTS: Readonly<Record<string, string>> = {
+  'fitted-chest-bp3d-heart0102-chambers':
+    'Bound to normal-vhl-heart0102-chambers, which is CC BY-NC 4.0 and non_commercial and ' +
+    'does not ship. The chest mesh itself is a BodyParts3D derivative carried under ' +
+    'CC BY-SA 2.1 Japan, uniformly scaled to that heart, and is development-only.',
+};
+
+export function isPublishedContext(contextId: string): boolean {
+  return (PUBLISHED_CONTEXT_IDS as readonly string[]).includes(contextId);
+}
+
 /** Human wording for a licence state, for the chip. */
 export const LICENSE_STATE_LABEL: Readonly<Record<LicenseState, string>> = {
   confirmed: 'licence confirmed',

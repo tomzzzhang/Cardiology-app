@@ -2,7 +2,7 @@ import { rmSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { PUBLISHED_PACK_IDS } from './src/packs/published.ts';
+import { PUBLISHED_CONTEXT_IDS, PUBLISHED_PACK_IDS } from './src/packs/published.ts';
 
 /**
  * `base` is supplied by the deploying workflow, never hardcoded.
@@ -32,7 +32,7 @@ const base = process.env.BASE_PATH ?? '/';
  * reordered or broken by an upstream change.
  */
 /**
- * Remove unpublished packs from the build output.
+ * Remove unpublished packs and body contexts from the build output.
  *
  * The repository keeps the rejected wave 1a candidates as evidence, and they stay
  * loadable in `npm run dev` so the substrate comparison remains reproducible. The
@@ -48,6 +48,23 @@ const base = process.env.BASE_PATH ?? '/';
  */
 function publishedPacksOnly(): Plugin {
   let outDir = 'dist';
+
+  const prune = (
+    plugin: { info: (message: string) => void },
+    directory: string,
+    allowed: readonly string[],
+    what: string,
+  ) => {
+    const root = join(outDir, directory);
+    if (!existsSync(root)) return;
+    for (const entry of readdirSync(root, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (allowed.includes(entry.name)) continue;
+      rmSync(join(root, entry.name), { recursive: true, force: true });
+      plugin.info(`excluded unpublished ${what} "${entry.name}" from the build`);
+    }
+  };
+
   return {
     name: 'cardiology-published-packs-only',
     apply: 'build',
@@ -55,14 +72,11 @@ function publishedPacksOnly(): Plugin {
       outDir = config.build.outDir;
     },
     closeBundle() {
-      const packsDir = join(outDir, 'packs');
-      if (!existsSync(packsDir)) return;
-      for (const entry of readdirSync(packsDir, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        if ((PUBLISHED_PACK_IDS as readonly string[]).includes(entry.name)) continue;
-        rmSync(join(packsDir, entry.name), { recursive: true, force: true });
-        this.info(`excluded unpublished pack "${entry.name}" from the build`);
-      }
+      prune(this, 'packs', PUBLISHED_PACK_IDS as readonly string[], 'pack');
+      // Body contexts are the second shippable directory under `public/`, and
+      // several megabytes of third-party thoracic geometry each. A context
+      // whose pack was pruned has nothing to be context FOR, so it goes too.
+      prune(this, 'body-context', PUBLISHED_CONTEXT_IDS as readonly string[], 'body context');
     },
   };
 }

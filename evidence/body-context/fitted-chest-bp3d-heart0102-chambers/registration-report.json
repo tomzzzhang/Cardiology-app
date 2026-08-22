@@ -1,0 +1,1151 @@
+{
+  "context_id": "fitted-chest-bp3d-heart0102-chambers",
+  "body_axis_measurement": {
+    "landmark_centroids_mm": {
+      "skull": [
+        -0.7336225489601861,
+        -134.42852548714725,
+        1522.623399067566
+      ],
+      "right_foot": [
+        -107.64144136438837,
+        -141.33208960836583,
+        -44.409594977406215
+      ],
+      "sternum": [
+        0.5709027361421746,
+        -184.61290114305237,
+        1239.0856452421708
+      ],
+      "thoracic_spine": [
+        -0.9136498257417476,
+        -52.284443365612816,
+        1207.8584559401752
+      ],
+      "left_clavicle": [
+        76.06587182960637,
+        -101.28068470242016,
+        1334.9016603995794
+      ],
+      "right_clavicle": [
+        -78.90769835483557,
+        -101.04571401030081,
+        1335.9689038965346
+      ]
+    },
+    "measurement_order": [
+      "superior",
+      "patient_left",
+      "anterior"
+    ],
+    "measured": {
+      "superior": {
+        "raw_mm": [
+          106.90781881542819,
+          6.903564121218579,
+          1567.0329940449722
+        ],
+        "raw_unit": [
+          0.06806420722594382,
+          0.004395240910821029,
+          0.9976712612639694
+        ],
+        "orthogonalised_unit": [
+          0.06806420722594382,
+          0.004395240910821029,
+          0.9976712612639694
+        ],
+        "snapped_to": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "cosine_with_snapped_axis": 0.9976712612639694,
+        "cosine_before_orthogonalisation": 0.9976712612639694
+      },
+      "patient_left": {
+        "raw_mm": [
+          154.97357018444194,
+          -0.2349706921193473,
+          -1.0672434969551432
+        ],
+        "raw_unit": [
+          0.99997513875698,
+          -0.0015161607890701897,
+          -0.006886444976940614
+        ],
+        "orthogonalised_unit": [
+          0.9999988505730608,
+          -0.0015161967408897762,
+          0.0
+        ],
+        "snapped_to": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "cosine_with_snapped_axis": 0.9999988505730608,
+        "cosine_before_orthogonalisation": 0.99997513875698
+      },
+      "anterior": {
+        "raw_mm": [
+          1.4845525618839222,
+          -132.32845777743955,
+          31.227189301995622
+        ],
+        "raw_unit": [
+          0.01091814128588057,
+          -0.9732095954375072,
+          0.22966035256270365
+        ],
+        "orthogonalised_unit": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "snapped_to": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "cosine_with_snapped_axis": 1.0,
+        "cosine_before_orthogonalisation": 0.9732095954375072
+      }
+    },
+    "handedness_check": "cross(patient_left, superior) == anterior"
+  },
+  "bodyparts_to_body_rotation_row_major": [
+    1.0,
+    0.0,
+    0.0,
+    -0.0,
+    1.0,
+    -0.0,
+    0.0,
+    0.0,
+    1.0
+  ],
+  "chest_scaling": {
+    "target_cardiothoracic_ratio": 0.4911,
+    "achieved_cardiothoracic_ratio": 0.4911,
+    "uniform_scale_factor": 1.211184,
+    "unrounded_solution": 1.211184312539,
+    "search_bounds": [
+      0.5,
+      2.5
+    ],
+    "bisection_steps": 60,
+    "rounded_to_decimals": 6,
+    "transverse_cardiac_width_mm": 140.13,
+    "internal_thoracic_width_mm": 285.33,
+    "at_each_scale": [
+      {
+        "scale": 1.0,
+        "cardiothoracic_ratio": 0.5975,
+        "transverse_cardiac_width_mm": 140.91,
+        "internal_thoracic_width_mm": 235.85
+      },
+      {
+        "scale": 1.211184,
+        "cardiothoracic_ratio": 0.4911,
+        "transverse_cardiac_width_mm": 140.13,
+        "internal_thoracic_width_mm": 285.33
+      }
+    ],
+    "native_pair": {
+      "what": "BodyParts3D's own heart in its own thorax, at native size",
+      "transverse_cardiac_width_mm": 115.69,
+      "internal_thoracic_width_mm": 235.58,
+      "cardiothoracic_ratio": 0.4911,
+      "note": "The ratio of a body to itself does not change when that body is scaled uniformly, so this control reads the same in the fitted chest as at native size. That is the check that the scaling really was uniform."
+    }
+  },
+  "landmarks_body_mm": {
+    "chambers": {
+      "left_ventricle": [
+        42.83580218494757,
+        -144.75892636484943,
+        1480.4652300339765
+      ],
+      "right_ventricle": [
+        24.48298174391733,
+        -175.55461177792938,
+        1485.1990949639705
+      ],
+      "left_atrium": [
+        22.778109810447077,
+        -112.65684236710516,
+        1506.2586548996985
+      ],
+      "right_atrium": [
+        -17.048540306994468,
+        -146.34807286999205,
+        1491.4011575623574
+      ]
+    },
+    "base": [
+      2.8647847517263054,
+      -129.50245761854862,
+      1498.829906231028
+    ],
+    "apex": [
+      76.00698973089601,
+      -185.32649345043947,
+      1441.6427222792968
+    ]
+  },
+  "landmarks_pack_model_mm": {
+    "chambers": {
+      "left_ventricle": [
+        18.06257383742175,
+        -15.486131013679076,
+        14.884761656809115
+      ],
+      "right_ventricle": [
+        -17.446258603881933,
+        -23.654417184693287,
+        26.611650629436756
+      ],
+      "left_atrium": [
+        -3.389592121858846,
+        31.699923647049474,
+        -1.0049937572911074
+      ],
+      "right_atrium": [
+        -45.30591913714849,
+        20.985801183160596,
+        2.2925534749045404
+      ]
+    },
+    "base": [
+      -24.34775562950367,
+      26.342862415105035,
+      0.6437798588067165
+    ],
+    "apex": [
+      40.14716784786966,
+      -62.058170979491344,
+      30.54398749164156
+    ]
+  },
+  "published_seed_centroids_against_lumen_centroids": {
+    "left_ventricle": {
+      "seed_centroid_pack_mm": [
+        15.393,
+        -11.845,
+        16.557
+      ],
+      "lumen_centroid_pack_mm": [
+        18.063,
+        -15.486,
+        14.885
+      ],
+      "separation_mm": 4.815
+    },
+    "right_ventricle": {
+      "seed_centroid_pack_mm": [
+        -29.843,
+        -11.845,
+        16.557
+      ],
+      "lumen_centroid_pack_mm": [
+        -17.446,
+        -23.654,
+        26.612
+      ],
+      "separation_mm": 19.856
+    },
+    "left_atrium": {
+      "seed_centroid_pack_mm": [
+        -13.495,
+        36.985,
+        -4.573
+      ],
+      "lumen_centroid_pack_mm": [
+        -3.39,
+        31.7,
+        -1.005
+      ],
+      "separation_mm": 11.949
+    },
+    "right_atrium": {
+      "seed_centroid_pack_mm": [
+        -2.079,
+        39.79,
+        37.686
+      ],
+      "lumen_centroid_pack_mm": [
+        -45.306,
+        20.986,
+        2.293
+      ],
+      "separation_mm": 58.948
+    }
+  },
+  "fit": {
+    "weights": {
+      "left_ventricle": 1.0,
+      "right_ventricle": 1.0,
+      "left_atrium": 1.0,
+      "right_atrium": 1.0,
+      "apex_direction": 1.0
+    },
+    "per_landmark_residual_mm": {
+      "left_ventricle": 11.208244238033044,
+      "right_ventricle": 6.5125540559593995,
+      "left_atrium": 7.316961602742517,
+      "right_atrium": 11.915196019866265,
+      "apex_direction": 7.839154032232314
+    },
+    "rms_residual_mm": 9.219547260685891,
+    "max_residual_mm": 11.915196019866265,
+    "long_axis_disagreement_deg": 3.5083687175253764,
+    "apex_separation_mm": 6.909044547093253,
+    "scheme": "chamber_centroids_and_apex_direction",
+    "shared_direction_length_mm": 108.3350318876782,
+    "pack_base_to_apex_mm": 113.4387952865836,
+    "bodyparts_base_to_apex_mm": 108.3350318876782,
+    "irreducible_length_difference_mm": 5.1037633989054,
+    "apex_separation_attributable_to_fit_mm": 1.805281148187853,
+    "alternatives": {
+      "chamber_centroids_only": {
+        "weights": {
+          "left_ventricle": 1.0,
+          "right_ventricle": 1.0,
+          "left_atrium": 1.0,
+          "right_atrium": 1.0
+        },
+        "per_landmark_residual_mm": {
+          "left_ventricle": 10.06888715131413,
+          "right_ventricle": 3.0960642663333653,
+          "left_atrium": 8.876921227410328,
+          "right_atrium": 8.134500669641735
+        },
+        "rms_residual_mm": 7.999030160419685,
+        "max_residual_mm": 10.06888715131413,
+        "long_axis_disagreement_deg": 12.849271459960539,
+        "apex_separation_mm": 22.866885871042896
+      },
+      "chamber_centroids_and_apex_point": {
+        "weights": {
+          "left_ventricle": 1.0,
+          "right_ventricle": 1.0,
+          "left_atrium": 1.0,
+          "right_atrium": 1.0,
+          "apex_point": 1.0
+        },
+        "per_landmark_residual_mm": {
+          "left_ventricle": 10.219309410156185,
+          "right_ventricle": 6.451163768297997,
+          "left_atrium": 7.195610372020305,
+          "right_atrium": 12.825322184671787,
+          "apex_point": 6.606484318289977
+        },
+        "rms_residual_mm": 9.010695107485098,
+        "max_residual_mm": 12.825322184671787,
+        "long_axis_disagreement_deg": 3.3756692661372356,
+        "apex_separation_mm": 6.606484318289977
+      }
+    }
+  },
+  "chest": {
+    "groups": {
+      "skin": {
+        "concepts": [
+          "FMA7163"
+        ],
+        "source_elements": [
+          "FJ2810"
+        ],
+        "source_element_count": 1,
+        "raw_triangles": 203382,
+        "triangles_before_decimation": 44745,
+        "triangles": 30000,
+        "triangle_budget": 30000,
+        "decimated": true,
+        "max_vertex_to_source_vertex_mm": 8.5128,
+        "bounds_before_mm": {
+          "min": [
+            -404.68,
+            -298.9,
+            -94.607
+          ],
+          "max": [
+            403.112,
+            54.803,
+            1987.989
+          ]
+        },
+        "bounds_after_mm": {
+          "min": [
+            -336.612,
+            -273.157,
+            1143.3
+          ],
+          "max": [
+            335.108,
+            54.803,
+            1703.034
+          ]
+        },
+        "crop": "cropped to z in [1163, 1696] mm; 203,382 -> 44,745 triangles. The cut edge is left open rather than capped."
+      },
+      "ribs": {
+        "concepts": [
+          "FMA7480"
+        ],
+        "source_elements": [
+          "FJ3153",
+          "FJ3178",
+          "FJ3225",
+          "FJ3226",
+          "FJ3227",
+          "FJ3228",
+          "FJ3229",
+          "FJ3230",
+          "FJ3231",
+          "FJ3232",
+          "FJ3233",
+          "FJ3234",
+          "FJ3235",
+          "FJ3236",
+          "FJ3239",
+          "FJ3242",
+          "FJ3245",
+          "FJ3248",
+          "FJ3251",
+          "FJ3254",
+          "FJ3255",
+          "FJ3290",
+          "FJ3330",
+          "FJ3331",
+          "FJ3332",
+          "FJ3333",
+          "FJ3334",
+          "FJ3335",
+          "FJ3336",
+          "FJ3337",
+          "FJ3338",
+          "FJ3339",
+          "FJ3340",
+          "FJ3341",
+          "FJ3342",
+          "FJ3343",
+          "FJ3344",
+          "FJ3345",
+          "FJ3346",
+          "FJ3347",
+          "FJ3348"
+        ],
+        "source_element_count": 41,
+        "raw_triangles": 194110,
+        "triangles_before_decimation": 194110,
+        "triangles": 35000,
+        "triangle_budget": 35000,
+        "decimated": true,
+        "max_vertex_to_source_vertex_mm": 5.6133,
+        "bounds_before_mm": {
+          "min": [
+            -166.035,
+            -258.99,
+            1220.946
+          ],
+          "max": [
+            164.452,
+            -4.41,
+            1659.903
+          ]
+        },
+        "bounds_after_mm": {
+          "min": [
+            -166.038,
+            -258.99,
+            1220.884
+          ],
+          "max": [
+            164.531,
+            -4.393,
+            1659.966
+          ]
+        }
+      },
+      "sternum": {
+        "concepts": [
+          "FMA7485"
+        ],
+        "source_elements": [
+          "FJ3153",
+          "FJ3178",
+          "FJ3290"
+        ],
+        "source_element_count": 3,
+        "raw_triangles": 8114,
+        "triangles_before_decimation": 8114,
+        "triangles": 8114,
+        "triangle_budget": 10000,
+        "decimated": false,
+        "max_vertex_to_source_vertex_mm": 0.0,
+        "bounds_before_mm": {
+          "min": [
+            -33.247,
+            -258.99,
+            1409.842
+          ],
+          "max": [
+            33.247,
+            -158.424,
+            1605.122
+          ]
+        },
+        "bounds_after_mm": {
+          "min": [
+            -33.247,
+            -258.99,
+            1409.842
+          ],
+          "max": [
+            33.247,
+            -158.424,
+            1605.122
+          ]
+        }
+      },
+      "spine": {
+        "concepts": [
+          "FMA9140"
+        ],
+        "source_elements": [
+          "FJ3154",
+          "FJ3155",
+          "FJ3156",
+          "FJ3158",
+          "FJ3160",
+          "FJ3163",
+          "FJ3166",
+          "FJ3169",
+          "FJ3171",
+          "FJ3173",
+          "FJ3174",
+          "FJ3175",
+          "FJ3203",
+          "FJ3204",
+          "FJ3205",
+          "FJ3206",
+          "FJ3207",
+          "FJ3208",
+          "FJ3209",
+          "FJ3210",
+          "FJ3222",
+          "FJ3223",
+          "FJ3224"
+        ],
+        "source_element_count": 23,
+        "raw_triangles": 53032,
+        "triangles_before_decimation": 53032,
+        "triangles": 15999,
+        "triangle_budget": 16000,
+        "decimated": true,
+        "max_vertex_to_source_vertex_mm": 3.8764,
+        "bounds_before_mm": {
+          "min": [
+            -45.278,
+            -122.796,
+            1271.695
+          ],
+          "max": [
+            43.991,
+            0.022,
+            1667.679
+          ]
+        },
+        "bounds_after_mm": {
+          "min": [
+            -45.265,
+            -122.85,
+            1271.585
+          ],
+          "max": [
+            43.928,
+            0.022,
+            1667.643
+          ]
+        }
+      },
+      "lungs": {
+        "concepts": [
+          "FMA7309",
+          "FMA7310"
+        ],
+        "source_elements": [
+          "FJ2041",
+          "FJ2044",
+          "FJ2449",
+          "FJ2451",
+          "FJ2452",
+          "FJ2453",
+          "FJ2454",
+          "FJ2455",
+          "FJ2456",
+          "FJ2457",
+          "FJ2458",
+          "FJ2459",
+          "FJ2470",
+          "FJ2481",
+          "FJ2486",
+          "FJ2487",
+          "FJ2488",
+          "FJ2489",
+          "FJ2490",
+          "FJ2491",
+          "FJ2492",
+          "FJ2493",
+          "FJ2494",
+          "FJ2495",
+          "FJ2496",
+          "FJ2497",
+          "FJ2498",
+          "FJ2499",
+          "FJ2500",
+          "FJ2501",
+          "FJ2502",
+          "FJ2503",
+          "FJ2504",
+          "FJ2505",
+          "FJ2506",
+          "FJ2507",
+          "FJ2508",
+          "FJ2509",
+          "FJ2510",
+          "FJ2511",
+          "FJ2512",
+          "FJ2513",
+          "FJ2514",
+          "FJ2515",
+          "FJ2516",
+          "FJ2517",
+          "FJ2518",
+          "FJ2519",
+          "FJ2520",
+          "FJ2521",
+          "FJ2522",
+          "FJ2523",
+          "FJ2524",
+          "FJ2525",
+          "FJ2526",
+          "FJ2967",
+          "FJ2968",
+          "FJ2969",
+          "FJ2970",
+          "FJ2971",
+          "FJ2972",
+          "FJ2973",
+          "FJ2974",
+          "FJ2975",
+          "FJ2976",
+          "FJ2977",
+          "FJ2978",
+          "FJ2979",
+          "FJ2980",
+          "FJ2981",
+          "FJ2982",
+          "FJ2983",
+          "FJ2984",
+          "FJ2985",
+          "FJ2986",
+          "FJ2987",
+          "FJ2988",
+          "FJ2989",
+          "FJ2990",
+          "FJ2991",
+          "FJ2992",
+          "FJ2993",
+          "FJ2994",
+          "FJ2995",
+          "FJ2996",
+          "FJ2997",
+          "FJ2998",
+          "FJ2999",
+          "FJ3000",
+          "FJ3001",
+          "FJ3002",
+          "FJ3003",
+          "FJ3004",
+          "FJ3005",
+          "FJ3006",
+          "FJ3007",
+          "FJ3008",
+          "FJ3009",
+          "FJ3010",
+          "FJ3011",
+          "FJ3012",
+          "FJ3013",
+          "FJ3014",
+          "FJ3015",
+          "FJ3016",
+          "FJ3017",
+          "FJ3018",
+          "FJ3021",
+          "FJ3022",
+          "FJ3023",
+          "FJ3024",
+          "FJ3025",
+          "FJ3026",
+          "FJ3027",
+          "FJ3028",
+          "FJ3029",
+          "FJ3030",
+          "FJ3031",
+          "FJ3032",
+          "FJ3033",
+          "FJ3034",
+          "FJ3035",
+          "FJ3036",
+          "FJ3037",
+          "FJ3038",
+          "FJ3039",
+          "FJ3041",
+          "FJ3042",
+          "FJ3043",
+          "FJ3044",
+          "FJ3045",
+          "FJ3046",
+          "FJ3047",
+          "FJ3048",
+          "FJ3049",
+          "FJ3050",
+          "FJ3051",
+          "FJ3052",
+          "FJ3053",
+          "FJ3054",
+          "FJ3055",
+          "FJ3056",
+          "FJ3057",
+          "FJ3058",
+          "FJ3059",
+          "FJ3060",
+          "FJ3061",
+          "FJ3062",
+          "FJ3063",
+          "FJ3064",
+          "FJ3065",
+          "FJ3066",
+          "FJ3067",
+          "FJ3068",
+          "FJ3069",
+          "FJ3070",
+          "FJ2441",
+          "FJ2442",
+          "FJ2443",
+          "FJ2444",
+          "FJ2445",
+          "FJ2446",
+          "FJ2447",
+          "FJ2448",
+          "FJ2460",
+          "FJ2461",
+          "FJ2462",
+          "FJ2463",
+          "FJ2464",
+          "FJ2465",
+          "FJ2466",
+          "FJ2467",
+          "FJ2468",
+          "FJ2469",
+          "FJ2471",
+          "FJ2472",
+          "FJ2473",
+          "FJ2474",
+          "FJ2475",
+          "FJ2476",
+          "FJ2477",
+          "FJ2478",
+          "FJ2479",
+          "FJ2480",
+          "FJ2482",
+          "FJ2483",
+          "FJ2484",
+          "FJ2485",
+          "FJ2527",
+          "FJ2528",
+          "FJ2529",
+          "FJ2530",
+          "FJ2531",
+          "FJ2532",
+          "FJ2533",
+          "FJ2534",
+          "FJ2535",
+          "FJ2536",
+          "FJ2537",
+          "FJ2538",
+          "FJ2540",
+          "FJ2881",
+          "FJ2882",
+          "FJ2883",
+          "FJ2884",
+          "FJ2885",
+          "FJ2886",
+          "FJ2887",
+          "FJ2888",
+          "FJ2889",
+          "FJ2890",
+          "FJ2891",
+          "FJ2892",
+          "FJ2893",
+          "FJ2894",
+          "FJ2895",
+          "FJ2896",
+          "FJ2897",
+          "FJ2898",
+          "FJ2899",
+          "FJ2900",
+          "FJ2901",
+          "FJ2902",
+          "FJ2903",
+          "FJ2904",
+          "FJ2905",
+          "FJ2906",
+          "FJ2907",
+          "FJ2908",
+          "FJ2909",
+          "FJ2910",
+          "FJ2911",
+          "FJ2912",
+          "FJ2913",
+          "FJ2914",
+          "FJ2915",
+          "FJ2916",
+          "FJ2917",
+          "FJ2918",
+          "FJ2919",
+          "FJ2920",
+          "FJ2921",
+          "FJ2922",
+          "FJ2923",
+          "FJ2926",
+          "FJ2927",
+          "FJ2928",
+          "FJ2929",
+          "FJ2930",
+          "FJ2931",
+          "FJ2932",
+          "FJ2934",
+          "FJ2935",
+          "FJ2936",
+          "FJ2937",
+          "FJ2938",
+          "FJ2939",
+          "FJ2940",
+          "FJ2941",
+          "FJ2942",
+          "FJ2943",
+          "FJ2945",
+          "FJ2946",
+          "FJ2947",
+          "FJ2948",
+          "FJ2949",
+          "FJ2951",
+          "FJ2952",
+          "FJ2953",
+          "FJ2954",
+          "FJ2956",
+          "FJ2957",
+          "FJ2958",
+          "FJ2959",
+          "FJ2960",
+          "FJ2961",
+          "FJ2962",
+          "FJ2963",
+          "FJ2964",
+          "FJ2965"
+        ],
+        "source_element_count": 280,
+        "raw_triangles": 114750,
+        "triangles_before_decimation": 114750,
+        "triangles": 25998,
+        "triangle_budget": 26000,
+        "decimated": true,
+        "max_vertex_to_source_vertex_mm": 5.6302,
+        "bounds_before_mm": {
+          "min": [
+            -141.151,
+            -215.435,
+            1228.855
+          ],
+          "max": [
+            151.921,
+            -24.604,
+            1642.293
+          ]
+        },
+        "bounds_after_mm": {
+          "min": [
+            -141.119,
+            -215.329,
+            1228.792
+          ],
+          "max": [
+            151.921,
+            -24.604,
+            1642.236
+          ]
+        }
+      },
+      "diaphragm": {
+        "concepts": [
+          "FMA13295"
+        ],
+        "source_elements": [
+          "FJ3131"
+        ],
+        "source_element_count": 1,
+        "raw_triangles": 68522,
+        "triangles_before_decimation": 68522,
+        "triangles": 11999,
+        "triangle_budget": 12000,
+        "decimated": true,
+        "max_vertex_to_source_vertex_mm": 5.6079,
+        "bounds_before_mm": {
+          "min": [
+            -148.163,
+            -248.684,
+            1194.048
+          ],
+          "max": [
+            146.387,
+            -31.389,
+            1444.434
+          ]
+        },
+        "bounds_after_mm": {
+          "min": [
+            -148.203,
+            -248.684,
+            1193.998
+          ],
+          "max": [
+            146.42,
+            -31.396,
+            1444.417
+          ]
+        }
+      },
+      "shoulder": {
+        "concepts": [
+          "FMA13322",
+          "FMA13323"
+        ],
+        "source_elements": [
+          "FJ3362",
+          "FJ3237"
+        ],
+        "source_element_count": 2,
+        "raw_triangles": 2322,
+        "triangles_before_decimation": 2322,
+        "triangles": 2322,
+        "triangle_budget": 4000,
+        "decimated": false,
+        "max_vertex_to_source_vertex_mm": 0.0,
+        "bounds_before_mm": {
+          "min": [
+            -175.957,
+            -178.139,
+            1584.871
+          ],
+          "max": [
+            174.34,
+            -65.873,
+            1641.687
+          ]
+        },
+        "bounds_after_mm": {
+          "min": [
+            -175.957,
+            -178.139,
+            1584.871
+          ],
+          "max": [
+            174.34,
+            -65.873,
+            1641.687
+          ]
+        }
+      }
+    },
+    "excluded": {
+      "scapulae": "FMA13395 and FMA13396, 54,278 triangles for the pair. Excluded on budget: comparable in cost to the ribs and the spine together, and positioned behind the heart where they occlude rather than orient."
+    },
+    "totals": {
+      "raw_triangles": 644232,
+      "triangles": 129432,
+      "groups": 7,
+      "draw_calls": 7,
+      "gltf_bytes": 7007,
+      "bin_bytes": 3432288,
+      "total_bytes": 3439295
+    },
+    "uniform_scale_factor": 1.211184,
+    "skin_crop_z_mm": [
+      1162.737,
+      1695.658
+    ],
+    "clearance_to_registered_heart": {
+      "skin": {
+        "min_mm": 38.135,
+        "median_mm": 86.687,
+        "heart_points_within_5mm": 0,
+        "heart_points": 2988093
+      },
+      "ribs": {
+        "min_mm": 14.636,
+        "median_mm": 53.69,
+        "heart_points_within_5mm": 0,
+        "heart_points": 2988093
+      },
+      "sternum": {
+        "min_mm": 14.765,
+        "median_mm": 62.671,
+        "heart_points_within_5mm": 0,
+        "heart_points": 2988093
+      },
+      "spine": {
+        "min_mm": 14.993,
+        "median_mm": 81.56,
+        "heart_points_within_5mm": 0,
+        "heart_points": 2988093
+      },
+      "lungs": {
+        "min_mm": 0.069,
+        "median_mm": 29.403,
+        "heart_points_within_5mm": 31589,
+        "heart_points": 2988093
+      },
+      "diaphragm": {
+        "min_mm": 8.189,
+        "median_mm": 61.177,
+        "heart_points_within_5mm": 0,
+        "heart_points": 2988093
+      },
+      "shoulder": {
+        "min_mm": 36.082,
+        "median_mm": 103.187,
+        "heart_points_within_5mm": 0,
+        "heart_points": 2988093
+      }
+    },
+    "registered_heart_bounds_body_mm": {
+      "min": [
+        -44.97,
+        -206.29,
+        1430.43
+      ],
+      "max": [
+        95.15,
+        -93.25,
+        1554.64
+      ]
+    },
+    "heart_inside_the_rib_cage": {
+      "method": "Per 6 mm transverse cell, the coordinate of the chest structure facing each heart point, compared with the heart point in the direction that structure contains a heart. Signed: positive is inside. Heart points with no chest geometry in their own cell are not counted, because a cell with no wall in it makes no claim either way.",
+      "structures": {
+        "spine": {
+          "direction": "heart anterior to the spine's anterior surface",
+          "heart_points_facing_it": 2988093,
+          "heart_points_total": 2988093,
+          "min_clearance_mm": 14.329,
+          "median_clearance_mm": 76.157,
+          "violations": 0
+        },
+        "sternum": {
+          "direction": "heart posterior to the sternum's posterior surface",
+          "heart_points_facing_it": 1284651,
+          "heart_points_total": 2988093,
+          "min_clearance_mm": 14.589,
+          "median_clearance_mm": 71.599,
+          "violations": 0
+        },
+        "ribs_left": {
+          "direction": "heart medial to the left rib cage",
+          "heart_points_facing_it": 2141956,
+          "heart_points_total": 2988093,
+          "min_clearance_mm": 32.16,
+          "median_clearance_mm": 112.479,
+          "violations": 0
+        },
+        "ribs_right": {
+          "direction": "heart medial to the right rib cage",
+          "heart_points_facing_it": 2165143,
+          "heart_points_total": 2988093,
+          "min_clearance_mm": 77.139,
+          "median_clearance_mm": 160.389,
+          "violations": 0
+        }
+      },
+      "all_clearances_positive": true
+    }
+  },
+  "rigid_validation": {
+    "determinant": 1.0000000000000013,
+    "orthonormality_error": 1.1102230246251565e-15,
+    "column_norms": [
+      1.0000000000000007,
+      1.0000000000000004,
+      1.0000000000000002
+    ],
+    "scale": 1.0,
+    "reflection": false,
+    "shear": false
+  },
+  "anatomy": {
+    "checks": {
+      "apex is inferior to the valve plane": true,
+      "apex is anterior to the valve plane": true,
+      "apex is left of the valve plane": true,
+      "right ventricle is anterior to the left ventricle": true
+    },
+    "apex_minus_base_mm": [
+      81.56048452967893,
+      -54.857952520522105,
+      -56.62907984959293
+    ],
+    "lv_centroid_body_mm": [
+      52.34180794901723,
+      -150.62415162644234,
+      1471.7199498274465
+    ],
+    "rv_centroid_body_mm": [
+      19.97204373237764,
+      -176.9553192714473,
+      1481.2661487296991
+    ]
+  },
+  "composite_validation": {
+    "method": "Cardiothoracic ratio uses the pleural span at the heart's own height as the internal thoracic diameter, which is the radiographic denominator. The diaphragm test grids the dome in 6 mm transverse cells and asks whether heart geometry sits below it. Both are measured for the placed heart AND for BodyParts3D's own heart in the same chest, because the native pair is the control.",
+    "placed_heart": {
+      "what": "the registered pack heart",
+      "transverse_cardiac_width_mm": 140.13,
+      "internal_thoracic_width_mm": 285.33,
+      "cardiothoracic_ratio": 0.4911,
+      "percent_left_of_midline": 74.36,
+      "right_border_mm_from_midline": -44.97,
+      "left_border_mm_from_midline": 95.15,
+      "vertices_below_diaphragm_dome": 0,
+      "vertices_total": 2988093,
+      "worst_below_diaphragm_mm": 0.0
+    },
+    "native_control": {
+      "what": "BodyParts3D's own heart, its native pair",
+      "transverse_cardiac_width_mm": 140.13,
+      "internal_thoracic_width_mm": 285.33,
+      "cardiothoracic_ratio": 0.4911,
+      "percent_left_of_midline": 68.84,
+      "right_border_mm_from_midline": -43.97,
+      "left_border_mm_from_midline": 96.16,
+      "vertices_below_diaphragm_dome": 436,
+      "vertices_total": 59953,
+      "worst_below_diaphragm_mm": 4.31
+    },
+    "vertices_posterior_to_spine": 0,
+    "normal_cardiothoracic_ratio": "< 0.50",
+    "interpretation": "Placement is anatomically correct: apex to the left at about the midclavicular line, roughly two thirds of the heart left of midline, nothing posterior to the spine, nothing outside the skin. SIZE is marginal and is not repaired. The placed heart is wider than the one this chest was built around, so the ratio exceeds 0.50 and the diaphragm overlap grows. Scaling either body to fix it would report false dimensions for whichever was scaled, so the difference is measured and disclosed instead. This is a reference composite, not a patient."
+  }
+}
