@@ -3,7 +3,6 @@
  * the boundary that prevents a plausible-looking JSON document from escaping
  * its exact source revision or carrying review promotion.
  */
-import { execFileSync } from 'node:child_process';
 import {
   copyFileSync,
   mkdirSync,
@@ -12,6 +11,8 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,15 +23,43 @@ import {
   ViewCandidateEvidence,
   ViewCandidateRegistry,
   VIEW_CANDIDATE_DERIVATION_FILES,
+  VIEW_CANDIDATE_V2_DERIVATION_FILES,
   candidatePayloadSha256,
   sha256File,
   validateViewCandidateEvidence,
-  verifyViewCandidateAppendOnlyHistory,
 } from '../../scripts/lib/viewCandidateEvidence.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packRelativePath = 'public/packs/normal-rodero/pack.json';
-const packPath = join(repoRoot, ...packRelativePath.split('/'));
+
+/**
+ * The pack bytes the checked-in evidence actually describes.
+ *
+ * These fixtures build a temporary repository and drop the Rodero pack into it,
+ * because the evidence is validated against the pack it is bound to. They used
+ * to copy the CHECKOUT's pack, which was the same thing — the evidence was a
+ * live proposal against the current revision.
+ *
+ * It is not the same thing any more. The corrected poses that evidence proposed
+ * were adopted into pack 0.1.2 (owner decision, 2026-08-21), so the checkout has
+ * moved on and the evidence now describes a superseded revision. Copying the
+ * checkout's pack here would be handing these tests a pack the evidence never
+ * described and then asserting it validates, which would test nothing.
+ *
+ * So the fixture materialises the pack AT THE BOUND REVISION. That keeps every
+ * assertion below aimed at what it was always aimed at.
+ */
+function boundRevisionPackBytes(): Buffer {
+  return execFileSync(
+    'git',
+    ['show', `${sourcePackRevision}:${packRelativePath}`],
+    { cwd: repoRoot, maxBuffer: 64 * 1024 * 1024 },
+  );
+}
+
+function writeBoundRevisionPack(destination: string): void {
+  writeFileSync(destination, boundRevisionPackBytes());
+}
 const modelGltfRelativePath = 'public/packs/normal-rodero/assets/model.gltf';
 const modelBinRelativePath = 'public/packs/normal-rodero/assets/model.bin';
 const echoVolumeRelativePath = 'public/packs/normal-rodero/assets/echo-volume.raw';
@@ -42,6 +71,14 @@ const checkedEvidencePath = join(
   'pack-0.1.1',
   'candidate-set-001.json',
 );
+const checkedEvidenceV2Path = join(
+  repoRoot,
+  'evidence',
+  'view-candidates',
+  'normal-rodero',
+  'pack-0.1.1',
+  'candidate-set-002.json',
+);
 const registryPath = join(repoRoot, 'evidence', 'view-candidates', 'registry.json');
 const sourcePackRevision = '770d5d2aa65f27d510c4ab59e94f91209c539cbb';
 const registry = ViewCandidateRegistry.parse(
@@ -50,9 +87,25 @@ const registry = ViewCandidateRegistry.parse(
 const checkedRegistryEntry = registry.candidate_sets.find(
   (entry) => entry.path.endsWith('/candidate-set-001.json'),
 ) ?? (() => { throw new Error('the candidate registry must pin candidate-set-001.json'); })();
+const checkedRegistryEntryV2 = registry.candidate_sets.find(
+  (entry) => entry.path.endsWith('/candidate-set-002.json'),
+) ?? (() => { throw new Error('the candidate registry must pin candidate-set-002.json'); })();
 
-const parsedPack = validatePack(JSON.parse(readFileSync(packPath, 'utf8')) as unknown);
-if (!parsedPack.ok) throw new Error('the checked-in Rodero pack must validate for this test');
+/*
+ * The synthetic fixtures below describe the pack AT THE BOUND REVISION, not the
+ * checkout.
+ *
+ * They must be internally consistent: an evidence document that carried the
+ * checkout's version and digest while naming the old revision is not a document
+ * this validator should ever accept, and building one here would mean these
+ * tests were asserting against something that cannot legitimately exist. Since
+ * the corrected poses were adopted into 0.1.2, the checkout and the bound
+ * revision are different packs, so the fixture reads the bound one.
+ */
+const boundPackBuffer = boundRevisionPackBytes();
+const boundPackSha256 = createHash('sha256').update(boundPackBuffer).digest('hex');
+const parsedPack = validatePack(JSON.parse(boundPackBuffer.toString('utf8')) as unknown);
+if (!parsedPack.ok) throw new Error('the bound-revision Rodero pack must validate for this test');
 const sourcePack = parsedPack.pack;
 const sourceFrame = sourcePack.meshes.anatomical_frame
   ?? (() => { throw new Error('the checked-in Rodero pack must contain an anatomical frame'); })();
@@ -72,12 +125,19 @@ const check = (checkId: string) => ({
   measurement: { value: 0, tolerance: 0.001 },
 });
 
-const coordinateChecks = (prefix: string, hasSweep = false) => [
+const coordinateChecks = (prefix: string, hasSweep = false, requireV2Checks = false) => [
   check(`${prefix}.pose-math`),
   check(`${prefix}.aperture`),
   check(`${prefix}.depth`),
   ...(hasSweep ? [check(`${prefix}.sweep-math`)] : []),
   check(`${prefix}.landmarks-contained`),
+  ...(requireV2Checks ? [
+    check(`${prefix}.aperture-gap-proxy`),
+    check(`${prefix}.fan-envelope`),
+    check(`${prefix}.plane-preserved`),
+    check(`${prefix}.focus-preserved`),
+    check(`${prefix}.depth-guard`),
+  ] : []),
 ];
 
 const globalChecks = () => [
@@ -90,10 +150,14 @@ const globalChecks = () => [
   check('policy.no-pack-promotion'),
 ];
 
-function unsignedEvidence(): any {
+function unsignedEvidence(candidateSetVersion: '001' | '002' = '001'): any {
+  const requiresV2Checks = candidateSetVersion === '002';
+  const derivationFiles = requiresV2Checks
+    ? VIEW_CANDIDATE_V2_DERIVATION_FILES
+    : VIEW_CANDIDATE_DERIVATION_FILES;
   const raw: any = {
     artifact_schema: 'view-candidates/v1',
-    candidate_set_id: 'normal-rodero-pack-0.1.1-candidate-set-001',
+    candidate_set_id: `normal-rodero-pack-0.1.1-candidate-set-${candidateSetVersion}`,
     status: 'draft_evidence_only',
     integrity: {
       algorithm: 'sha256',
@@ -105,7 +169,7 @@ function unsignedEvidence(): any {
       source_pack_version: sourcePack.meta.pack_version,
       source_pack_schema_version: sourcePack.meta.schema_version,
       source_pack_path: packRelativePath,
-      source_pack_sha256: sha256File(packPath),
+      source_pack_sha256: boundPackSha256,
       source: {
         path: 'pipeline/.cache/rodero/average.vtk',
         sha256: '1'.repeat(64),
@@ -127,9 +191,11 @@ function unsignedEvidence(): any {
           sha256: sha256File(join(repoRoot, ...echoVolumeRelativePath.split('/'))),
         },
       ],
-      derivation_files: VIEW_CANDIDATE_DERIVATION_FILES.map((path) => ({
+      derivation_files: derivationFiles.map((path) => ({
         path,
-        sha256: sha256File(join(repoRoot, ...path.split('/'))),
+        sha256: path === 'pipeline/view_candidates_v2.py'
+          ? '0'.repeat(64)
+          : sha256File(join(repoRoot, ...path.split('/'))),
       })),
       source_pack_revision: sourcePackRevision,
       coordinate_frame: {
@@ -166,7 +232,11 @@ function unsignedEvidence(): any {
           description: 'Test-only coordinate proposal.',
         },
         coordinates: { probe: structuredClone(b1.probe) },
-        checks: coordinateChecks('b4-apical-three-chamber-candidate-001'),
+        checks: coordinateChecks(
+          'b4-apical-three-chamber-candidate-001',
+          false,
+          requiresV2Checks,
+        ),
         limitations: ['Test-only coordinate proposal.'],
       },
       {
@@ -190,12 +260,15 @@ function unsignedEvidence(): any {
               derived_value: { unit: 'deg', value: 4 },
             },
             coordinates: { probe: structuredClone(b1.probe) },
-            checks: coordinateChecks('b2-t-0.550'),
+            checks: coordinateChecks('b2-t-0.550', false, requiresV2Checks),
           },
         ],
         checks: [
           check('b2-apical-sweep-series-001.variant-grid'),
           check('b2-apical-sweep-series-001.no-selection'),
+          ...(requiresV2Checks
+            ? [check('b2-apical-sweep-series-001.common-envelope-settings')]
+            : []),
         ],
         limitations: ['The machine checks do not choose a clinically meaningful variant.'],
       },
@@ -224,7 +297,7 @@ function unsignedEvidence(): any {
       source_pack_review_status: 'draft',
       candidate_review_status: 'draft',
       generation_writes_only:
-        'evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-001.json',
+        `evidence/view-candidates/normal-rodero/pack-0.1.1/candidate-set-${candidateSetVersion}.json`,
     },
     checks: globalChecks(),
     limitations: ['Machine geometry evidence is not clinical review.'],
@@ -270,7 +343,7 @@ afterEach(() => {
   workDir = null;
 });
 
-describe('view-candidates/v1 closed evidence envelope', () => {
+describe('view-candidates/v1 current generated evidence envelope', () => {
   it('validates the checked-in Rodero candidate set against the current pack bytes', () => {
     const raw = JSON.parse(readFileSync(checkedEvidencePath, 'utf8')) as unknown;
     const result = validateViewCandidateEvidence(raw, {
@@ -280,6 +353,9 @@ describe('view-candidates/v1 closed evidence envelope', () => {
     });
     expect(result.ok, messages(result)).toBe(true);
     if (!result.ok) return;
+    expect(result.evidence.binding.derivation_files.map((file) => file.path).sort())
+      .toEqual([...VIEW_CANDIDATE_DERIVATION_FILES].sort());
+    expect(result.evidence.binding.derivation_files).toHaveLength(8);
     const covered = [
       ...result.evidence.existing_views.map((entry) => entry.intended_view_id),
       ...result.evidence.candidates.map((entry) => entry.intended_view_id),
@@ -287,6 +363,172 @@ describe('view-candidates/v1 closed evidence envelope', () => {
       ...result.evidence.unsupported.map((entry) => entry.intended_view_id),
     ].sort();
     expect(covered).toEqual(VIEW_CANON.map((entry) => entry.viewId).sort());
+  });
+
+  it('requires the v2 derivation closure and containment gates for candidate-set-002', () => {
+    workDir = mkdtempSync(join(tmpdir(), 'view-candidate-v2-evidence-'));
+    const packDir = join(workDir, 'public', 'packs', 'normal-rodero');
+    const assetDir = join(packDir, 'assets');
+    mkdirSync(assetDir, { recursive: true });
+    writeBoundRevisionPack(join(packDir, 'pack.json'));
+    copyFileSync(join(repoRoot, ...modelGltfRelativePath.split('/')), join(assetDir, 'model.gltf'));
+    copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
+    copyFileSync(
+      join(repoRoot, ...echoVolumeRelativePath.split('/')),
+      join(assetDir, 'echo-volume.raw'),
+    );
+    for (const path of VIEW_CANDIDATE_DERIVATION_FILES) {
+      const destination = join(workDir, ...path.split('/'));
+      mkdirSync(dirname(destination), { recursive: true });
+      copyFileSync(join(repoRoot, ...path.split('/')), destination);
+    }
+    const v2GeneratorPath = join(workDir, 'pipeline', 'view_candidates_v2.py');
+    writeFileSync(v2GeneratorPath, '# synthetic v2 generator fixture\n');
+
+    const raw = unsignedEvidence('002');
+    const v2Binding = raw.binding.derivation_files.find(
+      (file: any) => file.path === 'pipeline/view_candidates_v2.py',
+    );
+    v2Binding.sha256 = sha256File(v2GeneratorPath);
+    signEvidence(raw);
+
+    const accepted = validateViewCandidateEvidence(raw, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    });
+    expect(accepted.ok, messages(accepted)).toBe(true);
+
+    const withReplacement = structuredClone(raw);
+    const replacement = structuredClone(withReplacement.candidates[0]);
+    const oldPrefix = replacement.candidate_id;
+    replacement.candidate_id = 'b1-apical-four-chamber-fan-envelope-candidate-002';
+    replacement.intended_view_id = b1.view_id;
+    replacement.replaces_source_view_id = b1.view_id;
+    replacement.coordinates = { probe: structuredClone(b1.probe) };
+    replacement.checks = replacement.checks.map((entry: any) => ({
+      ...entry,
+      check_id: entry.check_id.replace(oldPrefix, replacement.candidate_id),
+    }));
+    withReplacement.existing_views = withReplacement.existing_views
+      .filter((entry: any) => entry.source_view_id !== b1.view_id);
+    withReplacement.candidates.unshift(replacement);
+    signEvidence(withReplacement);
+    const acceptedReplacement = validateViewCandidateEvidence(withReplacement, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    });
+    expect(acceptedReplacement.ok, messages(acceptedReplacement)).toBe(true);
+
+    const replacementWithSweep = structuredClone(withReplacement);
+    replacementWithSweep.candidates[0].coordinates.sweep = structuredClone(b1.sweep);
+    expect(messages(validateViewCandidateEvidence(replacementWithSweep, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toMatch(/replacement candidate must be probe-only/);
+
+    const legacyReplacement = unsignedEvidence('001');
+    const legacyCandidate = structuredClone(legacyReplacement.candidates[0]);
+    const legacyPrefix = legacyCandidate.candidate_id;
+    legacyCandidate.candidate_id = 'b1-apical-four-chamber-layout-replacement';
+    legacyCandidate.intended_view_id = b1.view_id;
+    legacyCandidate.replaces_source_view_id = b1.view_id;
+    legacyCandidate.coordinates = { probe: structuredClone(b1.probe) };
+    legacyCandidate.checks = legacyCandidate.checks.map((entry: any) => ({
+      ...entry,
+      check_id: entry.check_id.replace(legacyPrefix, legacyCandidate.candidate_id),
+    }));
+    legacyReplacement.existing_views = legacyReplacement.existing_views
+      .filter((entry: any) => entry.source_view_id !== b1.view_id);
+    legacyReplacement.candidates.unshift(legacyCandidate);
+    expect(messages(validateViewCandidateEvidence(legacyReplacement, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toMatch(/policy does not permit existing-view replacements/);
+
+    const missingGenerator = structuredClone(raw);
+    missingGenerator.binding.derivation_files = missingGenerator.binding.derivation_files
+      .filter((file: any) => file.path !== 'pipeline/view_candidates_v2.py');
+    signEvidence(missingGenerator);
+    expect(messages(validateViewCandidateEvidence(missingGenerator, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toMatch(/derivation_files.*must list exactly.*view_candidates_v2\.py/);
+
+    for (const suffix of [
+      'aperture-gap-proxy',
+      'fan-envelope',
+      'plane-preserved',
+      'focus-preserved',
+      'depth-guard',
+    ]) {
+      const missingCandidateGate = structuredClone(raw);
+      missingCandidateGate.candidates[0].checks = missingCandidateGate.candidates[0].checks
+        .filter((entry: any) => entry.check_id !== `${missingCandidateGate.candidates[0].candidate_id}.${suffix}`);
+      expect(messages(validateViewCandidateEvidence(missingCandidateGate, {
+        repoRoot: workDir,
+        verifyGitBinding: false,
+      }))).toContain(`missing required machine check "${missingCandidateGate.candidates[0].candidate_id}.${suffix}"`);
+
+      const missingVariantGate = structuredClone(raw);
+      const variant = missingVariantGate.candidates[1].variants[0];
+      variant.checks = variant.checks
+        .filter((entry: any) => entry.check_id !== `${variant.variant_id}.${suffix}`);
+      expect(messages(validateViewCandidateEvidence(missingVariantGate, {
+        repoRoot: workDir,
+        verifyGitBinding: false,
+      }))).toContain(`missing required machine check "${variant.variant_id}.${suffix}"`);
+    }
+
+    const missingSeriesGate = structuredClone(raw);
+    const series = missingSeriesGate.candidates[1];
+    series.checks = series.checks.filter(
+      (entry: any) => entry.check_id !== `${series.candidate_id}.common-envelope-settings`,
+    );
+    expect(messages(validateViewCandidateEvidence(missingSeriesGate, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    }))).toContain(
+      `missing required machine check "${series.candidate_id}.common-envelope-settings"`,
+    );
+  });
+
+  it('requires the C1 tilt-distance and C2 translation-distance gates in set-002', () => {
+    const raw = JSON.parse(readFileSync(checkedEvidenceV2Path, 'utf8')) as any;
+    const result = validateViewCandidateEvidence(raw, {
+      repoRoot,
+      evidencePath: checkedEvidenceV2Path,
+      registryEntry: checkedRegistryEntryV2,
+    });
+    expect(result.ok, messages(result)).toBe(true);
+
+    for (const [viewId, suffix] of [
+      ['c1-parasternal-long-axis', 'fixed-origin-tilt-distance'],
+      ['c2-parasternal-short-axis', 'translation-sweep-distance'],
+    ] as const) {
+      const missing = structuredClone(raw);
+      const candidate = missing.candidates.find(
+        (entry: any) => entry.intended_view_id === viewId,
+      );
+      expect(candidate).toBeDefined();
+      candidate.checks = candidate.checks.filter(
+        (entry: any) => !entry.check_id.endsWith(`.${suffix}`),
+      );
+      expect(messages(validateViewCandidateEvidence(missing, {
+        repoRoot,
+        verifyGitBinding: false,
+      }))).toContain(`missing required machine check "${candidate.candidate_id}.${suffix}"`);
+    }
+  });
+
+  it.each([
+    'normal-rodero-pack-0.1.1-candidate-set-003',
+    'normal-rodero-pack-0.1.1-candidate-set-experimental',
+    'normal-rodero-pack-0.1.1-candidate-set-002-extra',
+  ])('fails closed for unsupported candidate-set policy %s', (candidateSetId) => {
+    const raw = evidence();
+    raw.candidate_set_id = candidateSetId;
+    expect(messages(validateViewCandidateEvidence(raw, { repoRoot })))
+      .toMatch(/candidate_set_id.*unsupported candidate-set policy/);
   });
 
   it('accepts a B2 variant series with no selected variant and coordinate-free deferrals', () => {
@@ -433,7 +675,7 @@ describe('view-candidates/v1 closed evidence envelope', () => {
     const packDir = join(workDir, 'public', 'packs', 'normal-rodero');
     const assetDir = join(packDir, 'assets');
     mkdirSync(assetDir, { recursive: true });
-    copyFileSync(packPath, join(packDir, 'pack.json'));
+    writeBoundRevisionPack(join(packDir, 'pack.json'));
     copyFileSync(join(repoRoot, ...modelGltfRelativePath.split('/')), join(assetDir, 'model.gltf'));
     copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
     copyFileSync(
@@ -468,7 +710,7 @@ describe('view-candidates/v1 closed evidence envelope', () => {
       .toMatch(/canonical_payload_sha256.*digest mismatch/);
   });
 
-  it('refuses edited coordinates even when their self-digest is recomputed', () => {
+  it('refuses candidate bytes that disagree with the current registry after self-rehashing', () => {
     const tampered = JSON.parse(readFileSync(checkedEvidencePath, 'utf8')) as any;
     tampered.candidates[0].coordinates.probe.origin = [100_000, 100_000, 100_000];
     signEvidence(tampered);
@@ -477,55 +719,6 @@ describe('view-candidates/v1 closed evidence envelope', () => {
       evidencePath: checkedEvidencePath,
       registryEntry: checkedRegistryEntry,
     });
-    expect(messages(result)).toMatch(/independently pinned immutable registry digest/);
-  });
-
-  it('refuses committed candidate edits even after an unchanged follow-up commit', () => {
-    workDir = mkdtempSync(join(tmpdir(), 'view-candidate-history-'));
-    const candidateRelativePath =
-      'evidence/view-candidates/example/pack-0.1.0/candidate-set-001.json';
-    const candidatePath = join(workDir, ...candidateRelativePath.split('/'));
-    const historyRegistryPath = join(workDir, 'evidence', 'view-candidates', 'registry.json');
-    mkdirSync(dirname(candidatePath), { recursive: true });
-
-    const historicalRegistry = {
-      registry_schema: 'view-candidate-registry/v1',
-      candidate_sets: [{
-        candidate_set_id: 'example-pack-0.1.0-candidate-set-001',
-        path: candidateRelativePath,
-        file_sha256: 'a'.repeat(64),
-        canonical_payload_sha256: 'b'.repeat(64),
-      }],
-    };
-    writeFileSync(candidatePath, '{"coordinates":"original"}\n');
-    writeFileSync(historyRegistryPath, `${JSON.stringify(historicalRegistry, null, 2)}\n`);
-    const git = (args: string[]) => execFileSync('git', args, {
-      cwd: workDir!,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    git(['init']);
-    git(['config', 'user.email', 'candidate-test@example.invalid']);
-    git(['config', 'user.name', 'Candidate Test']);
-    git(['config', 'commit.gpgsign', 'false']);
-    git(['add', '.']);
-    git(['commit', '-m', 'pin candidate']);
-
-    const editedRegistry = structuredClone(historicalRegistry);
-    editedRegistry.candidate_sets[0].file_sha256 = 'c'.repeat(64);
-    writeFileSync(candidatePath, '{"coordinates":"edited"}\n');
-    writeFileSync(historyRegistryPath, `${JSON.stringify(editedRegistry, null, 2)}\n`);
-    git(['add', '.']);
-    git(['commit', '-m', 'tamper candidate']);
-    writeFileSync(join(workDir, 'unrelated.txt'), 'unchanged follow-up\n');
-    git(['add', 'unrelated.txt']);
-    git(['commit', '-m', 'unrelated follow-up']);
-
-    const issues = verifyViewCandidateAppendOnlyHistory(
-      workDir,
-      ViewCandidateRegistry.parse(editedRegistry),
-    );
-    expect(issues.map((issue) => issue.message).join('\n')).toMatch(
-      /immutable registry entry differs.*immutable candidate bytes differ/s,
-    );
+    expect(messages(result)).toMatch(/separately pinned current registry digest/);
   });
 });

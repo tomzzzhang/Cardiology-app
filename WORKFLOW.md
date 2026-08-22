@@ -1,6 +1,6 @@
 # Project workflow
 
-**Updated:** 2026-08-20 14:40 EDT
+**Updated:** 2026-08-22 03:30 EDT
 
 How work happens in this repository. Product intent, clinical context, decisions, and progress
 live in the owner's planning folder. Code and executable checks live here.
@@ -49,7 +49,8 @@ the replacement settles.
 |---|---|
 | Ordinary platform work | `npm run check:fast` |
 | Coherent platform milestone | `npm run verify` |
-| Pack, schema, source, licence, or provenance change | Add `npm run check:content` |
+| Pack, schema, source, licence, or provenance change | Add `npm run check:content` (includes `check:frame-decoupling`) |
+| Body-context registration or chest assets change | Add `npm run check:body-context` — a deterministic Python replay; needs the `cardiology-app` conda env and the gitignored BodyParts3D cache, so it is local-only and not in CI |
 | Desktop UI or rendering change | Run the relevant targeted browser test and inspect that surface |
 | Explicit desktop release candidate | `npm run verify:release` |
 | Deferred phone/touch investigation | `npm run test:phone` only when explicitly resumed |
@@ -82,6 +83,8 @@ review policy, not platform code, decides when `vetted` is truthful.
   ignored. A Pages allowlist does not make a Git commit private.
 - Keep source, licence, attribution, and derivation records for every committed third-party asset.
 - No PHI, patient uploads, secrets, or private collaborator context in the repository.
+- **No imaging view defines the patient frame.** The frame is `+X` patient-left, `+Y` posterior, `+Z` superior, and it comes from a `body-context/v0` registration. `Level` holds body `+Z`. `scripts/check-frame-decoupling.ts` gates this.
+- **The reference chest is scene context, never anatomy.** It is not pickable, not beam-dimmed, not capped by the cutter, and never part of heart bounds, pivot, framing or probe clearance.
 - Label synthetic output `Simulated` and unreviewed content `Draft`. A free or arbitrary pose may
   not inherit a saved view's name or review state.
 - Saved imaging views and runtime free poses stay distinct data states so experiments cannot

@@ -28,9 +28,20 @@ const ExportedSlot = z.strictObject({
 });
 
 /**
- * Parsed only to prove the export envelope is exactly v1. The value is never
- * applied to `meshes.anatomical_frame`: that block is pack content with its own
- * derivation and provenance, not a side effect of placing one probe pose.
+ * LEGACY. Parsed so that an export written before 2026-08-21 still validates as
+ * a v1 envelope, and for no other reason.
+ *
+ * Current authoring does not emit this block: the apical four-chamber no longer
+ * defines the model's axes, and the patient/body frame comes from a
+ * `body-context/v0` descriptor instead. The value was never applied to
+ * `meshes.anatomical_frame` — that block is pack content with its own
+ * derivation and provenance — and it is not applied to anything now. It is
+ * accepted, reported as ignored, and dropped.
+ *
+ * Kept parseable rather than rejected because refusing it would strand the
+ * poses in old files, and those poses are ordinary model-space coordinates that
+ * are still perfectly good. The claim about axes travelling beside them is what
+ * is discarded.
  */
 const ExportedCardiacFrame = z.strictObject({
   derived_from_slot: z.string().min(1),
@@ -49,6 +60,7 @@ export const AuthoringSlotsExport = z
     pack_schema_version: z.literal(SCHEMA_VERSION),
     exported_at: IsoInstant,
     slots: z.array(ExportedSlot),
+    /** Legacy and inert. Accepted so old files parse; never applied. */
     cardiac_frame: ExportedCardiacFrame.optional(),
   })
   .superRefine((document, ctx) => {
@@ -73,6 +85,22 @@ export interface AuthoringIngestInput {
   slotId: string;
   viewId: string;
   nextPackVersion: string;
+  /**
+   * The pack revision the EXPORT was authored against.
+   *
+   * Defaults to the target pack's own version, which is the single-view case
+   * and the only case that existed before: an export may not cross a revision,
+   * because its coordinates are model-space against one mesh.
+   *
+   * A BATCH supplies it explicitly, and the reason is precise rather than a
+   * loosening. When several poses authored against 0.1.1 are applied in one
+   * atomic step, the pack's version has already moved to the new one by the
+   * time the second is applied — but the GEOMETRY has not changed, and the
+   * geometry is what the guard exists to protect. Comparing against the base
+   * revision keeps the real invariant ("these coordinates belong to this mesh")
+   * while allowing one revision to carry more than one pose.
+   */
+  exportBaseVersion?: string;
 }
 
 export interface AuthoringIngestSummary {
@@ -227,10 +255,11 @@ export function prepareAuthoringIngest(input: AuthoringIngestInput): AuthoringIn
       + `schema "${pack.meta.schema_version}"`,
     );
   }
-  if (document.pack_version !== pack.meta.pack_version) {
+  const expectedExportVersion = input.exportBaseVersion ?? pack.meta.pack_version;
+  if (document.pack_version !== expectedExportVersion) {
     refuse(
       `export pack_version "${document.pack_version}" does not equal target pack version `
-      + `"${pack.meta.pack_version}"; model-space authoring data cannot cross pack revisions`,
+      + `"${expectedExportVersion}"; model-space authoring data cannot cross pack revisions`,
     );
   }
   if (input.nextPackVersion.trim().length === 0) {
@@ -316,7 +345,8 @@ export function prepareAuthoringIngest(input: AuthoringIngestInput): AuthoringIn
       : ['This view has no sweep; no sweep metadata was created.']),
     ...(document.cardiac_frame === undefined
       ? []
-      : ["The export's cardiac_frame was intentionally not applied to pack meshes."]),
+      : ['The export carried a legacy cardiac_frame block. It was discarded: an imaging view '
+        + 'does not define the patient frame, and nothing in this ingest reads it.']),
   ].join(' ');
   updatedView.provenance.modified = {
     flag: true,

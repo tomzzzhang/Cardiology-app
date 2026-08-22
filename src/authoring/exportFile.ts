@@ -47,16 +47,6 @@ export interface ExportedSlot {
  * Same convention as the schema's
  * `basis_source_to_pack`: `patient_left x basal` points along `anterior`.
  */
-export interface ExportedFrame {
-  derived_from_slot: string;
-  method: string;
-  patient_left: [number, number, number];
-  basal: [number, number, number];
-  anterior: [number, number, number];
-  /** Whether the in-plane sign was taken from the pose's `display.flip_lr`. */
-  flipped_for_display: boolean;
-}
-
 export interface SlotExport {
   schema_version: string;
   pack_id: string;
@@ -65,8 +55,6 @@ export interface SlotExport {
   pack_schema_version: string;
   exported_at: string;
   slots: ExportedSlot[];
-  /** Absent unless an apical four-chamber pose is in the export. */
-  cardiac_frame?: ExportedFrame;
 }
 
 /**
@@ -81,8 +69,6 @@ export function buildExport(input: {
   packSchemaVersion: string;
   slots: readonly SavedSlot[];
   exportedAt: string;
-  /** The frame the B1 pose implies, when one was saved. */
-  cardiacFrame?: ExportedFrame;
 }): SlotExport {
   const slots: ExportedSlot[] = input.slots.map((slot) => {
     if (slot.packId !== input.packId) {
@@ -123,7 +109,6 @@ export function buildExport(input: {
     pack_schema_version: input.packSchemaVersion,
     exported_at: input.exportedAt,
     slots,
-    ...(input.cardiacFrame ? { cardiac_frame: input.cardiacFrame } : {}),
   };
 }
 
@@ -138,6 +123,20 @@ export type ImportResult =
  * a crash. Every pose is validated on the way IN as well as on the way out —
  * the file has been on a disk and through a sync client since it was written,
  * and trusting it because this code wrote it is trusting the wrong thing.
+ *
+ * ## Legacy `cardiac_frame` is read past, deliberately
+ *
+ * Exports written before 2026-08-21 carry a `cardiac_frame` block derived from
+ * an apical four-chamber pose, which the app once used to set its levelling
+ * axis. That behaviour is gone and must not come back through a file.
+ *
+ * This reader takes named fields one at a time rather than parsing the document
+ * whole, so an unknown key is already inert — but "inert because nobody wrote
+ * the line that would read it" is a property that a later edit can quietly
+ * remove. Stated here instead: the field is not read, not stored, not returned,
+ * and not carried into a re-export. Importing an old file keeps its POSES,
+ * which are ordinary model-space coordinates and still valid, and drops its
+ * claim about the model's axes, which never was.
  */
 export function readExport(
   text: string,

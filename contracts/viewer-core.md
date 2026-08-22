@@ -39,6 +39,10 @@ dot(N, X - C) = s          closest point   Q = C + sN
   as a rectangle rather than a disk, and in echo-synced mode its long edge is the sector's lateral
   axis, so it reads as the same slice the echo panel shows rather than an arbitrarily rolled one.
 - Reversing the oriented plane changes which side remains visible.
+- When a saved authoring view lands with an Echo-plane cut enabled, the viewer chooses the side
+  that removes tissue between the actual offset plane `Q = C + sN` and the current camera. This is
+  an endpoint correction, not a camera observer: manual Reverse remains sticky through ordinary
+  orbit and Free cutter mode is never auto-reversed.
 - Cut faces render **solid**, via stencil-buffer caps. A hollow cut is a bug, not a style.
 - The cutter is runtime inspection state. It is never written into `views[]`, and it makes no claim
   to be a reachable or clinically useful echo view.
@@ -52,12 +56,37 @@ Reset restores the pack's standard orientation.
 as UI-6 and answered with it.)* Trackball orbit is the default everywhere and the ONLY option in
 Explore, where free inspection is the point and the turntable was removed precisely because it could
 not reach every angle. In Echo, which way is up is diagnostic rather than cosmetic, so the lock is
-offered there: with it on, horizontal drag turns about **the model's measured long axis** —
-`meshes.orientation.up`, which for a labelled substrate is the derived cardiac frame recorded in
-`meshes.anatomical_frame` — and the result is re-levelled after every step. World up would be the
-wrong axis: it is the same thing only while the heart happens to be upright, and holding the heart
-upright is the entire job. Turning it on LEVELS what is on screen without moving where the camera
-looks, and it stops three degrees short of the pole, where "up" has no answer.
+offered there: with it on, horizontal drag turns about **body/world `+Z` — superior** — and the
+result is re-levelled after every step. Turning it on LEVELS what is on screen without moving where
+the camera looks, and it stops three degrees short of the pole, where "up" has no answer.
+
+*(Supersedes "the model's measured long axis", 2026-08-21.)* The lock used to hold
+`meshes.orientation.up` carried through `canonical_pose`, and in authoring it could be REPOINTED by
+saving an apical four-chamber, whose beam was taken as the long axis. Both are gone. The scene is
+rendered in the patient/body frame — `+X` patient-left, `+Y` posterior, `+Z` superior — established
+by a `body-context/v0` registration measured against a whole-body reference, so `Level` means one
+thing on every pack and no imaging view can move it. A pack with no registration bound renders in
+its own model space, where `Level` still holds `+Z`; that is honestly the model's `+Z` rather than a
+claim about a patient. See `src/viewer/bodyFrame.ts` and `pipeline/body_context.py`.
+
+**The reference chest — SCENE CONTEXT, off by default.** *(Added 2026-08-21.)* When a body
+context supplies geometry, BodyParts3D thoracic structures (skin, ribs, sternum, thoracic spine,
+lungs, diaphragm, clavicles) are drawn around the registered heart in body millimetres. It is a
+REFERENCE COMPOSITE — one adult male's chest around a population-average heart — and never a
+patient or clinical ground truth.
+
+The heart is the subject and the chest is scenery, and each of these is a rule:
+
+- not pickable, not isolatable, and absent from the structure list;
+- never beam-dimmed: the beam images the pack's echo volume, not the reference chest;
+- never capped by the heart cutter, which is a tool for reading the heart;
+- never labelled in Echo;
+- never part of heart bounds, pivot, default framing or probe clearance. **Fit chest** is an
+  explicit action and never becomes the default; `Reset` returns to the heart's framing.
+
+Load failure leaves the heart and the echo fully working and says so on screen. Colour, opacity and
+default visibility are provisional and freely reversible; they are display choices, not clinical
+ones.
 
 *(Supersedes "familiar globe-viewer orbit feel is the reference", 2026-08-19.)* A globe has a fixed
 axis and is never turned over; a heart read from underneath is neither, and reading that clause as a
@@ -104,6 +133,10 @@ Switching to Free **adopts the current plane**, so the transition is continuous 
 switching back re-acquires the echo plane. The echo panel does **not** blank in Free mode: the mode
 name carries the distinction, which beats teaching it by an absence, and blanking on every stray
 drag would be hostile now that the plane is directly draggable.
+
+With no imaging view selected, the authoring presentation has no saved echo wedge. The probe,
+beam, and Echo-plane relationship are absent; the cutter is Free and starts off, leaving the whole
+heart visible. This neutral runtime state is not a `views[]` entry and does not alter the pack.
 
 **Ghost cutaway.** The half the cutter removes is drawn back as a faint translucent shell, ON by
 default and behind a toggle. It shares geometry with the anatomy and carries the reversed clipping
@@ -162,6 +195,19 @@ position without locking it.
 The unlock is paid for by labelling rather than by hiding: see `contracts/README.md` for what is
 withdrawn and what is restored. Nothing about it can write to `views[]`, and locking again returns
 the probe to `frameAt(probe, sweep, t)` exactly.
+
+**Authoring selection has one explanatory transition, not two clocks.** Choosing a populated local
+slot immediately applies that view. Camera orientation and the runtime pose share one elapsed-time
+clock and easing curve, so the wedge, beam dim, echo-synced cutter, and echo image cannot drift from
+one another. The aperture travels around the interaction centre rather than linearly through the
+heart, and the beam follows interpolated endpoint aim points so it continues to face the anatomy.
+Pointer or wheel camera input ends the animation, lands the chosen pose exactly, and leaves the
+camera to the user; probe controls and all pose-saving controls are disabled while an intermediate
+plane is visible. The authoring-only depth rocker changes only `fan.depth_cm`, never the aperture or
+imaging plane. An authoring-only **Prevent auto-rotation** toggle removes the camera from automatic
+saved-view transitions: the probe/cutter/echo transition continues while the current anatomy angle
+stays exact. Manual orbit and the explicit camera controls remain available, and the toggle itself
+never moves the heart. This path is flag-gated authoring UI, not the deferred learner rail.
 
 ## Per-structure visibility, and ISOLATE as the gesture
 

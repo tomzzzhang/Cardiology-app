@@ -204,7 +204,10 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
     kind: 'echo',
     licenseState: 'confirmed',
     moving: false,
-    summary: 'The selected substrate. 24 labelled structures, four derived views.',
+    // Six since the corrected poses were adopted and B4 and F1 were created
+    // (pack 0.1.2, 2026-08-21). Counted rather than remembered would be better;
+    // until then this string is content and has to be kept true.
+    summary: 'The selected substrate. 24 labelled structures, six draft views.',
   },
   {
     id: 'stub',

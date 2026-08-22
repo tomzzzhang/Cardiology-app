@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-20 17:36 EDT
+**Last Updated:** 2026-08-21 01:00 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2136,3 +2136,118 @@ assets, provenance, validators, and complete registry entries remain untouched. 
 from the normal development droplist but remain reachable by an explicit development `?pack=` URL for
 research or comparison. Removing one id from the hidden list restores it without re-ingest. Pages
 is unchanged: none of these packs was published there.
+
+---
+
+## 60. Authoring opens on the whole heart, and saved-view cuts face the author
+
+**Owner direction, 2026-08-20.** The first authoring frame must not silently present B1 while the
+authoring selector names an empty A1 slot. `None — full heart` is now a real neutral presentation:
+it is selected on cold authoring load, draws no probe or beam, leaves Cut off, withholds the echo
+panel, and frames the loaded anatomy alone. It is not a pack view, local slot, export row, or review
+state. Selecting an empty canon row keeps that row as the next placement target but also keeps the
+neutral presentation, rather than leaving a different view visible behind its name.
+
+**The learner boundary is deliberate.** The learner subset has no view rail yet. Making its cold
+state None would leave no route to an echo view, so its existing first-view cold path remains until
+the rail is built. The authoring selector is the current place where nullable view selection can be
+used honestly; the future rail contract already permits `currentView() = null`.
+
+**The opaque-side cut bug was the same kind of stale presentation.** The cutter previously chose
+its camera-facing half only when Cut was enabled. B1/B4 and F1 need opposite retained halves, so a
+sticky flip from the preceding view could put intact opaque tissue in front of the section. At an
+app-driven saved-view landing, Echo-plane mode now evaluates the camera against the actual offset
+plane `Q = C + sN` and applies Reverse if needed. It does not watch manual orbit, does not touch the
+Free cutter, and does not override a manual Reverse until another saved view is applied.
+
+---
+
+## 61. Echo depth now has a visible physical scale
+
+**Owner direction, 2026-08-21.** The echo image now shows small calibration dots at one-centimetre
+radial intervals along the screen-right fan edge. If an unusually wide sector runs outside the
+canvas, its markers follow the visible right crop edge while remaining on their exact radial depth
+circles. The ruler uses the exact live fan depth: changing depth, scrubbing, or moving between
+authoring views changes its spacing with the image. Flip apex mirrors the radial direction
+vertically, while `flip_lr` and the separate probe-notch `marker_side` convention do not move the
+screen-right ruler.
+
+**What to look at.** The dots should read as quiet device chrome, not bright anatomy: 3 CSS px,
+cool grey, no glow, no labels, no focus marker. The vertex and exact distal boundary carry no dot,
+so neither end is half-clipped. The overlay is outside the WebGL echo raster, preserving the
+renderer’s grey-level and performance measurements. Numeric depth labels, a focus marker, and the
+removed probe-orientation mark remain separate decisions.
+
+---
+
+## 62. C1 and C2 now use distance-first review poses, not wider probe heads
+
+**Owner correction, 2026-08-21.** The first C1/C2 poses inherited the pipeline's old 8 mm
+visual stand-off and looked implausibly close. The current generated review set moves both
+apertures backwards without changing their imaging axes or 70 degree fan heads. C1 now has a
+30.000001 mm reference forward gap (31.812369 mm to the nearest source vertex), 14.32 cm depth,
+and 9.21 cm focus. C2 has the same measured forward lower bound throughout its normal-axis
+translation, 30.052534 mm nearest sampled vertex distance, 13.93 cm depth, and 8.89 cm focus.
+Both depths leave more than the required 5 mm distal guard.
+
+**What this does not claim.** C1's apex and part of its projected heart envelope remain outside
+the retained 70 degree sector; C2 also has measured lateral clipping. Those are visible,
+non-gating probe-head limitations for later work, not reasons to push the current aperture an
+implausible distance away or silently widen the head. The 30 mm rule remains an adult Rodero
+visual-layout proxy on a heart-only source, not a chest wall, patient measurement, pediatric
+default, or clinical validation. Candidate files are generated working evidence and may be
+regenerated in place; the registry locks their current bytes and the Python replay checks the
+geometry.
+
+**Working-definition wording.** These imported coordinates are the views currently being defined,
+so the authoring selector no longer appends `— overridden` or presents that as their status. The
+browser still keeps the loaded pack pose intact underneath and offers **Restore pack pose**; the
+storage boundary remains exact without turning implementation language into the author-facing
+meaning of the row.
+
+## 65. A registered chest turns three proxies into measurements — and disagrees with two of them
+
+*(2026-08-22.)*
+
+**The chest wall was a number, and now it is anatomy.** Every Rodero pose was authored against a
+heart-only mesh, so the stand-off was measured from the EPICARDIUM and a 30 mm "adult visual-layout
+proxy" stood in for a chest. With the BodyParts3D chest registered, that proxy is checkable, and it
+was wrong in the direction nobody could have seen: five of six apertures sat INSIDE the body — B1
+19.7 mm deep to the skin, B4 21.6 mm, C2 11.9 mm, F1 66.5 mm. Only C1 was on the wall. B1, B4 and
+C2 were migrated back along their own beams; the imaging plane is preserved exactly and only the
+stand-off and the depth change.
+
+**F1 says something different, and it was not migrated.** Reaching skin needs 73.7 mm of retreat
+and a 22.19 cm imaging depth, outside the range adult transthoracic imaging works in. A correction
+that large is not a stand-off error; it says the right-parasternal plane itself needs reauthoring.
+`migrate_apertures.py` refuses retreats over 40 mm for exactly this reason: a tool that slid it
+anyway would have produced a geometrically consistent, clinically useless pose.
+
+**The composite is slightly too big for its chest, and that is disclosed rather than fixed.**
+Cardiothoracic ratio 0.543 against 0.491 for BodyParts3D's own heart in the same chest; diaphragm
+overlap 9.9 mm against 3.3 mm. Placement is right — apex at the midclavicular line, two thirds left
+of midline, nothing behind the spine or outside the skin. The difference is one fact: Rodero is
+14 mm wider. And Rodero is the credible heart (LV 86.7 mm base-to-apex, normal adult range) while
+BodyParts3D's is 65.9 mm, below range, in a source that admits artist adjustment. Repairing the
+ratio means scaling one of the two bodies and then reporting false dimensions for whichever was
+scaled, so it is measured and published instead.
+
+**Two containment methods were wrong before one was right.** BodyParts3D's skin is a thin closed
+SHELL, not a solid: its own volume reads 3.4 L. `trimesh.contains` returns false for everything
+including the thoracic spine, and ray-parity voting counts two crossings from an interior point —
+one through each face of the layer — so both call a point inside the chest "outside". Only a
+radially-outward ray, validated against a known-inside and two known-outside controls, gives the
+right answer. Worth recording because the wrong methods are the obvious ones.
+
+**The probe was a third of life size.** 33 mm end to end with a 16 mm barrel, built from four
+cylinders and a sphere. Against a heart alone that read as hardware; against a true chest it read
+as a marker lying on skin. It is now an adult phased-array transthoracic probe: 21 x 15 mm
+footprint, 30 x 22 mm handle, 108 mm housing, 126 mm with the cable stub — comparable in length to
+the heart is wide, which is what those two objects are. One revolved profile rather than stacked
+primitives, flattened into an elliptical cross-section whose wide axis IS the array's long axis, so
+the silhouette states the imaging plane without any marker on it. Off-white, like the hardware.
+
+**Known cost.** At the default framing a real probe runs past the panel edge, because the camera is
+framed on the heart and the framing cap that keeps it the subject was left alone. The scan head and
+most of the handle are visible.
+

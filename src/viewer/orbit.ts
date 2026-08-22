@@ -265,11 +265,23 @@ export function echoOrientation(frame: ImagingFrame): THREE.Quaternion {
  * heart into it shows WHICH rotation makes the two panels agree.
  */
 export const GLIDE_MS = 700;
+/** Authoring view changes get a little more room than ordinary camera commands. */
+export const AUTHORING_GLIDE_MS = 850;
 
-/** Smoothstep, clamped: leaves and arrives without a visible jerk. */
+/** The established camera curve for learner Reset and Match echo. */
 export function glideEasing(t: number): number {
   const clamped = Math.min(1, Math.max(0, t));
   return clamped * clamped * (3 - 2 * clamped);
+}
+
+/**
+ * The more graceful authoring-view curve: zero velocity and acceleration at
+ * both endpoints. Kept separate so review motion can change without silently
+ * changing the learner's established Reset and Match echo behaviour.
+ */
+export function authoringGlideEasing(t: number): number {
+  const clamped = Math.min(1, Math.max(0, t));
+  return clamped * clamped * clamped * (clamped * (clamped * 6 - 15) + 10);
 }
 
 /**
@@ -291,10 +303,11 @@ export function shortestTarget(
 /** One step of a glide: where the camera is `elapsed` ms in, and whether it has landed. */
 export function glideStep(
   from: THREE.Quaternion, to: THREE.Quaternion, elapsed: number, duration = GLIDE_MS,
+  easing: (t: number) => number = glideEasing,
 ): { orientation: THREE.Quaternion; done: boolean } {
   const t = duration <= 0 ? 1 : Math.min(1, Math.max(0, elapsed / duration));
   return {
-    orientation: new THREE.Quaternion().slerpQuaternions(from, to, glideEasing(t)),
+    orientation: new THREE.Quaternion().slerpQuaternions(from, to, easing(t)),
     done: t >= 1,
   };
 }

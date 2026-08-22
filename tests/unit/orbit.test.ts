@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import {
   GLIDE_MS,
+  authoringGlideEasing,
   dragOrientation,
   echoOrientation,
   glideEasing,
@@ -326,6 +327,23 @@ describe('the animated transition', () => {
     // Slower at both ends than in the middle — that is what "eased" means.
     expect(glideEasing(0.1)).toBeLessThan(0.1);
     expect(glideEasing(0.9)).toBeGreaterThan(0.9);
+  });
+
+  it('has effectively zero endpoint velocity and acceleration', () => {
+    const h = 0.001;
+    const startVelocity = authoringGlideEasing(h) / h;
+    const endVelocity = (1 - authoringGlideEasing(1 - h)) / h;
+    const startAcceleration = (
+      authoringGlideEasing(2 * h) - 2 * authoringGlideEasing(h)
+    ) / (h * h);
+    const endAcceleration = (
+      1 - 2 * authoringGlideEasing(1 - h) + authoringGlideEasing(1 - 2 * h)
+    ) / (h * h);
+
+    expect(startVelocity).toBeLessThan(0.00002);
+    expect(endVelocity).toBeLessThan(0.00002);
+    expect(Math.abs(startAcceleration)).toBeLessThan(0.1);
+    expect(Math.abs(endAcceleration)).toBeLessThan(0.1);
   });
 
   it('clamps rather than overshooting outside the transition', () => {

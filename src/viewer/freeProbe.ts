@@ -66,6 +66,38 @@ export type ProbeAxis = 'fan' | 'aim' | 'rotate';
 export const NUDGE_DEG = 2;
 
 /**
+ * Centimetres per press of the authoring-only fan-depth rocker.
+ *
+ * Half a centimetre is fine enough to settle the distal boundary without a
+ * high-rate hold repeat, while still making a visibly useful change per click.
+ * The one-centimetre floor is deliberately conservative: schema v0 only says
+ * that depth is positive, but a nearly zero sector is not a useful authoring
+ * pose. The focus is a second, pose-specific floor and may be the stronger one.
+ */
+export const FAN_DEPTH_STEP_CM = 0.5;
+export const MIN_FAN_DEPTH_CM = 1;
+
+/**
+ * Return one fan-depth step, or `null` when that step would make the pose
+ * invalid.
+ *
+ * Resizing the sector is not moving the transducer: origin and both axes stay
+ * byte-for-byte as supplied, as do fan angle, focus and display convention.
+ * Only a cloned local pose/fan is returned, so this helper has no route to a
+ * loaded pack. In particular, decreasing stops before either the documented
+ * floor or the authored focus would be crossed.
+ */
+export function steppedFanDepth(start: ProbePose, sign: -1 | 1): ProbePose | null {
+  const { depth_cm: depth, focus_cm: focus } = start.fan;
+  const nextDepth = depth + sign * FAN_DEPTH_STEP_CM;
+  const minimumDepth = Math.max(MIN_FAN_DEPTH_CM, focus);
+  if (!Number.isFinite(nextDepth) || !Number.isFinite(minimumDepth) || nextDepth < minimumDepth) {
+    return null;
+  }
+  return { ...start, fan: { ...start.fan, depth_cm: nextDepth } };
+}
+
+/**
  * Millimetres per press of the stand-off buttons, and how far they may go.
  *
  * Moving the probe ALONG ITS BEAM is the one translation offered, and it is a
@@ -212,7 +244,11 @@ function sub(a: Vec3, b: Vec3): Vec3 {
  * same claim — a learner can turn the toggle on and never drag.
  */
 export function hasLeftTrack(
-  free: ProbePose, onTrack: ProbePose, toleranceDeg = 0.05, toleranceMm = 0.05,
+  free: ProbePose,
+  onTrack: ProbePose,
+  toleranceDeg = 0.05,
+  toleranceMm = 0.05,
+  toleranceCm = 0.005,
 ): boolean {
   /*
    * POSITION as well as orientation. The stand-off buttons move the origin and
@@ -226,7 +262,21 @@ export function hasLeftTrack(
 
   const beamAngle = angleBetween(free.beam_axis as Vec3, onTrack.beam_axis as Vec3);
   const lateralAngle = angleBetween(free.lateral_axis as Vec3, onTrack.lateral_axis as Vec3);
-  return Math.max(beamAngle, lateralAngle) > (toleranceDeg * Math.PI) / 180;
+  if (Math.max(beamAngle, lateralAngle) > (toleranceDeg * Math.PI) / 180) return true;
+
+  /*
+   * A pose is more than its aperture and axes. Fan depth/focus/angle change the
+   * pixels and categorical display fields change how those pixels are shown.
+   * If any of them differs, continuing to name the image as the saved view is
+   * just as false as doing so after a rotation or translation.
+   */
+  if (Math.abs(free.fan.angle_deg - onTrack.fan.angle_deg) > toleranceDeg
+    || Math.abs(free.fan.depth_cm - onTrack.fan.depth_cm) > toleranceCm
+    || Math.abs(free.fan.focus_cm - onTrack.fan.focus_cm) > toleranceCm) return true;
+
+  return free.display.vertex !== onTrack.display.vertex
+    || free.display.flip_lr !== onTrack.display.flip_lr
+    || free.display.marker_side !== onTrack.display.marker_side;
 }
 
 function angleBetween(a: Vec3, b: Vec3): number {

@@ -30,24 +30,43 @@
  * a modifier ALWAYS zooms, in every mode, and the cutter's modifier-wheel depth
  * control below has to coexist with that.
  */
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Pack, ProbePose } from '../schema/packV0.ts';
 import { frameAt, imagingFrame, poseAt, withApexFlip, type ImagingFrame } from '../echo/probeFrame.ts';
 import {
+  FAN_DEPTH_STEP_CM,
   NUDGE_DEG,
   STANDOFF_STEP_MM,
   movedAlongBeam,
   nudgedPose,
   standOffStepAllowed,
+  steppedFanDepth,
   type ProbeAxis,
 } from './freeProbe.ts';
 import { ProbeIndicator } from './wedge.ts';
 import { StencilCaps, capsAtCut, type CapSource } from './caps.ts';
-import { axisVector } from '../schema/packV0.ts';
 import { applyBeamDim, setBeamFrame } from './beamDim.ts';
 import {
+  IDENTITY_TRANSFORM,
+  frameToBody,
+  pointToBody,
+  vectorToBody,
+  type RigidTransform,
+} from './bodyFrame.ts';
+import { loadChestContext, type ChestContext, type ChestControl } from './chestContext.ts';
+import {
+  AUTHORING_GLIDE_MS,
+  GLIDE_MS,
+  authoringGlideEasing,
   dragOrientation,
   echoOrientation,
   levelled,
@@ -59,6 +78,7 @@ import {
 } from './orbit.ts';
 import {
   alignedToPlane,
+  cameraFacingFlip,
   clippingPlane,
   enclosingRadius,
   initialCutPlane,
@@ -78,7 +98,10 @@ import { structureColour } from './palette.ts';
 import { AUTHORING_ENABLED } from '../authoring/flag.ts';
 import type { ViewAnchor } from '../authoring/anchor.ts';
 import { seedsFromViews } from '../authoring/slots.ts';
-import AuthoringControls from '../authoring/AuthoringControls.tsx';
+import { echoDisplayHandoff, viewPoseTransitionStep } from './poseTransition.ts';
+import AuthoringControls, {
+  type AuthoringViewIdentity,
+} from '../authoring/AuthoringControls.tsx';
 
 /**
  * What the cut plane is, stated on screen at all times.
@@ -97,6 +120,24 @@ export type ViewerMode = 'echo' | 'explore';
 interface PackViewerProps {
   pack: Pack;
   gltfUrl: string;
+  /**
+   * Model -> body registration, or the identity when no context is bound.
+   *
+   * The scene is rendered in BODY space. Authored poses, saved slots, free
+   * poses and the echo simulation all stay in MODEL space and are converted at
+   * the point of use — see `bodyFrame.ts` for why the conversion is not baked
+   * into `canonical_pose` instead.
+   */
+  modelToBody?: RigidTransform;
+  /**
+   * URL of the reference chest glTF, when a body context supplies one.
+   *
+   * Separate from `modelToBody` because the registration is what places the
+   * heart and the chest is only what surrounds it: a pack can be correctly
+   * registered into the body frame with no chest to show, and that is a normal
+   * state rather than a degraded one.
+   */
+  chestGltfUrl?: string | null;
   /** Scrub position of the selected view's sweep, 0..1. Drives the probe. */
   scrub: number;
   viewIndex?: number;
@@ -121,6 +162,13 @@ interface PackViewerProps {
   frameUrls?: readonly string[];
   freePose?: ProbePose | null;
   /**
+   * Whether an imaging view is currently presented. `false` is the neutral
+   * full-heart state: no probe, beam, echo-synchronised cut, or echo panel.
+   */
+  imagingActive?: boolean;
+  /** Authoring selector owns the current neutral/view presentation choice. */
+  onImagingActiveChange?: (active: boolean) => void;
+  /**
    * The one path the probe control pad's fan buttons write through — the same
    * one the sweep slider uses. Without it the pad is not drawn, because an
    * affordance that cannot move anything is worse than no affordance.
@@ -134,6 +182,10 @@ interface PackViewerProps {
    * anything is worse than no affordance.
    */
   onFreePoseChange?: (pose: ProbePose | null) => void;
+  /** Authoring-only presentation state, lifted so the echo can label and fade it honestly. */
+  onViewTransitionChange?: (state: { active: boolean; echoOpacity: number }) => void;
+  /** Exact saved authoring pose currently shown; null once the probe is changed by hand. */
+  onAuthoringWorkingViewChange?: (view: AuthoringViewIdentity | null) => void;
   /**
    * A click on the model, with the structure under it — or null for empty space.
    *
@@ -193,27 +245,38 @@ interface ViewerApi {
   setBeamDim: (strength: number) => void;
   setGhost: (on: boolean) => void;
   setPointerClass: (coarse: boolean) => void;
-  /** Echo mode only: hold the model's measured long axis vertical under orbit. */
+  /** Echo mode only: hold body/world +Z vertical under orbit. */
   setHorizonLock: (on: boolean) => void;
-  /**
-   * AUTHORING ONLY: which axis the horizon lock holds vertical.
-   *
-   * Null is the pack's declared `orientation.up`. A vector is a MODEL-space
-   * axis — the long axis the apical four-chamber measured — which this carries
-   * through `canonical_pose` like every other model-space quantity.
-   */
-  setLevelAxis: (axis: readonly [number, number, number] | null) => void;
-  /** Distance from a world point to the nearest model surface, in pack units. */
+  /** Distance from a MODEL-space point to the nearest heart surface, in pack units. */
   clearanceMm: (point: readonly [number, number, number]) => number;
+  /** BODY CONTEXT: show or hide the whole reference chest. */
+  setChestVisible: (on: boolean) => void;
+  /** BODY CONTEXT: show or hide one control's groups. */
+  setChestGroupVisible: (control: ChestControl, on: boolean) => void;
+  /** BODY CONTEXT: skin shell opacity, 0..1. */
+  setChestSkinOpacity: (opacity: number) => void;
+  /** BODY CONTEXT: explicitly frame the chest. Never automatic. */
+  fitChest: () => void;
+  /** BODY CONTEXT: whether the chest loaded, and why not if it did not. */
+  chestState: () => { loaded: boolean; problem: string | null };
   /** Whether the cutter should be reversed for the cut to open toward the camera. */
   cutShouldFaceCamera: () => boolean;
   setMode: (mode: ViewerMode) => void;
+  /** Toggle the runtime probe presentation without rebuilding the loaded model. */
+  setImagingActive: (active: boolean, moveCamera: boolean) => void;
   /** Show one keyframe. Ignored until every frame has loaded. */
   setCineFrame: (index: number) => void;
   /** Returns the depth the slider should now show, in the new mode's terms. */
   setCutterMode: (mode: CutterMode) => number;
   resetCamera: () => void;
   matchEchoOrientation: (frame: ImagingFrame) => void;
+  transitionAuthoringPose: (input: {
+    source: ProbePose;
+    target: ProbePose;
+    centre: readonly [number, number, number];
+    targetFrame: ImagingFrame;
+    moveCamera: boolean;
+  }) => void;
   resetCutPlane: () => void;
   /**
    * AUTHORING ONLY: the camera ray and the model's bounding sphere, in MODEL
@@ -229,9 +292,11 @@ interface ViewerApi {
 }
 
 export default function PackViewer({
-  pack, gltfUrl, scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
+  pack, gltfUrl, modelToBody = IDENTITY_TRANSFORM, chestGltfUrl = null,
+  scrub, viewIndex = 0, hidden, mode = 'echo', frameUrls,
   freePose = null, onScrubChange, onFreePoseChange, onStructureClick, apexFlipped = false,
-  isolatedLabel = null,
+  imagingActive = true, onImagingActiveChange, isolatedLabel = null,
+  onViewTransitionChange, onAuthoringWorkingViewChange,
 }: PackViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   /*
@@ -255,7 +320,7 @@ export default function PackViewer({
   const apiRef = useRef<ViewerApi | null>(null);
 
   const seeded = pack.interaction?.free_cut;
-  const [cutEnabled, setCutEnabled] = useState(seeded !== undefined);
+  const [cutEnabled, setCutEnabled] = useState(seeded !== undefined && imagingActive);
   /**
    * The cutter's signed depth value.
    *
@@ -305,6 +370,19 @@ export default function PackViewer({
    */
   const [ghostCutaway, setGhostCutaway] = useState(true);
   /*
+   * BODY CONTEXT: the reference chest.
+   *
+   * Off by default. The chest is provisional, it is a composite rather than a
+   * patient, and turning it on changes what the app IS on first load — that is
+   * an owner decision, not something the presence of an asset should decide.
+   */
+  const [chestShown, setChestShown] = useState(false);
+  const [chestGroups, setChestGroups] = useState<Record<ChestControl, boolean>>({
+    skin: true, skeleton: true, lungs: true,
+  });
+  const [skinOpacity, setSkinOpacity] = useState(0.06);
+  const [chestFailed, setChestFailed] = useState(false);
+  /*
    * The model's reach is no longer needed in React — the depth slider it
    * bounded is gone, and the shift-wheel's clamp lives in the scene where the
    * number is measured. `setCutLimit` stays only as the signal that the model
@@ -312,17 +390,28 @@ export default function PackViewer({
    */
   /** Explore has no probe to sync to, so the cutter is forced free there. */
   const [cutterMode, setCutterModeState] = useState<CutterMode>(
-    mode === 'explore' ? 'free' : 'echo',
+    mode === 'explore' || !imagingActive ? 'free' : 'echo',
   );
   const [coarsePointer, setCoarsePointer] = useState(isCoarsePointer);
+  const [poseTransitioning, setPoseTransitioning] = useState(false);
 
   const onScrubRef = useRef(onScrubChange);
   onScrubRef.current = onScrubChange;
   const onFreePoseRef = useRef(onFreePoseChange);
   onFreePoseRef.current = onFreePoseChange;
+  const onViewTransitionRef = useRef(onViewTransitionChange);
+  onViewTransitionRef.current = onViewTransitionChange;
+  const onAuthoringWorkingViewRef = useRef(onAuthoringWorkingViewChange);
+  onAuthoringWorkingViewRef.current = onAuthoringWorkingViewChange;
+  const onImagingActiveRef = useRef(onImagingActiveChange);
+  onImagingActiveRef.current = onImagingActiveChange;
   const freePoseRef = useRef(freePose);
   freePoseRef.current = freePose;
-
+  const imagingActiveRef = useRef(imagingActive);
+  imagingActiveRef.current = imagingActive;
+  const poseTransitioningRef = useRef(false);
+  const preventAuthoringAutoRotationRef = useRef(false);
+  const holdRef = useRef<{ delay: number; repeat: number } | null>(null);
   /*
    * The scrub position is read through a ref inside the load effect, not listed
    * as a dependency. Depending on it would tear down the renderer and re-fetch
@@ -331,6 +420,9 @@ export default function PackViewer({
    */
   const scrubRef = useRef(scrub);
   scrubRef.current = scrub;
+  // App currently constructs a fresh Set during every free-pose frame. Key the
+  // expensive scene walk on its contents, not on that incidental identity.
+  const hiddenKey = [...(hidden ?? [])].sort().join('\u0000');
 
   useEffect(() => {
     const host = hostRef.current;
@@ -448,10 +540,23 @@ export default function PackViewer({
     let framedReach = 0;
     let framed = false;
     let loaded = false;
+    /**
+     * The reference chest, once it has loaded. Null until then, and null
+     * forever if it fails.
+     *
+     * Deliberately not awaited before the heart is built. Context arriving late
+     * costs a redraw; a heart that waited for scenery would be a heart that a
+     * failed CDN could stop from rendering at all.
+     */
+    let chest: ChestContext | null = null;
+    let chestProblem: string | null = null;
+    let chestShown = false;
 
     /* --- modes ------------------------------------------------------------ */
     let viewerMode: ViewerMode = mode;
-    let cutter: CutterMode = mode === 'explore' ? 'free' : 'echo';
+    let imagingViewActive = imagingActive;
+    host.dataset.imagingActive = String(imagingViewActive);
+    let cutter: CutterMode = mode === 'explore' || !imagingViewActive ? 'free' : 'echo';
     let coarse = isCoarsePointer();
     /** The beam dim the learner asked for; Explore forces it off without losing it. */
     let beamStrength = 1;
@@ -459,7 +564,22 @@ export default function PackViewer({
     let currentFrame: ImagingFrame | null = null;
 
     /* --- the free anatomical cutter --------------------------------------- */
-    const cut: CutPlaneState = initialCutPlane(pack.interaction?.free_cut);
+    /*
+     * The pack seeds the free cutter with a MODEL-space normal, and the cutter
+     * lives in body space beside the pivot it measures from. Converted here, at
+     * the one place the seed enters.
+     *
+     * `offset` needs no conversion and that is a property of the transform
+     * rather than an oversight: it is a signed distance along the normal from
+     * the pivot, and a unit-scale rigid map preserves distances exactly. A
+     * registration that scaled would have to rewrite this too, which is one
+     * more reason `rigidTransform` refuses one.
+     */
+    const seededCut = pack.interaction?.free_cut;
+    const cut: CutPlaneState = initialCutPlane(seededCut && {
+      ...seededCut,
+      normal: vectorToBody(modelToBody, seededCut.normal as [number, number, number]),
+    });
     /**
      * The slider's value, in the current mode's terms. Mirrors React state; the
      * plane's actual `s` is derived from it in `applyCut`.
@@ -496,44 +616,32 @@ export default function PackViewer({
 
     /* --- orbit state, pivoting on C -------------------------------------- */
     /*
-     * The axis the horizon lock holds vertical: the model's own long axis, in
-     * WORLD space.
+     * The axis the horizon lock holds vertical: body/world +Z. Superior. Up.
      *
-     * It comes from the pack — `meshes.orientation.up`, which for a labelled
-     * substrate is the derived cardiac frame recorded in `meshes.anatomical_frame`
-     * and measured rather than declared — carried through `canonical_pose` the
-     * way the pivot is. World up would be the wrong axis: it is the same thing
-     * only while the heart happens to be upright, and holding the heart upright
-     * is the entire job.
+     * This used to be the pack's declared `meshes.orientation.up` carried
+     * through `canonical_pose`, and it used to be MUTABLE, because saving an
+     * apical four-chamber replaced it with the long axis that view's beam
+     * implied. Both are gone (owner decision, 2026-08-21).
+     *
+     * The old arrangement had a real problem behind it — eight of the nine
+     * packs declare `up=+y` with no derivation behind it, so levelling to the
+     * declaration was levelling a guess — but it solved that problem by letting
+     * an imaging view answer a question about the patient, which it cannot. A
+     * transducer position says where you stand to look at a heart. It says
+     * nothing about which way the patient's head is.
+     *
+     * Up now comes from the body frame: the scene is rendered in BODY space, so
+     * superior is +Z by construction and `Level` means exactly one thing on
+     * every pack, whether or not that pack has a body registration. A pack
+     * without one is rendered in its own model space and Level still holds +Z;
+     * it is then honestly "the model's +Z" rather than a claim about a patient,
+     * which is the same thing the old code was doing minus the pretence that a
+     * view had established it.
+     *
+     * Constant now, where it used to be mutated in place so that the authoring
+     * setter could reach it. Nothing may repoint it.
      */
-    /*
-     * The axis the horizon lock holds vertical.
-     *
-     * The pack's declared `orientation.up`, carried through `canonical_pose` —
-     * and MUTABLE, because authoring can replace it with the long axis the
-     * apical four-chamber measured. Eight of the nine packs declare
-     * `up=+y` with no derivation behind it, so on those the declared axis is
-     * the ingest's default and the four-chamber's is the only measurement
-     * there is; a lock that went on levelling the guess would be levelling
-     * nothing.
-     *
-     * Mutated in place rather than reassigned, so the two call sites that
-     * closed over it — the locked drag and `levelled` — keep working without
-     * either of them having to be told.
-     */
-    const packUp = new THREE.Vector3(...axisVector(pack.meshes.orientation.up))
-      .applyEuler(new THREE.Euler(
-        ...(pack.meshes.canonical_pose.rotation_euler_xyz_deg.map(
-          (degrees) => (degrees * Math.PI) / 180,
-        ) as [number, number, number]),
-      ))
-      .normalize();
-    const lockAxis = packUp.clone();
-    const poseEuler = new THREE.Euler(
-      ...(pack.meshes.canonical_pose.rotation_euler_xyz_deg.map(
-        (degrees) => (degrees * Math.PI) / 180,
-      ) as [number, number, number]),
-    );
+    const lockAxis = new THREE.Vector3(0, 0, 1);
     let pivot = new THREE.Vector3();
     let radius = 400;
     /*
@@ -550,36 +658,203 @@ export default function PackViewer({
       camera.position.copy(pivot).add(pose.offset);
       camera.up.copy(pose.up);
       camera.lookAt(pivot);
+      host.dataset.cutOpenToCamera = String(
+        cutActive && cameraFacingFlip(cut, pivot, camera.position) === cut.flipped,
+      );
+      if (AUTHORING_ENABLED) {
+        host.setAttribute(
+          'data-authoring-camera-orientation',
+          orientation.toArray().map((value) => value.toFixed(9)).join(','),
+        );
+      }
     };
 
-    /* --- camera animation ------------------------------------------------- */
-    /* The curve, the duration and the shortest-path choice live in `orbit.ts`,
-     * where they can be tested; this is only the clock and the flag. */
-    let glide: { from: THREE.Quaternion; to: THREE.Quaternion; start: number } | null = null;
+    /* --- explanatory view transition ------------------------------------- */
+    /* One clock owns the camera and, in authoring, the transient probe pose.
+     * That is what makes interruption atomic and keeps the wedge and echo on
+     * the same eased progress rather than running two nearly-equal animations. */
+    type Glide = {
+      from: THREE.Quaternion;
+      to: THREE.Quaternion;
+      start: number;
+      duration: number;
+      moveCamera: boolean;
+      pose?: {
+        from: ProbePose;
+        to: ProbePose;
+        centre: readonly [number, number, number];
+        /** A categorical echo convention gets one fully transparent paint before switching. */
+        blankedAt: number | null;
+      };
+    };
+    let glide: Glide | null = null;
+
+    const clearHeldProbePress = () => {
+      const held = holdRef.current;
+      if (!held) return;
+      window.clearTimeout(held.delay);
+      window.clearInterval(held.repeat);
+      holdRef.current = null;
+    };
+
+    const setPoseTransitionState = (active: boolean, echoOpacity = 1) => {
+      if (!AUTHORING_ENABLED) return;
+      poseTransitioningRef.current = active;
+      if (active) clearHeldProbePress();
+      if (active) host.dataset.probeTransition = 'true';
+      else delete host.dataset.probeTransition;
+      setPoseTransitioning(active);
+      onViewTransitionRef.current?.({ active, echoOpacity });
+    };
+
+    /**
+     * Open an echo-synchronised cut toward the camera at a saved-view landing.
+     *
+     * This is deliberately an endpoint operation, not a camera observer. A
+     * learner may orbit around to inspect the retained half and their manual
+     * Reverse choice must remain sticky; only an app-driven saved-view change
+     * gets to choose the initially presented side again.
+     *
+     * Mutate the scene before publishing React state so the destination frame
+     * itself is correct. The state update then keeps the button and the next
+     * effect-driven `setCut` call in agreement with what was drawn.
+     */
+    const reconcileEchoCutFacingCamera = () => {
+      if (!cutActive || cutter !== 'echo') return;
+      const next = cameraFacingFlip(cut, pivot, camera.position);
+      if (next !== cut.flipped) {
+        cut.flipped = next;
+        applyCut();
+      }
+      setCutFlipped(next);
+    };
 
     const stepGlide = (now: number) => {
       if (!glide) return false;
-      const step = glideStep(glide.from, glide.to, now - glide.start);
-      orientation.copy(step.orientation);
-      applyCamera();
-      if (step.done) {
+      const active = glide;
+      const elapsed = now - active.start;
+      const step = AUTHORING_ENABLED && active.pose
+        ? glideStep(
+          active.from,
+          active.to,
+          elapsed,
+          active.duration,
+          authoringGlideEasing,
+        )
+        : glideStep(active.from, active.to, elapsed, active.duration);
+      if (active.moveCamera) {
+        orientation.copy(step.orientation);
+        applyCamera();
+      }
+      let displayFadeDone = true;
+      if (AUTHORING_ENABLED && active.pose) {
+        const poseStep = viewPoseTransitionStep(
+          active.pose.from,
+          active.pose.to,
+          elapsed,
+          active.duration,
+          active.pose.centre,
+        );
+        const handoff = echoDisplayHandoff(
+          active.pose.from.display,
+          active.pose.to.display,
+          elapsed,
+          active.duration,
+        );
+        if (handoff.changed && handoff.phase === 'target' && active.pose.blankedAt === null) {
+          /*
+           * A dropped frame can cross the mathematical zero-opacity instant.
+           * Force one real painted source frame at zero before the categorical
+           * convention changes, so vertex/left-right can never flash at full
+           * opacity merely because the renderer was busy.
+           */
+          const blankPose = structuredClone(poseStep.pose) as ProbePose;
+          blankPose.display = structuredClone(active.pose.from.display);
+          publishAuthoringPose(blankPose, false);
+          active.pose.blankedAt = now;
+          setPoseTransitionState(true, 0);
+          return true;
+        }
+
+        let echoOpacity = handoff.opacity;
+        if (active.pose.blankedAt !== null) {
+          const fadeIn = Math.min(1, Math.max(0, (now - active.pose.blankedAt) / 150));
+          echoOpacity = authoringGlideEasing(fadeIn);
+          displayFadeDone = fadeIn >= 1;
+        }
+        publishAuthoringPose(poseStep.pose, false);
+        setPoseTransitionState(true, echoOpacity);
+      }
+      if (step.done && displayFadeDone) {
+        if (AUTHORING_ENABLED && active.pose) reconcileEchoCutFacingCamera();
         glide = null;
         delete host.dataset.cameraGlide;
+        if (AUTHORING_ENABLED && active.pose) setPoseTransitionState(false, 1);
         return false;
       }
       return true;
     };
 
+    const cancelGlide = (finishPose: boolean) => {
+      const active = glide;
+      if (!active) return;
+      if (AUTHORING_ENABLED && finishPose && active.pose) {
+        publishAuthoringPose(structuredClone(active.pose.to) as ProbePose, false);
+        reconcileEchoCutFacingCamera();
+      }
+      glide = null;
+      delete host.dataset.cameraGlide;
+      if (AUTHORING_ENABLED && active.pose) setPoseTransitionState(false, 1);
+    };
+
     const glideTo = (target: THREE.Quaternion) => {
+      // A direct camera command takes over, but the selected view remains the
+      // selected view: finish its probe pose before changing camera course.
+      cancelGlide(true);
       glide = {
         from: orientation.clone(),
         to: shortestTarget(orientation, target),
         start: performance.now(),
+        duration: GLIDE_MS,
+        moveCamera: true,
       };
       // Announced on the host so a caller can tell a move is in flight.
       host.dataset.cameraGlide = 'true';
       schedule();
     };
+
+    const glideToAuthoringPose = AUTHORING_ENABLED ? (input: {
+      source: ProbePose;
+      target: ProbePose;
+      /** MODEL-space pivot for the glide; converted to body before the camera uses it. */
+      centre: readonly [number, number, number];
+      /** MODEL-space frame; `echoOrientation` needs it in body space. */
+      targetFrame: ImagingFrame;
+      moveCamera: boolean;
+    }) => {
+      // Selection retargets from the currently rendered intermediate pose; it
+      // does not finish or queue the superseded destination.
+      cancelGlide(false);
+      const source = structuredClone(input.source) as ProbePose;
+      const target = structuredClone(input.target) as ProbePose;
+      publishAuthoringPose(source, false);
+      glide = {
+        from: orientation.clone(),
+        to: input.moveCamera
+          ? shortestTarget(
+            orientation, echoOrientation(frameToBody(modelToBody, input.targetFrame)),
+          )
+          : orientation.clone(),
+        start: performance.now(),
+        duration: AUTHORING_GLIDE_MS,
+        moveCamera: input.moveCamera,
+        pose: { from: source, to: target, centre: input.centre, blankedAt: null },
+      };
+      if (input.moveCamera) host.dataset.cameraGlide = 'true';
+      else delete host.dataset.cameraGlide;
+      setPoseTransitionState(true, 1);
+      schedule();
+    } : null;
 
     /**
      * Distance at which the model bounds fill the viewport.
@@ -613,11 +888,23 @@ export default function PackViewer({
      */
     const measureFraming = () => {
       framedReach = reach;
-      if (viewerMode !== 'echo') return;
+      if (viewerMode !== 'echo' || !imagingViewActive) return;
       const view = pack.views[viewIndex];
       if (!view) return;
+      /*
+       * The travel path comes back in MODEL space and `pivot` is in BODY
+       * space, so the points are converted before the distance is taken.
+       *
+       * With an identity registration the two spaces coincide and the missing
+       * conversion was invisible. With a real one the raw comparison measures
+       * the distance from the heart to the body origin — about 1.2 metres —
+       * which the cap below then silently absorbs, so the symptom would have
+       * been a camera that quietly stopped fitting the probe rather than an
+       * error anyone could see.
+       */
       for (const point of probeTravelPath(view.probe, view.sweep)) {
-        framedReach = Math.max(framedReach, new THREE.Vector3(...point).distanceTo(pivot));
+        const world = pointToBody(modelToBody, point as [number, number, number]);
+        framedReach = Math.max(framedReach, new THREE.Vector3(...world).distanceTo(pivot));
       }
       /*
        * Capped, and the cap is the interesting part. A probe sits on the chest
@@ -903,6 +1190,11 @@ export default function PackViewer({
       }
 
       planes[0].copy(clippingPlane(cut, pivot));
+      host.dataset.cutActive = String(cutActive);
+      host.dataset.cutFlipped = String(cut.flipped);
+      host.dataset.cutOpenToCamera = String(
+        cutActive && cameraFacingFlip(cut, pivot, camera.position) === cut.flipped,
+      );
       // The ghost is the other half-space of the same plane.
       ghostPlanes[0].copy(planes[0]).negate();
       ghosts.visible = cutActive && ghostOn;
@@ -956,6 +1248,7 @@ export default function PackViewer({
       const authoringPose = AUTHORING_ENABLED && freePoseRef.current !== null;
       const wanted = loaded
         && viewerMode === 'echo'
+        && imagingViewActive
         && (view !== undefined || authoringPose);
 
       if (!wanted) {
@@ -979,6 +1272,37 @@ export default function PackViewer({
        * the scene. This is the scene's own answer.
        */
       host.dataset.probe = probe ? 'present' : 'absent';
+    };
+
+    /**
+     * Apply one pose-derived frame to every 3D consumer.
+     *
+     * Takes a MODEL-space frame and converts once, here. Every consumer below
+     * — the probe indicator, the wedge it carries, the beam-dim uniforms and
+     * the echo-synced cutter — draws in body space, so this is the single
+     * boundary between the space poses are authored in and the space the scene
+     * is rendered in. `currentFrame` holds the BODY-space frame, because every
+     * later reader of it is a renderer.
+     *
+     * One conversion rather than four is not tidiness: four would be four
+     * chances for one consumer to be left in model space, and with an identity
+     * registration that mistake is invisible.
+     */
+    const applyImagingFrame = (modelFrame: ImagingFrame, requestDraw: boolean) => {
+      const frame = frameToBody(modelToBody, modelFrame);
+      currentFrame = frame;
+      if (AUTHORING_ENABLED) syncProbeObjects();
+      probe?.update(frame);
+      for (const uniforms of dimUniforms) setBeamFrame(uniforms, frame);
+      if (cutter === 'echo') applyCut();
+      if (requestDraw) schedule();
+    };
+
+    /** Publish the exact transient pose used by both the 3D and echo panels. */
+    const publishAuthoringPose = (pose: ProbePose, requestDraw: boolean) => {
+      freePoseRef.current = pose;
+      onFreePoseRef.current?.(pose);
+      applyImagingFrame(imagingFrame(pose), requestDraw);
     };
 
     /* --- input ------------------------------------------------------------ */
@@ -1034,9 +1358,9 @@ export default function PackViewer({
       dragging = true;
       pressX = event.clientX;
       pressY = event.clientY;
-      // The learner's hand outranks an animation in flight.
-      glide = null;
-      delete host.dataset.cameraGlide;
+      // The learner's hand outranks an animation in flight. The selected pose
+      // lands exactly, while the camera stays where the hand took control.
+      cancelGlide(true);
       lastX = event.clientX;
       lastY = event.clientY;
 
@@ -1185,6 +1509,7 @@ export default function PackViewer({
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      cancelGlide(true);
       /*
        * Wheel WITHOUT a modifier always zooms — in every mode, no exceptions.
        * Shift-wheel translates the cutter along `N`, and only when the cutter
@@ -1252,7 +1577,33 @@ export default function PackViewer({
           ...(pose.rotation_euler_xyz_deg.map((d) => (d * Math.PI) / 180) as [number, number, number]),
         );
         gltf.scene.scale.setScalar(pose.scale);
+        /*
+         * `model_to_body` sits OUTSIDE `canonical_pose`, as its own parent.
+         *
+         * Two transforms, two owners, and keeping them separate is the point.
+         * `canonical_pose` is the pack's statement about presenting its own
+         * mesh; the body registration is a fact about pairing that pack with a
+         * reference body, and it lives in the body-context document with its
+         * own residuals and its own licence. Multiplying them together here
+         * would work and would lose that distinction the first time anyone
+         * needed to read one back out.
+         *
+         * The composition is what `modelRoot.matrixWorld` then IS, so
+         * `viewAnchor`'s existing world-to-model inverse keeps working with no
+         * change: it inverts whatever the chain happens to be.
+         */
+        const bodyRoot = new THREE.Group();
+        bodyRoot.matrixAutoUpdate = false;
+        const r = modelToBody.rotation;
+        bodyRoot.matrix.set(
+          r[0], r[1], r[2], modelToBody.translation[0],
+          r[3], r[4], r[5], modelToBody.translation[1],
+          r[6], r[7], r[8], modelToBody.translation[2],
+          0, 0, 0, 1,
+        );
+        bodyRoot.add(gltf.scene);
         gltf.scene.updateMatrixWorld(true);
+        bodyRoot.updateMatrixWorld(true);
 
         const bloodPool = new Set(
           pack.meshes.structures.filter((s) => s.blood_pool).map((s) => s.id),
@@ -1358,7 +1709,7 @@ export default function PackViewer({
             });
           }
         });
-        scene.add(gltf.scene);
+        scene.add(bodyRoot);
         modelRoot = gltf.scene;
 
         bounds = new THREE.Box3().setFromObject(gltf.scene);
@@ -1397,14 +1748,50 @@ export default function PackViewer({
 
         const view = pack.views[viewIndex];
         if (view) {
-          currentFrame = freePoseRef.current
+          currentFrame = frameToBody(modelToBody, freePoseRef.current
             ? imagingFrame(freePoseRef.current)
-            : frameAt(view.probe, view.sweep, scrubRef.current);
+            : frameAt(view.probe, view.sweep, scrubRef.current));
           for (const uniforms of dimUniforms) setBeamFrame(uniforms, currentFrame);
         }
 
         loaded = true;
         syncProbeObjects();
+
+        /*
+         * The reference chest, loaded BEHIND the standing heart.
+         *
+         * Deliberately after `loaded = true`: the heart is already framed and
+         * interactive by this point, and the chest is scenery. If this never
+         * resolves, everything above it still works — which is the requirement,
+         * not a happy accident of ordering.
+         *
+         * It is added to the scene but starts HIDDEN. Showing a chest by
+         * default would change what the app is on first load, and that is the
+         * owner's call rather than a side effect of the assets existing.
+         */
+        if (chestGltfUrl) {
+          loadChestContext(chestGltfUrl)
+            .then((context) => {
+              if (controller.signal.aborted || disposed) {
+                context.dispose();
+                return;
+              }
+              chest = context;
+              context.setVisible(chestShown);
+              scene.add(context.object);
+              host.dataset.chest = 'loaded';
+              schedule();
+            })
+            .catch((error: unknown) => {
+              if (controller.signal.aborted || disposed) return;
+              chestProblem = (error as Error).message;
+              host.dataset.chest = 'failed';
+              // Nothing else happens. The heart and the echo are untouched.
+              schedule();
+            });
+        } else {
+          host.dataset.chest = 'absent';
+        }
 
         /*
          * The remaining keyframes, loaded BEHIND the standing scene.
@@ -1462,11 +1849,22 @@ export default function PackViewer({
 
     apiRef.current = {
       clearanceMm: (point) => {
+        /*
+         * The caller holds a MODEL-space probe origin; `surfacePoints` is the
+         * sampled heart surface in BODY space. Converting the one point is both
+         * cheaper and safer than converting the few thousand surface samples,
+         * and it keeps this API model-space like every other pose-shaped input.
+         *
+         * HEART ONLY, and it must stay that way: this bounds how close the
+         * transducer may stand to tissue, and folding chest geometry into it
+         * would let a rib decide the probe stand-off.
+         */
+        const world = pointToBody(modelToBody, point as [number, number, number]);
         let nearest = Infinity;
         for (let i = 0; i < surfacePoints.length; i += 3) {
-          const dx = surfacePoints[i] - point[0];
-          const dy = surfacePoints[i + 1] - point[1];
-          const dz = surfacePoints[i + 2] - point[2];
+          const dx = surfacePoints[i] - world[0];
+          const dy = surfacePoints[i + 1] - world[1];
+          const dz = surfacePoints[i + 2] - world[2];
           const squared = dx * dx + dy * dy + dz * dz;
           if (squared < nearest) nearest = squared;
         }
@@ -1483,31 +1881,16 @@ export default function PackViewer({
        * this was invisible, because the cut faces painted straight over the
        * tissue in front of them.)
        *
-       * Evaluated when the cut is set up rather than continuously: a cut that
-       * flipped itself halfway through an orbit would be worse than one facing
-       * the wrong way, and `Reverse` is right there.
+       * Evaluated when the cut is set up and at saved-view transition endpoints,
+       * rather than continuously: a cut that flipped itself halfway through a
+       * manual orbit would be worse than one facing the wrong way, and `Reverse`
+       * is right there.
        */
       cutShouldFaceCamera: () => {
-        const toCamera = camera.position.clone().sub(pivot);
-        return cut.normal.dot(toCamera) < 0;
+        return cameraFacingFlip(cut, pivot, camera.position);
       },
       setFrame: (frame) => {
-        currentFrame = frame;
-        /*
-         * AUTHORING: on a pack with no `views[]` nothing has ever built the
-         * indicator, because the learner path only wants a probe where a view
-         * supplies the first frame. A placed pose IS that first frame.
-         */
-        if (AUTHORING_ENABLED) syncProbeObjects();
-        probe?.update(frame);
-        // One frame drives the probe geometry AND the highlight, for the same
-        // reason the wedge and the echo share it: they cannot be allowed to
-        // disagree about where the beam is.
-        for (const uniforms of dimUniforms) setBeamFrame(uniforms, frame);
-        // Echo-synced: the cutter FOLLOWS, so it moves with every frame rather
-        // than having been aligned once.
-        if (cutter === 'echo') applyCut();
-        schedule();
+        applyImagingFrame(frame, true);
       },
       setHidden: (next) => {
         let index = 0;
@@ -1563,6 +1946,7 @@ export default function PackViewer({
         applyReveal(null, null);
       },
       setMode: (next) => {
+        cancelGlide(true);
         const wasFramedFor = framedReach;
         viewerMode = next;
         measureFraming();
@@ -1572,11 +1956,11 @@ export default function PackViewer({
           radius = framingRadius();
           applyCamera();
         }
-        if (next === 'explore') cutter = 'free';
+        if (next === 'explore' || !imagingViewActive) cutter = 'free';
         // Explore has no beam, so nothing is marked as outside one — and the
         // learner's own choice is kept, not overwritten, so it returns with the
         // mode.
-        const strength = next === 'explore' ? 0 : beamStrength;
+        const strength = next === 'explore' || !imagingViewActive ? 0 : beamStrength;
         for (const uniforms of dimUniforms) uniforms.uBeamDim.value = strength;
         syncProbeObjects();
         applyCut();
@@ -1643,33 +2027,40 @@ export default function PackViewer({
         }
         : () => null,
       /*
-       * AUTHORING ONLY: level the axis the four-chamber measured, not the one
-       * the pack declares.
+       * BODY CONTEXT: the reference chest.
        *
-       * Null puts the pack's own declaration back. Folded to a no-op with the
-       * flag off, where there is no derived axis for it to be handed.
+       * Every one of these acts on scenery. None of them touches `bounds`,
+       * `reach`, `framedReach`, `pivot` or `surfacePoints` — the chest must not
+       * be able to move the camera's default framing or decide how close the
+       * probe may stand to tissue — except `fitChest`, which is an EXPLICIT
+       * action the learner asks for and which never becomes the default.
        */
-      setLevelAxis: AUTHORING_ENABLED
-        ? (axis) => {
-          if (axis === null) {
-            lockAxis.copy(packUp);
-          } else {
-            const next = new THREE.Vector3(...axis);
-            if (next.lengthSq() === 0) return;
-            lockAxis.copy(next.applyEuler(poseEuler).normalize());
-          }
-          if (horizonLocked) {
-            // Null at the poles, where the axis has no screen direction to
-            // level to. Leaving the camera alone is the honest answer there.
-            const level = levelled(orientation, lockAxis);
-            if (level) {
-              orientation = level;
-              applyCamera();
-            }
-            schedule();
-          }
-        }
-        : () => {},
+      setChestVisible: (on) => {
+        chestShown = on;
+        chest?.setVisible(on);
+        schedule();
+      },
+      setChestGroupVisible: (control, on) => {
+        chest?.setGroupVisible(control, on);
+        schedule();
+      },
+      setChestSkinOpacity: (opacity) => {
+        chest?.setSkinOpacity(opacity);
+        schedule();
+      },
+      fitChest: () => {
+        if (!chest || !chestShown) return;
+        // Frames the chest without touching `radius`'s own inputs, so `Reset`
+        // still returns to the heart's framing exactly.
+        const chestRadius = chest.radiusAbout(pivot);
+        if (chestRadius <= 0) return;
+        radius = chestRadius / Math.sin((camera.fov * Math.PI) / 360) * 0.85;
+        applyCamera();
+        schedule();
+      },
+      chestState: () => (chest === null
+        ? { loaded: false, problem: chestProblem }
+        : { loaded: true, problem: null }),
       setGhost: (on) => {
         ghostOn = on;
         ghosts.visible = cutActive && ghostOn;
@@ -1677,7 +2068,7 @@ export default function PackViewer({
       },
       setBeamDim: (strength) => {
         beamStrength = strength;
-        const value = viewerMode === 'explore' ? 0 : strength;
+        const value = viewerMode === 'explore' || !imagingViewActive ? 0 : strength;
         for (const uniforms of dimUniforms) uniforms.uBeamDim.value = value;
         schedule();
       },
@@ -1691,7 +2082,40 @@ export default function PackViewer({
        * view or the pack, and nothing here writes to any of them — the free
        * cutter's `{N, s}` and the saved `views[]` are both untouched.
        */
-      matchEchoOrientation: (frame) => glideTo(echoOrientation(frame)),
+      // Takes a MODEL-space frame, like every other pose-shaped input on this
+      // API, and converts before the camera reads it. The camera lives in body
+      // space; the caller holds the pose the echo panel is drawing.
+      matchEchoOrientation: (frame) => glideTo(
+        echoOrientation(frameToBody(modelToBody, frame)),
+      ),
+      setImagingActive: (next, moveCamera) => {
+        cancelGlide(false);
+        imagingViewActive = next;
+        host.dataset.imagingActive = String(next);
+
+        if (!next) {
+          cutter = 'free';
+          cutActive = false;
+          ghosts.visible = false;
+        }
+
+        measureFraming();
+        if (framed) {
+          radius = framingRadius();
+          applyCamera();
+          if (!next && moveCamera) glideTo(REST);
+        }
+
+        const strength = viewerMode === 'echo' && next ? beamStrength : 0;
+        for (const uniforms of dimUniforms) uniforms.uBeamDim.value = strength;
+        syncProbeObjects();
+        applyCut();
+        applyReveal(null, null);
+        schedule();
+      },
+      transitionAuthoringPose: AUTHORING_ENABLED && glideToAuthoringPose
+        ? (input) => glideToAuthoringPose(input)
+        : () => {},
       setCineFrame: (index) => {
         const geometry = cineGeometry[index];
         if (!geometry) return;
@@ -1708,8 +2132,15 @@ export default function PackViewer({
     onCutOffset = (value) => setCutOffset(value);
 
     return () => {
+      chest?.dispose();
+      chest = null;
+      delete host.dataset.chest;
       disposed = true;
       controller.abort();
+      if (AUTHORING_ENABLED && glide?.pose) {
+        poseTransitioningRef.current = false;
+        onViewTransitionRef.current?.({ active: false, echoOpacity: 1 });
+      }
       apiRef.current = null;
       if (frameHandle !== 0) cancelAnimationFrame(frameHandle);
       observer.disconnect();
@@ -1748,13 +2179,15 @@ export default function PackViewer({
       renderer.domElement.remove();
       delete host.dataset.viewerReady;
       delete host.dataset.cameraGlide;
+      if (AUTHORING_ENABLED) delete host.dataset.probeTransition;
+      if (AUTHORING_ENABLED) host.removeAttribute('data-authoring-camera-orientation');
       delete host.dataset.cutHandles;
     };
     // `mode` is read once here to seed the scene and is applied thereafter
     // through `setMode`; listing it would reload a five-megabyte glTF on a
     // mode switch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gltfUrl, pack, viewIndex]);
+  }, [gltfUrl, pack, viewIndex, modelToBody, chestGltfUrl]);
 
   /*
    * The cine axis.
@@ -1821,8 +2254,8 @@ export default function PackViewer({
   }, [scrub, pack, viewIndex, status, freePose]);
 
   useEffect(() => {
-    apiRef.current?.setHidden(hidden ?? new Set());
-  }, [hidden, status]);
+    apiRef.current?.setHidden(new Set(hiddenKey === '' ? [] : hiddenKey.split('\u0000')));
+  }, [hiddenKey, status]);
 
   useEffect(() => {
     apiRef.current?.setCut({ enabled: cutEnabled, offset: cutOffset, flipped: cutFlipped });
@@ -1845,6 +2278,44 @@ export default function PackViewer({
   useEffect(() => {
     apiRef.current?.setGhost(ghostCutaway);
   }, [ghostCutaway, status]);
+
+  /* --- body context: the reference chest -------------------------------- */
+
+  useEffect(() => {
+    apiRef.current?.setChestVisible(chestShown);
+  }, [chestShown, status]);
+
+  useEffect(() => {
+    for (const [control, on] of Object.entries(chestGroups)) {
+      apiRef.current?.setChestGroupVisible(control as ChestControl, on);
+    }
+  }, [chestGroups, status, chestShown]);
+
+  useEffect(() => {
+    apiRef.current?.setChestSkinOpacity(skinOpacity);
+  }, [skinOpacity, status, chestShown]);
+
+  /*
+   * Whether the context failed, polled once the chest has had a chance to load.
+   *
+   * Polled rather than pushed because the load is fire-and-forget inside the
+   * scene effect — deliberately, so that a failure cannot block the heart. The
+   * cost of that choice is that React has to ask; the benefit is that a context
+   * that never resolves cannot leave the viewer waiting.
+   */
+  useEffect(() => {
+    if (status !== 'ready' || !chestGltfUrl) return undefined;
+    const poll = window.setInterval(() => {
+      const state = apiRef.current?.chestState();
+      if (state?.problem) {
+        setChestFailed(true);
+        window.clearInterval(poll);
+      } else if (state?.loaded) {
+        window.clearInterval(poll);
+      }
+    }, 400);
+    return () => window.clearInterval(poll);
+  }, [status, chestGltfUrl]);
 
   /*
    * The lock is Echo's, so leaving Echo drops it rather than carrying a mode's
@@ -1870,6 +2341,7 @@ export default function PackViewer({
 
   const view = pack.views[viewIndex];
   const echoMode = mode === 'echo';
+  const imagingEchoMode = echoMode && imagingActive;
   /**
    * In Echo plane mode the cut IS the imaging plane, so there is no depth to
    * choose: the slider is disabled rather than removed, so the control the
@@ -1877,7 +2349,7 @@ export default function PackViewer({
    * nothing. The Cut checkbox stays live in both modes — turning the cut off to
    * see the whole heart WITH the echo fan on it is a thing worth doing.
    */
-  const depthLocked = echoMode && cutterMode === 'echo';
+  const depthLocked = imagingEchoMode && cutterMode === 'echo';
 
   /**
    * Unlock the probe from its view's sweep track, or lock it again.
@@ -1903,8 +2375,6 @@ export default function PackViewer({
    * compounds from the value the previous repeat produced rather than from a
    * stale prop.
    */
-  const holdRef = useRef<{ delay: number; repeat: number } | null>(null);
-
   /**
    * Whether the probe may still be pressed closer, or lifted further.
    *
@@ -1927,20 +2397,22 @@ export default function PackViewer({
    * constant.
    */
   const [slotPose, setSlotPose] = useState<ProbePose | null>(null);
-
-  /**
-   * The axis the horizon lock holds vertical, when authoring has measured one.
-   *
-   * A plain nullable triple held here rather than a call into the authoring
-   * modules, for the same reason `slotPose` is: the lock is learner UI and
-   * grows no dependency on a surface that does not exist in a learner build.
-   * With the flag off nothing ever writes it and the effect below is a no-op.
-   */
-  const [levelAxis, setLevelAxis] = useState<readonly [number, number, number] | null>(null);
-
-  useEffect(() => {
-    apiRef.current?.setLevelAxis(levelAxis);
-  }, [levelAxis, status]);
+  const [slotView, setSlotView] = useState<AuthoringViewIdentity | null>(null);
+  const setActiveAuthoringSlot = useCallback((
+    pose: ProbePose | null,
+    identity: AuthoringViewIdentity | null,
+  ) => {
+    setSlotPose(pose);
+    setSlotView((current) => (
+      current?.label === identity?.label && current?.source === identity?.source
+        ? current
+        : identity
+    ));
+  }, []);
+  const setPreventAuthoringAutoRotation = useCallback((prevent: boolean) => {
+    if (poseTransitioningRef.current) return;
+    preventAuthoringAutoRotationRef.current = prevent;
+  }, []);
 
   /*
    * AUTHORING: the pack's authored views, reduced to frozen slot seeds.
@@ -1960,6 +2432,90 @@ export default function PackViewer({
       : []),
     [pack],
   );
+
+  // A new model or same-id pack revision cannot inherit presentation state.
+  useEffect(() => {
+    poseTransitioningRef.current = false;
+    setPoseTransitioning(false);
+    if (AUTHORING_ENABLED) onViewTransitionRef.current?.({ active: false, echoOpacity: 1 });
+    if (AUTHORING_ENABLED) onAuthoringWorkingViewRef.current?.(null);
+  }, [gltfUrl, pack.meta.pack_version, viewIndex]);
+
+  /** Enter the authoring imaging presentation before publishing a probe pose. */
+  const beginAuthoringImaging = () => {
+    if (!AUTHORING_ENABLED) return true;
+    const wasActive = imagingActiveRef.current;
+    if (!wasActive) {
+      imagingActiveRef.current = true;
+      onImagingActiveRef.current?.(true);
+      apiRef.current?.setImagingActive(true, false);
+      if (mode === 'echo') {
+        const adopted = apiRef.current?.setCutterMode('echo');
+        setCutterModeState('echo');
+        if (adopted !== undefined) setCutOffset(adopted);
+        setCutEnabled(true);
+        apiRef.current?.setCut({
+          enabled: true,
+          offset: adopted ?? cutOffset,
+          flipped: cutFlipped,
+        });
+      }
+    }
+    return wasActive;
+  };
+
+  /** Authoring `None`: the loaded model remains, while every probe claim leaves. */
+  const showFullHeart = () => {
+    if (!AUTHORING_ENABLED) return;
+    imagingActiveRef.current = false;
+    onImagingActiveRef.current?.(false);
+    onAuthoringWorkingViewRef.current?.(null);
+    freePoseRef.current = null;
+    onFreePoseRef.current?.(null);
+    setCutEnabled(false);
+    setCutterModeState('free');
+    const adopted = apiRef.current?.setCutterMode('free');
+    if (adopted !== undefined) setCutOffset(adopted);
+    apiRef.current?.setImagingActive(
+      false,
+      !preventAuthoringAutoRotationRef.current,
+    );
+  };
+
+  /**
+   * AUTHORING: make a stored view the working pose and explain the change by
+   * turning the camera toward its imaging plane, unless automatic rotation is
+   * prevented. In that mode the same clock moves the probe and echo while the
+   * anatomy camera stays exactly where the author fixed it.
+   *
+   * When camera motion is enabled, it shares the pose's duration and easing.
+   * Preventing auto-rotation removes only that camera update; wedge, cutter,
+   * and echo still share the one pose clock. Intermediate probe poses exist
+   * only long enough to render the transition: nothing here stores, exports
+   * or names them as views. The final frame is an exact clone of the stored
+   * pose rather than an approximation accumulated over time.
+   */
+  const activateAuthoringPose = (pose: ProbePose, identity: AuthoringViewIdentity) => {
+    const target = structuredClone(pose) as ProbePose;
+    const api = apiRef.current;
+    const anchor = api?.viewAnchor();
+    if (!api || !anchor || status !== 'ready') return;
+    const wasActive = beginAuthoringImaging();
+    const source = wasActive
+      ? (freePoseRef.current
+        ?? (view
+          ? (view.sweep ? poseAt(view.probe, view.sweep, scrubRef.current) : view.probe)
+          : target))
+      : target;
+    onAuthoringWorkingViewRef.current?.(identity);
+    api.transitionAuthoringPose({
+      source,
+      target,
+      centre: anchor.centre,
+      targetFrame: withApexFlip(imagingFrame(target), apexFlipped),
+      moveCamera: !preventAuthoringAutoRotationRef.current,
+    });
+  };
 
   /**
    * Whether one press may move the probe from `from` to `to`.
@@ -2008,14 +2564,18 @@ export default function PackViewer({
   roomAroundRef.current = roomAround;
 
   useEffect(() => {
-    if (freePose === null) return;
+    // Transition frames are presentation-only and arrive every animation
+    // frame. Measuring two nearest-surface scans for each one would stall the
+    // shared camera/echo clock; the exact landing pose is measured below when
+    // the transition flag clears.
+    if (freePose === null || poseTransitioning) return;
     const next = roomAroundRef.current(freePose);
     // Same values, same object: a fresh object each time would re-render on
     // every step of a held button for no change.
     setStandOffRoom((current) => (
       current.closer === next.closer && current.further === next.further ? current : next
     ));
-  }, [freePose]);
+  }, [freePose, poseTransitioning]);
 
   /**
    * Hold the pointer for the duration of a press.
@@ -2060,11 +2620,13 @@ export default function PackViewer({
    * nothing.
    */
   const pressStandOff = (sign: -1 | 1) => {
+    if (poseTransitioningRef.current) return;
     const pose = freePoseRef.current;
     if (!pose || !view) return;
     const next = movedAlongBeam(pose, sign * STANDOFF_STEP_MM);
     if (!standOffAllowed(pose, next)) return;
     freePoseRef.current = next;
+    onAuthoringWorkingViewRef.current?.(null);
     onFreePoseChange?.(next);
     /*
      * Kept alongside the effect above rather than left to it. A held button
@@ -2075,8 +2637,21 @@ export default function PackViewer({
     setStandOffRoom(roomAround(next));
   };
 
+  /** One authoring-only depth step: resize the sector without moving it. */
+  const pressFanDepth = (sign: -1 | 1) => {
+    if (poseTransitioningRef.current || !AUTHORING_ENABLED) return;
+    const pose = freePoseRef.current;
+    if (!pose) return;
+    const next = steppedFanDepth(pose, sign);
+    if (!next) return;
+    freePoseRef.current = next;
+    onAuthoringWorkingViewRef.current?.(null);
+    onFreePoseChange?.(next);
+  };
+
   /** One press: step the sweep when the probe is locked, turn it when it is not. */
   const pressProbe = (axis: ProbeAxis, sign: -1 | 1) => {
+    if (poseTransitioningRef.current) return;
     const pose = freePoseRef.current;
     if (pose === null) {
       // LOCKED: the press writes `t` and nothing else, so the pose it produces
@@ -2086,10 +2661,12 @@ export default function PackViewer({
     }
     const next = nudgedPose(pose, axis, sign * NUDGE_DEG);
     freePoseRef.current = next;
+    onAuthoringWorkingViewRef.current?.(null);
     onFreePoseChange?.(next);
   };
 
   const beginHold = (step: () => void) => {
+    if (poseTransitioningRef.current) return;
     stopHold();
     step();
     const delay = window.setTimeout(() => {
@@ -2109,18 +2686,24 @@ export default function PackViewer({
    * replaced outright by a pose the pack authored.
    */
   const recentreProbe = () => {
+    if (poseTransitioningRef.current) return;
     if (!view) return;
     const onTrack = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
     freePoseRef.current = onTrack;
+    onAuthoringWorkingViewRef.current?.(null);
     onFreePoseChange?.(onTrack);
   };
 
   const setProbeFree = (free: boolean) => {
+    if (poseTransitioningRef.current) return;
+    onAuthoringWorkingViewRef.current?.(null);
     if (!free || !view) {
+      freePoseRef.current = null;
       onFreePoseChange?.(null);
       return;
     }
     const seeded = view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe;
+    freePoseRef.current = seeded;
     onFreePoseChange?.(seeded);
   };
 
@@ -2133,10 +2716,13 @@ export default function PackViewer({
    * free-probe only — there is no on-track meaning for aiming within the plane
    * or rolling the probe, so offering them locked would be offering a control
    * that cannot do anything.
-   */
+  */
   const probeFree = freePose !== null;
+  const canIncreaseFanDepth = freePose !== null && steppedFanDepth(freePose, 1) !== null;
+  const canDecreaseFanDepth = freePose !== null && steppedFanDepth(freePose, -1) !== null;
   const hasSweep = view?.sweep !== undefined;
-  const padPresent = echoMode && (probeFree || (hasSweep && onScrubChange !== undefined));
+  const padPresent = imagingEchoMode
+    && (probeFree || (hasSweep && onScrubChange !== undefined));
 
   const chooseCutterMode = (next: CutterMode) => {
     const adopted = apiRef.current?.setCutterMode(next);
@@ -2203,6 +2789,34 @@ export default function PackViewer({
           <div className="probe-pad" data-testid="probe-pad" data-probe-pad={probeFree ? 'free' : 'sweep'}>
             <p className="probe-pad__title">Probe control</p>
 
+            <div className="probe-pad__controls">
+              {AUTHORING_ENABLED && probeFree && (
+                <div className="probe-depth-rocker" role="group" aria-label="Fan depth">
+                  <button
+                    type="button"
+                    className="probe-depth-rocker__button"
+                    title={`Increase fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    aria-label={`Increase fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    data-testid="probe-depth-up"
+                    disabled={poseTransitioning || !canIncreaseFanDepth}
+                    onClick={() => pressFanDepth(1)}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    className="probe-depth-rocker__button"
+                    title={`Decrease fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    aria-label={`Decrease fan depth by ${FAN_DEPTH_STEP_CM} cm`}
+                    data-testid="probe-depth-down"
+                    disabled={poseTransitioning || !canDecreaseFanDepth}
+                    onClick={() => pressFanDepth(-1)}
+                  >
+                    ▼
+                  </button>
+                </div>
+              )}
+
             {/*
               * One 3x3 grid, laid out as a game controller's d-pad: a fat cross
               * of five filled cells, with the two roll buttons in the corners
@@ -2221,6 +2835,7 @@ export default function PackViewer({
                   title={hint}
                   aria-label={hint}
                   data-testid={`probe-roll-${sign > 0 ? 'cw' : 'ccw'}`}
+                  disabled={poseTransitioning}
                   onPointerDown={(event) => {
                     capturePress(event);
                     beginPress('rotate', sign);
@@ -2245,6 +2860,7 @@ export default function PackViewer({
                   : 'Step the sweep forward'}
                 aria-label={probeFree ? 'Fan the imaging plane one way' : 'Step the sweep forward'}
                 data-testid="probe-fan-up"
+                disabled={poseTransitioning}
                 onPointerDown={(event) => {
                   capturePress(event);
                   beginPress('fan', 1);
@@ -2262,6 +2878,7 @@ export default function PackViewer({
                   title="Aim the beam left within the same imaging plane"
                   aria-label="Aim the beam left within the same imaging plane"
                   data-testid="probe-aim-left"
+                  disabled={poseTransitioning}
                   onPointerDown={(event) => {
                     capturePress(event);
                     beginPress('aim', -1);
@@ -2331,16 +2948,16 @@ export default function PackViewer({
                 <button
                   type="button"
                   className="probe-pad__core probe-pad__core--reset"
-                  disabled={slotPose === null}
+                  disabled={status !== 'ready' || slotPose === null || slotView === null
+                    || poseTransitioning}
                   title={slotPose === null
                     ? 'Nothing is stored for the selected view yet. Place the probe and save it.'
                     : 'Recall: put the probe back exactly where the selected view has it'}
                   aria-label="Recall the probe to the selected view"
                   data-testid="probe-restore-slot"
                   onClick={() => {
-                    if (slotPose === null) return;
-                    freePoseRef.current = slotPose;
-                    onFreePoseChange?.(slotPose);
+                    if (slotPose === null || slotView === null) return;
+                    activateAuthoringPose(slotPose, slotView);
                   }}
                 >
                   <span className="probe-pad__dot" aria-hidden="true" />
@@ -2396,6 +3013,7 @@ export default function PackViewer({
                   title="Aim the beam right within the same imaging plane"
                   aria-label="Aim the beam right within the same imaging plane"
                   data-testid="probe-aim-right"
+                  disabled={poseTransitioning}
                   onPointerDown={(event) => {
                     capturePress(event);
                     beginPress('aim', 1);
@@ -2427,7 +3045,7 @@ export default function PackViewer({
                   key={key}
                   type="button"
                   className={`probe-pad__roll probe-pad__roll--${key}`}
-                  disabled={!standOffRoom[key]}
+                  disabled={poseTransitioning || !standOffRoom[key]}
                   title={`${hint}. The only translation offered — it changes the stand-off, not the window, and it stops before the probe reaches tissue.`}
                   aria-label={hint}
                   data-testid={`probe-${key}`}
@@ -2459,6 +3077,7 @@ export default function PackViewer({
                   : 'Step the sweep back'}
                 aria-label={probeFree ? 'Fan the imaging plane the other way' : 'Step the sweep back'}
                 data-testid="probe-fan-down"
+                disabled={poseTransitioning}
                 onPointerDown={(event) => {
                   capturePress(event);
                   beginPress('fan', -1);
@@ -2468,6 +3087,7 @@ export default function PackViewer({
               >
                 ▼
               </button>
+            </div>
             </div>
           </div>
         )}
@@ -2485,7 +3105,7 @@ export default function PackViewer({
           * silently decays the first time the plane is nudged.
           */}
         <div className="cutter-mode" data-testid="cutter-mode">
-          {echoMode ? (
+          {imagingEchoMode ? (
             <div role="radiogroup" aria-label="What the cut plane follows" className="cutter-mode__group">
               {([
                 ['echo', 'Echo plane', "Follows this view's imaging plane as the sweep scrubs"],
@@ -2520,12 +3140,13 @@ export default function PackViewer({
             * unvetted. Nothing here writes to `views[]` — the free pose is
             * runtime state and dies with the session.
             */}
-          {echoMode && onFreePoseChange && view?.sweep && (
+          {imagingEchoMode && onFreePoseChange && view?.sweep && (
             <label className="cutter__toggle" title="Turn the probe by hand with the control pad, off this view's saved sweep. The echo then stops claiming to be this view.">
               <input
                 type="checkbox"
                 checked={freePose !== null}
                 onChange={(event) => setProbeFree(event.target.checked)}
+                disabled={poseTransitioning}
                 data-testid="probe-free"
               />
               Free probe
@@ -2543,6 +3164,8 @@ export default function PackViewer({
               */}
             {!echoMode
               ? 'Explore — no probe, so the cut is free.'
+              : !imagingActive
+                ? 'Full heart — no probe view selected.'
               : freePose !== null
                 ? 'Probe unlocked — not a saved view once moved.'
                 : cutterMode === 'echo'
@@ -2600,7 +3223,7 @@ export default function PackViewer({
             Ghost
           </label>
 
-          {echoMode && (
+          {imagingEchoMode && (
             <label
               className="cutter__toggle"
               data-hint="Dim the tissue the beam does not reach."
@@ -2616,6 +3239,95 @@ export default function PackViewer({
           )}
 
           {/*
+            * BODY CONTEXT: the reference chest.
+            *
+            * PROVISIONAL, and reversible in one line each: a master toggle, one
+            * per display group, an opacity for the skin shell, and an EXPLICIT
+            * fit. The fit is a button rather than an automatic reframe because
+            * the heart is the subject — a chest that pulled the camera back on
+            * its own would decide, every time it loaded, that the scenery
+            * matters more than the anatomy.
+            *
+            * Absent entirely when no chest is bound, rather than shown disabled:
+            * a greyed-out control for a thing that does not exist for this pack
+            * is a puzzle, not an affordance.
+            */}
+          {chestGltfUrl && chestFailed && (
+            <p className="viewer__context-warning" data-testid="chest-failed">
+              The reference chest could not be loaded, so the heart is shown without it.
+              Everything else on this screen is unaffected.
+            </p>
+          )}
+
+          {chestGltfUrl && !chestFailed && (
+            <>
+              <label
+                className="cutter__toggle"
+                data-hint="Show the registered adult reference chest around the heart."
+              >
+                <input
+                  type="checkbox"
+                  checked={chestShown}
+                  onChange={(event) => setChestShown(event.target.checked)}
+                  data-testid="chest-show"
+                />
+                Chest
+              </label>
+
+              {chestShown && (
+                <>
+                  {(['skin', 'skeleton', 'lungs'] as ChestControl[]).map((control) => (
+                    <label
+                      key={control}
+                      className="cutter__toggle cutter__toggle--sub"
+                      data-hint={`Show the ${control} of the reference chest.`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={chestGroups[control]}
+                        onChange={(event) => setChestGroups((previous) => ({
+                          ...previous, [control]: event.target.checked,
+                        }))}
+                        data-testid={`chest-${control}`}
+                      />
+                      {control === 'skin' ? 'Skin'
+                        : control === 'skeleton' ? 'Skeleton' : 'Lungs'}
+                    </label>
+                  ))}
+
+                  <label
+                    className="cutter__toggle cutter__toggle--sub"
+                    data-hint="How solid the skin shell is drawn."
+                  >
+                    Skin opacity
+                    <input
+                      type="range"
+                      min={0}
+                      max={0.6}
+                      step={0.02}
+                      value={skinOpacity}
+                      onChange={(event) => setSkinOpacity(Number(event.target.value))}
+                      disabled={!chestGroups.skin}
+                      data-testid="chest-skin-opacity"
+                      className="cutter__slider cutter__slider--short"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    className="viewer__button"
+                    onClick={() => apiRef.current?.fitChest()}
+                    data-testid="chest-fit"
+                    title="Frame the whole chest. Reset returns to the heart."
+                  >
+                    Fit chest
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {/*
             * WHICH WAY IS UP. Echo only, off by default.
             *
             * Trackball orbit is the default everywhere and the only option in
@@ -2624,16 +3336,21 @@ export default function PackViewer({
             * up is diagnostic rather than cosmetic, so holding the heart's own
             * long axis vertical is offered — as an option, not as the
             * behaviour, because the reason the turntable went is still true.
+            *
+            * The axis is BODY +Z (superior) since 2026-08-21. It used to be the
+            * pack's declared up, repointable by saving an apical four-chamber;
+            * a view does not get to say which way a patient's head is.
             */}
           {echoMode && (
             <label
               className="cutter__toggle"
-              title="Hold the heart's long axis vertical while orbiting"
+              title="Hold body up (+Z, superior) vertical while orbiting"
             >
               <input
                 type="checkbox"
                 checked={horizonLock}
                 onChange={(event) => setHorizonLock(event.target.checked)}
+                disabled={poseTransitioning}
                 data-testid="horizon-lock"
               />
               Level
@@ -2657,7 +3374,7 @@ export default function PackViewer({
             * written to at all. `contracts/README.md`: the two objects may
             * coincide visually and never merge.
             */}
-          {echoMode && (view !== undefined || freePose !== null) && (
+          {imagingEchoMode && (view !== undefined || freePose !== null) && (
             <button
               type="button"
               onClick={() => {
@@ -2723,12 +3440,19 @@ export default function PackViewer({
             standoffOverrideMm={pack.interaction?.authoring_standoff_mm}
             readAnchor={() => apiRef.current?.viewAnchor() ?? null}
             currentPose={freePose}
+            transitioning={poseTransitioning}
+            ready={status === 'ready'}
+            onPreventAutoRotationChange={setPreventAuthoringAutoRotation}
+            onActivatePose={activateAuthoringPose}
+            onShowFullHeart={showFullHeart}
             onPose={(pose) => {
+              if (poseTransitioningRef.current) return;
+              beginAuthoringImaging();
               freePoseRef.current = pose;
+              onAuthoringWorkingViewRef.current?.(null);
               onFreePoseChange?.(pose);
             }}
-            onActiveSlotPose={setSlotPose}
-            onLevelAxis={setLevelAxis}
+            onActiveSlotPose={setActiveAuthoringSlot}
           />
         )}
 

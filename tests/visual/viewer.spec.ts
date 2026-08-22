@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { UNPUBLISHED_PACKS, cataloguedPacks } from '../../src/packs/published.ts';
 
 /**
@@ -19,6 +19,42 @@ test.beforeEach(async ({ page }) => {
     timeout: 30_000,
   });
 });
+
+/**
+ * The structure count, read only once it is actually a count.
+ *
+ * `Number(await getAttribute(...))` on an attribute that is not set yet returns
+ * `Number(null)` — which is `0`, not `NaN`. Every assertion built on it then
+ * waits for `data-drawn-structures` to become `"0"`, which it never does, and
+ * the test fails on a timeout that looks like a rendering bug and is really a
+ * read that happened one frame too early. `a drag orbits and does not isolate
+ * anything` failed exactly once this way under parallel workers and passed in
+ * isolation and on a clean re-run, so the mechanism was never captured; this
+ * removes the dependency rather than claiming the diagnosis.
+ *
+ * Waiting on the attribute matching a positive integer is what makes it safe:
+ * the wait cannot succeed on an unset attribute, so the value that comes back
+ * is always a real one.
+ */
+async function structureCount(page: Page): Promise<number> {
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-structure-count', /^[1-9][0-9]*$/);
+  return Number(await viewer.getAttribute('data-structure-count'));
+}
+
+/**
+ * Enter Explore and wait until the viewer says it is actually there.
+ *
+ * Clicking the control and waiting for the panel proves React re-rendered. It
+ * does not prove the SCENE has switched, and the tests below then drag on that
+ * scene and count what it drew.
+ */
+async function enterExplore(page: Page): Promise<void> {
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await expect(page.getByTestId('anatomy-viewer'))
+    .toHaveAttribute('data-viewer-mode', 'explore');
+}
 
 test('renders a non-blank WebGL canvas', async ({ page }) => {
   const canvas = page.locator('.anatomy canvas');
@@ -102,6 +138,87 @@ test('renders the simulated echo over the real labelled volume', async ({ page }
   // Blood and the region outside the sector are dark; tissue is mid-grey.
   expect(greys!.dark).toBeGreaterThan(greys!.total * 0.2);
   expect(greys!.mid).toBeGreaterThan(greys!.total * 0.05);
+});
+
+test('calibrates the echo with one-centimetre depth dots on the screen-right fan edge', async ({ page }) => {
+  await expect(page.getByTestId('echo-panel')).toHaveAttribute('data-status', 'ready', {
+    timeout: 30_000,
+  });
+
+  const scale = page.getByTestId('echo-depth-markers');
+  await expect(scale).toBeVisible();
+  await expect(scale).toHaveAttribute('data-interval-mm', '10');
+  await expect(page.getByTestId('echo-canvas')).toHaveAttribute(
+    'aria-label',
+    /Depth scale: one dot per centimetre; full depth [\d.]+ centimetres\./,
+  );
+
+  const result = await scale.evaluate((element) => {
+    const stage = element.parentElement?.getBoundingClientRect();
+    const depthMm = Number(element.getAttribute('data-depth-mm'));
+    const markers = [...element.querySelectorAll<HTMLElement>('.echo__depth-marker')].map(
+      (marker) => {
+        const rect = marker.getBoundingClientRect();
+        return {
+          depthMm: Number(marker.dataset.depthMm),
+          left: Number.parseFloat(marker.style.left),
+          top: Number.parseFloat(marker.style.top),
+          box: {
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: rect.height,
+          },
+          background: getComputedStyle(marker).backgroundColor,
+        };
+      },
+    );
+    return {
+      depthMm,
+      markerCount: Number(element.getAttribute('data-marker-count')),
+      stage: stage && {
+        left: stage.left,
+        right: stage.right,
+        top: stage.top,
+        bottom: stage.bottom,
+      },
+      markers,
+    };
+  });
+
+  // Integer centimetres strictly inside the live depth: never the vertex, and
+  // never a half-clipped dot on an exact distal boundary.
+  let expectedCount = 0;
+  for (let depthMm = 10; depthMm < result.depthMm - 1e-9; depthMm += 10) {
+    expectedCount += 1;
+  }
+  expect(result.markerCount).toBe(expectedCount);
+  expect(result.markers).toHaveLength(expectedCount);
+  expect(result.markers.map((marker) => marker.depthMm)).toEqual(
+    result.markers.map((_marker, index) => (index + 1) * 10),
+  );
+
+  // Assert rendered CSS geometry, not merely inline coordinates. Every dot is
+  // an actual visible 3 px square and its whole box stays inside the stage.
+  expect(result.stage).not.toBeNull();
+  for (const marker of result.markers) {
+    expect(marker.box.width).toBeCloseTo(3, 3);
+    expect(marker.box.height).toBeCloseTo(3, 3);
+    expect(marker.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(marker.box.left).toBeGreaterThanOrEqual(result.stage!.left - 0.01);
+    expect(marker.box.right).toBeLessThanOrEqual(result.stage!.right + 0.01);
+    expect(marker.box.top).toBeGreaterThanOrEqual(result.stage!.top - 0.01);
+    expect(marker.box.bottom).toBeLessThanOrEqual(result.stage!.bottom + 0.01);
+  }
+
+  // The default B1 presentation is vertex-down. A radial screen-right ruler
+  // therefore travels up and out along the fan edge as depth increases.
+  for (let index = 1; index < result.markers.length; index += 1) {
+    expect(result.markers[index].left).toBeGreaterThan(result.markers[index - 1].left);
+    expect(result.markers[index].top).toBeLessThan(result.markers[index - 1].top);
+  }
 });
 
 test('renders the sector vertex-down, the paediatric default for family B', async ({ page }) => {
@@ -700,8 +817,7 @@ test('Explore drops the probe entirely, and keeps the notice', async ({ page }) 
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   // Everything that belongs to the probe is absent, not merely hidden.
   await expect(page.getByTestId('echo-panel')).toHaveCount(0);
@@ -1027,11 +1143,10 @@ test('isolate shows one structure, and empty space brings the rest back', async 
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   expect(total).toBeGreaterThan(1);
   await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
 
@@ -1050,11 +1165,10 @@ test('a click on the model isolates, and a click on empty space shows all', asyn
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   const canvas = page.locator('.anatomy canvas');
   const box = (await canvas.boundingBox())!;
 
@@ -1088,11 +1202,10 @@ test('a drag orbits and does not isolate anything', async ({ page }) => {
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   const box = (await page.locator('.anatomy canvas').boundingBox())!;
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
@@ -1111,11 +1224,10 @@ test('hide takes one structure off, and show all is the escape', async ({ page }
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
 
   await page.getByTestId('structure-hide-lv-myocardium').click();
   await expect(viewer).toHaveAttribute('data-drawn-structures', String(total - 1));
@@ -1128,11 +1240,10 @@ test('the structure filter narrows the list without touching the model', async (
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
 
   await page.getByTestId('structure-filter').fill('mitral');
   await expect(page.getByTestId('structure-count')).toContainText(`of ${total}`);
@@ -1151,8 +1262,7 @@ test('the structure list is operable from the keyboard', async ({ page }) => {
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
   await page.getByTestId('structure-filter').focus();
@@ -1178,7 +1288,7 @@ test('Echo mode has no structure list and no click-to-isolate', async ({ page })
   await expect(viewer).toHaveAttribute('data-viewer-mode', 'echo');
   await expect(page.getByTestId('structure-panel')).toHaveCount(0);
 
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   const box = (await page.locator('.anatomy canvas').boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
@@ -1186,9 +1296,8 @@ test('Echo mode has no structure list and no click-to-isolate', async ({ page })
 
 test('an isolate made in Explore does not follow the learner into Echo', async ({ page }) => {
   const viewer = page.getByTestId('anatomy-viewer');
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  await enterExplore(page);
+  const total = await structureCount(page);
 
   await page.getByTestId('structure-isolate-lv-myocardium').click();
   await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
@@ -1574,9 +1683,11 @@ test('the learner build has no authoring surface, in either mode', async ({ page
     await expect(page.getByTestId('authoring-controls')).toHaveCount(0);
     await expect(page.getByTestId('authoring-anchor')).toHaveCount(0);
     await expect(page.getByTestId('authoring-save-centre')).toHaveCount(0);
+    await expect(page.getByTestId('authoring-prevent-auto-rotation')).toHaveCount(0);
+    expect(await page.getByTestId('anatomy-viewer')
+      .getAttribute('data-authoring-camera-orientation')).toBeNull();
     await expect(page.getByTestId('authoring-export')).toHaveCount(0);
     await expect(page.getByTestId('probe-restore-slot')).toHaveCount(0);
-    await expect(page.getByTestId('authoring-frame-hint')).toHaveCount(0);
     await expect(page.getByText('Place from camera')).toHaveCount(0);
   }
 });
@@ -1603,4 +1714,103 @@ test('the learner build opens no IndexedDB database at all', async ({ page }) =>
   if (databases === null) return;
   expect(databases).not.toContain('cardiology-authoring');
   expect(databases).toEqual([]);
+});
+
+/* -------------------------------------------------------------------------- */
+/* body context: the registered reference chest                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The chest is SCENERY, and these check the ways it must not become anatomy.
+ *
+ * The heart's framing, its structure list and its probe clearance are all
+ * measured from heart geometry. A rib cage that leaked into any of them would
+ * move the camera, put ribs in a cardiac structure list, or decide how close a
+ * transducer may stand to tissue — so each is asserted rather than assumed.
+ */
+test('the reference chest is scene context and never anatomy', async ({ page }) => {
+  await page.goto('?freeze=1');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await expect(viewer).toHaveAttribute('data-chest', 'loaded', { timeout: 30_000 });
+
+  const show = page.getByTestId('chest-show');
+  await expect(show).not.toBeChecked(); // off by default: the chest is opt-in
+
+  const before = {
+    structures: await viewer.getAttribute('data-structure-count'),
+    drawn: await viewer.getAttribute('data-drawn-structures'),
+  };
+
+  await show.check();
+  await expect(page.getByTestId('chest-skin')).toBeVisible();
+  await expect(page.getByTestId('chest-skeleton')).toBeVisible();
+  await expect(page.getByTestId('chest-lungs')).toBeVisible();
+  await expect(page.getByTestId('chest-fit')).toBeVisible();
+
+  // Showing a chest adds no structures: the list is the pack's, and the pack
+  // has no ribs in it.
+  await expect(viewer).toHaveAttribute('data-structure-count', before.structures ?? '');
+  await expect(viewer).toHaveAttribute('data-drawn-structures', before.drawn ?? '');
+
+  // Each group toggles without disturbing the heart.
+  for (const control of ['chest-skin', 'chest-skeleton', 'chest-lungs']) {
+    await page.getByTestId(control).uncheck();
+    await expect(viewer).toHaveAttribute('data-drawn-structures', before.drawn ?? '');
+    await page.getByTestId(control).check();
+  }
+
+  // Transparency is a live control, not a fixed style.
+  const opacity = page.getByTestId('chest-skin-opacity');
+  await opacity.fill('0.4');
+  await expect(opacity).toHaveValue('0.4');
+
+  // Hiding it again leaves no trace on the heart.
+  await show.uncheck();
+  await expect(page.getByTestId('chest-skin')).toHaveCount(0);
+  await expect(viewer).toHaveAttribute('data-drawn-structures', before.drawn ?? '');
+});
+
+test('an explicit Fit frames the chest, and Reset gives the heart back', async ({ page }) => {
+  await page.goto('?freeze=1');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await expect(viewer).toHaveAttribute('data-chest', 'loaded', { timeout: 30_000 });
+
+  // Showing the chest must NOT reframe on its own. That is the whole reason
+  // Fit is a button: the heart is the subject and stays framed as one.
+  const framedOnHeart = await viewer.screenshot();
+  await page.getByTestId('chest-show').check();
+  await page.getByTestId('chest-fit').click();
+  await page.waitForTimeout(1200);
+  const framedOnChest = await viewer.screenshot();
+  expect(Buffer.compare(framedOnHeart, framedOnChest)).not.toBe(0);
+
+  await page.getByTestId('cut-reset').click();
+  await page.waitForTimeout(1200);
+  const afterReset = await viewer.screenshot();
+  expect(Buffer.compare(afterReset, framedOnChest)).not.toBe(0);
+});
+
+test('a chest that fails to load leaves the heart and the echo working', async ({ page }) => {
+  // The context asset is the only thing that fails. Everything the learner came
+  // for has to survive it, and the app has to say so rather than silently
+  // showing a heart with no context and no explanation.
+  await page.route('**/body-context/**/chest.gltf', (route) => route.abort());
+
+  await page.goto('?freeze=1');
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  await expect(viewer).toHaveAttribute('data-chest', 'failed', { timeout: 30_000 });
+
+  // The honest warning, and no controls for a chest that is not there.
+  await expect(page.getByTestId('chest-failed')).toBeVisible();
+  await expect(page.getByTestId('chest-show')).toHaveCount(0);
+
+  // The heart is untouched.
+  await expect(viewer).toHaveAttribute('data-structure-count', '24');
+  await expect(viewer).toHaveAttribute('data-drawn-structures', '24');
+
+  // And the echo still renders.
+  await expect(page.getByTestId('echo-canvas')).toBeVisible();
 });

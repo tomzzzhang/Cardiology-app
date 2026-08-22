@@ -203,6 +203,23 @@ body {
   height: 100%;
 }
 
+/* Physical calibration, kept separate from the simulated tissue raster. */
+.echo__depth-markers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.echo__depth-marker {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(207 224 242 / 60%);
+  transform: translate(-50%, -50%);
+}
+
 .echo__message {
   position: absolute;
   inset: 0;
@@ -335,6 +352,35 @@ body {
   align-items: center;
   gap: 0.3rem;
   white-space: nowrap;
+}
+
+/*
+ * BODY CONTEXT sub-controls.
+ *
+ * Indented under the master Chest toggle and set slightly back, so the row
+ * reads as "the chest, and what it is made of" rather than as five more
+ * peers of Cut, Ghost, Beam and Level. The chest is scenery; its controls
+ * should not compete with the ones that read the heart.
+ */
+.cutter__toggle--sub {
+  margin-left: 0.15rem;
+  color: #9aa6b2;
+  font-size: 0.8rem;
+}
+
+.cutter__slider--short {
+  flex: 0 0 5rem;
+  min-width: 4rem;
+}
+
+/*
+ * The chest failed to load, and the app says so instead of quietly showing a
+ * heart with no context and no explanation.
+ */
+.viewer__context-warning {
+  margin: 0;
+  color: #d8b48a;
+  font-size: 0.78rem;
 }
 
 .cutter__slider {
@@ -508,6 +554,70 @@ body {
   text-transform: uppercase;
   white-space: nowrap;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+/* The authoring-only depth rocker sits beside, rather than inside, the probe
+   d-pad because it resizes the sector without turning or translating the
+   probe. Keeping it in its own two-button lane makes that separate meaning
+   visible and leaves the established anatomical-motion cross unchanged. */
+.probe-pad__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.probe-depth-rocker {
+  display: grid;
+  grid-template-rows: repeat(2, 1.5rem);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+}
+
+.probe-depth-rocker__button {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  padding: 0;
+  font: inherit;
+  font-size: 0.66rem;
+  line-height: 1;
+  color: #b9c9dc;
+  background: rgba(20, 28, 38, 0.9);
+  border: 1px solid #3a4a5c;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.probe-depth-rocker__button:first-child {
+  border-radius: 7px 7px 0 0;
+  border-bottom-width: 0;
+}
+
+.probe-depth-rocker__button:last-child {
+  border-radius: 0 0 7px 7px;
+}
+
+.probe-depth-rocker__button:hover {
+  background: rgba(58, 78, 100, 0.95);
+  color: #eaf2fb;
+}
+
+.probe-depth-rocker__button:active {
+  color: #0b0f14;
+  background: #cfe0f2;
+  border-color: #cfe0f2;
+}
+
+.probe-depth-rocker__button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.probe-depth-rocker__button:disabled:hover {
+  color: #b9c9dc;
+  background: rgba(20, 28, 38, 0.9);
 }
 
 /* A game controller's d-pad: a FAT CROSS of five filled cells on a 3x3 grid,
@@ -709,6 +819,14 @@ body {
 
   .probe-pad__grid--fan {
     grid-template-columns: 2rem;
+  }
+
+  .probe-depth-rocker {
+    grid-template-rows: repeat(2, 2rem);
+  }
+
+  .probe-depth-rocker__button {
+    width: 2rem;
   }
 
   .probe-pad__roll {
@@ -1245,6 +1363,20 @@ body {
   column-gap: 0.5rem;
 }
 
+.authoring__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--control-h);
+  color: #cfe0f2;
+  cursor: pointer;
+}
+
+.authoring__toggle:has(input:disabled) {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Same metrics as `.cutter button`, so the two rows read as one system rather
    than as a control panel with a bolt-on. */
 .authoring__button {
@@ -1322,26 +1454,6 @@ body {
   font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/*
- * "sets z axis", beside Save centre and nowhere else.
- *
- * The apical four-chamber is the one view whose pose is a statement about the
- * MODEL — the beam is the long axis — so saving it does something no other view
- * does. It is marked at the button that does it rather than explained in a
- * paragraph somewhere else.
- */
-.authoring__hint {
-  padding: 0.1rem 0.45rem;
-  border: 1px solid #6b5a44;
-  border-radius: 999px;
-  color: #cbb797;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-transform: uppercase;
 }
 
 /* Same height as the buttons beside them, so the row has one baseline rather

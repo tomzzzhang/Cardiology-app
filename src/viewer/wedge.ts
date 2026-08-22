@@ -22,30 +22,66 @@ import type { ImagingFrame } from '../echo/probeFrame.ts';
 /** Radial segments across the fan. Enough that the arc does not read as facets. */
 const ARC_SEGMENTS = 48;
 
-/* The transducer, in pack units (mm). A paediatric phased-array probe — small
- * enough not to swamp a neonatal heart, large enough to read as hardware rather
- * than as a stray marker.
+/* The transducer, in pack units (mm). Local +z runs BACK from the aperture
+ * along the beam, so every number below is a distance from the lens face.
  *
- * Built as the shape a probe actually is rather than as a box: a flat acoustic
- * lens at the aperture, a short taper, a barrel to hold, a domed end and a
- * cable stub. The silhouette is what tells a learner which end is imaging, and
- * a box has no ends. Local +z runs BACK from the aperture along the beam. */
-const LENS_WIDTH = 20;
-const LENS_THICKNESS = 7;
-const LENS_LENGTH = 4;
-const NECK_LENGTH = 7;
-const GRIP_RADIUS = 8;
-const GRIP_LENGTH = 14;
-const CABLE_RADIUS = 2.4;
-/** How far back the whole probe extends. The arrow is drawn clear of this. */
-export const PROBE_LENGTH = 33;
+ * The silhouette is what tells a learner which end is imaging, so the shape is
+ * built as a probe rather than as a box: a box has no ends.
+ *
+ * *(Supersedes "a paediatric phased-array probe, small enough not to swamp a
+ * neonatal heart", 2026-08-22.)* That sizing was chosen when the scene was a
+ * heart alone and the probe's only job was to not dominate it. The substrate is
+ * an ADULT population-average heart inside a registered adult chest, and the
+ * views are authored for adult transthoracic imaging, so the probe is now sized
+ * as one. It is comparable in length to the heart is wide, which is what those
+ * two objects actually are.
+ */
+/*
+ * Proportions taken from an adult phased-array transthoracic probe of the class
+ * these views are authored for — GE M5Sc / Philips S5-1 and their equivalents.
+ *
+ * The previous model was 33 mm end to end with a 16 mm barrel. That is not a
+ * probe, it is a thimble: roughly a third of the real length, and small enough
+ * that against a true chest it read as a marker sitting on the skin rather than
+ * as an instrument someone is holding. Now that there IS a true chest to hold
+ * it against, the size is checkable, so it is worth getting right.
+ *
+ * Measured reference, and what each number is:
+ *
+ * * **footprint** about 21 x 15 mm. A phased array images through a small
+ *   aperture so it can sit BETWEEN ribs — that is the whole point of the
+ *   format, and a footprint drawn too large would make the intercostal windows
+ *   these views depend on look impossible.
+ * * **handle** about 30 x 22 mm, slightly waisted where it is gripped.
+ * * **housing** about 108 mm from lens face to the cable gland, with a strain
+ *   relief and a cable stub beyond it.
+ *
+ * The cross-section is ELLIPTICAL, not round: a real probe is flattened in the
+ * elevation direction, and the wide axis is the array's long axis, which is the
+ * fan's lateral axis. That flattening is what lets the silhouette say which way
+ * the imaging plane lies without any marker on it.
+ */
+const LENS_HALF_WIDTH = 10.5;
+/** Elevation squash: cross-sections are this fraction as deep as they are wide. */
+const ELEVATION_RATIO = 0.70;
+/** How far back the housing runs, lens face to cable gland. */
+const HOUSING_LENGTH = 108;
+/** How far back the whole probe extends, cable stub included. */
+export const PROBE_LENGTH = 126;
 /** Line thickness for the sector outline, as a fraction of fan depth. */
 const OUTLINE_SCALE = 0.005;
 
 const SECTOR_COLOUR = 0x49b0ff;
 const OUTLINE_COLOUR = 0x8fd2ff;
-const BODY_COLOUR = 0x2b3440;
-const LENS_COLOUR = 0x4b5666;
+/*
+ * Off-white, like the hardware. Clinical probes are light grey to near-white —
+ * the housing is a pale moulded polymer and the lens is a slightly darker, more
+ * reflective rubber. The old dark slate read as a black wand and, against pale
+ * ribs and skin, as a hole in the scene.
+ */
+const BODY_COLOUR = 0xe9e7e2;
+const LENS_COLOUR = 0xbfb9b0;
+const STRAIN_RELIEF_COLOUR = 0x9aa0a6;
 
 function vectors(frame: ImagingFrame) {
   return {
@@ -181,50 +217,101 @@ function bodyMatrix(frame: ImagingFrame): THREE.Matrix4 {
  * left of the echo panel — and it is recorded in `docs/observations.md` rather
  * than passed off as a simplification.
  */
+/**
+ * The housing silhouette, as `(distance back from the lens face, half-width)`.
+ *
+ * A revolved profile rather than a stack of primitives. The old model was four
+ * cylinders and a sphere, and it read as four cylinders and a sphere: every
+ * join was a visible step, and a probe is a single moulded object. Revolving
+ * one curve gives continuous shoulders, which is most of what makes it look
+ * like hardware.
+ *
+ * Read down the column and it is the shape in words: a small flat aperture, a
+ * short nose that flares, a shoulder into the handle, the handle's slight
+ * waist where fingers go, then the taper to the cable gland.
+ */
+const PROBE_PROFILE: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [0, LENS_HALF_WIDTH - 1.0],
+  [1.4, LENS_HALF_WIDTH],
+  [3.0, LENS_HALF_WIDTH + 0.3],
+  // The SCAN HEAD holds its width for the first ~17 mm. A real one is a
+  // distinct block that sits in an intercostal space, not the start of a cone —
+  // the first pass flared straight from the lens into the handle and read as a
+  // stylus. The shoulder below is what makes it a scan head.
+  [10, 11.0],
+  [17, 11.2],
+  [21, 12.6],
+  [27, 14.2],
+  [34, 15.0],
+  [48, 15.2],
+  [62, 14.8],
+  [76, 14.0],
+  [88, 12.6],
+  [96, 10.2],
+  [HOUSING_LENGTH, 7.0],
+];
+
+/** Strain relief and cable, which continue where the housing stops. */
+const CABLE_PROFILE: readonly (readonly [number, number])[] = [
+  [HOUSING_LENGTH, 6.4],
+  [HOUSING_LENGTH + 6, 5.0],
+  [HOUSING_LENGTH + 12, 4.2],
+  [PROBE_LENGTH, 3.8],
+];
+
+/**
+ * Revolve a profile about the probe's long axis and flatten it into the
+ * elliptical cross-section a real probe has.
+ *
+ * `LatheGeometry` revolves about `+y`, so the result is rotated onto `+z` and
+ * squashed in elevation. Both are baked into the GEOMETRY rather than set on
+ * the mesh: a mesh scale would be composed as `T * R * S` and would therefore
+ * squash the probe's LENGTH, since the lathe's own axis is still `y` at the
+ * moment the scale applies.
+ */
+function revolved(profile: readonly (readonly [number, number])[]): THREE.BufferGeometry {
+  const geometry = new THREE.LatheGeometry(
+    profile.map(([z, radius]) => new THREE.Vector2(radius, z)),
+    36,
+  );
+  geometry.rotateX(Math.PI / 2);
+  geometry.scale(1, ELEVATION_RATIO, 1);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function buildProbeBody(): THREE.Group {
   const group = new THREE.Group();
   const shell = new THREE.MeshStandardMaterial({
-    color: BODY_COLOUR, roughness: 0.6, metalness: 0.1,
+    color: BODY_COLOUR, roughness: 0.45, metalness: 0.02,
   });
+  /*
+   * The lens is a touch darker and markedly glossier than the housing. That is
+   * how a real one reads: the housing is matte moulded polymer and the lens is
+   * a rubber acoustic window, usually wet with gel. The contrast is what makes
+   * the imaging face identifiable at a glance, which is the job the old
+   * flat-box lens was doing and the only reason it is still a separate part.
+   */
   const lensFace = new THREE.MeshStandardMaterial({
-    color: LENS_COLOUR, roughness: 0.35, metalness: 0.05,
+    color: LENS_COLOUR, roughness: 0.18, metalness: 0.04,
+  });
+  const strainRelief = new THREE.MeshStandardMaterial({
+    color: STRAIN_RELIEF_COLOUR, roughness: 0.7, metalness: 0.02,
   });
 
-  const add = (geometry: THREE.BufferGeometry, material: THREE.Material, z: number) => {
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.z = z;
-    group.add(mesh);
-    return mesh;
-  };
+  group.add(new THREE.Mesh(revolved(PROBE_PROFILE), shell));
+  group.add(new THREE.Mesh(revolved(CABLE_PROFILE), strainRelief));
 
-  add(new THREE.BoxGeometry(LENS_WIDTH, LENS_THICKNESS, LENS_LENGTH), lensFace, LENS_LENGTH / 2);
-
-  // Cylinders are built about +y, so every barrel is turned onto +z once here.
-  const upright = (mesh: THREE.Mesh) => {
-    mesh.rotation.x = Math.PI / 2;
-    return mesh;
-  };
-  upright(add(
-    new THREE.CylinderGeometry(GRIP_RADIUS, LENS_WIDTH / 2.4, NECK_LENGTH, 20),
-    shell,
-    LENS_LENGTH + NECK_LENGTH / 2,
-  ));
-  upright(add(
-    new THREE.CylinderGeometry(GRIP_RADIUS, GRIP_RADIUS, GRIP_LENGTH, 20),
-    shell,
-    LENS_LENGTH + NECK_LENGTH + GRIP_LENGTH / 2,
-  ));
-  const dome = add(
-    new THREE.SphereGeometry(GRIP_RADIUS, 20, 12),
-    shell,
-    LENS_LENGTH + NECK_LENGTH + GRIP_LENGTH,
-  );
-  dome.scale.z = 0.7;
-  upright(add(
-    new THREE.CylinderGeometry(CABLE_RADIUS, CABLE_RADIUS, 8, 12),
-    shell,
-    PROBE_LENGTH - 3,
-  ));
+  /*
+   * The acoustic window: a shallow dome across the aperture, not a flat disc.
+   * A phased-array lens is curved in elevation to focus the slice, and the
+   * curve is what catches the light and says "this face is the one imaging".
+   */
+  const lens = new THREE.SphereGeometry(LENS_HALF_WIDTH, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  lens.rotateX(Math.PI);
+  lens.scale(1, ELEVATION_RATIO, 0.22);
+  group.add(new THREE.Mesh(lens, lensFace));
 
   return group;
 }

@@ -30,7 +30,7 @@
       },
       {
         "path": "pipeline/view_candidates.py",
-        "sha256": "2ee30b5f54396a50ceb567f8b86f69c1805a364ccd0f228d4dc8cb408175fd9a"
+        "sha256": "bf426c40d759ed68243c7d5b870dc78f62153144122509291df3100a7de45d56"
       },
       {
         "path": "pipeline/views.py",
@@ -1261,7 +1261,7 @@
           "pipeline/anatomy.py": "a9ae36df5fb761b2759c91b75f2e28aa751ee22c1fbd38e10ffe26217ee4eaed",
           "pipeline/meshlib.py": "3b22d82af774dd3c86b5bc0810f7e569db561b21b0781f4249634efce4fc50c7",
           "pipeline/sources.py": "038397674244e63fe4d121c484816dad72430638406e682eaffe6d43533448c7",
-          "pipeline/view_candidates.py": "2ee30b5f54396a50ceb567f8b86f69c1805a364ccd0f228d4dc8cb408175fd9a",
+          "pipeline/view_candidates.py": "bf426c40d759ed68243c7d5b870dc78f62153144122509291df3100a7de45d56",
           "pipeline/views.py": "0532f21e93d6c389036be0aead1531b1c68bfee0e7401985d8d2b958ef10787a",
           "shared/imaging-constants.json": "897c50848227bf06bace73f724ceff614af99889ecc2f5b2a2267df852b396c2"
         }
@@ -1848,7 +1848,7 @@
   ],
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "555a249098a24f662073bb7b5dd82541f1651e8a55af7e295231d453fd3ac625",
+    "canonical_payload_sha256": "7627a6d00b86c19d7180abedc27c8cbc2f904170a7ec5585a9b9e2c1fa807564",
     "scope": "canonical-json-with-integrity.canonical_payload_sha256-null"
   },
   "limitations": [

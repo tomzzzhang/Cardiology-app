@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-20 20:36 EDT
+**Updated:** 2026-08-22 03:30 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -22,7 +22,8 @@ npm run ingest -- --budget-table               # volume size against resolution
 
 An authoring export takes a separate, Node-only route because it updates one existing draft view;
 it does not rebuild the anatomical substrate. The completed Rodero proof used the following command
-while the pack was v0.1.0; the checked-in v0.1.1 pack now correctly refuses a same-version replay:
+while the pack was v0.1.0; the checked-in pack is now v0.1.3 and correctly refuses a replay whose
+export names a different revision:
 
 ```bash
 npm run ingest:authoring -- \
@@ -62,16 +63,24 @@ and later clinical review, never a review promotion or a runtime input.
 ```bash
 conda run --no-capture-output -n cardiology-app python pipeline/view_candidates.py --check
 conda run --no-capture-output -n cardiology-app python pipeline/view_candidates.py --write
+conda run --no-capture-output -n cardiology-app python pipeline/view_candidates_v2.py --check
+conda run --no-capture-output -n cardiology-app python pipeline/view_candidates_v2.py --write
 npm run check:view-candidates
 ```
 
-`--write` atomically creates the pinned evidence JSON or no-ops when its bytes already match. It
-never calls pack-writing code, and it refuses to replace a tracked set with different bytes. After
-a candidate set is shared, revisions use a new immutable set number; review observations go in a
-separate assessment sidecar. The content gate checks the independent accepted-digest registry; the
-registry and every previously committed candidate blob are append-only against Git history. The
-Python `--check` command remains the required raw-source geometry replay before sharing a set. See
-`evidence/view-candidates/README.md`.
+`--write` atomically writes the generated evidence JSON and may intentionally replace its current
+tracked file; it no-ops when the bytes already match and never calls pack-writing code. Update the
+separate current-digest registry in the same checkpoint. The Node content gate verifies the
+current registered file bytes, canonical payload, source revision, pack/assets, derivation closure,
+and schema boundary. It does not use Git history as an append-only authority. The Python `--check`
+command remains the required raw-source geometry replay before current coordinates are shared.
+
+The current set 002 uses full fan-envelope correction for B1, B4, F1, and the seven unselected B2
+variants. C1 and C2 instead apply distance-only corrections while preserving their 70-degree probe
+heads; lateral FoV misses are measured and deferred to later probe-head work. A separately derived
+12-slot `authoring-slots/v1` carrier mounts the five single candidates plus seven B2 variants for a
+browser-local visual-review session. Its `--write` path safely replaces the named carrier after
+validating the input and output boundary. See `evidence/view-candidates/README.md`.
 
 ## Files
 
@@ -85,7 +94,8 @@ Python `--check` command remains the required raw-source geometry replay before 
 | `anatomy.py` | Valve identification by face adjacency, and the cardiac frame derived from it. |
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
-| `view_candidates.py` | Deterministic, revision-bound Rodero coordinate evidence; never pack content. |
+| `view_candidates.py` | Deterministic first-generation, revision-bound Rodero coordinate evidence; never pack content. |
+| `view_candidates_v2.py` | Current distance/envelope correction pass and source-replay checks for set 002. |
 
 ## Steps
 
@@ -238,3 +248,51 @@ Nothing this pipeline emits has been read by a clinician. Every pack it writes i
 `vetted.status: "draft"` with an empty vetters list, without exception, and its single view
 is an ingest reference pose that is named and flagged as not being a clinical view. Vetted
 probe poses are wave 1d's job, with a clinical vetter.
+
+## `body_context.py` — the patient/body frame and the reference chest
+
+Separate from the pack ingest, and deliberately so. It measures BodyParts3D's own axes rather than
+trusting a declaration, fits a rigid unit-scale `model_to_body` from documented landmarks between
+the Rodero heart and the BodyParts3D reference heart, and builds the thoracic context assets. It
+writes `public/body-context/<id>/` and `evidence/body-context/<id>/`; `--check` replays the whole
+derivation and fails if the committed files differ from a fresh one.
+
+It carries its OWN source registry and SHA-256 pins rather than using `sources.py`, because
+`sources.py` is byte-pinned inside the committed Rodero candidate evidence and changing it would
+break that binding. The upstream path is `LATEST/` and therefore mutable, so the pins are the only
+guard: a mismatch fails the run instead of being recorded as the new truth.
+
+Raw BodyParts3D archives are never committed; they live in the gitignored cache like every other
+source. The BodyParts3D subject is a LIVING adult male MRI reference, not a cadaver — older text in
+`sources.py` and in the committed `anatomy-bodyparts3d-heart` pack says otherwise and is recorded
+for a separate evidence-safe migration.
+
+## Adopting a whole corrected pose set, and what follows from it
+
+`scripts/ingest-authoring-batch.ts` applies several authoring poses in ONE revision and creates the
+views a pack does not have yet. The single-view tool refuses more than one pose per revision, which
+is right — an export must not cross a pack revision — so the batch pins `exportBaseVersion` to the
+revision the export names and chains through the same guarded path, keeping every refusal.
+
+Two steps follow a pose change, and both exist because moving a probe invalidates things measured
+against where it used to be:
+
+```bash
+# 1. put the apertures on the chest wall (needs a bound body context)
+conda run -n cardiology-app python pipeline/migrate_apertures.py \
+  --views b1-apical-four-chamber b4-apical-three-chamber c2-parasternal-short-axis \
+  --pack-version 0.1.3 --write
+
+# 2. remeasure the sweep orderings the move invalidated
+conda run -n cardiology-app python pipeline/remeasure_sweeps.py \
+  --views b1-apical-four-chamber c1-parasternal-long-axis c2-parasternal-short-axis --write
+```
+
+Both take their target views as EXPLICIT arguments rather than inferring them. Inference was tried
+and was wrong: `ingest-reference-pose` carries an ingest's cleared-ordering marker from its own
+history while being empty ON PURPOSE, so a rule that filled in every empty list would have
+manufactured a clinical claim out of a housekeeping pose. `migrate_apertures.py` additionally
+refuses a retreat over 40 mm, because a correction that large means the authored plane is wrong
+rather than merely offset.
+
+Re-run `pipeline/body_context.py` after any pose change: the descriptor pins the pack's bytes.

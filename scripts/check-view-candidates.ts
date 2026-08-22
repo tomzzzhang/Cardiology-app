@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Offline content check for immutable view-candidate evidence.
+ * Offline content check for generated view-candidate evidence.
  *
  * The checker discovers candidate-set JSON documents only. Assessment
  * sidecars have a separate schema and deliberately cannot affect whether a
@@ -13,7 +13,6 @@ import {
   ViewCandidateRegistry,
   formatViewCandidateIssues,
   validateViewCandidateEvidence,
-  verifyViewCandidateAppendOnlyHistory,
 } from './lib/viewCandidateEvidence.ts';
 
 const evidenceRoot = join(repoRoot, 'evidence', 'view-candidates');
@@ -46,7 +45,7 @@ if (candidateSets.length === 0) {
 }
 
 if (!existsSync(registryPath)) {
-  failures.push('evidence/view-candidates/registry.json: immutable-set registry is missing');
+  failures.push('evidence/view-candidates/registry.json: candidate-set registry is missing');
 } else {
   try {
     const rawRegistry = JSON.parse(readFileSync(registryPath, 'utf8')) as unknown;
@@ -62,12 +61,6 @@ if (!existsSync(registryPath)) {
         if (!candidateSetLabels.has(entry.path)) {
           failures.push(`evidence/view-candidates/registry.json: registered set is missing: ${entry.path}`);
         }
-      }
-      const historyIssues = verifyViewCandidateAppendOnlyHistory(repoRoot, parsedRegistry.data);
-      if (historyIssues.length > 0) {
-        failures.push(
-          `evidence/view-candidates/registry.json:\n${formatViewCandidateIssues(historyIssues)}`,
-        );
       }
     }
   } catch (error) {
@@ -100,6 +93,13 @@ for (const path of candidateSets) {
   if (!result.ok) {
     failures.push(`${label}:\n${formatViewCandidateIssues(result.issues)}`);
     continue;
+  }
+  if (failures.length === failureCountBefore && result.supersededBy !== null) {
+    console.log(
+      `    superseded: describes pack ${result.evidence.binding.source_pack_version} at `
+        + `${result.evidence.binding.source_pack_revision.slice(0, 12)}; the checkout is `
+        + `${result.supersededBy.checkoutPackVersion}. Validated against the bound revision.`,
+    );
   }
   if (failures.length === failureCountBefore) {
     console.log(

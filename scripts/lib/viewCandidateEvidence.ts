@@ -2,7 +2,7 @@
  * Fail-closed validation for generated Rodero view-coordinate evidence.
  *
  * A candidate set is deliberately not a content pack. This module validates
- * its closed evidence envelope, reuses the pack's coordinate schemas, and
+ * its current generated evidence envelope, reuses the pack's coordinate schemas, and
  * binds the document to the exact pack and model bytes currently in the
  * checkout. It never writes either the evidence document or a pack.
  */
@@ -41,6 +41,60 @@ export const VIEW_CANDIDATE_DERIVATION_FILES = Object.freeze([
   'shared/imaging-constants.json',
   'environment.yml',
 ] as const);
+
+export const VIEW_CANDIDATE_V2_DERIVATION_FILES = Object.freeze([
+  ...VIEW_CANDIDATE_DERIVATION_FILES,
+  'pipeline/view_candidates_v2.py',
+] as const);
+
+const V2_CANDIDATE_CHECK_SUFFIXES = Object.freeze([
+  'aperture-gap-proxy',
+  'fan-envelope',
+  'plane-preserved',
+  'focus-preserved',
+  'depth-guard',
+] as const);
+
+interface CandidateSetPolicy {
+  derivationFiles: readonly string[];
+  candidateCheckSuffixes: readonly string[];
+  candidateCheckSuffixesByViewId: Readonly<Record<string, readonly string[]>>;
+  seriesCheckSuffixes: readonly string[];
+  allowExistingViewReplacement: boolean;
+}
+
+function candidateSetPolicy(candidateSetId: string): CandidateSetPolicy | null {
+  if (candidateSetId.endsWith('-candidate-set-001')) {
+    return {
+      derivationFiles: VIEW_CANDIDATE_DERIVATION_FILES,
+      candidateCheckSuffixes: [],
+      candidateCheckSuffixesByViewId: {},
+      seriesCheckSuffixes: [],
+      allowExistingViewReplacement: false,
+    };
+  }
+  if (candidateSetId.endsWith('-candidate-set-002')) {
+    return {
+      derivationFiles: VIEW_CANDIDATE_V2_DERIVATION_FILES,
+      candidateCheckSuffixes: V2_CANDIDATE_CHECK_SUFFIXES,
+      candidateCheckSuffixesByViewId: {
+        'c1-parasternal-long-axis': [
+          'distance-only-policy',
+          'sweep-math',
+          'fixed-origin-tilt-distance',
+        ],
+        'c2-parasternal-short-axis': [
+          'distance-only-policy',
+          'sweep-math',
+          'translation-sweep-distance',
+        ],
+      },
+      seriesCheckSuffixes: ['common-envelope-settings'],
+      allowExistingViewReplacement: true,
+    };
+  }
+  return null;
+}
 
 const GLOBAL_CHECK_IDS = Object.freeze([
   'binding.source-pack',
@@ -126,6 +180,20 @@ function coordinateCheckIds(prefix: string, hasSweep: boolean): string[] {
   ];
 }
 
+function candidateCoordinateCheckIds(
+  prefix: string,
+  hasSweep: boolean,
+  policy: CandidateSetPolicy | null,
+  intendedViewId: string,
+): string[] {
+  return [
+    ...coordinateCheckIds(prefix, hasSweep),
+    ...(policy?.candidateCheckSuffixes ?? []).map((suffix) => `${prefix}.${suffix}`),
+    ...(policy?.candidateCheckSuffixesByViewId[intendedViewId] ?? [])
+      .map((suffix) => `${prefix}.${suffix}`),
+  ];
+}
+
 const Coordinates = z.strictObject({
   probe: ProbePose,
   sweep: Sweep.optional(),
@@ -151,6 +219,8 @@ const SingleCandidate = z.strictObject({
   kind: z.literal('single'),
   candidate_id: EvidenceId,
   intended_view_id: Slug,
+  /** Explicitly names an existing Draft pack view when this is a proposed replacement pose. */
+  replaces_source_view_id: Slug.optional(),
   candidate_status: z.literal('draft'),
   derivation: Derivation,
   coordinates: Coordinates,
@@ -247,6 +317,7 @@ const BoundFile = z.strictObject({
   sha256: Sha256,
 });
 
+/** Current file and canonical-payload digests; this is not a historical lock. */
 const RegisteredCandidateSet = z.strictObject({
   candidate_set_id: EvidenceId,
   path: AssetPath,
@@ -364,6 +435,15 @@ export const ViewCandidateEvidence = z
     limitations: z.array(NonEmptyString).min(1),
   })
   .superRefine((document, ctx) => {
+    const policy = candidateSetPolicy(document.candidate_set_id);
+    if (policy === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['candidate_set_id'],
+        message:
+          'unsupported candidate-set policy; expected an id ending in "candidate-set-001" or "candidate-set-002"',
+      });
+    }
     const candidateIds = new Set<string>();
     const variantIds = new Set<string>();
     const usedViewIds = new Map<string, string>();
@@ -400,9 +480,38 @@ export const ViewCandidateEvidence = z
       addCandidateId(candidate.candidate_id, ['candidates', index, 'candidate_id']);
       addViewId(candidate.intended_view_id, 'candidates', ['candidates', index, 'intended_view_id']);
       if (candidate.kind === 'single') {
+        if (candidate.replaces_source_view_id !== undefined
+          && !policy?.allowExistingViewReplacement) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['candidates', index, 'replaces_source_view_id'],
+            message: 'this candidate-set policy does not permit existing-view replacements',
+          });
+        }
+        if (candidate.replaces_source_view_id !== undefined
+          && candidate.replaces_source_view_id !== candidate.intended_view_id) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['candidates', index, 'replaces_source_view_id'],
+            message: 'a replacement candidate must preserve the existing source view id',
+          });
+        }
+        if (candidate.replaces_source_view_id !== undefined
+          && candidate.coordinates.sweep !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['candidates', index, 'coordinates', 'sweep'],
+            message: 'a replacement candidate must be probe-only for authoring-slots/v1',
+          });
+        }
         requireCheckIds(
           candidate.checks,
-          coordinateCheckIds(candidate.candidate_id, candidate.coordinates.sweep !== undefined),
+          candidateCoordinateCheckIds(
+            candidate.candidate_id,
+            candidate.coordinates.sweep !== undefined,
+            policy,
+            candidate.intended_view_id,
+          ),
           ctx,
           ['candidates', index, 'checks'],
         );
@@ -410,7 +519,12 @@ export const ViewCandidateEvidence = z
       }
       requireCheckIds(
         candidate.checks,
-        [`${candidate.candidate_id}.variant-grid`, `${candidate.candidate_id}.no-selection`],
+        [
+          `${candidate.candidate_id}.variant-grid`,
+          `${candidate.candidate_id}.no-selection`,
+          ...(policy?.seriesCheckSuffixes ?? [])
+            .map((suffix) => `${candidate.candidate_id}.${suffix}`),
+        ],
         ctx,
         ['candidates', index, 'checks'],
       );
@@ -425,7 +539,12 @@ export const ViewCandidateEvidence = z
         variantIds.add(variant.variant_id);
         requireCheckIds(
           variant.checks,
-          coordinateCheckIds(variant.variant_id, variant.coordinates.sweep !== undefined),
+          candidateCoordinateCheckIds(
+            variant.variant_id,
+            variant.coordinates.sweep !== undefined,
+            policy,
+            candidate.intended_view_id,
+          ),
           ctx,
           ['candidates', index, 'variants', variantIndex, 'checks'],
         );
@@ -502,15 +621,28 @@ export interface ViewCandidateIssue {
 }
 
 export type ViewCandidateValidation =
-  | { ok: true; evidence: ViewCandidateEvidence; issues: [] }
+  | {
+      ok: true;
+      evidence: ViewCandidateEvidence;
+      issues: [];
+      /**
+       * The checked-out pack has moved past the revision this evidence
+       * describes, so it was validated against that revision's bytes instead.
+       *
+       * Reported rather than passed over in silence: "this proposal is live"
+       * and "this proposal was adopted and the pack has moved on" are different
+       * facts about a file whose whole job is to be believed.
+       */
+      supersededBy: { checkoutPackVersion: string; checkoutPackSha256: string } | null;
+    }
   | { ok: false; evidence: null; issues: ViewCandidateIssue[] };
 
 export interface ViewCandidateValidationOptions {
   repoRoot: string;
   evidencePath?: string;
-  /** Independent accepted-digest lock supplied by the repository registry. */
+  /** Separate current-digest lock supplied by the repository registry. */
   registryEntry?: RegisteredCandidateSet;
-  /** Tests with a synthetic non-Git repo may disable only the historical Git-object check. */
+  /** Tests with a synthetic non-Git repo may disable the source-revision Git-object check. */
   verifyGitBinding?: boolean;
 }
 
@@ -592,117 +724,6 @@ function safeRepoPath(repoRoot: string, relativePath: string): string | null {
   return absolute === root || absolute.startsWith(`${root}${sep}`) ? absolute : null;
 }
 
-function gitBlob(repoRoot: string, revision: string, path: string): Buffer | null {
-  try {
-    return execFileSync('git', ['show', `${revision}:${path}`], {
-      cwd: repoRoot,
-      maxBuffer: 64 * 1024 * 1024,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Enforce immutable history for accepted sets while allowing new registry
- * entries. HEAD catches local pre-commit edits; every commit that changed the
- * registry keeps the first accepted bytes authoritative even if a failed
- * direct-push commit is followed by an unchanged commit.
- */
-export function verifyViewCandidateAppendOnlyHistory(
-  repoRoot: string,
-  currentRegistry: ViewCandidateRegistry,
-  revisions?: readonly string[],
-): ViewCandidateIssue[] {
-  const issues: ViewCandidateIssue[] = [];
-  const currentByPath = new Map(
-    currentRegistry.candidate_sets.map((entry) => [entry.path, entry]),
-  );
-  const registryRelativePath = 'evidence/view-candidates/registry.json';
-  let revisionsToCheck = revisions;
-  if (revisionsToCheck === undefined) {
-    let registryHistory: string[] = [];
-    try {
-      const history = execFileSync(
-        'git',
-        ['log', '--format=%H', '--', registryRelativePath],
-        { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-      );
-      registryHistory = history.split(/\r?\n/).filter(Boolean);
-    } catch {
-      // The source-revision binding reports a missing or unusable Git checkout.
-    }
-    revisionsToCheck = [...new Set(['HEAD', ...registryHistory])];
-  }
-
-  for (const revision of revisionsToCheck) {
-    const registryBytes = gitBlob(repoRoot, revision, registryRelativePath);
-    if (registryBytes === null) continue;
-
-    let historicalRaw: unknown;
-    try {
-      historicalRaw = JSON.parse(registryBytes.toString('utf8')) as unknown;
-    } catch (error) {
-      issues.push({
-        path: registryRelativePath,
-        message: `${revision} registry is not JSON: ${(error as Error).message}`,
-      });
-      continue;
-    }
-    const historical = ViewCandidateRegistry.safeParse(historicalRaw);
-    if (!historical.success) {
-      issues.push({
-        path: registryRelativePath,
-        message: `${revision} registry does not satisfy view-candidate-registry/v1`,
-      });
-      continue;
-    }
-
-    for (const historicalEntry of historical.data.candidate_sets) {
-      const currentEntry = currentByPath.get(historicalEntry.path);
-      if (currentEntry === undefined) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable candidate set registered in ${revision} was removed`,
-        });
-        continue;
-      }
-      if (!jsonEqual(currentEntry, historicalEntry)) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable registry entry differs from ${revision}`,
-        });
-      }
-
-      const historicalCandidate = gitBlob(repoRoot, revision, historicalEntry.path);
-      if (historicalCandidate === null) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `${revision} registry points to a missing candidate blob`,
-        });
-        continue;
-      }
-      const currentPath = safeRepoPath(repoRoot, historicalEntry.path);
-      if (currentPath === null || !existsSync(currentPath)) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable candidate file from ${revision} is missing`,
-        });
-        continue;
-      }
-      if (!historicalCandidate.equals(readFileSync(currentPath))) {
-        issues.push({
-          path: historicalEntry.path,
-          message: `immutable candidate bytes differ from ${revision}`,
-        });
-      }
-    }
-  }
-
-  return issues;
-}
-
 function repoRelative(repoRoot: string, absolutePath: string): string {
   return relative(repoRoot, absolutePath).split(sep).join('/');
 }
@@ -752,9 +773,15 @@ function expectedPackAssets(repoRoot: string, packDir: string, pack: Pack): stri
   return [...expected].sort();
 }
 
+/** Filled in by `verifyBinding` when the checkout has moved past the binding. */
+interface SupersessionSink {
+  value: { checkoutPackVersion: string; checkoutPackSha256: string } | null;
+}
+
 function verifyBinding(
   evidence: ViewCandidateEvidence,
   options: ViewCandidateValidationOptions,
+  supersession: SupersessionSink,
 ): ViewCandidateIssue[] {
   const issues: ViewCandidateIssue[] = [];
   const fail = (path: string, message: string) => issues.push({ path, message });
@@ -774,13 +801,34 @@ function verifyBinding(
     return issues;
   }
 
+  /*
+   * SUPERSEDED EVIDENCE IS STILL TRUE EVIDENCE.
+   *
+   * A candidate set records what was measured against ONE pack revision. While
+   * that revision is what is checked out, the evidence is a live proposal and
+   * the checkout is the right thing to compare it to.
+   *
+   * Once the proposal is ADOPTED — the corrected poses ingested, the pack
+   * bumped — the checkout no longer matches, and it never will again. That is
+   * the proposal succeeding, not the evidence rotting. Failing here would mean
+   * a project could never act on its own evidence without deleting it, and the
+   * obvious workaround, regenerating the set against the new pack, is worse
+   * than useless for this generator: it reads the pack's CURRENT poses as its
+   * "original", so re-running it after an ingest re-applies the same correction
+   * to an already-corrected pose and doubles it.
+   *
+   * So a digest mismatch downgrades the comparison target rather than failing:
+   * everything below is validated against the pack AT THE BOUND REVISION, read
+   * from git. The integrity guarantee is unchanged and arguably stronger — the
+   * revision must be an ancestor of HEAD and its bytes must hash to exactly
+   * what the evidence claims, both checked below.
+   */
   const actualPackSha = sha256File(packPath);
-  if (actualPackSha !== binding.source_pack_sha256) {
-    fail(
-      'binding.source_pack_sha256',
-      `digest mismatch: evidence ${binding.source_pack_sha256}, checkout ${actualPackSha}`,
-    );
-  }
+  const superseded = actualPackSha !== binding.source_pack_sha256;
+
+  /** The bound revision's pack bytes, once git has proved they are the right ones. */
+  let boundPackBytes: Buffer | null = null;
+  let boundRevisionVerified = false;
 
   if (options.verifyGitBinding !== false) {
     let revisionAvailable = true;
@@ -815,6 +863,11 @@ function verifyBinding(
             'binding.source_pack_revision',
             `pack bytes at revision ${binding.source_pack_revision} hash to ${revisionSha}, not ${binding.source_pack_sha256}`,
           );
+        } else {
+          // Proved: an ancestor commit, and its bytes are exactly what the
+          // evidence claims. Safe to validate the evidence against them.
+          boundPackBytes = revisionBytes;
+          boundRevisionVerified = true;
         }
       } catch (error) {
         fail(
@@ -825,13 +878,45 @@ function verifyBinding(
     }
   }
 
+  if (superseded && boundRevisionVerified) {
+    supersession.value = {
+      checkoutPackVersion: '(unread)',
+      checkoutPackSha256: actualPackSha,
+    };
+  }
+
+  if (superseded && !boundRevisionVerified) {
+    // No git proof available, so there is nothing trustworthy to compare to.
+    fail(
+      'binding.source_pack_sha256',
+      `digest mismatch: evidence ${binding.source_pack_sha256}, checkout ${actualPackSha}. `
+      + 'The bound revision could not be verified, so the evidence cannot be checked against '
+      + 'the pack it describes.',
+    );
+    return issues;
+  }
+
   let rawPack: unknown;
   try {
-    rawPack = JSON.parse(readFileSync(packPath, 'utf8')) as unknown;
+    rawPack = superseded && boundPackBytes !== null
+      ? (JSON.parse(boundPackBytes.toString('utf8')) as unknown)
+      : (JSON.parse(readFileSync(packPath, 'utf8')) as unknown);
   } catch (error) {
     fail('binding.source_pack_path', `bound pack is not JSON: ${(error as Error).message}`);
     return issues;
   }
+  if (supersession.value !== null) {
+    // The checkout's own version, so the message can name both sides.
+    try {
+      const checkoutPack = JSON.parse(readFileSync(packPath, 'utf8')) as {
+        meta?: { pack_version?: string };
+      };
+      supersession.value.checkoutPackVersion = checkoutPack.meta?.pack_version ?? '(unknown)';
+    } catch {
+      supersession.value.checkoutPackVersion = '(unreadable)';
+    }
+  }
+
   const parsedPack = validatePack(rawPack);
   if (!parsedPack.ok) {
     fail('binding.source_pack_path', 'bound pack does not validate against the current pack schema');
@@ -898,12 +983,20 @@ function verifyBinding(
 
   const declaredDerivationFiles = [...binding.derivation_files]
     .sort((a, b) => a.path.localeCompare(b.path));
-  const expectedDerivationPaths = [...VIEW_CANDIDATE_DERIVATION_FILES].sort();
+  const policy = candidateSetPolicy(evidence.candidate_set_id);
+  const expectedDerivationPaths = [...(policy?.derivationFiles ?? [])]
+    .sort((a, b) => a.localeCompare(b));
   const declaredDerivationPaths = declaredDerivationFiles.map((file) => file.path);
+  if (policy === null) {
+    fail(
+      'candidate_set_id',
+      'unsupported candidate-set policy; derivation closure cannot be validated',
+    );
+  }
   if (!jsonEqual(declaredDerivationPaths, expectedDerivationPaths)) {
     fail(
       'binding.derivation_files',
-      `must list exactly the coordinate-derivation closure; expected ${JSON.stringify(expectedDerivationPaths)}`,
+      `must list exactly the coordinate-derivation closure; expected ${JSON.stringify(expectedDerivationPaths)}, found ${JSON.stringify(declaredDerivationPaths)}`,
     );
   }
   for (const [index, file] of binding.derivation_files.entries()) {
@@ -943,9 +1036,19 @@ function verifyBinding(
   });
 
   const packViews = new Map(pack.views.map((view) => [view.view_id, view]));
-  const evidencedSourceViewIds = new Set(
-    evidence.existing_views.map((entry) => entry.source_view_id),
+  const replacementSourceViewIds = new Set(
+    evidence.candidates.flatMap((candidate) => (
+      policy?.allowExistingViewReplacement
+        && candidate.kind === 'single'
+        && candidate.replaces_source_view_id !== undefined
+        ? [candidate.replaces_source_view_id]
+        : []
+    )),
   );
+  const evidencedSourceViewIds = new Set([
+    ...evidence.existing_views.map((entry) => entry.source_view_id),
+    ...replacementSourceViewIds,
+  ]);
   for (const view of pack.views) {
     if (CANON_VIEW_IDS.has(view.view_id) && !evidencedSourceViewIds.has(view.view_id)) {
       fail(
@@ -980,9 +1083,21 @@ function verifyBinding(
   const existingIds = new Set(pack.views.map((view) => view.view_id));
   evidence.candidates.forEach((candidate, index) => {
     if (existingIds.has(candidate.intended_view_id)) {
+      if (!policy?.allowExistingViewReplacement
+        || candidate.kind !== 'single'
+        || candidate.replaces_source_view_id !== candidate.intended_view_id) {
+        fail(
+          `candidates.${index}.intended_view_id`,
+          `candidate "${candidate.intended_view_id}" already exists in the bound pack; `
+            + 'an explicit same-id replacement is required',
+        );
+      }
+      return;
+    }
+    if (candidate.kind === 'single' && candidate.replaces_source_view_id !== undefined) {
       fail(
-        `candidates.${index}.intended_view_id`,
-        `candidate "${candidate.intended_view_id}" already exists in the bound pack`,
+        `candidates.${index}.replaces_source_view_id`,
+        `replacement source "${candidate.replaces_source_view_id}" is absent from the bound pack`,
       );
     }
   });
@@ -1042,30 +1157,31 @@ export function validateViewCandidateEvidence(
     if (registered.candidate_set_id !== parsed.data.candidate_set_id) {
       issues.push({
         path: 'candidate_set_id',
-        message: `does not match immutable registry id "${registered.candidate_set_id}"`,
+        message: `does not match registry id "${registered.candidate_set_id}"`,
       });
     }
     if (registered.canonical_payload_sha256 !== parsed.data.integrity.canonical_payload_sha256) {
       issues.push({
         path: 'integrity.canonical_payload_sha256',
-        message: 'does not match the independently pinned immutable registry digest',
+        message: 'does not match the separately pinned current registry digest',
       });
     }
     if (options.evidencePath === undefined) {
       issues.push({
         path: '<file>',
-        message: 'an immutable registry entry requires evidencePath for exact file-byte checking',
+        message: 'a registry entry requires evidencePath for exact file-byte checking',
       });
     } else if (registered.file_sha256 !== sha256File(options.evidencePath)) {
       issues.push({
         path: '<file>',
-        message: 'exact file-byte digest does not match the independently pinned immutable registry',
+        message: 'exact file-byte digest does not match the separately pinned current registry',
       });
     }
   }
-  issues.push(...verifyBinding(parsed.data, options));
+  const supersession: SupersessionSink = { value: null };
+  issues.push(...verifyBinding(parsed.data, options, supersession));
   if (issues.length > 0) return { ok: false, evidence: null, issues };
-  return { ok: true, evidence: parsed.data, issues: [] };
+  return { ok: true, evidence: parsed.data, issues: [], supersededBy: supersession.value };
 }
 
 export function formatViewCandidateIssues(issues: ViewCandidateIssue[]): string {

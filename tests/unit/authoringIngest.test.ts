@@ -74,13 +74,25 @@ function authoringExport(probe = pose()) {
     pose: structuredClone(probe),
     savedAt: SAVED_AT,
   };
-  return buildExport({
-    packId: 'stub',
-    packVersion: '0.1.0',
-    packSchemaVersion: '0.1',
-    slots: [slot],
-    exportedAt: EXPORTED_AT,
-    cardiacFrame: {
+  /*
+   * A LEGACY document: the shape exports had before 2026-08-21, when saving an
+   * apical four-chamber also wrote the axes its beam implied.
+   *
+   * `buildExport` no longer emits `cardiac_frame` and has no parameter for it,
+   * so it is attached here by hand. That is the point of the fixture: files in
+   * this shape exist on disks, the ingest still has to read their poses, and it
+   * still has to throw the axis claim away. Building it through the current
+   * exporter would test nothing, because the current exporter cannot produce it.
+   */
+  return {
+    ...buildExport({
+      packId: 'stub',
+      packVersion: '0.1.0',
+      packSchemaVersion: '0.1',
+      slots: [slot],
+      exportedAt: EXPORTED_AT,
+    }),
+    cardiac_frame: {
       derived_from_slot: SLOT_ID,
       method: 'test-only derived frame that ingestion must ignore',
       patient_left: [1, 0, 0],
@@ -88,7 +100,7 @@ function authoringExport(probe = pose()) {
       anterior: [0, 0, 1],
       flipped_for_display: false,
     },
-  });
+  };
 }
 
 function prepare(pack = stubPack(), document: unknown = authoringExport()) {
@@ -140,7 +152,7 @@ describe('one explicit slot into one explicit existing view', () => {
     expect(newRest).toEqual(oldRest);
   });
 
-  it('does not create or alter meshes.anatomical_frame from exported cardiac_frame', () => {
+  it('reads a legacy cardiac_frame without letting it touch meshes.anatomical_frame', () => {
     const original = stubPack();
     const result = prepare(original, authoringExport());
     expect(result.candidate.meshes.anatomical_frame).toEqual(original.meshes.anatomical_frame);
@@ -365,7 +377,19 @@ describe('the real Rodero browser export', () => {
       (view) => view.view_id === 'ingest-reference-pose',
     )!;
 
-    expect(packResult.pack.meta.pack_version).toBe('0.1.1');
+    /*
+     * The pack has moved past the revision this record describes, and that is
+     * the record doing its job rather than going stale.
+     *
+     * This replays a historical 0.1.0 -> 0.1.1 ingest of the reference pose and
+     * asserts the result still stands in the shipped pack. It used to pin the
+     * checkout at "0.1.1", which was true while 0.1.1 was current and became a
+     * hardcoded fact about the checkout the moment the corrected poses landed in
+     * 0.1.2. What matters is that the pack advanced past the revision the export
+     * was authored against, and that the reference pose still carries exactly
+     * what that ingest produced — both asserted below.
+     */
+    expect(packResult.pack.meta.pack_version).not.toBe(before.pack_version);
     expect(document.pack_version).toBe(before.pack_version);
     expect(target.probe).toEqual(slot.probe);
     expect(target.sweep!.axis.direction).toEqual(slot.probe.lateral_axis);
@@ -397,7 +421,10 @@ describe('the real Rodero browser export', () => {
       authoringExport: exportValue,
       slotId: 'view-ingest-reference-pose',
       viewId: 'ingest-reference-pose',
-      nextPackVersion: '0.1.1',
+      // The version the shipped pack actually carries, so the reconstruction
+      // round-trips to exactly it. Hardcoding "0.1.1" here asserted a fact about
+      // the checkout rather than about the ingest, and the checkout has moved.
+      nextPackVersion: packResult.pack.meta.pack_version,
     });
     expect(recomputed.candidate).toEqual(packResult.pack);
 

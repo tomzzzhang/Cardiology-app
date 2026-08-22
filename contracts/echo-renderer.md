@@ -10,6 +10,8 @@ per-view tuning; every frame is labelled simulated. Outstanding: motion, seconda
 
 Render the simulated echo image for the **selected saved view or sweep position**, from the labelled
 `echo_volume` and the view's probe pose. Review status does not change the rendering path.
+When the authoring presentation has no selected imaging view, this component is not mounted: a
+full-heart model-only state must not silently render `views[0]` under a hidden selection.
 
 ## Approach (fixed)
 
@@ -36,6 +38,18 @@ transcribed the specular term as an addition, which would have changed the model
 **Post:** TGC, log compression + dynamic range, polar→Cartesian scan-conversion LUT, sector mask,
 subtle near-field clutter.
 
+**Depth scale:** the panel overlays one pointer-inert dot per centimetre along the screen-right fan
+edge. Dot positions are radial from the displayed sector vertex and come from the exact live
+`ImagingFrame.depthMm` used to render that frame, so saved sweeps, free-probe depth edits, authoring
+transitions, and Flip apex cannot leave the ruler behind. Zero and an exact distal boundary are
+omitted. The scale is presentation chrome outside the WebGL raster: it does not change simulated
+tissue pixels, follow `flip_lr`, or reuse the probe-notch `marker_side` convention. If a valid wide
+sector extends beyond the 4:3 canvas, a dot moves to the inset screen-right crop boundary and its
+axial coordinate is solved again on the same radial depth circle; screen clipping must not turn a
+physical scale into a decorative vertical or x-clamped row.
+An imported pose that would exceed the bounded marker budget draws no ruler and makes no depth-scale
+accessibility claim; arbitrary finite schema input must not create an unbounded DOM workload.
+
 ## Inputs — and the boundary
 
 ```
@@ -56,6 +70,14 @@ echo_volume           asset, format, resolution, mesh_to_volume, labels[], scatt
   pose has actually left the saved track, and the provenance line says the plane is unvetted.
   Rendering an arbitrary plane under a saved view's name is the one thing forbidden — it is the
   failure the pack's refusal to author A3 and A4 exists to avoid.
+- **An authoring view transition renders its live pose, and says what it is.** The camera, 3D wedge,
+  echo-synced cutter, and echo frame consume the same eased runtime pose. During that short motion
+  the panel withdraws both endpoint names and review flags and says `Transition — not a saved view`
+  and `Unvetted intermediate plane — animation between saved views`. These frames are presentation
+  only and the authoring store refuses to save them. Categorical display flags are not interpolated;
+  the echo fades fully transparent, changes convention while invisible, then fades back in on the
+  same clock. At exact landing the panel names the saved local or pack-authored working view rather
+  than falsely calling it an arbitrary free probe.
 - The scatterer field is **not shipped**: generate it at runtime from `scatterer_seed`,
   deterministically. Baking a scatterer channel stays a fallback if runtime generation is too costly
   on lower-end devices. Phone-specific performance is deferred, and no baked-channel field exists

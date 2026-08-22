@@ -1,0 +1,405 @@
+{
+  "schema_version": "authoring-slots/v1",
+  "pack_id": "normal-rodero",
+  "pack_version": "0.1.1",
+  "pack_schema_version": "0.1",
+  "exported_at": "2026-08-21T01:42:00.000Z",
+  "slots": [
+    {
+      "slot_id": "view-b1-apical-four-chamber",
+      "kind": "canon",
+      "label": "DRAFT TEST · B1 · b1-apical-four-chamber-fan-envelope-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          0.961642983,
+          -101.370688444,
+          17.463287239
+        ],
+        "beam_axis": [
+          -0.03892056723675134,
+          0.9771453673924172,
+          -0.2089787559287014
+        ],
+        "lateral_axis": [
+          0.9992134710353209,
+          0.039647631078269435,
+          -0.0007103882230686514
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.26,
+          "focus_cm": 11.43
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "view-c1-parasternal-long-axis",
+      "kind": "canon",
+      "label": "DRAFT TEST · C1 · c1-parasternal-long-axis-distance-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          -47.599846769,
+          22.742123027,
+          72.747425648
+        ],
+        "beam_axis": [
+          0.6468421621667504,
+          -0.04224874401784548,
+          -0.761452730556768
+        ],
+        "lateral_axis": [
+          0.06517650693500611,
+          0.9978737510044801,
+          -1.387778780781446e-17
+        ],
+        "fan": {
+          "angle_deg": 70,
+          "depth_cm": 14.32,
+          "focus_cm": 9.21
+        },
+        "display": {
+          "vertex": "up",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      }
+    },
+    {
+      "slot_id": "view-c2-parasternal-short-axis",
+      "kind": "canon",
+      "label": "DRAFT TEST · C2 · c2-parasternal-short-axis-distance-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          -0.354699351,
+          22.209657666,
+          89.915662514
+        ],
+        "beam_axis": [
+          -2.100093521801519e-34,
+          -2.0494357866503254e-17,
+          -1
+        ],
+        "lateral_axis": [
+          1,
+          -1.0247178933251627e-17,
+          0
+        ],
+        "fan": {
+          "angle_deg": 70,
+          "depth_cm": 13.93,
+          "focus_cm": 8.89
+        },
+        "display": {
+          "vertex": "up",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "view-b4-apical-three-chamber",
+      "kind": "canon",
+      "label": "DRAFT TEST · B4 · b4-apical-three-chamber-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          -5.047184577,
+          -101.609260549,
+          13.34732406
+        ],
+        "beam_axis": [
+          0.139055796,
+          0.986413282,
+          -0.087477561
+        ],
+        "lateral_axis": [
+          0.635071843,
+          -0.156607207,
+          -0.756411222
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.3,
+          "focus_cm": 11.46
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      }
+    },
+    {
+      "slot_id": "view-f1-right-parasternal-bicaval",
+      "kind": "canon",
+      "label": "DRAFT TEST · F1 · f1-right-parasternal-bicaval-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          -88.357204316,
+          60.814318836,
+          -26.567130385
+        ],
+        "beam_axis": [
+          0.973333525,
+          -0.194625095,
+          0.121420429
+        ],
+        "lateral_axis": [
+          0,
+          0.529308313,
+          0.848429555
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 14.82,
+          "focus_cm": 9.82
+        },
+        "display": {
+          "vertex": "up",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "custom-1",
+      "kind": "custom",
+      "label": "DRAFT TEST · B2 09° · b2-anterior-09-deg-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          1.011354845,
+          -102.684034802,
+          14.087226344
+        ],
+        "beam_axis": [
+          -0.039628941,
+          0.997785179,
+          -0.053425501
+        ],
+        "lateral_axis": [
+          0.999213471,
+          0.039647631,
+          -0.000710388
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.37,
+          "focus_cm": 11.52
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "custom-2",
+      "kind": "custom",
+      "label": "DRAFT TEST · B2 10° · b2-anterior-10-deg-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          1.011779159,
+          -102.701870459,
+          13.688638773
+        ],
+        "beam_axis": [
+          -0.039647502,
+          0.998565373,
+          -0.035989887
+        ],
+        "lateral_axis": [
+          0.999213471,
+          0.039647631,
+          -0.000710388
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.37,
+          "focus_cm": 11.52
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "custom-3",
+      "kind": "custom",
+      "label": "DRAFT TEST · B2 11° · b2-anterior-11-deg-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          1.01192741,
+          -102.712752556,
+          13.289800582
+        ],
+        "beam_axis": [
+          -0.039653987,
+          0.999041394,
+          -0.01854331
+        ],
+        "lateral_axis": [
+          0.999213471,
+          0.039647631,
+          -0.000710388
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.37,
+          "focus_cm": 11.52
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "custom-4",
+      "kind": "custom",
+      "label": "DRAFT TEST · B2 12° · b2-anterior-12-deg-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          1.011799505,
+          -102.716677803,
+          12.890833252
+        ],
+        "beam_axis": [
+          -0.039648392,
+          0.999213098,
+          -0.001091084
+        ],
+        "lateral_axis": [
+          0.999213471,
+          0.039647631,
+          -0.000710388
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.37,
+          "focus_cm": 11.52
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "custom-5",
+      "kind": "custom",
+      "label": "DRAFT TEST · B2 13° · b2-anterior-13-deg-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          1.011395514,
+          -102.713644963,
+          12.491858332
+        ],
+        "beam_axis": [
+          -0.03963072,
+          0.999080431,
+          0.016361474
+        ],
+        "lateral_axis": [
+          0.999213471,
+          0.039647631,
+          -0.000710388
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.37,
+          "focus_cm": 11.52
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "custom-6",
+      "kind": "custom",
+      "label": "DRAFT TEST · B2 14° · b2-anterior-14-deg-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          1.01071555,
+          -102.703654998,
+          12.092997349
+        ],
+        "beam_axis": [
+          -0.039600976,
+          0.998643435,
+          0.033809048
+        ],
+        "lateral_axis": [
+          0.999213471,
+          0.039647631,
+          -0.000710388
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.37,
+          "focus_cm": 11.52
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    },
+    {
+      "slot_id": "custom-7",
+      "kind": "custom",
+      "label": "DRAFT TEST · B2 15° · b2-anterior-15-deg-candidate-002",
+      "saved_at": "2026-08-21T01:42:00.000Z",
+      "probe": {
+        "origin": [
+          1.009759842,
+          -102.686710948,
+          11.694371806
+        ],
+        "beam_axis": [
+          -0.03955917,
+          0.997902243,
+          0.051246323
+        ],
+        "lateral_axis": [
+          0.999213471,
+          0.039647631,
+          -0.000710388
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.37,
+          "focus_cm": 11.52
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      }
+    }
+  ]
+}

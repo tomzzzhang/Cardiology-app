@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Updated:** 2026-08-20 17:36 EDT
+**Updated:** 2026-08-22 03:30 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -9,16 +9,55 @@ sits on the model — with a simulated echo image alongside and scrubbable sweep
 Education only. Not diagnostic. Every echo image in this app is **simulated**, never a recording
 of a patient, and the app never accepts user-uploaded or arbitrary patient images.
 
-**Status:** platform-first development is active on `dev`. The app loads a real ingested
-heart pack, renders it in 3D with per-structure colouring and a solid-capped free cut plane,
-draws the probe and its sector, and renders a simulated echo for the selected view from the same
-probe pose the wedge is built from. Three clinical views are authored and draft-flagged, reachable
-by `?view=`; two were deliberately refused, and the pack says why. The flag-gated authoring build
-can place and save probe poses, export/import local overrides, and reach Echo on a volume-less pack.
-Its explicit placement may only expand a local draft's depth to the measured minimum. A real Rodero
-`authoring-slots/v1` export has completed the guarded round trip into the existing non-clinical
-reference view in pack v0.1.1; it remains Draft and unreviewed. The view rail and annotated sweep
-scrubber are the next platform unit.
+**Status:** platform-first development is active on `dev`. The app loads a real ingested heart
+pack, renders it in 3D with per-structure colouring and a solid-capped free cut plane, draws the
+probe and its sector, and renders a simulated echo for the selected view from the same probe pose
+the wedge is built from.
+
+The scene is rendered in a **patient/body frame**: `+X` patient-left, `+Y` posterior, `+Z`
+superior, with anterior at `-Y`. Those axes were measured from a whole-body reference rather than
+declared, and `Level` holds body `+Z`. **No imaging view defines the frame.** The apical
+four-chamber used to — saving it repointed the levelling axis and the authoring surface said "sets
+z axis" — and that is removed;
+[`scripts/check-frame-decoupling.ts`](scripts/check-frame-decoupling.ts) gates it repository-wide.
+Authored views, sweeps, saved slots, free poses and the echo simulation all stay in the pack's own
+MODEL space and are converted at the point of use.
+
+A **registered adult reference chest** (BodyParts3D 4.0: skin, ribs, sternum, thoracic spine,
+lungs, diaphragm, clavicles) can be drawn around the heart in true millimetres, bound to the pack
+by a rigid, unit-scale registration in a separate `body-context/v0` document. It is scene context
+and structurally cannot become anatomy: not pickable, never beam-dimmed, never capped by the
+cutter, and never part of heart bounds, pivot, default framing or probe clearance. It is off by
+default, and a load failure leaves the heart and the echo working.
+
+The composite is measured and its limits are published rather than smoothed: placement is
+anatomically right (apex at the midclavicular line, about two thirds of the heart left of midline,
+nothing behind the spine or outside the skin), while the **cardiothoracic ratio is 0.543 against
+0.491 for the source's own native pair**, above the 0.50 normal threshold, because the
+population-average heart is 14 mm wider than the heart that chest was built around. Neither body is
+scaled to hide it. This is a **reference composite, not a patient and not clinical ground truth**.
+
+`normal-rodero` is at **v0.1.3 with six Draft views** — B1, B4, C1, C2, F1 and a non-clinical
+ingest reference pose. The corrected review poses were adopted into the pack, and the apertures of
+B1, B4 and C2 were then migrated back along their own beams to the reference chest wall, preserving
+each imaging plane exactly while depth and focus grew by the retreat. F1 was deliberately NOT
+migrated: reaching the skin needs a 73.7 mm retreat and a 22.19 cm depth, outside adult
+transthoracic range, which says that plane needs reauthoring rather than sliding. Nothing here is
+clinically reviewed; every view remains `draft`.
+
+The flag-gated authoring build can place and save probe poses, export/import local overrides, and
+reach Echo on a volume-less pack. Choosing a populated slot applies it immediately; camera, wedge,
+cut plane and simulated echo move on one gently eased clock, and unauthored intermediate frames
+cannot be saved. An authoring-only **Prevent auto-rotation** toggle suppresses the automatic camera
+turn while probe, cut plane and live echo still move. A depth rocker grows or shortens the current
+local fan in 0.5 cm steps. The surface opens at **None — full heart**. On a saved-view landing an
+enabled Echo-plane cut opens toward the camera; manual Reverse stays sticky until the next
+app-driven change. The echo panel carries a calibrated one-centimetre dot scale driven by the same
+live depth.
+
+The **view rail and canonical sweep scrubber were superseded by owner decision (2026-08-21)** and
+are not being built. Views remain reachable by `?view=` in the learner build and by the authoring
+selector; how a learner picks a view is an open question, not a finished one.
 
 The active product surface is desktop/laptop. Phone and touch UX are paused for a dedicated later
 design pass and do not gate platform checkpoints or the current release workflow.

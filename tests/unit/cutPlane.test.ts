@@ -17,6 +17,7 @@ import { capsAtCut, cappedStructureIds } from '../../src/viewer/caps.ts';
 import { validatePack } from '../../src/schema/validate.ts';
 import {
   alignedToPlane,
+  cameraFacingFlip,
   clippingPlane,
   enclosingRadius,
   initialCutPlane,
@@ -94,6 +95,41 @@ describe('planeAnchor', () => {
     const anchor = planeAnchor(state, PIVOT);
     expect(anchor.distanceTo(PIVOT)).toBeCloseTo(11, 10);
     expect(clippingPlane(state, PIVOT).distanceToPoint(anchor)).toBeCloseTo(0, 10);
+  });
+});
+
+describe('cameraFacingFlip', () => {
+  it('keeps the unflipped cutter when the camera is on the removed +N side', () => {
+    const state = initialCutPlane({ normal: [1, 0, 0], offset: 4 });
+    expect(cameraFacingFlip(state, PIVOT, new THREE.Vector3(PIVOT.x + 10, -2, 7)))
+      .toBe(false);
+  });
+
+  it('reverses the cutter when the camera is on the -N side', () => {
+    const state = initialCutPlane({ normal: [1, 0, 0], offset: 4 });
+    expect(cameraFacingFlip(state, PIVOT, new THREE.Vector3(PIVOT.x - 10, -2, 7)))
+      .toBe(true);
+  });
+
+  it('uses the offset plane anchor rather than the pivot', () => {
+    const state = initialCutPlane({ normal: [1, 0, 0], offset: 20 });
+    // Positive of the pivot, but still on the plane's negative side. The old
+    // pivot-only predicate returned false here and exposed the opaque half.
+    const betweenPivotAndPlane = new THREE.Vector3(PIVOT.x + 10, PIVOT.y, PIVOT.z);
+    expect(state.normal.dot(betweenPivotAndPlane.clone().sub(PIVOT))).toBeGreaterThan(0);
+    expect(cameraFacingFlip(state, PIVOT, betweenPivotAndPlane)).toBe(true);
+
+    const beyondPlane = new THREE.Vector3(PIVOT.x + 30, PIVOT.y, PIVOT.z);
+    expect(cameraFacingFlip(state, PIVOT, beyondPlane)).toBe(false);
+  });
+
+  it('preserves the current side when the camera is on, or numerically at, the plane', () => {
+    const state = initialCutPlane({ normal: [0, 0, 1], offset: -5 });
+    const anchor = planeAnchor(state, PIVOT);
+    expect(cameraFacingFlip(state, PIVOT, anchor)).toBe(false);
+    state.flipped = true;
+    expect(cameraFacingFlip(state, PIVOT, anchor.clone().addScaledVector(state.normal, 5e-7)))
+      .toBe(true);
   });
 });
 

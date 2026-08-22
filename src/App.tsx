@@ -24,6 +24,7 @@ import { SWEEP_HOME_T } from './viewer/probeControl.ts';
 import { AUTHORING_ENABLED } from './authoring/flag.ts';
 import HintLayer from './ui/HintLayer.tsx';
 import { loadPackById, PackLoadError, resolveAsset, type LoadedPack } from './packs/loadPack.ts';
+import { IDENTITY_TRANSFORM, rigidTransform, type RigidTransform } from './viewer/bodyFrame.ts';
 import {
   DEFAULT_PACK_ID,
   LICENSE_STATE_LABEL,
@@ -156,6 +157,20 @@ export default function App() {
    * and what it does not.
    */
   const [freePose, setFreePose] = useState<ProbePose | null>(null);
+  /** Authoring-only: one shared transition clock also fades categorical echo conventions. */
+  const [viewTransition, setViewTransition] = useState({ active: false, echoOpacity: 1 });
+  /**
+   * Authoring presentation state: a saved/working probe view is on screen, or
+   * the neutral full-heart presentation is. Learners stay on the existing
+   * first-view path until the learner view rail exists; the authoring selector
+   * is the only surface that can currently choose `None`.
+   */
+  const [imagingViewActive, setImagingViewActive] = useState(!AUTHORING_ENABLED);
+  /** The exact saved authoring pose on screen after an automatic selection lands. */
+  const [workingAuthoringView, setWorkingAuthoringView] = useState<{
+    label: string;
+    source: 'pack' | 'local';
+  } | null>(null);
 
   /*
    * The mode is written back into the URL as it changes, so the address bar is
@@ -194,6 +209,47 @@ export default function App() {
       ? 'explore'
       : mode;
 
+  /*
+   * The model-to-body registration, or the identity where no context is bound.
+   *
+   * Memoised on the loaded pack rather than rebuilt per render: the viewer's
+   * scene effect lists it as a dependency, and a fresh object identity every
+   * render would rebuild the whole scene — a five-megabyte glTF reload — on
+   * every state change in the shell.
+   *
+   * A context that failed to load leaves the identity here deliberately. The
+   * heart then renders in its own model space, which is honest, rather than in
+   * a body pose derived from a registration that did not validate.
+   */
+  const bodyContext = packState.status === 'ok' ? packState.loaded.bodyContext : null;
+  /*
+   * The chest asset, resolved against the context's own directory.
+   *
+   * Null when no context is bound, and null when a bound context ships no
+   * geometry — a registration without a chest is a perfectly good state, and
+   * the viewer shows no chest controls for it rather than empty ones.
+   */
+  const chestGltfUrl = bodyContext?.state === 'bound'
+    && bodyContext.context.context_assets.length > 0
+    ? `${import.meta.env.BASE_URL}body-context/`
+      + `${bodyContext.context.context_id}/`
+      + `${bodyContext.context.context_assets[0].gltf}`
+    : null;
+  const modelToBody: RigidTransform = useMemo(() => {
+    if (bodyContext?.state !== 'bound') return IDENTITY_TRANSFORM;
+    try {
+      return rigidTransform(
+        bodyContext.context.model_to_body.rotation_row_major,
+        bodyContext.context.model_to_body.translation_mm,
+      );
+    } catch {
+      // Already schema-validated, so this is unreachable in practice. Falling
+      // back to the identity rather than throwing keeps a bad descriptor from
+      // taking down a heart that does not need it to render.
+      return IDENTITY_TRANSFORM;
+    }
+  }, [bodyContext]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
@@ -211,6 +267,9 @@ export default function App() {
      * that local draft before the next pack begins loading.
      */
     setFreePose(null);
+    setViewTransition({ active: false, echoOpacity: 1 });
+    setWorkingAuthoringView(null);
+    setImagingViewActive(!AUTHORING_ENABLED);
     setPackState({ status: 'loading' });
 
     loadPackById(packId, { signal: controller.signal })
@@ -304,7 +363,7 @@ export default function App() {
          * a claim that is still true. The distinction matters in the direction
          * that costs nothing: the moment they move it, the claim goes.
          */
-        const offTrack = freePose !== null && view !== undefined
+        const offTrack = imagingViewActive && freePose !== null && view !== undefined
           && hasLeftTrack(freePose, view.sweep ? poseAt(view.probe, view.sweep, scrub) : view.probe);
         const echoVolume = pack.echo_volume;
         /*
@@ -390,17 +449,21 @@ export default function App() {
           */}
         <div
           className={effectiveMode === 'explore' || echoVolume === undefined
+            || (AUTHORING_ENABLED && !imagingViewActive)
             ? 'stage stage--solo'
             : 'stage'}
         >
           <PackViewer
             pack={packState.loaded.pack}
+            modelToBody={modelToBody}
+            chestGltfUrl={chestGltfUrl}
             gltfUrl={resolveAsset(packState.loaded, packState.loaded.pack.meshes.gltf)}
             scrub={scrub}
             viewIndex={viewIndex}
             mode={effectiveMode}
             frameUrls={frameUrls}
             freePose={freePose}
+            imagingActive={!AUTHORING_ENABLED || imagingViewActive}
             hidden={hiddenIds}
             apexFlipped={apexFlipped}
             isolatedLabel={effectiveMode === 'explore' && visibility.isolated !== null
@@ -408,6 +471,11 @@ export default function App() {
               : null}
             onScrubChange={setScrub}
             onFreePoseChange={setFreePose}
+            onImagingActiveChange={AUTHORING_ENABLED ? setImagingViewActive : undefined}
+            onViewTransitionChange={AUTHORING_ENABLED ? setViewTransition : undefined}
+            onAuthoringWorkingViewChange={AUTHORING_ENABLED
+              ? setWorkingAuthoringView
+              : undefined}
             /*
              * A click on the model isolates what is under it; empty space shows
              * everything. Settled design decision 13 — the list is the index
@@ -425,7 +493,8 @@ export default function App() {
             * in the footer stays in BOTH modes: it is not behind a toggle
             * (`contracts/app-shell.md` rule 4).
             */}
-          {effectiveMode === 'echo' && echoVolume !== undefined && (
+          {effectiveMode === 'echo' && echoVolume !== undefined
+            && (!AUTHORING_ENABLED || imagingViewActive) && (
             <EchoPanel
               pack={packState.loaded.pack}
               volumeUrl={resolveAsset(packState.loaded, echoVolume.asset)}
@@ -433,6 +502,9 @@ export default function App() {
               viewIndex={viewIndex}
               freePose={freePose}
               offTrack={offTrack}
+              transitioning={AUTHORING_ENABLED && viewTransition.active}
+              transitionOpacity={AUTHORING_ENABLED ? viewTransition.echoOpacity : 1}
+              workingView={AUTHORING_ENABLED ? workingAuthoringView : null}
               apexFlipped={apexFlipped}
               onApexFlip={setApexFlipped}
               onScrubChange={setScrub}

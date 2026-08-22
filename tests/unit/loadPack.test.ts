@@ -26,14 +26,22 @@ function packOnDisk(packId: string): Record<string, unknown> {
 }
 
 function respondWith(body: unknown, init: { ok?: boolean; status?: number; statusText?: string } = {}) {
+  /*
+   * `text()` rather than `json()`, because that is what the loader now reads.
+   *
+   * The body-context binding pins `pack.json` by digest, so the loader has to
+   * see the exact bytes; re-serialising a parsed object would hash a different
+   * byte sequence. A `string` body still stands for malformed JSON — it is
+   * returned verbatim and `JSON.parse` is what rejects it, which is closer to
+   * the real failure than a stub that threw on the caller's behalf.
+   */
+  const text = typeof body === 'string' ? body : JSON.stringify(body);
   const response = {
     ok: init.ok ?? true,
     status: init.status ?? 200,
     statusText: init.statusText ?? 'OK',
-    json: async () => {
-      if (typeof body === 'string') throw new SyntaxError('Unexpected token in JSON');
-      return body;
-    },
+    text: async () => text,
+    json: async () => JSON.parse(text) as unknown,
   };
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
 }

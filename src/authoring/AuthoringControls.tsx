@@ -30,23 +30,26 @@
  *   fan-and-display template and frozen seeds. There is no object here that
  *   `views[]` could be written through — the same structural guarantee
  *   `freeProbe.ts` makes, for the same reason.
- * * **Storing over a pack view writes a local override, never the pack.** The
- *   authored pose stays where it was; the row says it is overridden and offers
- *   a revert that restores the authored value bit for bit.
- * * **It does not write the model's axes either.** The four-chamber pose
- *   DERIVES them and the export carries them out; `meshes.anatomical_frame` is
- *   pack content with a recorded derivation and the v1 ingest ignores that frame.
+ * * **Storing a working definition never edits the pack.** The authored pose
+ *   stays where it was, and the restore action can recover that value bit for
+ *   bit. The UI treats the browser-local pose as the view being defined rather
+ *   than labelling it as an override.
+ * * **No view here defines the model's axes.** It used to: saving the apical
+ *   four-chamber set the levelling axis and wrote a cardiac frame into the
+ *   export. That is removed (owner decision, 2026-08-21). The patient/body
+ *   frame comes from `body-context/v0` — `+X` patient-left, `+Y` posterior,
+ *   `+Z` superior — and `Level` holds body `+Z`. Saving, selecting, recalling
+ *   or importing any view, B1 included, cannot move it.
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { ProbePose } from '../schema/packV0.ts';
 import { anchoredPose, defaultTemplate, type AnchorReport, type ViewAnchor } from './anchor.ts';
-import { frameFromFourChamber, type CardiacBasis } from './cardiacFrame.ts';
 import {
   MAX_CUSTOM_SLOTS, mergeSlots, nextCustomSlotId, restoredPose,
   type SavedSlot, type Slot, type SlotSeed,
 } from './slots.ts';
 import { deleteSlot, loadSlots, saveSlot } from './slotStore.ts';
-import { buildExport, exportFileName, readExport, type ExportedFrame } from './exportFile.ts';
+import { buildExport, exportFileName, readExport } from './exportFile.ts';
 
 export interface AuthoringControlsProps {
   packId: string;
@@ -59,38 +62,56 @@ export interface AuthoringControlsProps {
   readAnchor: () => ViewAnchor | null;
   /** The pose on screen right now — what "Save centre" would store. */
   currentPose: ProbePose | null;
+  /** A presentation-only path is on screen and must never enter the saved store. */
+  transitioning?: boolean;
+  /** Populated views cannot be applied until the model and transition clock exist. */
+  ready?: boolean;
+  /** Publish the authoring-only automatic-camera policy to the viewer. */
+  onPreventAutoRotationChange: (prevent: boolean) => void;
+  /** Replace the working pose from a stored view and face its imaging plane. */
+  onActivatePose: (pose: ProbePose, view: AuthoringViewIdentity) => void;
+  /** Clear the applied imaging view and return to the unobstructed anatomy presentation. */
+  onShowFullHeart: () => void;
+  /** Replace only the working pose; camera-derived placement must leave the camera alone. */
   onPose: (pose: ProbePose) => void;
   /** The selected view's pose, so the pad's centre can recall it. */
-  onActiveSlotPose: (pose: ProbePose | null) => void;
-  /**
-   * The long axis the four-chamber measured, for the horizon lock to hold.
-   *
-   * Null while no four-chamber pose exists, which puts the pack's declared
-   * `orientation.up` back. Published upward rather than reached for, so the
-   * viewer keeps no dependency on this module.
-   */
-  onLevelAxis: (axis: readonly [number, number, number] | null) => void;
+  onActiveSlotPose: (pose: ProbePose | null, view: AuthoringViewIdentity | null) => void;
 }
 
-/** Three decimals is a millimetre at model scale and a thousandth of an axis. */
-const axisText = (axis: readonly number[]) =>
-  `[${axis.map((value) => value.toFixed(3)).join(', ')}]`;
+/** The truthful label/source carried with a pose while it is on screen. */
+export interface AuthoringViewIdentity {
+  label: string;
+  source: 'pack' | 'local';
+}
+
+const identityOf = (slot: Slot): AuthoringViewIdentity => ({
+  // Standard rows keep the canon label in the selector, but a mounted review
+  // file's own label is the more precise identity of the pose being shown.
+  label: slot.saved?.label ?? slot.label,
+  source: slot.saved ? 'local' : 'pack',
+});
 
 export default function AuthoringControls({
   packId, packVersion, packSchemaVersion, seeds, template, standoffOverrideMm,
-  readAnchor, currentPose, onPose, onActiveSlotPose, onLevelAxis,
+  readAnchor, currentPose, transitioning = false, ready = true,
+  onPreventAutoRotationChange,
+  onActivatePose, onShowFullHeart, onPose, onActiveSlotPose,
 }: AuthoringControlsProps) {
   const [saved, setSaved] = useState<SavedSlot[]>([]);
-  const [activeSlotId, setActiveSlotId] = useState<string>(seeds[0]?.slotId ?? '');
+  const [activeSlotId, setActiveSlotId] = useState('');
   const [report, setReport] = useState<AnchorReport | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
+  /** Session-only presentation preference; deliberately absent from slot/export state. */
+  const [preventAutoRotation, setPreventAutoRotation] = useState(false);
 
   const slots = mergeSlots(seeds, saved);
-  const active = slots.find((slot) => slot.slotId === activeSlotId) ?? slots[0] ?? null;
+  const active = activeSlotId === ''
+    ? null
+    : slots.find((slot) => slot.slotId === activeSlotId) ?? null;
 
   const fail = useCallback((error: unknown) => {
     setProblem(error instanceof Error ? error.message : String(error));
@@ -109,7 +130,7 @@ export default function AuthoringControls({
 
   useEffect(() => {
     void refresh();
-    setActiveSlotId(seeds[0]?.slotId ?? '');
+    setActiveSlotId('');
     setConfirming(null);
     setReport(null);
     setProblem(null);
@@ -117,51 +138,27 @@ export default function AuthoringControls({
   }, [packId, refresh, seeds]);
 
   useEffect(() => {
-    onActiveSlotPose(active?.pose ?? null);
-  }, [active, onActiveSlotPose]);
+    setPreventAutoRotation(false);
+    onPreventAutoRotationChange(false);
+  }, [packId, packVersion, onPreventAutoRotationChange]);
 
-  /* --- the model's axes ------------------------------------------------- */
-
-  /**
-   * The four-chamber view, and the frame its pose implies.
-   *
-   * Computed from whatever that view currently holds — the pack's pose, or the
-   * author's override — so the readout is about what is actually stored rather
-   * than about what is on screen at this instant.
-   */
-  const frameSlot = slots.find((slot) => slot.definesFrame) ?? null;
-  const derivedFrame = frameSlot?.pose ? frameFromFourChamber(frameSlot.pose) : null;
-
-  /*
-   * The horizon lock follows the measured long axis once there is one.
-   *
-   * Reported from the app: "the level selector does not respect the z axis set
-   * by the four-chamber view". It did not — it held `meshes.orientation.up`,
-   * which on eight of the nine packs is the ingest's default triple with
-   * nothing behind it. Once B1 holds a pose, that pose is the only measurement
-   * of the long axis there is, so it is what gets levelled.
-   *
-   * Keyed on the axis's own numbers rather than on the object, so this fires
-   * when the axis CHANGES and not on every render.
-   */
-  const basal = derivedFrame?.basis.basal ?? null;
-  const basalKey = basal ? basal.join(',') : '';
+  // An armed overwrite cannot survive into an unauthored transition frame.
   useEffect(() => {
-    onLevelAxis(basalKey === '' ? null : basalKey.split(',').map(Number) as [number, number, number]);
-  }, [basalKey, onLevelAxis]);
+    if (transitioning) setConfirming(null);
+  }, [transitioning]);
 
-  const exportedFrame = (): ExportedFrame | undefined => {
-    if (!frameSlot?.saved || !derivedFrame) return undefined;
-    const basis: CardiacBasis = derivedFrame.basis;
-    return {
-      derived_from_slot: frameSlot.slotId,
-      method: 'apical-four-chamber-pose-v1',
-      patient_left: basis.patient_left as [number, number, number],
-      basal: basis.basal as [number, number, number],
-      anterior: basis.anterior as [number, number, number],
-      flipped_for_display: derivedFrame.flippedForDisplay,
-    };
-  };
+  const activePose = active?.pose ?? null;
+  const activeIdentity = activePose && active ? identityOf(active) : null;
+  const activeIdentityLabel = activeIdentity?.label ?? '';
+  const activeIdentitySource = activeIdentity?.source ?? '';
+  useEffect(() => {
+    onActiveSlotPose(
+      activePose,
+      activeIdentityLabel === ''
+        ? null
+        : { label: activeIdentityLabel, source: activeIdentitySource as 'pack' | 'local' },
+    );
+  }, [activePose, activeIdentityLabel, activeIdentitySource, onActiveSlotPose]);
 
   /* --- place ------------------------------------------------------------ */
 
@@ -204,13 +201,44 @@ export default function AuthoringControls({
       return;
     }
     setProblem(null);
-    setNotice(`Recalled ${active.label}.`);
-    onPose(pose);
+    setReport(null);
+    const identity = identityOf(active);
+    setNotice(`Selected ${identity.label}.`);
+    onActivatePose(pose, identity);
+  };
+
+  /**
+   * Choosing a populated view applies it immediately.
+   *
+   * This belongs in the change event, not an effect: refreshing storage,
+   * renaming a row, or resetting for a new pack must not unexpectedly move the
+   * probe or camera. None clears the applied imaging view. Empty rows still
+   * become the active authoring target, but also show the full heart so the
+   * selector never claims one view while another view remains on screen.
+   */
+  const selectView = (slotId: string) => {
+    const target = slots.find((slot) => slot.slotId === slotId) ?? null;
+    const pose = target ? restoredPose(target) : null;
+
+    setActiveSlotId(slotId);
+    setConfirming(null);
+    setRenaming(null);
+    setProblem(null);
+    setReport(null);
+    const identity = target && pose ? identityOf(target) : null;
+    setNotice(identity ? `Selected ${identity.label}.` : null);
+
+    if (pose && identity) onActivatePose(pose, identity);
+    else onShowFullHeart();
   };
 
   /* --- store ------------------------------------------------------------ */
 
   const commitSave = async (slot: Slot) => {
+    if (transitioning) {
+      setProblem('Wait for the selected view to finish moving before saving.');
+      return;
+    }
     if (!currentPose) return;
     try {
       await saveSlot({
@@ -226,10 +254,8 @@ export default function AuthoringControls({
       setProblem(null);
       setNotice(
         slot.overridden || slot.authored !== null
-          ? `Saved a LOCAL OVERRIDE over ${slot.label}. The pack is unchanged.`
-          : slot.definesFrame
-            ? `Saved ${slot.label}. The model's axes now come from this pose.`
-            : `Saved ${slot.label}.`,
+          ? `Saved the working definition for ${slot.label}. The loaded pack is unchanged.`
+          : `Saved ${slot.label}.`,
       );
       await refresh();
     } catch (error) {
@@ -238,6 +264,10 @@ export default function AuthoringControls({
   };
 
   const addWorkingView = async () => {
+    if (transitioning) {
+      setProblem('Wait for the selected view to finish moving before saving.');
+      return;
+    }
     if (!currentPose) return;
     const slotId = nextCustomSlotId(slots);
     if (slotId === null) {
@@ -283,6 +313,7 @@ export default function AuthoringControls({
   };
 
   const removeSaved = async (slot: Slot) => {
+    if (transitioning || !ready) return;
     try {
       await deleteSlot(packId, slot.slotId);
       setConfirming(null);
@@ -290,7 +321,15 @@ export default function AuthoringControls({
       setNotice(slot.authored !== null
         ? `Reverted ${slot.label} to the pose the pack authored.`
         : `Cleared ${slot.label}.`);
-      if (slot.kind === 'custom') setActiveSlotId(seeds[0]?.slotId ?? '');
+      if (slot.authored !== null) {
+        onActivatePose(structuredClone(slot.authored) as ProbePose, {
+          label: slot.label,
+          source: 'pack',
+        });
+      } else {
+        onShowFullHeart();
+      }
+      if (slot.kind === 'custom' || slot.kind === 'orphan') setActiveSlotId('');
       await refresh();
     } catch (error) {
       fail(error);
@@ -312,7 +351,6 @@ export default function AuthoringControls({
         packSchemaVersion,
         slots: saved,
         exportedAt,
-        cardiacFrame: exportedFrame(),
       });
       const blob = new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -327,10 +365,7 @@ export default function AuthoringControls({
       // Immediate revocation races the download in embedded browsers.
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
       setProblem(null);
-      setNotice(
-        `Exported ${saved.length} view(s), every pose schema-validated`
-        + `${document.cardiac_frame ? ', with the model axes the four-chamber implies' : ''}.`,
-      );
+      setNotice(`Exported ${saved.length} view(s), every pose schema-validated.`);
     } catch (error) {
       fail(error);
     }
@@ -354,22 +389,21 @@ export default function AuthoringControls({
 
   /* --- render ----------------------------------------------------------- */
 
-  const canSave = currentPose !== null && active !== null;
+  const canSave = !transitioning && currentPose !== null && active !== null;
   const canon = slots.filter((slot) => slot.kind === 'canon');
   const extra = slots.filter((slot) => slot.kind === 'extra');
   const working = slots.filter((slot) => slot.kind === 'custom');
   const orphans = slots.filter((slot) => slot.kind === 'orphan');
 
   const optionLabel = (slot: Slot) => {
-    if (slot.overridden) return `${slot.label} — overridden`;
     if (slot.pose === null) return `${slot.label} — empty`;
     return slot.label;
   };
 
   const state = active === null
-    ? ''
+    ? 'Full heart. No view selected.'
     : active.overridden
-      ? 'Overridden locally. The pack is unchanged.'
+      ? 'Working definition. The loaded pack is unchanged.'
       : active.kind === 'orphan'
         ? 'Stored under an id this build does not use. Clear it or export it.'
         : active.pose === null
@@ -379,7 +413,12 @@ export default function AuthoringControls({
             : 'From the pack.';
 
   return (
-    <div className="authoring" data-testid="authoring-controls" data-pack={packId}>
+    <div
+      className="authoring"
+      data-testid="authoring-controls"
+      data-pack={packId}
+      data-prevent-auto-rotation={preventAutoRotation ? 'true' : 'false'}
+    >
       <p className="authoring__title">
         Authoring
         <span
@@ -399,16 +438,12 @@ export default function AuthoringControls({
         <select
           className="authoring__select"
           value={active?.slotId ?? ''}
-          onChange={(event) => {
-            setActiveSlotId(event.target.value);
-            setConfirming(null);
-            setRenaming(null);
-            setNotice(null);
-          }}
-          data-hint="The saved or working view you are placing."
+          onChange={(event) => selectView(event.target.value)}
+          disabled={!ready}
+          data-hint="Choose a saved view to apply it, or an empty view to place next."
           data-testid="authoring-slot"
         >
-          {slots.length === 0 && <option value="">No views</option>}
+          <option value="">None — full heart</option>
           {/*
             * The current draft starter list, whether or not this pack has
             * authored any of it. It is a convenience, not a required-content
@@ -452,6 +487,32 @@ export default function AuthoringControls({
         <span className="authoring__state" data-testid="authoring-slot-state">{state}</span>
       </div>
 
+      {/* Presentation only: the stored pose still moves; the anatomy camera does not. */}
+      <div className="authoring__row">
+        <span className="authoring__label">Mode</span>
+        <label
+          className="authoring__toggle"
+          data-hint="Applying a saved view moves the probe without turning the anatomy."
+          title={
+            'Keep the current anatomy angle while saved views move the probe, cut plane, '
+            + 'and live echo. Manual camera controls remain available.'
+          }
+        >
+          <input
+            type="checkbox"
+            checked={preventAutoRotation}
+            onChange={(event) => {
+              const prevent = event.target.checked;
+              setPreventAutoRotation(prevent);
+              onPreventAutoRotationChange(prevent);
+            }}
+            disabled={transitioning || !ready}
+            data-testid="authoring-prevent-auto-rotation"
+          />
+          Prevent auto-rotation
+        </label>
+      </div>
+
       {/* 2. PLACE the probe. Acts on the PROBE, not on the view above. */}
       <div className="authoring__row">
         <span className="authoring__label">Place</span>
@@ -459,6 +520,7 @@ export default function AuthoringControls({
           type="button"
           className="authoring__button"
           onClick={placeFromCamera}
+          disabled={transitioning || !ready || !active}
           data-hint="Put the probe on the axis you are looking down."
           data-testid="authoring-anchor"
           title={
@@ -473,7 +535,7 @@ export default function AuthoringControls({
           type="button"
           className="authoring__button"
           onClick={recall}
-          disabled={!active || active.pose === null}
+          disabled={!ready || transitioning || !active || active.pose === null}
           data-hint="Put the probe back exactly where this view has it."
           data-testid="authoring-restore"
           title="Put the probe back exactly where this view has it. The pose is replaced, not merged."
@@ -498,13 +560,14 @@ export default function AuthoringControls({
           <>
             <span className="authoring__confirm" data-testid="authoring-confirm">
               {active.authored !== null
-                ? `Overwrite ${active.label} with a local override?`
+                ? `Replace the working definition for ${active.label}?`
                 : `Overwrite ${active.label}?`}
             </span>
             <button
               type="button"
               className="authoring__button authoring__button--danger"
               onClick={() => void commitSave(active)}
+              disabled={transitioning}
               data-testid="authoring-save-confirm"
             >
               Overwrite
@@ -528,36 +591,17 @@ export default function AuthoringControls({
               data-hint="Store the pose on screen into the selected view."
             data-testid="authoring-save-centre"
               title={
-                canSave
+                transitioning
+                  ? 'The pose on screen is an unauthored transition frame and cannot be saved.'
+                  : canSave
                   ? 'Write the pose on screen into the selected view. Confirmed before it '
-                    + 'writes. A pack view gets a local override; the pack itself is never '
-                    + 'edited.'
+                    + 'writes. A pack view is stored as a browser-local working definition; '
+                    + 'the loaded pack itself is never edited.'
                   : 'There is no pose on screen to save. Place the probe first.'
               }
             >
               Save centre
             </button>
-
-            {/*
-              * The four-chamber is the ONE view whose pose is a statement about
-              * the model rather than only about a window: the transducer sits
-              * at the apex and the beam runs to the base, so saving it fixes
-              * the long axis. Said here, next to the button that does it, and
-              * ONLY here — every other view stores a pose and nothing else.
-              */}
-            {active?.definesFrame && (
-              <span
-                className="authoring__hint"
-                data-testid="authoring-frame-hint"
-                title={
-                  'The beam becomes the long axis (z), the fan plane gives left-right (x), '
-                  + 'and the plane normal gives anterior-posterior (y). Derived and carried '
-                  + 'in the export — meshes.anatomical_frame is written by the ingest, not here.'
-                }
-              >
-                sets z axis
-              </span>
-            )}
           </>
         )}
 
@@ -566,13 +610,14 @@ export default function AuthoringControls({
             type="button"
             className="authoring__button"
             onClick={() => void removeSaved(active)}
+            disabled={transitioning || !ready}
             data-testid="authoring-revert"
             title={active.authored !== null
-              ? 'Drop the local override. The pack’s authored pose was never changed, so this '
-                + 'restores it exactly.'
+              ? 'Drop the browser-local working definition. The pack’s authored pose was never '
+                + 'changed, so this restores it exactly.'
               : 'Clear what is stored for this view.'}
           >
-            {active.authored !== null ? 'Revert to authored' : 'Clear'}
+            {active.authored !== null ? 'Restore pack pose' : 'Clear'}
           </button>
         )}
       </div>
@@ -605,12 +650,14 @@ export default function AuthoringControls({
               type="button"
               className="authoring__button"
               onClick={() => void addWorkingView()}
-              disabled={currentPose === null}
+              disabled={transitioning || currentPose === null}
               data-hint="Store the pose on screen as a view of your own."
               data-testid="authoring-add-slot"
               title={
-                'Store the pose on screen as a view of your own, outside the canon. '
-                + `${MAX_CUSTOM_SLOTS} maximum.`
+                transitioning
+                  ? 'The pose on screen is an unauthored transition frame and cannot be saved.'
+                  : 'Store the pose on screen as a view of your own, outside the canon. '
+                    + `${MAX_CUSTOM_SLOTS} maximum.`
               }
             >
               Save as new
@@ -655,6 +702,7 @@ export default function AuthoringControls({
             type="file"
             accept="application/json,.json"
             className="authoring__file"
+            disabled={transitioning}
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = '';
@@ -667,23 +715,6 @@ export default function AuthoringControls({
           {`${saved.length} stored`}
         </span>
       </div>
-
-      {/*
-        * The model's axes, whenever the four-chamber holds a pose.
-        *
-        * Shown always rather than only while B1 is selected: it is a fact about
-        * the MODEL, and every other view is placed against it.
-        */}
-      {derivedFrame !== null && (
-        <p className="authoring__note" data-testid="authoring-frame">
-          {`Model axes from ${frameSlot?.label}: `}
-          {`z basal ${axisText(derivedFrame.basis.basal)} · `}
-          {`x patient-left ${axisText(derivedFrame.basis.patient_left)} · `}
-          {`y anterior ${axisText(derivedFrame.basis.anterior)}`}
-          {derivedFrame.flippedForDisplay ? ' (x flipped for display.flip_lr)' : ''}
-          {' · Level holds z vertical.'}
-        </p>
-      )}
 
       {/*
         * The placement report names the one monotonic adjustment the explicit
@@ -708,6 +739,12 @@ export default function AuthoringControls({
               ? '. The fan contains the model. Fan depth was not changed.'
               : '. Fan depth reaches the far side, but the fan angle does not contain the model '
                 + 'at this standoff. The loaded pack is unchanged.'}
+        </p>
+      )}
+
+      {transitioning && (
+        <p className="authoring__note" data-testid="authoring-transition-note">
+          Moving between saved views. This intermediate plane cannot be saved.
         </p>
       )}
 

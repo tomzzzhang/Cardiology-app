@@ -17,7 +17,9 @@ import type { ProbePose, Sweep } from '../../src/schema/packV0.ts';
 import { dot, frameAt, imagingFrame, length, poseAt } from '../../src/echo/probeFrame.ts';
 import type { Vec3 } from '../../src/schema/primitives.ts';
 import {
+  FAN_DEPTH_STEP_CM,
   MAX_CLEARANCE_MM,
+  MIN_FAN_DEPTH_CM,
   MIN_CLEARANCE_MM,
   NUDGE_DEG,
   STANDOFF_STEP_MM,
@@ -27,6 +29,7 @@ import {
   movedAlongBeam,
   nudgedPose,
   standOffStepAllowed,
+  steppedFanDepth,
   type ProbeAxis,
 } from '../../src/viewer/freeProbe.ts';
 
@@ -51,6 +54,70 @@ const SWEEP: Sweep = {
 const near = (a: Vec3, b: Vec3, digits = 12) => {
   for (let axis = 0; axis < 3; axis += 1) expect(a[axis]).toBeCloseTo(b[axis], digits);
 };
+
+describe('the authoring fan-depth rocker', () => {
+  it('changes only depth, by one documented half-centimetre step', () => {
+    const start = probe();
+    const deeper = steppedFanDepth(start, 1);
+    const shallower = steppedFanDepth(start, -1);
+
+    expect(FAN_DEPTH_STEP_CM).toBe(0.5);
+    expect(deeper?.fan.depth_cm).toBe(start.fan.depth_cm + FAN_DEPTH_STEP_CM);
+    expect(shallower?.fan.depth_cm).toBe(start.fan.depth_cm - FAN_DEPTH_STEP_CM);
+    for (const changed of [deeper, shallower]) {
+      expect(changed).not.toBeNull();
+      expect(changed?.origin).toBe(start.origin);
+      expect(changed?.beam_axis).toBe(start.beam_axis);
+      expect(changed?.lateral_axis).toBe(start.lateral_axis);
+      expect(changed?.fan.angle_deg).toBe(start.fan.angle_deg);
+      expect(changed?.fan.focus_cm).toBe(start.fan.focus_cm);
+      expect(changed?.display).toBe(start.display);
+    }
+  });
+
+  it('returns a new local pose and fan without mutating the source', () => {
+    const start = probe();
+    const original = structuredClone(start);
+    const changed = steppedFanDepth(start, 1);
+
+    expect(changed).not.toBe(start);
+    expect(changed?.fan).not.toBe(start.fan);
+    expect(start).toEqual(original);
+  });
+
+  it('does not let the distal boundary cross the focus', () => {
+    const atFocus = probe({ fan: { angle_deg: 80, depth_cm: 5, focus_cm: 5 } });
+    const oneStepAbove = probe({
+      fan: { angle_deg: 80, depth_cm: 5 + FAN_DEPTH_STEP_CM, focus_cm: 5 },
+    });
+
+    expect(steppedFanDepth(atFocus, -1)).toBeNull();
+    expect(steppedFanDepth(oneStepAbove, -1)?.fan.depth_cm).toBe(5);
+  });
+
+  it('enforces the safe floor even when the focus is shallower', () => {
+    const atFloor = probe({
+      fan: { angle_deg: 80, depth_cm: MIN_FAN_DEPTH_CM, focus_cm: 0.5 },
+    });
+    const oneStepAbove = probe({
+      fan: {
+        angle_deg: 80,
+        depth_cm: MIN_FAN_DEPTH_CM + FAN_DEPTH_STEP_CM,
+        focus_cm: 0.5,
+      },
+    });
+
+    expect(steppedFanDepth(atFloor, -1)).toBeNull();
+    expect(steppedFanDepth(oneStepAbove, -1)?.fan.depth_cm).toBe(MIN_FAN_DEPTH_CM);
+  });
+
+  it('round-trips opposite steps exactly at the supported increment', () => {
+    const start = probe({ fan: { angle_deg: 73, depth_cm: 12.25, focus_cm: 4.5 } });
+    const deeper = steppedFanDepth(start, 1);
+    expect(deeper).not.toBeNull();
+    expect(steppedFanDepth(deeper as ProbePose, -1)).toEqual(start);
+  });
+});
 
 describe('nudgedPose — the three ways a transducer turns', () => {
   it('pivots on the skin: the origin never moves', () => {
@@ -282,6 +349,29 @@ describe('hasLeftTrack', () => {
     const pushed = movedAlongBeam(seeded, STANDOFF_STEP_MM);
     expect(pushed.beam_axis).toEqual(seeded.beam_axis);
     expect(hasLeftTrack(pushed, seeded)).toBe(true);
+  });
+
+  it('withdraws the saved-view name after a fan or display-only change', () => {
+    const seeded = poseAt(probe(), SWEEP, 0.4);
+    const deeper = steppedFanDepth(seeded, 1);
+    expect(deeper).not.toBeNull();
+    expect(deeper?.origin).toEqual(seeded.origin);
+    expect(deeper?.beam_axis).toEqual(seeded.beam_axis);
+    expect(deeper?.lateral_axis).toEqual(seeded.lateral_axis);
+    expect(hasLeftTrack(deeper!, seeded)).toBe(true);
+
+    expect(hasLeftTrack({
+      ...seeded,
+      fan: { ...seeded.fan, focus_cm: seeded.fan.focus_cm + 0.5 },
+    }, seeded)).toBe(true);
+    expect(hasLeftTrack({
+      ...seeded,
+      fan: { ...seeded.fan, angle_deg: seeded.fan.angle_deg + 1 },
+    }, seeded)).toBe(true);
+    expect(hasLeftTrack({
+      ...seeded,
+      display: { ...seeded.display, flip_lr: !seeded.display.flip_lr },
+    }, seeded)).toBe(true);
   });
 
   it('does not lose its precision at the small angles it exists to judge', () => {

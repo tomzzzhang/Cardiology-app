@@ -7,6 +7,7 @@
  */
 import { SCHEMA_VERSION, type Pack } from '../schema/packV0.ts';
 import { isPublishedPack, unpublishedReason } from './published.ts';
+import { loadBodyContext, type BodyContextResult } from './loadBodyContext.ts';
 import { formatIssues, readSchemaVersion, validatePack, type PackIssue } from '../schema/validate.ts';
 
 export class PackLoadError extends Error {
@@ -26,6 +27,19 @@ export interface LoadedPack {
   pack: Pack;
   /** Directory URL of `pack.json`, with a trailing slash. */
   baseUrl: string;
+  /**
+   * The body registration bound to this pack, if any.
+   *
+   * Loaded HERE rather than inside the viewer because the viewer's scene effect
+   * builds the scene in body space, and a transform that arrived after the
+   * scene did would mean either rebuilding it — a five-megabyte glTF reload —
+   * or drawing one frame in the wrong space. It is part of what "the pack is
+   * loaded" means.
+   *
+   * `state: 'none'` and `state: 'problem'` both leave the heart in model space.
+   * Only `'problem'` is worth telling the learner about.
+   */
+  bodyContext: BodyContextResult;
 }
 
 /** Resolve a pack-relative `AssetPath` against the pack directory. */
@@ -54,9 +68,19 @@ export async function loadPack(url: string, init?: RequestInit): Promise<LoadedP
     throw new PackLoadError(url, `pack fetch failed: HTTP ${response.status} ${response.statusText}`);
   }
 
+  // Read as TEXT so the exact bytes can be digested: the body-context binding
+  // pins `pack.json` by hash, and re-serialising the parsed object would digest
+  // a different byte sequence than the one on disk.
+  let text: string;
+  try {
+    text = await response.text();
+  } catch (cause) {
+    throw new PackLoadError(url, `pack could not be read: ${(cause as Error).message}`);
+  }
+
   let raw: unknown;
   try {
-    raw = await response.json();
+    raw = JSON.parse(text);
   } catch (cause) {
     throw new PackLoadError(url, `pack is not valid JSON: ${(cause as Error).message}`);
   }
@@ -77,7 +101,29 @@ export async function loadPack(url: string, init?: RequestInit): Promise<LoadedP
   return {
     pack: result.pack,
     baseUrl: new URL('.', new URL(url, globalThis.location?.href ?? 'http://localhost/')).toString(),
+    bodyContext: await loadBodyContext(result.pack, await sha256Hex(text), init),
   };
+}
+
+/**
+ * Lowercase hex SHA-256 of a string, or `null` where the platform has no
+ * WebCrypto.
+ *
+ * Null rather than a throw: the digest tightens the body-context binding from
+ * "same pack id and version" to "same bytes", and that is a strengthening. A
+ * runtime without `crypto.subtle` — an insecure origin, or a bare test harness
+ * — should fall back to the version check rather than lose the registration
+ * entirely.
+ */
+async function sha256Hex(text: string): Promise<string | null> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return null;
+  try {
+    const digest = await subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
 }
 
 /**
