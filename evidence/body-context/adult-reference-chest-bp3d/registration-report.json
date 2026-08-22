@@ -994,5 +994,35 @@
       -156.11237900758053,
       1213.7432796631356
     ]
+  },
+  "composite_validation": {
+    "method": "Cardiothoracic ratio uses the pleural span at the heart's own height as the internal thoracic diameter, which is the radiographic denominator. The diaphragm test grids the dome in 6 mm transverse cells and asks whether heart geometry sits below it. Both are measured for the placed heart AND for BodyParts3D's own heart in the same chest, because the native pair is the control.",
+    "placed_heart": {
+      "what": "the registered pack heart",
+      "transverse_cardiac_width_mm": 129.84,
+      "internal_thoracic_width_mm": 239.08,
+      "cardiothoracic_ratio": 0.5431,
+      "percent_left_of_midline": 72.26,
+      "right_border_mm_from_midline": -40.03,
+      "left_border_mm_from_midline": 89.81,
+      "vertices_below_diaphragm_dome": 3439,
+      "vertices_total": 111160,
+      "worst_below_diaphragm_mm": 9.87
+    },
+    "native_control": {
+      "what": "BodyParts3D's own heart, its native pair",
+      "transverse_cardiac_width_mm": 115.69,
+      "internal_thoracic_width_mm": 235.58,
+      "cardiothoracic_ratio": 0.4911,
+      "percent_left_of_midline": 68.84,
+      "right_border_mm_from_midline": -36.3,
+      "left_border_mm_from_midline": 79.39,
+      "vertices_below_diaphragm_dome": 477,
+      "vertices_total": 59953,
+      "worst_below_diaphragm_mm": 3.35
+    },
+    "vertices_posterior_to_spine": 0,
+    "normal_cardiothoracic_ratio": "< 0.50",
+    "interpretation": "Placement is anatomically correct: apex to the left at about the midclavicular line, roughly two thirds of the heart left of midline, nothing posterior to the spine, nothing outside the skin. SIZE is marginal and is not repaired. The placed heart is wider than the one this chest was built around, so the ratio exceeds 0.50 and the diaphragm overlap grows. Scaling either body to fix it would report false dimensions for whichever was scaled, so the difference is measured and disclosed instead. This is a reference composite, not a patient."
   }
 }

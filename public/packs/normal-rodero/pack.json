@@ -4,7 +4,7 @@
     "display_name": "Normal heart \u2014 Rodero/CEMRG average four-chamber",
     "anatomy": "Normal heart, four-chamber, adult population average",
     "canonical_variant": "Population-average adult four-chamber mesh (mean shape of 19 subjects); not a single individual and not a paediatric heart",
-    "pack_version": "0.1.2",
+    "pack_version": "0.1.3",
     "schema_version": "0.1"
   },
   "provenance": {
@@ -714,13 +714,13 @@
         "A4C",
         "apical 4C"
       ],
-      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-b1-apical-four-chamber\" (\"DRAFT TEST \u00b7 B1 \u00b7 b1-apical-four-chamber-fan-envelope-candidate-002\"); prior placement landmark invalidated pending content review",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-b1-apical-four-chamber\" (\"DRAFT TEST \u00b7 B1 \u00b7 b1-apical-four-chamber-fan-envelope-candidate-002\"); prior placement landmark invalidated pending content review APERTURE MIGRATED to the chest wall of the registered adult reference chest: moved 23.2 mm back along its own beam until it reached the skin. The imaging plane, beam and lateral axes are unchanged; depth and focus grew by the retreat.",
       "indicator_clock": "3:00",
       "probe": {
         "origin": [
-          0.961642983,
-          -101.370688444,
-          17.463287239
+          1.8628687761806715,
+          -123.9969930254374,
+          22.30229803563386
         ],
         "beam_axis": [
           -0.03892056723675134,
@@ -734,8 +734,8 @@
         ],
         "fan": {
           "angle_deg": 80,
-          "depth_cm": 18.26,
-          "focus_cm": 11.43
+          "depth_cm": 20.575552,
+          "focus_cm": 13.745552
         },
         "display": {
           "vertex": "down",
@@ -752,9 +752,9 @@
             -0.0007103882230686512
           ],
           "origin": [
-            0.961642983,
-            -101.370688444,
-            17.463287239
+            1.8628687761806715,
+            -123.9969930254374,
+            22.30229803563386
           ]
         },
         "range": {
@@ -845,7 +845,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Current probe pose came from authoring-slots/v1 slot \"view-b1-apical-four-chamber\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement. structures_in_order was then REMEASURED against this pose by pipeline/remeasure_sweeps.py, walking the sweep and recording which labelled structures have geometry inside the sector. The list is a measurement, not a clinical reading of what the sweep is for."
+          "note": "Current probe pose came from authoring-slots/v1 slot \"view-b1-apical-four-chamber\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement. structures_in_order was then REMEASURED against this pose by pipeline/remeasure_sweeps.py, walking the sweep and recording which labelled structures have geometry inside the sector. The list is a measurement, not a clinical reading of what the sweep is for. Aperture migrated 23.2 mm back along -beam_axis by pipeline/migrate_apertures.py to reach the skin of the registered BodyParts3D reference chest, which the heart-only authoring had no way to measure against. Plane preserved exactly; depth and focus grew by the retreat. Chest-wall positions are the working standard (owner decision, 2026-08-22) measured against a REFERENCE COMPOSITE - one adult male's chest around a population-average heart - not a patient. Status remains Draft. structures_in_order was cleared pending remeasurement."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -1019,13 +1019,13 @@
         "PSAX",
         "short axis"
       ],
-      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-c2-parasternal-short-axis\" (\"DRAFT TEST \u00b7 C2 \u00b7 c2-parasternal-short-axis-distance-candidate-002\"); prior placement landmark invalidated pending content review",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-c2-parasternal-short-axis\" (\"DRAFT TEST \u00b7 C2 \u00b7 c2-parasternal-short-axis-distance-candidate-002\"); prior placement landmark invalidated pending content review APERTURE MIGRATED to the chest wall of the registered adult reference chest: moved 10.0 mm back along its own beam until it reached the skin. The imaging plane, beam and lateral axes are unchanged; depth and focus grew by the retreat.",
       "indicator_clock": "2:00",
       "probe": {
         "origin": [
           -0.354699351,
           22.209657666,
-          89.915662514
+          99.94014052320318
         ],
         "beam_axis": [
           -2.100093521801519e-34,
@@ -1039,8 +1039,8 @@
         ],
         "fan": {
           "angle_deg": 70,
-          "depth_cm": 13.93,
-          "focus_cm": 8.89
+          "depth_cm": 14.932448,
+          "focus_cm": 9.892448
         },
         "display": {
           "vertex": "up",
@@ -1134,7 +1134,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Current probe pose came from authoring-slots/v1 slot \"view-c2-parasternal-short-axis\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement. structures_in_order was then REMEASURED against this pose by pipeline/remeasure_sweeps.py, walking the sweep and recording which labelled structures have geometry inside the sector. The list is a measurement, not a clinical reading of what the sweep is for."
+          "note": "Current probe pose came from authoring-slots/v1 slot \"view-c2-parasternal-short-axis\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement. structures_in_order was then REMEASURED against this pose by pipeline/remeasure_sweeps.py, walking the sweep and recording which labelled structures have geometry inside the sector. The list is a measurement, not a clinical reading of what the sweep is for. Aperture migrated 10.0 mm back along -beam_axis by pipeline/migrate_apertures.py to reach the skin of the registered BodyParts3D reference chest, which the heart-only authoring had no way to measure against. Plane preserved exactly; depth and focus grew by the retreat. Chest-wall positions are the working standard (owner decision, 2026-08-22) measured against a REFERENCE COMPOSITE - one adult male's chest around a population-average heart - not a patient. Status remains Draft. structures_in_order was cleared pending remeasurement."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
@@ -1289,13 +1289,13 @@
         "A3C",
         "apical long axis"
       ],
-      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-b4-apical-three-chamber\" (\"DRAFT TEST \u00b7 B4 \u00b7 b4-apical-three-chamber-candidate-002\"). This view is NEW: the pack did not previously claim it, and no prior placement landmark existed to invalidate.",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-b4-apical-three-chamber\" (\"DRAFT TEST \u00b7 B4 \u00b7 b4-apical-three-chamber-candidate-002\"). This view is NEW: the pack did not previously claim it, and no prior placement landmark existed to invalidate. APERTURE MIGRATED to the chest wall of the registered adult reference chest: moved 28.8 mm back along its own beam until it reached the skin. The imaging plane, beam and lateral axes are unchanged; depth and focus grew by the retreat.",
       "indicator_clock": "11:00",
       "probe": {
         "origin": [
-          -5.047184577,
-          -101.609260549,
-          13.34732406
+          -9.050167073861317,
+          -130.0050212155854,
+          15.86553010120031
         ],
         "beam_axis": [
           0.139055796,
@@ -1309,8 +1309,8 @@
         ],
         "fan": {
           "angle_deg": 80,
-          "depth_cm": 18.3,
-          "focus_cm": 11.46
+          "depth_cm": 21.178688,
+          "focus_cm": 14.338688
         },
         "display": {
           "vertex": "down",
@@ -1387,7 +1387,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "View CREATED by scripts/ingest-authoring-batch.ts from authoring-slots/v1 slot \"view-b4-apical-three-chamber\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z). Clinical identity \u2014 family, name, aliases and indicator clock \u2014 is content taken from docs/view_canon.md (DRAFT canon, lines 53 and 73), not derived from this mesh. No sweep was created: a sweep states how the plane moves through the anatomy and nothing in the carrier measures one. Status is Draft with no review history. Creating a view does not review it, and the pose has not been clinically validated."
+          "note": "View CREATED by scripts/ingest-authoring-batch.ts from authoring-slots/v1 slot \"view-b4-apical-three-chamber\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z). Clinical identity \u2014 family, name, aliases and indicator clock \u2014 is content taken from docs/view_canon.md (DRAFT canon, lines 53 and 73), not derived from this mesh. No sweep was created: a sweep states how the plane moves through the anatomy and nothing in the carrier measures one. Status is Draft with no review history. Creating a view does not review it, and the pose has not been clinically validated. Aperture migrated 28.8 mm back along -beam_axis by pipeline/migrate_apertures.py to reach the skin of the registered BodyParts3D reference chest, which the heart-only authoring had no way to measure against. Plane preserved exactly; depth and focus grew by the retreat. Chest-wall positions are the working standard (owner decision, 2026-08-22) measured against a REFERENCE COMPOSITE - one adult male's chest around a population-average heart - not a patient. Status remains Draft. structures_in_order was cleared pending remeasurement."
         },
         "derivation_chain": [
           "https://zenodo.org/records/4593738",
