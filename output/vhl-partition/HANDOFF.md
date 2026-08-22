@@ -2,7 +2,9 @@
 
 **Last Updated:** 2026-08-22 01:30 ET
 **Branch:** `experiment/vhl-partition`, cut from `dev` at `294751faf124b79693cae99d9335e881189a032c`
-**Head:** `cb94ff9` (local commits, NOT pushed. Nothing has ever been pushed from this branch.)
+**Head:** whatever `git bundle list-heads` reports for the bundle in this folder.
+The branch is committed locally and **has never been pushed**; the bundle is the only copy
+outside the machine that made it, and it is rewritten whenever this file is.
 
 Read this first, then `pack-labelled-vhl.proposed.md` if you are landing the model,
 or `NOTES.md` and the progress log if you are continuing the labelling.
