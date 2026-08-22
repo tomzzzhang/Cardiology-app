@@ -1,6 +1,6 @@
 # Contract: viewer-core
 
-**Last Updated:** 2026-08-22 14:01 EDT
+**Last Updated:** 2026-08-22 14:32 EDT
 
 **Owns:** `src/viewer/**`
 **Status:** implemented for the wave 1c slice. Superseded clauses are marked below; where this
@@ -101,6 +101,14 @@ The heart is the subject and the chest is scenery, and each of these is a rule:
 Load failure leaves the heart and the echo fully working and says so on screen. Colour, opacity and
 default visibility are provisional and freely reversible; they are display choices, not clinical
 ones.
+
+**Lighting is all-directional and does not live in the body frame.** *(Added 2026-08-22.)* A key
+light fixed in body coordinates lit the anatomy from behind — `+Y` is posterior — so the rig is now
+a hemisphere fill, a key carried by the CAMERA so the side turned toward the learner is the lit one
+at every orientation, and six low-intensity axis fills so no surface is ever black. Which structure
+looks bright must be a fact about where the learner is standing, never about which way the body
+frame points. Intensity and colour are display choices; `docs/build_plan.md` carries the deferred
+lighting panel.
 
 *(Supersedes "familiar globe-viewer orbit feel is the reference", 2026-08-19.)* A globe has a fixed
 axis and is never turned over; a heart read from underneath is neither, and reading that clause as a

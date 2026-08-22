@@ -1,6 +1,6 @@
 # Contract: authoring mode
 
-**Last Updated:** 2026-08-22 14:01 EDT
+**Last Updated:** 2026-08-22 14:32 EDT
 
 **Owns:** `src/authoring/**`, `scripts/ingest-authoring-export.ts`, and
 `scripts/lib/authoringIngest.ts`

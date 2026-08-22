@@ -88,14 +88,15 @@
         "verdict": "open",
         "tried": 10,
         "open": true,
-        "best_bone_fraction": 0.0,
-        "best_lung_fraction": 0.0,
+        "best_bone_fraction": 0.143,
+        "best_lung_fraction": 0.286,
         "best_cartilage_fraction": 0.0,
         "core_rays_blocked_by_bone": 0,
         "core_rays_blocked_by_lung": 0,
         "core_rays_reaching_the_heart": 9,
         "aperture_offset_from_imaging_plane_mm": 0.11,
-        "open_apertures": 10
+        "open_apertures": 10,
+        "re_cast_after_centring": true
       },
       "plane_adjustment": {
         "plane_rock_deg": 0.0,
@@ -117,6 +118,20 @@
       "indicator_clock_canon": "3:00",
       "indicator_clock_implied_by_pose": "3:00",
       "indicator_disagreement_hours": 0,
+      "sector_centring": {
+        "centred": true,
+        "turned_deg": 4.26,
+        "tissue_span_before_deg": [
+          -16.1,
+          24.6
+        ],
+        "dead_sector_before_deg": [
+          18.9,
+          10.4
+        ],
+        "dead_sector_after_deg": 14.6
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
       "structures_crossed": [
         "la-lumen",
         "la-myocardium",
@@ -142,14 +157,15 @@
         "verdict": "open",
         "tried": 1,
         "open": true,
-        "best_bone_fraction": 0.0,
-        "best_lung_fraction": 0.095,
-        "best_cartilage_fraction": 0.286,
+        "best_bone_fraction": 0.238,
+        "best_lung_fraction": 0.19,
+        "best_cartilage_fraction": 0.19,
         "core_rays_blocked_by_bone": 0,
         "core_rays_blocked_by_lung": 0,
         "core_rays_reaching_the_heart": 9,
         "aperture_offset_from_imaging_plane_mm": 0.99,
-        "open_apertures": 1
+        "open_apertures": 1,
+        "re_cast_after_centring": true
       },
       "plane_adjustment": {
         "plane_rock_deg": 0.0,
@@ -172,6 +188,20 @@
       "indicator_clock_canon": "3:00",
       "indicator_clock_implied_by_pose": "3:00",
       "indicator_disagreement_hours": 0,
+      "sector_centring": {
+        "centred": true,
+        "turned_deg": 6.09,
+        "tissue_span_before_deg": [
+          -19.8,
+          31.9
+        ],
+        "dead_sector_before_deg": [
+          15.2,
+          3.1
+        ],
+        "dead_sector_after_deg": 9.1
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
       "structures_crossed": [
         "la-lumen",
         "la-myocardium",
@@ -198,18 +228,19 @@
         "tried": 1,
         "open": true,
         "best_bone_fraction": 0.048,
-        "best_lung_fraction": 0.048,
+        "best_lung_fraction": 0.095,
         "best_cartilage_fraction": 0.143,
         "core_rays_blocked_by_bone": 0,
         "core_rays_blocked_by_lung": 0,
         "core_rays_reaching_the_heart": 9,
         "aperture_offset_from_imaging_plane_mm": 0.0,
-        "open_apertures": 1
+        "open_apertures": 1,
+        "re_cast_after_centring": true
       },
       "plane_adjustment": {
         "derived_from": "b1-apical-four-chamber",
         "probe_axis_turned_about": "lateral",
-        "turn_deg": 7.25,
+        "turn_deg": 7.26,
         "turn_basis": "solved to bring the aortic into the plane",
         "aperture_unchanged_from_parent": true
       },
@@ -223,11 +254,25 @@
         1401.13
       ],
       "stand_off_to_nearest_heart_mm": 71.77,
-      "depth_cm": 22.47,
+      "depth_cm": 22.42,
       "focus_cm": 16.51,
       "indicator_clock_canon": "3:00",
       "indicator_clock_implied_by_pose": "3:00",
       "indicator_disagreement_hours": 0,
+      "sector_centring": {
+        "centred": true,
+        "turned_deg": 1.0,
+        "tissue_span_before_deg": [
+          -23.5,
+          25.5
+        ],
+        "dead_sector_before_deg": [
+          11.5,
+          9.5
+        ],
+        "dead_sector_after_deg": 10.5
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
       "structures_crossed": [
         "aorta-lumen",
         "aortic-wall",
@@ -247,7 +292,7 @@
         "mitral",
         "tricuspid"
       ],
-      "plane_normal_vs_lv_long_axis_deg": 83.6
+      "plane_normal_vs_lv_long_axis_deg": 84.0
     },
     {
       "view_id": "b3-apical-two-chamber",
@@ -304,7 +349,8 @@
         "core_rays_blocked_by_lung": 0,
         "core_rays_reaching_the_heart": 9,
         "aperture_offset_from_imaging_plane_mm": 3.25,
-        "open_apertures": 1
+        "open_apertures": 1,
+        "re_cast_after_centring": true
       },
       "plane_adjustment": {
         "plane_rock_deg": 12.0,
@@ -326,6 +372,20 @@
       "indicator_clock_canon": "3:00",
       "indicator_clock_implied_by_pose": "4:00",
       "indicator_disagreement_hours": 1,
+      "sector_centring": {
+        "centred": true,
+        "turned_deg": 6.83,
+        "tissue_span_before_deg": [
+          -20.3,
+          34.0
+        ],
+        "dead_sector_before_deg": [
+          14.7,
+          1.0
+        ],
+        "dead_sector_after_deg": 7.8
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
       "structures_crossed": [
         "lv-lumen",
         "lv-myocardium",
@@ -349,14 +409,15 @@
         "verdict": "open",
         "tried": 4,
         "open": true,
-        "best_bone_fraction": 0.0,
-        "best_lung_fraction": 0.095,
+        "best_bone_fraction": 0.048,
+        "best_lung_fraction": 0.048,
         "best_cartilage_fraction": 0.476,
         "core_rays_blocked_by_bone": 0,
         "core_rays_blocked_by_lung": 0,
         "core_rays_reaching_the_heart": 9,
         "aperture_offset_from_imaging_plane_mm": 0.02,
-        "open_apertures": 4
+        "open_apertures": 4,
+        "re_cast_after_centring": true
       },
       "plane_adjustment": {
         "plane_rock_deg": 0.0,
@@ -379,6 +440,20 @@
       "indicator_clock_canon": "10:00",
       "indicator_clock_implied_by_pose": "11:00",
       "indicator_disagreement_hours": 1,
+      "sector_centring": {
+        "centred": true,
+        "turned_deg": -2.89,
+        "tissue_span_before_deg": [
+          -34.2,
+          28.4
+        ],
+        "dead_sector_before_deg": [
+          0.8,
+          6.6
+        ],
+        "dead_sector_after_deg": 3.7
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
       "structures_crossed": [
         "aorta-lumen",
         "aortic-wall",
@@ -407,13 +482,14 @@
         "tried": 1,
         "open": true,
         "best_bone_fraction": 0.19,
-        "best_lung_fraction": 0.19,
-        "best_cartilage_fraction": 0.238,
+        "best_lung_fraction": 0.048,
+        "best_cartilage_fraction": 0.333,
         "core_rays_blocked_by_bone": 0,
         "core_rays_blocked_by_lung": 0,
         "core_rays_reaching_the_heart": 9,
         "aperture_offset_from_imaging_plane_mm": 0.0,
-        "open_apertures": 1
+        "open_apertures": 1,
+        "re_cast_after_centring": true
       },
       "plane_adjustment": {
         "derived_from": "c1-parasternal-long-axis",
@@ -435,6 +511,20 @@
       "indicator_clock_canon": "2:00",
       "indicator_clock_implied_by_pose": "2:00",
       "indicator_disagreement_hours": 0,
+      "sector_centring": {
+        "centred": true,
+        "turned_deg": -5.72,
+        "tissue_span_before_deg": [
+          -34.0,
+          22.5
+        ],
+        "dead_sector_before_deg": [
+          1.0,
+          12.5
+        ],
+        "dead_sector_after_deg": 6.7
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
       "structures_crossed": [
         "la-lumen",
         "la-myocardium",

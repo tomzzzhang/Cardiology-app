@@ -512,6 +512,14 @@ APICAL_SEARCH_RADIUS_MM = 45.0
 #: aperture the pose can be built from is one the pose's own plane contains.
 APERTURE_PLANE_TOLERANCE_MM = legacy.SLAB_MM
 
+#: Percentile band of in-plane tissue the sector is centred on.
+#:
+#: Not the extremes: one stray vertex from a decimation artefact or a
+#: great-vessel stub at the edge of the slab would drag the aim by degrees. The
+#: 1st and 99th percentiles of the angular spread are what an operator is
+#: actually centring by eye.
+CENTRING_PERCENTILES = (1.0, 99.0)
+
 #: How far the imaging plane may be ROCKED off the strict landmark plane while
 #: hunting for a window, in degrees, and in what order it is tried.
 #:
@@ -1168,6 +1176,50 @@ def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView"
                         slid, aim, adjustment, slid_report)
 
 
+def centre_on_tissue(origin: np.ndarray, beam: np.ndarray, lateral: np.ndarray,
+                     vertices: np.ndarray, half_angle: float) -> tuple[np.ndarray, np.ndarray, dict]:
+    """
+    Aim the beam at the middle of the tissue the plane actually cuts.
+
+    Pointing the beam at a landmark centroid is not the same as centring the
+    picture, and the difference is visible: the chamber-labelled pack's
+    four-chamber sector came out with 15.2 degrees of dead sector on one side
+    and 3.1 on the other, because the mean of two atrioventricular orifices is
+    not the middle of the heart as seen from the apex.
+
+    So the beam is rotated WITHIN the imaging plane until it bisects the angular
+    spread of the tissue that plane cuts. Rotating in the plane changes nothing
+    else: the plane, its normal and every landmark residual are untouched, and
+    only the angular test in `contains` moves — in the direction that helps.
+    The window still has to be re-cast afterwards, because a re-aimed fan sweeps
+    different rays.
+    """
+    normal = np.cross(beam, lateral)
+    offsets = vertices - origin
+    in_plane = offsets[np.abs(offsets @ normal) <= legacy.SLAB_MM]
+    if len(in_plane) == 0:
+        return beam, lateral, {"centred": False, "reason": "the plane cuts no tissue"}
+
+    angles = np.degrees(np.arctan2(in_plane @ lateral, in_plane @ beam))
+    inside = np.abs(angles) <= np.degrees(half_angle)
+    if inside.sum() < 50:
+        return beam, lateral, {"centred": False, "reason": "too little tissue in the sector"}
+
+    low, high = np.percentile(angles[inside], CENTRING_PERCENTILES)
+    turn = float((low + high) / 2.0)
+    radians = np.radians(turn)
+    aimed = legacy.unit(np.cos(radians) * beam + np.sin(radians) * lateral)
+    side = legacy.unit(-np.sin(radians) * beam + np.cos(radians) * lateral)
+    return aimed, side, {
+        "centred": True,
+        "turned_deg": round(turn, 2),
+        "tissue_span_before_deg": [round(float(low), 1), round(float(high), 1)],
+        "dead_sector_before_deg": [round(float(np.degrees(half_angle) + low), 1),
+                                   round(float(np.degrees(half_angle) - high), 1)],
+        "dead_sector_after_deg": round(float(np.degrees(half_angle) - (high - low) / 2.0), 1),
+    }
+
+
 def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
                  beam: np.ndarray, lateral: np.ndarray, score: WindowScore,
                  aim: np.ndarray, adjustment: dict,
@@ -1184,6 +1236,30 @@ def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
     if (clock_disagreement_hours(spec.clock, implied_clock(-lateral))
             < clock_disagreement_hours(spec.clock, implied_clock(lateral))):
         lateral = -lateral
+
+    half = np.radians(FAN_ANGLE_DEG / 2.0)
+    beam, lateral, centring = centre_on_tissue(origin, beam, lateral, heart.vertices, half)
+    if centring.get("centred") and abs(centring["turned_deg"]) > 0.05:
+        recast = score_apertures(chest, heart, origin[None, :],
+                                 origin + beam * 100.0, np.cross(beam, lateral),
+                                 float(np.linalg.norm(aim - origin)) + 140.0, np.zeros(1))[0]
+        if not recast.open:
+            # Re-aiming shut the window. The picture being off-centre is a
+            # smaller fault than the beam going through a rib, so the original
+            # aim is kept and the reason is recorded on the pose.
+            beam, lateral = score.beam, score.lateral
+            centring = {"centred": False,
+                        "reason": "centring the sector closed the acoustic window; "
+                                  "the original aim is kept"}
+        else:
+            score = recast
+            window_report = {**window_report,
+                             "best_bone_fraction": round(recast.bone_fraction, 3),
+                             "best_lung_fraction": round(recast.lung_fraction, 3),
+                             "best_cartilage_fraction": round(recast.cartilage_fraction, 3),
+                             "core_rays_blocked_by_bone": recast.core_bone,
+                             "core_rays_blocked_by_lung": recast.core_lung,
+                             "re_cast_after_centring": True}
 
     normal = np.cross(beam, lateral)
     offsets = heart.vertices - origin
@@ -1256,6 +1332,12 @@ def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
         "indicator_clock_canon": spec.clock,
         "indicator_clock_implied_by_pose": clock,
         "indicator_disagreement_hours": clock_disagreement_hours(spec.clock, clock),
+        "sector_centring": centring,
+        "near_field_note": (
+            "The empty wedge between the transducer and the first tissue is the composite's own "
+            "stand-off, not a framing choice: it is chest wall plus however far this heart sits "
+            "off it."
+        ),
         "structures_crossed": crossed,
         "plane_landmarks": list(spec.plane),
         "plane_normal_vs_lv_long_axis_deg": round(obliquity, 1),

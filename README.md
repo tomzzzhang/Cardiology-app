@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Last Updated:** 2026-08-22 14:01 EDT
+**Last Updated:** 2026-08-22 14:32 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -111,7 +111,8 @@ npm run dev
 | `npm run build` | Production build into `dist/` |
 | `npm run build:authoring` | Production-check the primary authoring surface into `dist-authoring/` |
 | `npm run check:fast` | Typecheck, lint, and unit tests — the normal platform gate |
-| `npm run check:content` | Pack/schema integrity plus provenance and licence metadata |
+| `npm run check:content` | Pack/schema integrity plus provenance, licence metadata and the per-pack geometry budget |
+| `npm run check:pack-budget` | Derived assets per pack against the 15 MB budget, with over-budget packs recorded as named exceptions |
 | `npm run check:absolute-paths` | Reject machine-specific paths before shared history |
 | `npm run verify` | Fast platform gate plus learner and authoring production builds |
 | `npm run verify:release` | Full content, non-root bundle, authoring-exclusion, and browser release gate |

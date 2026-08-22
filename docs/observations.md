@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-22 14:01 EDT
+**Last Updated:** 2026-08-22 14:32 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2505,3 +2505,48 @@ registrations, the residuals and both chest assets are byte-identical.
 **Nothing here is vetted.** Every pose is Draft, no clinician has read a window or a plane, and each
 one carries the sentence the chest makes unavoidable: it is an adult male thorax, so the interspace
 it names is an adult interspace and is not age-correct.
+
+## 70. Three things that were wrong when you looked at it
+
+*(2026-08-22. All three came from one session of actually using the viewer, which is what this file
+is for.)*
+
+**The sector was not centred, and about six degrees of that was mine.** The beam was aimed at the
+mean of a view's landmarks — for the four-chamber, the midpoint of the two atrioventricular
+orifices — and that is not the middle of the heart as seen from the apex. Measured on the
+chamber-labelled pack: tissue spanning **−19.8° to +31.9°** inside a ±35° sector, so 15.2 degrees of
+dead sector on one side against 3.1 on the other. The beam is now rotated WITHIN the imaging plane
+until it bisects the angular spread of the tissue that plane actually cuts, which changes the plane,
+its normal and every landmark residual not at all, and moves only the angular test. The same view
+now reads **−25.9° to +25.9°**. The window is re-cast after the re-aim, because a re-aimed fan
+sweeps different rays; where centring shuts the window the original aim is kept and the pose says so.
+
+**The rest of "not centred" is not centring at all, and no re-aim fixes it.** Between the
+transducer and the first tissue there is 26–48 percent of the sector's depth, empty. That wedge is
+the composite's own stand-off: 54.7 mm from skin to heart at Rodero's apical window, 71.8 mm at the
+chamber pack's, 110.5 mm at its subcostal one, against roughly 20–30 mm of real adult chest wall.
+It is chest wall plus the floating heart of entry 68, and it is now stated on every pose rather than
+left to look like a framing decision.
+
+**The light was behind the patient.** One directional light, fixed at `(1, 1.4, 1)` in the
+patient/body frame — where `+Y` is POSTERIOR. So the key sat behind the chest: orbit round to the
+front, which is where a learner reads a heart from, and you are on the shadowed side of everything.
+Worse, a structure's brightness was a fact about where the body frame pointed rather than about
+where you were standing. Now: hemisphere fill, a key that rides the CAMERA so the side turned toward
+the learner is always lit, and six low axis fills so nothing is ever black. Total intensity held
+close to the old rig's, because the translucent chest was tuned against that level. A lighting
+panel is wanted and is recorded as deferred in `docs/build_plan.md`.
+
+**And the lag has a number.** `pipeline/geometry.py` has carried a per-pack budget since wave 0 —
+15 MB of derived assets and 220,000 triangles, from the build plan — and enforces it by decimating
+on the way out. `normal-rodero` sits at 11.9 MB and 222,380 triangles, which is that budget working.
+`normal-vhl-heart0102-chambers` sits at **144 MB and 6,029,784 triangles: nine times the byte budget
+and twenty-seven times the triangle budget.** It is not a regression and not a mistake — that pack
+is built by `pipeline/vhl_pack.py`, which decimates nothing on purpose, and "no smoothing,
+decimation or hole filling" is one of its stated properties. But the budget was a STEP inside one
+pipeline and never a CHECK, so a pack built by another pipeline simply never met it. Now it is
+checked: `npm run check:pack-budget` measures every pack, and the oversized one is a named exception
+carrying its size and the decision behind it, so an existing exposure is visible and a new one
+cannot arrive unnoticed. Whether to decimate that pack is a decision about the pack, and the honest
+trade is legible now: its interiors are the reason it is heavy, and its interiors are the reason it
+exists.

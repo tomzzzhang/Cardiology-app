@@ -1,6 +1,6 @@
 # Build plan — Cardiology app
 
-**Last Updated:** 2026-08-22 14:01 EDT
+**Last Updated:** 2026-08-22 14:32 EDT
 
 > **Build specification.** Clinical collaborators are referred to by role, not name. Referenced `research/DR*.md` reports live in the owner's planning folder.
 
@@ -101,6 +101,25 @@ requires a better boundary. Each current module has a one-page contract under `c
 - Learner mode can freely move the anatomical cutter. The wedge is driven by named views and sweeps, through the scrubber or the probe control pad, whose fan buttons write the same `t`. **One explicit exception** (2026-08-19): a **Free probe** toggle unlocks the probe and lets the learner turn it off the saved track, paid for by the echo panel withdrawing the view's name and draft flag the moment it has actually moved. Arbitrary probe-pose AUTHORING remains in authoring mode, and nothing a learner can do writes to `views[]`.
 - **The cutter has two named modes** (2026-08-19, superseding the one-shot **Align free cut to echo view** bridge): **Echo plane**, in which it continuously follows the selected view's imaging plane as the sweep scrubs, and **Free**, in which it claims no relationship to the view. The name is on screen at all times. Data flows probe → cutter and never the reverse, and neither mode modifies the saved view.
 - Moving the free cutter alone does not synthesize or relabel an echo image. The echo panel continues to display only the selected saved view/sweep output.
+
+### Scene lighting — all-directional now, a panel later (owner request, 2026-08-22)
+
+The rig was one hemisphere light plus one directional light fixed at `(1, 1.4, 1)`. In the
+patient/body frame `+Y` is POSTERIOR, so that key sat **behind the chest**: anatomy was lit from
+the back, orbiting round to the front put the learner on the shadowed side of what they were
+reading, and a structure's brightness depended on where the body frame happened to point rather
+than on anything anatomical. Replaced with an all-directional rig — hemisphere fill, a key that
+**rides the camera** so the side turned toward the learner is always the lit one, and six low
+axis fills so nothing is ever black. Total intensity held close to the old rig's, because the
+translucent chest was tuned against that level.
+
+**DEFERRED — a lighting panel.** Intensity, colour temperature, the key's offset from the camera,
+and how much fill the axis lights contribute are display choices, not clinical ones, and they are
+currently constants in `src/viewer/PackViewer.tsx`. The owner wants them exposed as a control panel.
+Not scoped yet; the useful shape is probably a small set of named presets (a neutral default, a
+high-contrast one for reading form on the chest, a flat one for screenshots) plus a manual override,
+sitting beside the existing chest opacity control rather than in a new surface. Nothing in the
+engine depends on the current values, so this stays cheap to do whenever it is wanted.
 
 ## Content pack schema — v0 PROVISIONAL
 

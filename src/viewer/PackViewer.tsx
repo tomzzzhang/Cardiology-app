@@ -464,12 +464,54 @@ export default function PackViewer({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0f14);
-    scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a2028, 1.5));
-    const key = new THREE.DirectionalLight(0xffffff, 1.9);
-    key.position.set(1, 1.4, 1);
-    scene.add(key);
 
     const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 5000);
+
+    /*
+     * Lighting: all-directional, and NOT fixed to the body.
+     *
+     * The previous rig was one hemisphere light and one directional light at
+     * `(1, 1.4, 1)`. In the patient/body frame `+Y` is POSTERIOR, so that key
+     * light sat behind the chest: the anatomy was lit from the back, and
+     * orbiting round to the front put the learner on the shadowed side of
+     * everything they were trying to read. A light fixed in body coordinates
+     * also means the same structure is bright in one view and dark in another
+     * for no anatomical reason.
+     *
+     * Three parts, and each is doing a different job:
+     *
+     * * the HEMISPHERE fills the whole scene so no surface is ever black;
+     * * the KEY rides the CAMERA, so whatever the learner has turned toward
+     *   themselves is the lit side, at every orientation and after any orbit;
+     * * six AXIS FILLS, one down each body axis at low intensity, so a surface
+     *   turned away from both the key and the sky still reads. They are what
+     *   makes this all-directional rather than merely camera-lit: a rib behind
+     *   the heart, or the inside of a chamber seen through a cut, still has
+     *   form instead of going flat.
+     *
+     * Total intensity is held close to the old rig's on purpose — this is a
+     * redistribution, not a brightening, and the translucent chest was tuned
+     * against the old level.
+     *
+     * Colour, intensity and direction here are display choices and are freely
+     * reversible; `docs/build_plan.md` carries the deferred idea of exposing
+     * them as a lighting panel rather than fixing them in code.
+     */
+    scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a2028, 1.0));
+
+    const key = new THREE.DirectionalLight(0xffffff, 1.3);
+    key.position.set(0.4, 0.6, 1);
+    camera.add(key);
+    // A light only lights what is in the scene graph, so the camera carrying it
+    // has to be in the scene even though nothing renders it.
+    scene.add(camera);
+
+    for (const axis of [[1, 0, 0], [-1, 0, 0], [0, 1, 0],
+      [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const) {
+      const fill = new THREE.DirectionalLight(0xffffff, 0.2);
+      fill.position.set(axis[0], axis[1], axis[2]);
+      scene.add(fill);
+    }
     const controller = new AbortController();
     let frameHandle = 0;
     let disposed = false;

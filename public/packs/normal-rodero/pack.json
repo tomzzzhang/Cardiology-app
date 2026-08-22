@@ -1539,14 +1539,14 @@
           -12.351353535
         ],
         "beam_axis": [
-          0.9163444329901592,
-          0.3977040892274089,
-          0.0463069923417708
+          0.9454074777143299,
+          0.32289068042266944,
+          0.04411699874214442
         ],
         "lateral_axis": [
-          0.3990837891191205,
-          -0.9165615430186392,
-          -0.025437514061255363
+          0.3242833509318044,
+          -0.9455132009787579,
+          -0.029070519144711104
         ],
         "fan": {
           "angle_deg": 70.0,
@@ -1608,7 +1608,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at 16 mm below the xiphoid tip, 38 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, on the skin, beam angled up under the costal margin. The plane is the one containing both atrioventricular orifices and the left atrium, which is where the atrial septum lies most nearly perpendicular to a beam entering from below \u2014 the payload the canon gives this view. This window could not be placed on a heart-only substrate at all: 'below the diaphragm' is a body axis, and it took a registered chest to have one. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 0% are stopped by bone, 0% by lung and 81% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the mitral and the tricuspid'}. Landmark plane residuals in millimetres: {'mitral': 1.16, 'tricuspid': 1.16}. INDICATOR: the canon gives 3:00; this pose implies 4:00, a disagreement of 1 hour(s), measured rather than imposed. STAND-OFF: 71.55 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at 16 mm below the xiphoid tip, 38 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, on the skin, beam angled up under the costal margin. The plane is the one containing both atrioventricular orifices and the left atrium, which is where the atrial septum lies most nearly perpendicular to a beam entering from below \u2014 the payload the canon gives this view. This window could not be placed on a heart-only substrate at all: 'below the diaphragm' is a body axis, and it took a registered chest to have one. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 14% are stopped by bone, 10% by lung and 81% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the mitral and the tricuspid'}. Landmark plane residuals in millimetres: {'mitral': 1.16, 'tricuspid': 1.16}. INDICATOR: the canon gives 3:00; this pose implies 4:00, a disagreement of 1 hour(s), measured rather than imposed. STAND-OFF: 71.55 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-rodero/pack.json and its shipped glTF",
@@ -1639,14 +1639,14 @@
           17.635525412
         ],
         "beam_axis": [
-          0.3871889464279177,
-          0.9214160247538585,
-          -0.03282116833441429
+          0.3707871893295699,
+          0.9281034103336998,
+          -0.03377750665804117
         ],
         "lateral_axis": [
-          0.9200747843442317,
-          -0.38383593255892046,
-          0.07830943806808575
+          0.926111614019846,
+          -0.3667792044238913,
+          0.08826263977319819
         ],
         "fan": {
           "angle_deg": 70.0,
@@ -1712,7 +1712,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at lateral to the curve of the left rib 6, which lies both above and below this point; not an interspace. The four-chamber window, ANGLED anteriorly about the probe's own marker axis until the left ventricular outflow tract and the aortic orifice enter the plane. The angle is solved from the geometry, not chosen, and is reported. The apex is NOT required to stay in the plane through that angulation: foreshortening it is what the manoeuvre does, and its residual is measured and reported instead. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 0% are stopped by bone, 5% by lung and 76% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'derived_from': 'b1-apical-four-chamber', 'probe_axis_turned_about': 'lateral', 'turn_deg': 8.24, 'turn_basis': 'solved to bring the aortic into the plane', 'aperture_unchanged_from_parent': True}. Landmark plane residuals in millimetres: {'aortic': 0.0}. INDICATOR: the canon gives 3:00; this pose implies 3:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 54.66 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at lateral to the curve of the left rib 6, which lies both above and below this point; not an interspace. The four-chamber window, ANGLED anteriorly about the probe's own marker axis until the left ventricular outflow tract and the aortic orifice enter the plane. The angle is solved from the geometry, not chosen, and is reported. The apex is NOT required to stay in the plane through that angulation: foreshortening it is what the manoeuvre does, and its residual is measured and reported instead. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 0% are stopped by bone, 0% by lung and 76% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'derived_from': 'b1-apical-four-chamber', 'probe_axis_turned_about': 'lateral', 'turn_deg': 8.24, 'turn_basis': 'solved to bring the aortic into the plane', 'aperture_unchanged_from_parent': True}. Landmark plane residuals in millimetres: {'aortic': 0.0}. INDICATOR: the canon gives 3:00; this pose implies 3:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 54.66 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-rodero/pack.json and its shipped glTF",
@@ -1743,14 +1743,14 @@
           59.683604229
         ],
         "beam_axis": [
-          0.4939293461287276,
-          0.5551502703424768,
-          -0.6692099658339845
+          0.47770570678822594,
+          0.606220743793347,
+          -0.6358409136699231
         ],
         "lateral_axis": [
-          0.24153447453868754,
-          -0.8269584664449401,
-          -0.5077408712959329
+          0.2722174848531848,
+          -0.7902838336198794,
+          -0.5489527331740621
         ],
         "fan": {
           "angle_deg": 70.0,
@@ -1769,6 +1769,8 @@
         "la-myocardium",
         "lv-myocardium",
         "mitral-valve-ring",
+        "pulmonary-artery-wall",
+        "pulmonary-valve-ring",
         "rv-myocardium",
         "tagged-region-15",
         "tagged-region-22"
@@ -1782,6 +1784,8 @@
           "la-myocardium",
           "lv-myocardium",
           "mitral-valve-ring",
+          "pulmonary-artery-wall",
+          "pulmonary-valve-ring",
           "rv-myocardium",
           "tagged-region-15",
           "tagged-region-22"
@@ -1800,7 +1804,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at left 4th intercostal space (rib 4 37 mm above, rib 5 30 mm below). The four-chamber window, ROTATED about the beam until the right-sided chambers leave the plane. Sixty degrees is the canonical rotation; which structures the sector then crosses is measured rather than assumed, and is listed below. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 0% are stopped by bone, 5% by lung and 43% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'derived_from': 'b1-apical-four-chamber', 'probe_axis_turned_about': 'long_axis', 'turn_deg': 60.0, 'turn_basis': 'the canonical fixed angle for this manoeuvre', 'aperture_unchanged_from_parent': False, 'slid_within_window_mm': 54.2, 'slid_because': 'the imaging plane misses the apex by 28.8 mm; the imaging plane misses the mitral by 28.8 mm; the sector does not reach the apex; the sector does not reach the mitral'}. Landmark plane residuals in millimetres: {'apex': 4.41, 'mitral': 4.41}. INDICATOR: the canon gives 2:00; this pose implies 5:00, a disagreement of 3 hour(s), measured rather than imposed. STAND-OFF: 45.84 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at left 4th intercostal space (rib 4 37 mm above, rib 5 30 mm below). The four-chamber window, ROTATED about the beam until the right-sided chambers leave the plane. Sixty degrees is the canonical rotation; which structures the sector then crosses is measured rather than assumed, and is listed below. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 0% are stopped by bone, 5% by lung and 38% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'derived_from': 'b1-apical-four-chamber', 'probe_axis_turned_about': 'long_axis', 'turn_deg': 60.0, 'turn_basis': 'the canonical fixed angle for this manoeuvre', 'aperture_unchanged_from_parent': False, 'slid_within_window_mm': 54.2, 'slid_because': 'the imaging plane misses the apex by 28.8 mm; the imaging plane misses the mitral by 28.8 mm; the sector does not reach the apex; the sector does not reach the mitral'}. Landmark plane residuals in millimetres: {'apex': 4.41, 'mitral': 4.41}. INDICATOR: the canon gives 2:00; this pose implies 5:00, a disagreement of 3 hour(s), measured rather than imposed. STAND-OFF: 45.84 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-rodero/pack.json and its shipped glTF",
@@ -1831,14 +1835,14 @@
           71.37087691
         ],
         "beam_axis": [
-          -0.06781036621487174,
-          0.7356598003410778,
-          -0.6739483751712223
+          -0.019758402325006023,
+          0.6648506790451081,
+          -0.7467149255979968
         ],
         "lateral_axis": [
-          0.42463901075588256,
-          -0.5899835091204592,
-          -0.6867322400398678
+          0.42956505998450667,
+          -0.6687671174969835,
+          -0.6068149650390003
         ],
         "fan": {
           "angle_deg": 70.0,
@@ -1884,7 +1888,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at lateral to the curve of the left rib 4, which lies both above and below this point; not an interspace. The apical window moved medially, on the plane through the apex, the tricuspid orifice and the right ventricular centroid. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 19% are stopped by bone, 0% by lung and 48% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the tricuspid and the rv'}. Landmark plane residuals in millimetres: {'tricuspid': 3.81, 'rv': 3.81}. INDICATOR: the canon gives 3:00; this pose implies 5:00, a disagreement of 2 hour(s), measured rather than imposed. STAND-OFF: 46.98 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at lateral to the curve of the left rib 4, which lies both above and below this point; not an interspace. The apical window moved medially, on the plane through the apex, the tricuspid orifice and the right ventricular centroid. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 10% are stopped by bone, 0% by lung and 38% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the tricuspid and the rv'}. Landmark plane residuals in millimetres: {'tricuspid': 3.81, 'rv': 3.81}. INDICATOR: the canon gives 3:00; this pose implies 5:00, a disagreement of 2 hour(s), measured rather than imposed. STAND-OFF: 46.98 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-rodero/pack.json and its shipped glTF",
