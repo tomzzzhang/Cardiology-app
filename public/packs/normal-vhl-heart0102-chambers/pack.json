@@ -4,7 +4,7 @@
     "display_name": "Healthy Pediatric Heart \u2014 Heart0102, chamber-labelled",
     "anatomy": "Normal paediatric heart, observer-labelled chambers and myocardium",
     "canonical_variant": "Single 14-year-old specimen, MR-segmented tissue, no known cardiac history; six lumen and six wall identities hand-seeded by one observer",
-    "pack_version": "0.1.1",
+    "pack_version": "0.1.2",
     "schema_version": "0.1"
   },
   "provenance": {
@@ -1098,6 +1098,384 @@
         "modified": {
           "flag": true,
           "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"fitted-chest-bp3d-heart0102-chambers\" at left 2nd intercostal space (rib 2 38 mm above, rib 3 32 mm below). The long-axis window, with the probe ROTATED ninety degrees in place. That is the manoeuvre, not an approximation of it. Whether the result is really a short axis is then checked rather than assumed: the angle between the resulting plane's normal and the measured left ventricular long axis is reported, and a true short axis has them parallel. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 19% are stopped by bone, 5% by lung and 33% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'derived_from': 'c1-parasternal-long-axis', 'probe_axis_turned_about': 'to_aim', 'turn_deg': 90.0, 'turn_basis': 'the canonical fixed angle for this manoeuvre', 'aperture_unchanged_from_parent': True}. Landmark plane residuals in millimetres: {}. INDICATOR: the canon gives 2:00; this pose implies 2:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 51.61 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.211184. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-vhl-heart0102-chambers/pack.json and its shipped glTF",
+          "public/body-context/fitted-chest-bp3d-heart0102-chambers/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "A",
+      "view_id": "a5-subcostal-rao",
+      "name": "Subcostal right anterior oblique (draft)",
+      "aliases": [
+        "subcostal RAO",
+        "TET view",
+        "SEROV",
+        "subcostal RV three-chamber"
+      ],
+      "placement_landmark": "43 mm below the xiphoid tip, 40 mm from the midline \u2014 this window is under the costal margin, not between ribs",
+      "indicator_clock": "2:00",
+      "probe": {
+        "origin": [
+          -16.74927988,
+          -168.804404891,
+          23.753044462
+        ],
+        "beam_axis": [
+          -0.02817691028951202,
+          0.9995735830800448,
+          -0.007662488829205256
+        ],
+        "lateral_axis": [
+          0.48565482443751423,
+          0.02038929420538689,
+          0.8739128493061384
+        ],
+        "fan": {
+          "angle_deg": 70.0,
+          "depth_cm": 24.24,
+          "focus_cm": 17.98
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aorta-lumen",
+        "aortic-wall",
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "pulmonary-artery-lumen",
+        "pulmonary-artery-wall",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aorta-lumen",
+          "aortic-wall",
+          "la-lumen",
+          "la-myocardium",
+          "lv-lumen",
+          "lv-myocardium",
+          "pulmonary-artery-lumen",
+          "pulmonary-artery-wall",
+          "ra-lumen",
+          "ra-myocardium",
+          "rv-lumen",
+          "rv-myocardium"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Visible Heart Laboratories (University of Minnesota)",
+        "source": "Sketchfab model 'Healthy Pediatric Heart Model- Heart0102', uid b7cb05c398894395a329cfff4c1caf0e",
+        "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
+        "license": "CC-BY-NC-4.0",
+        "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "license_state": "non_commercial",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"fitted-chest-bp3d-heart0102-chambers\" at 43 mm below the xiphoid tip, 40 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, beam angled up under the costal margin, rotated counterclockwise from the coronal. What makes this view the view is that RV INFLOW and RV OUTFLOW lie in ONE plane, so that is exactly what is required here: the plane through the tricuspid orifice, the pulmonary orifice and the right ventricular centroid, with both orifices inside the sector. The canon's en-face aortic valve and its conal-septum deviation are the teaching payload and are NOT demonstrable on either substrate \u2014 neither carries valve leaflets and neither carries a separately tagged infundibular septum \u2014 so this pose reaches the plane and not the payload, which is what its Draft status is for. It is searched from its own aperture rather than turned from the subcostal coronal: the rotation is large enough that an operator repositions. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 33% are stopped by bone, 29% by lung and 62% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the tricuspid and the pulmonary'}. Landmark plane residuals in millimetres: {'tricuspid': 1.04, 'pulmonary': 1.04}. INDICATOR: the canon gives 2:00; this pose implies 2:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 94.07 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.211184. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 58.71 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-vhl-heart0102-chambers/pack.json and its shipped glTF",
+          "public/body-context/fitted-chest-bp3d-heart0102-chambers/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "A",
+      "view_id": "a6-subcostal-lao",
+      "name": "Subcostal left anterior oblique (draft)",
+      "aliases": [
+        "subcostal LAO"
+      ],
+      "placement_landmark": "5 mm below the xiphoid tip, 43 mm from the midline \u2014 this window is under the costal margin, not between ribs",
+      "indicator_clock": "5:00",
+      "probe": {
+        "origin": [
+          -17.805905464,
+          -139.044633059,
+          47.516373763
+        ],
+        "beam_axis": [
+          0.05455950799286503,
+          0.9756396219132057,
+          -0.21248667779565295
+        ],
+        "lateral_axis": [
+          0.5054649930062973,
+          -0.21050936445194224,
+          -0.836774132202462
+        ],
+        "fan": {
+          "angle_deg": 70.0,
+          "depth_cm": 21.35,
+          "focus_cm": 15.58
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aorta-lumen",
+        "aortic-wall",
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "pulmonary-artery-lumen",
+        "pulmonary-artery-wall",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aorta-lumen",
+          "aortic-wall",
+          "la-lumen",
+          "la-myocardium",
+          "lv-lumen",
+          "lv-myocardium",
+          "pulmonary-artery-lumen",
+          "pulmonary-artery-wall",
+          "ra-myocardium",
+          "rv-lumen",
+          "rv-myocardium"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Visible Heart Laboratories (University of Minnesota)",
+        "source": "Sketchfab model 'Healthy Pediatric Heart Model- Heart0102', uid b7cb05c398894395a329cfff4c1caf0e",
+        "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
+        "license": "CC-BY-NC-4.0",
+        "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "license_state": "non_commercial",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"fitted-chest-bp3d-heart0102-chambers\" at 5 mm below the xiphoid tip, 43 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, beam angled up under the costal margin, rotated clockwise from the coronal. The canon gives this view the left ventricular outflow tract, the atrial septum and the atrioventricular valves seen en face; of those three only the OUTFLOW TRACT is measurable on these substrates, so the plane is the one through the mitral orifice, the aortic orifice and the left atrium, and the atrial septum is what that plane passes through rather than something this pose can claim to demonstrate. There is no separately tagged atrial septum on either pack and none was invented. En-face valves need leaflets, which neither pack has. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 33% are stopped by bone, 0% by lung and 100% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': -3.0, 'plane_rocked_about': 'the line through the mitral and the aortic'}. Landmark plane residuals in millimetres: {'mitral': 0.36, 'aortic': 0.36}. INDICATOR: the canon gives 5:00; this pose implies 5:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 68.74 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.211184. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 38.28 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-vhl-heart0102-chambers/pack.json and its shipped glTF",
+          "public/body-context/fitted-chest-bp3d-heart0102-chambers/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "B",
+      "view_id": "b3-apical-two-chamber",
+      "name": "Apical two-chamber (draft)",
+      "aliases": [
+        "A2C"
+      ],
+      "placement_landmark": "left 4th intercostal space (rib 4 45 mm above, rib 5 32 mm below)",
+      "indicator_clock": "2:00",
+      "probe": {
+        "origin": [
+          24.924241573,
+          -110.404313359,
+          97.963332556
+        ],
+        "beam_axis": [
+          -0.1776343111391654,
+          0.7349225676531523,
+          -0.6544729719860185
+        ],
+        "lateral_axis": [
+          -0.737493932939642,
+          0.34091692114068356,
+          0.5829908676447476
+        ],
+        "fan": {
+          "angle_deg": 70.0,
+          "depth_cm": 21.82,
+          "focus_cm": 11.78
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aorta-lumen",
+        "aortic-wall",
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aorta-lumen",
+          "aortic-wall",
+          "la-lumen",
+          "la-myocardium",
+          "lv-lumen",
+          "lv-myocardium",
+          "ra-lumen",
+          "ra-myocardium",
+          "rv-lumen",
+          "rv-myocardium"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Visible Heart Laboratories (University of Minnesota)",
+        "source": "Sketchfab model 'Healthy Pediatric Heart Model- Heart0102', uid b7cb05c398894395a329cfff4c1caf0e",
+        "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
+        "license": "CC-BY-NC-4.0",
+        "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "license_state": "non_commercial",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"fitted-chest-bp3d-heart0102-chambers\" at left 4th intercostal space (rib 4 45 mm above, rib 5 32 mm below). The four-chamber plane, TURNED sixty degrees about the left ventricular long axis \u2014 the line through the measured apex and the mitral orifice \u2014 so that both of those stay exactly in plane while the right-sided chambers leave it. The direction of the turn is decided by the canon's indicator clock rather than assumed, because sixty degrees does not say which way, and the two ways are different views. Two exclusions are ENFORCED and they are what make this the two-chamber: the TRICUSPID must be out of plane, which is the manoeuvre's whole purpose, and so must the AORTIC orifice, because a plane through the apex, the mitral orifice and the aorta is the THREE-chamber, which this pack carries separately. The aperture is SEARCHED rather than inherited from the four-chamber pose: on this composite the apical window stands far enough off the heart that the four-chamber beam does not run along the long axis, so turning the probe where it stands swings the apex out of the plane instead of round it. Which structures the sector then crosses is measured rather than assumed. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 14% are stopped by bone, 10% by lung and 33% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': -3.0, 'plane_rocked_about': 'the line through the apex and the mitral', 'plane_turned_about_hinge_deg': 60.0, 'plane_turn_basis': \"the canon's rotation for this view, applied to the plane about the line through the apex and the mitral so that both stay in it; the sense is chosen by the canon's indicator clock\", 'both_senses_tried': [{'turn_deg': 60.0, 'built': True, 'why_not': None}, {'turn_deg': -60.0, 'built': False, 'why_not': \"no skin in this window lies within 6 mm of the view's imaging plane; the closest is 35.5 mm off it\"}]}. Landmark plane residuals in millimetres: {'apex': 5.8, 'mitral': 5.8, 'tricuspid (must be OUT of plane)': 22.22, 'aortic (must be OUT of plane)': 10.91}. INDICATOR: the canon gives 2:00; this pose implies 11:00, a disagreement of 3 hour(s), measured rather than imposed. STAND-OFF: 70.99 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.211184. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 32.14 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-vhl-heart0102-chambers/pack.json and its shipped glTF",
+          "public/body-context/fitted-chest-bp3d-heart0102-chambers/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "B",
+      "view_id": "b4-apical-three-chamber",
+      "name": "Apical three-chamber (draft)",
+      "aliases": [
+        "A3C",
+        "apical long axis"
+      ],
+      "placement_landmark": "lateral to the curve of the left rib 5, which lies both above and below this point; not an interspace",
+      "indicator_clock": "11:00",
+      "probe": {
+        "origin": [
+          53.780986595,
+          -121.09590506,
+          97.828003533
+        ],
+        "beam_axis": [
+          -0.34815326459352114,
+          0.7854589559863454,
+          -0.5117064908848764
+        ],
+        "lateral_axis": [
+          -0.6371147340010326,
+          0.20215747272695228,
+          0.7437857029678946
+        ],
+        "fan": {
+          "angle_deg": 45.0,
+          "depth_cm": 23.52,
+          "focus_cm": 17.05
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aorta-lumen",
+        "aortic-wall",
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aorta-lumen",
+          "aortic-wall",
+          "la-lumen",
+          "la-myocardium",
+          "lv-lumen",
+          "lv-myocardium",
+          "ra-lumen",
+          "ra-myocardium",
+          "rv-lumen",
+          "rv-myocardium"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Visible Heart Laboratories (University of Minnesota)",
+        "source": "Sketchfab model 'Healthy Pediatric Heart Model- Heart0102', uid b7cb05c398894395a329cfff4c1caf0e",
+        "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
+        "license": "CC-BY-NC-4.0",
+        "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "license_state": "non_commercial",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"fitted-chest-bp3d-heart0102-chambers\" at lateral to the curve of the left rib 5, which lies both above and below this point; not an interspace. Its own aperture in the apical window: the rotation from the four-chamber is large enough that an operator repositions rather than pivots, and a turned pose from the four-chamber aperture fails this view's own landmark checks where a searched one passes. The plane is the SAME anatomical plane the parasternal long axis images \u2014 the apex, the mitral orifice and the aortic orifice \u2014 reached from a different window, and this pack carries both so the pair can be compared. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 33% are stopped by bone, 0% by lung and 0% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': -9.0, 'plane_rocked_about': 'the line through the apex and the mitral'}. Landmark plane residuals in millimetres: {'apex': 3.78, 'mitral': 3.78, 'aortic': 0.11}. INDICATOR: the canon gives 11:00; this pose implies 11:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 81.23 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.211184. PROBE HEAD: Neonatal phased array (S12-4 class), sector 45 degrees, face 9 mm. THE DEFAULT HEAD COULD NOT PLACE THIS VIEW. Adult cardiac phased array (S5-1 class) at 70 degrees failed with: no plane in this view's allowed range found an open window that also contained the view's own landmarks Settings tried before this one: adult-phased-array at 70 degrees, paediatric-phased-array at 90 degrees, paediatric-phased-array at 60 degrees. The head and the sector are recorded because they are the finding: this view exists on this substrate only with this transducer. The aperture has 38.02 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-vhl-heart0102-chambers/pack.json and its shipped glTF",

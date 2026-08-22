@@ -69,7 +69,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import numpy as np
@@ -149,7 +149,120 @@ FAN_BONE_BUDGET = 0.34
 CORE_FRACTION = 0.45
 
 #: Retained sector angle, matching the rest of the repository's poses.
+#:
+#: This is the DEFAULT head's default setting and nothing more. It stays the
+#: number every pose in this repository was placed with, so that adding the
+#: ladder below changes no view that already built.
 FAN_ANGLE_DEG = 70.0
+
+
+@dataclass(frozen=True)
+class ProbeHead:
+    """
+    A transducer an operator could actually pick up, and the sector it is run at.
+
+    ## Why the sector is a setting and the footprint is a head
+
+    Sector width is a control on the machine: the same phased array runs 45 and
+    90 degrees, and narrowing it is what a sonographer does when the beam keeps
+    catching a rib. Footprint is not a control — it is the physical face, and it
+    is what decides whether the head fits in the interspace at all. So a head
+    carries a footprint and a list of the sector settings it is worth trying at,
+    and the ladder below is (head, sector) pairs rather than heads.
+
+    ## What is enforced here and what is only measured
+
+    The sector is ENFORCED: it is the angle the fan is cast at, the angle the
+    containment tests use, and the angle written into the pose.
+
+    The footprint is MEASURED AND REPORTED, not enforced, and the reason is that
+    an aperture in this module is a POINT. A real 20 mm face centred five
+    millimetres from a rib is half on the rib and does not couple; modelling
+    that needs the face as a chord on the skin rather than a point, which is a
+    change to the search and not a change to this table. So every built pose
+    reports its aperture's clearance to the nearest bone, and which heads that
+    clearance would admit, and a later round can turn that into a rule with the
+    measurements already in hand.
+    """
+
+    key: str
+    name: str
+    #: Face width in millimetres. Reported against measured bone clearance.
+    footprint_mm: float
+    #: Widest sector this head can form.
+    max_sector_deg: float
+    #: Sector settings worth trying on it, in the order an operator would.
+    sectors_deg: tuple[float, ...]
+    note: str
+
+
+#: The heads, and the order the ladder tries them in.
+#:
+#: The first entry at its first sector is what every pose in this repository was
+#: already placed with, so a view that built before builds identically now. The
+#: rest are only reached when the default fails, which keeps "this view needed a
+#: different probe" a finding rather than an accident.
+#:
+#: The two directions are both real manoeuvres and they fix opposite failures.
+#: WIDENING the sector reaches a landmark that fell outside it, at the cost of
+#: more rib at the sector edges. NARROWING it is what gets a beam through a tight
+#: interspace: fewer edge rays land on bone, so more apertures score open, and
+#: one of those may be the one that lies on the view's own plane.
+PROBE_HEADS: tuple[ProbeHead, ...] = (
+    ProbeHead(
+        key="adult-phased-array",
+        name="Adult cardiac phased array (S5-1 class)",
+        footprint_mm=20.0, max_sector_deg=90.0, sectors_deg=(70.0,),
+        note="The default. A 20 mm face is the largest of these and the least "
+             "able to sit inside a narrow interspace, which is why the "
+             "paediatric heads exist.",
+    ),
+    ProbeHead(
+        key="paediatric-phased-array",
+        name="Paediatric phased array (S8-3 class)",
+        footprint_mm=12.0, max_sector_deg=90.0, sectors_deg=(90.0, 60.0),
+        note="Wide first, because a landmark outside a 70 degree sector is the "
+             "commoner failure on these substrates; then narrow, for an "
+             "interspace the wide sector cannot clear.",
+    ),
+    ProbeHead(
+        key="neonatal-phased-array",
+        name="Neonatal phased array (S12-4 class)",
+        footprint_mm=9.0, max_sector_deg=90.0, sectors_deg=(45.0,),
+        note="The narrowest sector on the smallest face: the deep-and-narrow "
+             "setting, for a window that nothing wider gets through.",
+    ),
+)
+
+#: Flattened, in order, and de-duplicated by SECTOR.
+#:
+#: Two heads at the same sector compute the same window in this module, because
+#: the aperture is a point and only the footprint tells them apart. Running both
+#: would report a probe change that did no work. The head kept for a sector is
+#: the first one in the table that offers it, and the smaller heads that also
+#: offer it are named in the pose's own report through the footprint clearance.
+PROBE_LADDER: tuple[tuple[ProbeHead, float], ...] = tuple(
+    (head, sector)
+    for index, (head, sector) in enumerate(
+        (h, s) for h in PROBE_HEADS for s in h.sectors_deg
+    )
+    if sector not in [
+        s2 for h2 in PROBE_HEADS for s2 in h2.sectors_deg
+    ][:index]
+)
+
+DEFAULT_HEAD, DEFAULT_SECTOR_DEG = PROBE_LADDER[0]
+
+
+def heads_that_fit(clearance_mm: float) -> list[str]:
+    """
+    Which heads' faces would sit clear of bone at an aperture with this clearance.
+
+    Half the face either side of the centre, so a head fits when the nearest bone
+    is at least `footprint_mm / 2` away. Reported rather than enforced — see
+    `ProbeHead`.
+    """
+    return [h.key for h in PROBE_HEADS if clearance_mm >= h.footprint_mm / 2.0]
 
 #: How far from an aperture a rib may be and still be said to bound its
 #: interspace, in millimetres.
@@ -635,7 +748,8 @@ class WindowScore:
 
 def score_apertures(chest: Chest, heart: "Heart", apertures: np.ndarray, aim: np.ndarray,
                     normal: np.ndarray, reach_mm: float,
-                    plane_offsets: np.ndarray) -> list[WindowScore]:
+                    plane_offsets: np.ndarray,
+                    sector_deg: float = FAN_ANGLE_DEG) -> list[WindowScore]:
     """
     Cast every candidate's whole fan in one batch and report what stops each.
 
@@ -649,7 +763,7 @@ def score_apertures(chest: Chest, heart: "Heart", apertures: np.ndarray, aim: np
     laterals = np.cross(normal, beams)
     laterals /= np.linalg.norm(laterals, axis=1)[:, None]
 
-    half = np.radians(FAN_ANGLE_DEG / 2.0)
+    half = np.radians(sector_deg / 2.0)
     angles = np.linspace(-half, half, FAN_RAYS)
     directions = (np.cos(angles)[None, :, None] * beams[:, None, :]
                   + np.sin(angles)[None, :, None] * laterals[:, None, :])
@@ -687,6 +801,7 @@ def score_apertures(chest: Chest, heart: "Heart", apertures: np.ndarray, aim: np
 
 def find_window(chest: Chest, heart: Heart, region: str, plane_point: np.ndarray,
                 normal: np.ndarray, aim: np.ndarray,
+                sector_deg: float = FAN_ANGLE_DEG,
                 stride: int = 3) -> tuple[WindowScore | None, dict]:
     """
     Slide across the named region until the beam finds a way through.
@@ -716,7 +831,7 @@ def find_window(chest: Chest, heart: Heart, region: str, plane_point: np.ndarray
     order = np.argsort(plane_offsets)[::stride]
     reach = float(np.linalg.norm(aim - plane_point)) + 140.0
     scores = score_apertures(
-        chest, heart, in_plane[order], aim, normal, reach, plane_offsets[order]
+        chest, heart, in_plane[order], aim, normal, reach, plane_offsets[order], sector_deg
     )
     scores.sort(key=lambda s: s.rank())
     best = scores[0]
@@ -733,6 +848,7 @@ def find_window(chest: Chest, heart: Heart, region: str, plane_point: np.ndarray
         "core_rays_reaching_the_heart": best.core_on_target,
         "aperture_offset_from_imaging_plane_mm": round(best.plane_offset_mm, 2),
         "open_apertures": int(sum(1 for s in scores if s.open)),
+        "sector_deg": sector_deg,
     }
     return (best if best.open else None), report
 
@@ -773,8 +889,46 @@ class ViewSpec:
     vertex: str
     in_plane: tuple[str, ...]
     contained: tuple[str, ...]
-    landmark_text: str
-    rotate_about_long_axis_deg: float = 0.0
+    #: Landmarks that must NOT lie in the imaging plane.
+    #:
+    #: Some views are defined as much by what they exclude as by what they
+    #: contain, and the apical two-chamber is the clearest case: what makes it
+    #: the two-chamber rather than the three-chamber is that the AORTA is out of
+    #: plane, and what makes it apical-two rather than apical-four is that the
+    #: RIGHT-SIDED chambers are. Without that, a rotation about the long axis
+    #: that happens to sweep the wrong way still satisfies every positive test —
+    #: apex in plane, mitral in plane, both inside the sector — and produces a
+    #: second three-chamber wearing the two-chamber's name.
+    #:
+    #: Tested against the PLANE rather than the sector, because "the aorta is
+    #: not in this plane" is the anatomical statement; a sector is wide and deep
+    #: and may well have the aortic root somewhere in its far field without the
+    #: plane going through it.
+    out_of_plane: tuple[str, ...] = ()
+    landmark_text: str = ""
+    #: Turn the landmark plane this far about its own hinge line, in degrees.
+    #:
+    #: The hinge is the line through the first two `in_plane` landmarks — the
+    #: same line `_candidate_planes` rocks about — so those two stay EXACTLY in
+    #: plane through the turn and the view keeps the landmarks that define it.
+    #:
+    #: This is how a view that is "the four-chamber rotated sixty degrees" is
+    #: built, and it is deliberately not a probe turn. Rotating the probe about
+    #: its own beam is the manoeuvre a sonographer performs, and it produces this
+    #: plane only when the beam runs along the axis being rotated about. On both
+    #: of these composites it does not: the apical aperture stands 45-72 mm off a
+    #: heart whose apex is tens of millimetres off the beam line, so turning
+    #: about the beam swings the apex and the mitral straight out of the plane —
+    #: measured at 5.7 mm off by ten degrees and 28.8 mm by sixty. Turning about
+    #: the hinge keeps them at zero and searches the window again for an aperture
+    #: that can stand on the result, which is the honest reading of "rotate to
+    #: the two-chamber" on a substrate whose window is this far from its apex.
+    #:
+    #: BOTH SENSES are built and the canon's indicator clock chooses, for the
+    #: same reason it chooses for a probe turn: "sixty degrees" does not say
+    #: which way, and a plane and its 180-degree partner are the same plane, so
+    #: the two senses are two genuinely different views.
+    plane_turned_about_its_own_hinge_deg: float = 0.0
     perpendicular_to_long_axis: bool = False
     #: Reached from another view's pose rather than by its own window search.
     derive_from: str | None = None
@@ -803,6 +957,46 @@ VIEW_SPECS: tuple[ViewSpec, ...] = (
             "entering from below — the payload the canon gives this view. This window could "
             "not be placed on a heart-only substrate at all: 'below the diaphragm' is a body "
             "axis, and it took a registered chest to have one."
+        ),
+    ),
+    ViewSpec(
+        view_id="a5-subcostal-rao", family="A",
+        name="Subcostal right anterior oblique (draft)",
+        aliases=("subcostal RAO", "TET view", "SEROV", "subcostal RV three-chamber"),
+        window="subxiphoid", plane=("tricuspid", "pulmonary", "rv"),
+        aim=("tricuspid", "pulmonary"), clock="2:00", vertex="down",
+        in_plane=("tricuspid", "pulmonary"), contained=("tricuspid", "pulmonary", "rv"),
+        landmark_text=(
+            "Below the xiphoid process, beam angled up under the costal margin, rotated "
+            "counterclockwise from the coronal. What makes this view the view is that RV "
+            "INFLOW and RV OUTFLOW lie in ONE plane, so that is exactly what is required "
+            "here: the plane through the tricuspid orifice, the pulmonary orifice and the "
+            "right ventricular centroid, with both orifices inside the sector. The canon's "
+            "en-face aortic valve and its conal-septum deviation are the teaching payload and "
+            "are NOT demonstrable on either substrate — neither carries valve leaflets and "
+            "neither carries a separately tagged infundibular septum — so this pose reaches "
+            "the plane and not the payload, which is what its Draft status is for. It is "
+            "searched from its own aperture rather than turned from the subcostal coronal: "
+            "the rotation is large enough that an operator repositions."
+        ),
+    ),
+    ViewSpec(
+        view_id="a6-subcostal-lao", family="A",
+        name="Subcostal left anterior oblique (draft)",
+        aliases=("subcostal LAO",),
+        window="subxiphoid", plane=("mitral", "aortic", "la"),
+        aim=("mitral", "aortic"), clock="5:00", vertex="down",
+        in_plane=("mitral", "aortic"), contained=("mitral", "aortic", "la"),
+        landmark_text=(
+            "Below the xiphoid process, beam angled up under the costal margin, rotated "
+            "clockwise from the coronal. The canon gives this view the left ventricular "
+            "outflow tract, the atrial septum and the atrioventricular valves seen en face; "
+            "of those three only the OUTFLOW TRACT is measurable on these substrates, so the "
+            "plane is the one through the mitral orifice, the aortic orifice and the left "
+            "atrium, and the atrial septum is what that plane passes through rather than "
+            "something this pose can claim to demonstrate. There is no separately tagged "
+            "atrial septum on either pack and none was invented. En-face valves need "
+            "leaflets, which neither pack has."
         ),
     ),
     ViewSpec(
@@ -841,12 +1035,23 @@ VIEW_SPECS: tuple[ViewSpec, ...] = (
         window="apex", plane=("apex", "mitral", "tricuspid"),
         aim=("apex", "mitral"), clock="2:00", vertex="down",
         in_plane=("apex", "mitral"), contained=("apex", "mitral"),
-        derive_from="b1-apical-four-chamber", derive_axis="long_axis",
-        derive_fixed_deg=60.0,
+        out_of_plane=("tricuspid", "aortic"),
+        plane_turned_about_its_own_hinge_deg=60.0,
         landmark_text=(
-            "The four-chamber window, ROTATED about the beam until the right-sided chambers "
-            "leave the plane. Sixty degrees is the canonical rotation; which structures the "
-            "sector then crosses is measured rather than assumed, and is listed below."
+            "The four-chamber plane, TURNED sixty degrees about the left ventricular long "
+            "axis — the line through the measured apex and the mitral orifice — so that both "
+            "of those stay exactly in plane while the right-sided chambers leave it. The "
+            "direction of the turn is decided by the canon's indicator clock rather than "
+            "assumed, because sixty degrees does not say which way, and the two ways are "
+            "different views. Two exclusions are ENFORCED and they are what make this the "
+            "two-chamber: the TRICUSPID must be out of plane, which is the manoeuvre's whole "
+            "purpose, and so must the AORTIC orifice, because a plane through the apex, the "
+            "mitral orifice and the aorta is the THREE-chamber, which this pack carries "
+            "separately. The aperture is SEARCHED rather than inherited from the four-chamber "
+            "pose: on this composite the apical window stands far enough off the heart that "
+            "the four-chamber beam does not run along the long axis, so turning the probe "
+            "where it stands swings the apex out of the plane instead of round it. Which "
+            "structures the sector then crosses is measured rather than assumed."
         ),
     ),
     ViewSpec(
@@ -919,10 +1124,17 @@ def build_plane(spec: ViewSpec, marks: dict[str, np.ndarray]) -> tuple[np.ndarra
         return marks["mitral"], long_axis
 
     normal = _plane_normal(points)
-    if spec.rotate_about_long_axis_deg:
-        long_axis = legacy.unit(marks["apex"] - marks["av_base"])
-        normal = legacy.unit(_rotate_about(long_axis, spec.rotate_about_long_axis_deg, normal))
+    turn = spec.plane_turned_about_its_own_hinge_deg
+    if turn:
+        hinge_names = hinge_of(spec, marks)
+        hinge = legacy.unit(marks[hinge_names[1]] - marks[hinge_names[0]])
+        return marks[hinge_names[0]], legacy.unit(_rotate_about(hinge, turn, normal))
     return points[0], normal
+
+
+def hinge_of(spec: ViewSpec, marks: dict[str, np.ndarray]) -> list[str]:
+    """The line a plane is turned and rocked about: its first two in-plane marks."""
+    return [n for n in spec.in_plane if n in marks][:2] or list(spec.plane[:2])
 
 
 def implied_clock(lateral: np.ndarray) -> str:
@@ -987,18 +1199,31 @@ def _candidate_planes(spec: ViewSpec, marks: dict[str, np.ndarray]
             for level in SHORT_AXIS_LEVELS
         ]
 
-    point, normal = build_plane(spec, marks)
-    hinge_names = [n for n in spec.in_plane if n in marks][:2] or list(spec.plane[:2])
+    _, normal = build_plane(spec, marks)
+    hinge_names = hinge_of(spec, marks)
     hinge = legacy.unit(marks[hinge_names[1]] - marks[hinge_names[0]])
+    # The hinge's own first landmark, always. It is a point on the plane like
+    # any other, but `find_window` measures its search reach from it, so
+    # changing which one is used moves the scoring of rays that never reach the
+    # heart — and with it poses that were already placed.
     anchor = marks[hinge_names[0]]
+    turned = spec.plane_turned_about_its_own_hinge_deg
     out = []
     for rock in PLANE_ROCK_STEPS_DEG:
         rocked = legacy.unit(_rotate_about(hinge, rock, normal)) if rock else normal
-        out.append((anchor, rocked, {
+        adjustment = {
             "plane_rock_deg": rock,
             "plane_rocked_about": f"the line through the {hinge_names[0]} and the "
                                   f"{hinge_names[1]}",
-        }))
+        }
+        if turned:
+            adjustment["plane_turned_about_hinge_deg"] = turned
+            adjustment["plane_turn_basis"] = (
+                "the canon's rotation for this view, applied to the plane about the line "
+                f"through the {hinge_names[0]} and the {hinge_names[1]} so that both stay in "
+                "it; the sense is chosen by the canon's indicator clock"
+            )
+        out.append((anchor, rocked, adjustment))
     return out
 
 
@@ -1027,8 +1252,10 @@ def turn_to_contain(origin: np.ndarray, normal: np.ndarray, axis: np.ndarray,
 
 
 def build_view(spec: ViewSpec, chest: Chest, heart: Heart,
-               done: dict[str, "BuiltView"]) -> tuple[BuiltView | None, dict]:
-    """One pose, or the measured reason there is not one."""
+               done: dict[str, "BuiltView"],
+               head: ProbeHead = DEFAULT_HEAD,
+               sector_deg: float = DEFAULT_SECTOR_DEG) -> tuple[BuiltView | None, dict]:
+    """One pose at one probe setting, or the measured reason there is not one."""
     marks = heart.landmarks
     missing = [n for n in spec.plane if n not in marks]
     if missing:
@@ -1052,20 +1279,58 @@ def build_view(spec: ViewSpec, chest: Chest, heart: Heart,
             return None, {"view_id": spec.view_id, "built": False,
                           "reason": f"reached by turning the probe in the "
                                     f"{spec.derive_from} window, which was not found"}
-        return _derive_view(spec, chest, heart, parent, aim)
+        return _derive_view(spec, chest, heart, parent, aim, head, sector_deg)
+
+    # Both senses of a canonical plane turn, each searched in full, and the
+    # canon's indicator clock chooses between whichever of them build. A spec
+    # with no turn has exactly one sense, so nothing that built before moves.
+    turn = spec.plane_turned_about_its_own_hinge_deg
+    senses = [spec] if not turn else [
+        spec, replace(spec, plane_turned_about_its_own_hinge_deg=-turn)
+    ]
 
     attempts: list[dict] = []
-    for plane_point, normal, adjustment in _candidate_planes(spec, marks):
-        score, window_report = find_window(chest, heart, spec.window, plane_point, normal, aim)
-        if score is None:
-            attempts.append({**adjustment, "window": window_report})
-            continue
-        built, report = _finish_view(spec, chest, heart, score.aperture, score.beam,
-                                     score.lateral, score, aim, adjustment, window_report)
-        if built is not None:
-            return built, report
-        attempts.append({**adjustment, "window": window_report,
-                         "rejected": report.get("reason")})
+    made: list[tuple[BuiltView, dict]] = []
+    sense_outcome: list[dict] = []
+    for sense in senses:
+        sense_turn = sense.plane_turned_about_its_own_hinge_deg
+        before = len(made)
+        first_reason: str | None = None
+        for plane_point, normal, adjustment in _candidate_planes(sense, marks):
+            score, window_report = find_window(chest, heart, sense.window, plane_point, normal,
+                                               aim, sector_deg)
+            if score is None:
+                attempts.append({**adjustment, "window": window_report})
+                first_reason = first_reason or (window_report.get("reason")
+                                                or window_report.get("verdict"))
+                continue
+            built, report = _finish_view(spec, chest, heart, score.aperture, score.beam,
+                                         score.lateral, score, aim, adjustment, window_report,
+                                         head, sector_deg)
+            if built is not None:
+                made.append((built, report))
+                break
+            attempts.append({**adjustment, "window": window_report,
+                             "rejected": report.get("reason")})
+            first_reason = first_reason or report.get("reason")
+        sense_outcome.append({
+            "turn_deg": sense_turn,
+            "built": len(made) > before,
+            "why_not": None if len(made) > before else first_reason,
+        })
+    if made:
+        chosen = min(made, key=lambda pair: pair[1].get("indicator_disagreement_hours", 99))
+        if turn:
+            # Which way round the plane was turned is a real choice, so the
+            # reader gets both outcomes rather than only the winner. When the
+            # other sense simply has no window, the indicator disagreement left
+            # on this pose is a fact about the chest and not a coin flip.
+            built, report = chosen
+            adjustment = {**report["plane_adjustment"], "both_senses_tried": sense_outcome}
+            report = {**report, "plane_adjustment": adjustment}
+            built.report["plane_adjustment"] = adjustment
+            chosen = (built, report)
+        return chosen
 
     informative = next((a for a in attempts if a.get("rejected")), attempts[0] if attempts else {})
     return None, {
@@ -1079,7 +1344,8 @@ def build_view(spec: ViewSpec, chest: Chest, heart: Heart,
 
 
 def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView",
-                 aim: np.ndarray) -> tuple[BuiltView | None, dict]:
+                 aim: np.ndarray, head: ProbeHead = DEFAULT_HEAD,
+                 sector_deg: float = DEFAULT_SECTOR_DEG) -> tuple[BuiltView | None, dict]:
     """
     A view reached by turning the probe where it already stands.
 
@@ -1088,6 +1354,26 @@ def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView"
     scratch through the NEW plane, because turning a probe can close a window
     that was open, and a view that images a rib is not a view whatever
     manoeuvre produced it.
+
+    ## Which WAY the probe is turned, when the angle is a fixed one
+
+    A solved angle has a sense: it is whatever brings the named landmark into
+    the plane. A canonical fixed angle does not. Sixty degrees from the
+    four-chamber is a real instruction and "sixty degrees which way" is not in
+    it, and the two senses are different planes through the same aperture — one
+    of them sweeps toward the left-sided chambers and the other toward the right.
+
+    Geometry cannot pick between them, and the canon can: it gives this view an
+    INDICATOR CLOCK, and the clock is exactly a statement about which way round
+    the probe is. So both senses are built and the one whose pose implies a
+    clock nearer the canon's is kept, with the original sense breaking a tie.
+    This is the canon used as a check that happens to also be a tie-break, not
+    as a constraint imposed on the geometry: the disagreement that is left is
+    still measured and still reported.
+
+    A 90 degree turn is exempt in effect rather than by rule — rotating a normal
+    by plus or minus ninety about an axis in its own plane gives opposite
+    normals, which is the same plane — so the short axis is untouched by this.
     """
     origin = parent.sector.origin
     beam, lateral = parent.sector.beam, parent.sector.lateral
@@ -1104,13 +1390,32 @@ def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView"
         else axis
 
     if spec.derive_until_in_plane is not None:
-        angle = turn_to_contain(origin, normal, axis,
-                                heart.landmarks[spec.derive_until_in_plane])
-        solved = f"solved to bring the {spec.derive_until_in_plane} into the plane"
+        turns = [(turn_to_contain(origin, normal, axis,
+                                  heart.landmarks[spec.derive_until_in_plane]),
+                  f"solved to bring the {spec.derive_until_in_plane} into the plane")]
     else:
-        angle = spec.derive_fixed_deg
-        solved = "the canonical fixed angle for this manoeuvre"
+        fixed = spec.derive_fixed_deg
+        turns = [(fixed, "the canonical fixed angle for this manoeuvre")]
+        if abs(fixed) > 1e-9:
+            turns.append((-fixed, "the canonical fixed angle, turned the other way; the "
+                                  "canon's indicator clock is what chooses between the two"))
 
+    outcomes = [
+        _turn_and_finish(spec, chest, heart, origin, beam, lateral, normal, axis,
+                         angle, basis, aim, head, sector_deg)
+        for angle, basis in turns
+    ]
+    made = [(built, report) for built, report in outcomes if built is not None]
+    if made:
+        return min(made, key=lambda pair: pair[1].get("indicator_disagreement_hours", 99))
+    return outcomes[0]
+
+
+def _turn_and_finish(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
+                     beam: np.ndarray, lateral: np.ndarray, normal: np.ndarray,
+                     axis: np.ndarray, angle: float, solved: str, aim: np.ndarray,
+                     head: ProbeHead, sector_deg: float) -> tuple[BuiltView | None, dict]:
+    """One turn of the probe, cast, checked, and slid within its window if it shut."""
     new_normal = legacy.unit(_rotate_about(axis, angle, normal))
     if spec.derive_axis == "lateral":
         new_beam, new_lateral = legacy.unit(_rotate_about(axis, angle, beam)), lateral
@@ -1124,7 +1429,8 @@ def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView"
         new_lateral = legacy.unit(np.cross(new_normal, new_beam))
 
     scores = score_apertures(chest, heart, origin[None, :], aim, new_normal,
-                             float(np.linalg.norm(aim - origin)) + 140.0, np.zeros(1))
+                             float(np.linalg.norm(aim - origin)) + 140.0, np.zeros(1),
+                             sector_deg)
     score = scores[0]
     adjustment = {
         "derived_from": spec.derive_from,
@@ -1146,10 +1452,11 @@ def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView"
         "core_rays_reaching_the_heart": score.core_on_target,
         "aperture_offset_from_imaging_plane_mm": 0.0,
         "open_apertures": int(score.open),
+        "sector_deg": sector_deg,
     }
     if score.open:
         built, report = _finish_view(spec, chest, heart, origin, score.beam, score.lateral,
-                                     score, aim, adjustment, window_report)
+                                     score, aim, adjustment, window_report, head, sector_deg)
         if built is not None:
             return built, report
         rejection = report.get("reason")
@@ -1161,7 +1468,8 @@ def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView"
     # up on the view.
     anchor_names = [n for n in spec.in_plane if n in heart.landmarks]
     anchor = heart.landmarks[anchor_names[0]] if anchor_names else aim
-    slid, slid_report = find_window(chest, heart, spec.window, anchor, new_normal, aim)
+    slid, slid_report = find_window(chest, heart, spec.window, anchor, new_normal, aim,
+                                    sector_deg)
     if slid is None:
         return None, {"view_id": spec.view_id, "built": False,
                       "reason": f"{rejection}, and no other aperture in the "
@@ -1173,7 +1481,7 @@ def _derive_view(spec: ViewSpec, chest: Chest, heart: Heart, parent: "BuiltView"
                   "slid_within_window_mm": round(moved, 1),
                   "slid_because": rejection}
     return _finish_view(spec, chest, heart, slid.aperture, slid.beam, slid.lateral,
-                        slid, aim, adjustment, slid_report)
+                        slid, aim, adjustment, slid_report, head, sector_deg)
 
 
 def centre_on_tissue(origin: np.ndarray, beam: np.ndarray, lateral: np.ndarray,
@@ -1222,11 +1530,13 @@ def centre_on_tissue(origin: np.ndarray, beam: np.ndarray, lateral: np.ndarray,
 
 def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
                  beam: np.ndarray, lateral: np.ndarray, score: WindowScore,
-                 aim: np.ndarray, adjustment: dict,
-                 window_report: dict) -> tuple[BuiltView | None, dict]:
+                 aim: np.ndarray, adjustment: dict, window_report: dict,
+                 head: ProbeHead = DEFAULT_HEAD,
+                 sector_deg: float = DEFAULT_SECTOR_DEG
+                 ) -> tuple[BuiltView | None, dict]:
     """Depth, checks and the report, for one aperture that already has a window."""
     marks = heart.landmarks
-    half = np.radians(FAN_ANGLE_DEG / 2.0)
+    half = np.radians(sector_deg / 2.0)
 
     # The marker points along the lateral axis, and its SIGN is a display
     # convention rather than geometry: flipping it flips the plane's normal and
@@ -1237,12 +1547,13 @@ def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
             < clock_disagreement_hours(spec.clock, implied_clock(lateral))):
         lateral = -lateral
 
-    half = np.radians(FAN_ANGLE_DEG / 2.0)
+    half = np.radians(sector_deg / 2.0)
     beam, lateral, centring = centre_on_tissue(origin, beam, lateral, heart.vertices, half)
     if centring.get("centred") and abs(centring["turned_deg"]) > 0.05:
         recast = score_apertures(chest, heart, origin[None, :],
                                  origin + beam * 100.0, np.cross(beam, lateral),
-                                 float(np.linalg.norm(aim - origin)) + 140.0, np.zeros(1))[0]
+                                 float(np.linalg.norm(aim - origin)) + 140.0, np.zeros(1),
+                                 sector_deg)[0]
         if not recast.open:
             # Re-aiming shut the window. The picture being off-centre is a
             # smaller fault than the beam going through a rib, so the original
@@ -1292,6 +1603,15 @@ def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
     for name in spec.contained:
         if name in marks and not sector.contains(marks[name]):
             failures.append(f"the sector does not reach the {name}")
+    for name in spec.out_of_plane:
+        if name not in marks:
+            continue
+        off = abs(float((marks[name] - origin) @ sector.normal))
+        residuals[f"{name} (must be OUT of plane)"] = round(off, 2)
+        if off <= legacy.SLAB_MM:
+            failures.append(
+                f"the {name} lies IN this plane, {off:.1f} mm off it, and this view is "
+                f"defined by it being out")
     if failures:
         return None, {"view_id": spec.view_id, "built": False,
                       "reason": "; ".join(failures), "window": window_report}
@@ -1316,6 +1636,13 @@ def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
     long_axis = legacy.unit(marks["apex"] - marks["av_base"])
     obliquity = float(np.degrees(np.arccos(abs(float(sector.normal @ long_axis)))))
 
+    # How much room the transducer FACE has, which is the question a footprint
+    # asks and a point aperture cannot answer on its own. Distance from this
+    # aperture to the nearest bone surface — rib, cartilage-free sternum,
+    # clavicle. Reported so a later round can enforce a footprint against a
+    # number that was measured now rather than re-derived then.
+    clearance = round(float(np.linalg.norm(chest.bone.vertices - origin, axis=1).min()), 2)
+
     report = {
         "view_id": spec.view_id,
         "built": True,
@@ -1332,6 +1659,28 @@ def _finish_view(spec: ViewSpec, chest: Chest, heart: Heart, origin: np.ndarray,
         "indicator_clock_canon": spec.clock,
         "indicator_clock_implied_by_pose": clock,
         "indicator_disagreement_hours": clock_disagreement_hours(spec.clock, clock),
+        "probe_head": {
+            "key": head.key,
+            "name": head.name,
+            "sector_deg": sector_deg,
+            "footprint_mm": head.footprint_mm,
+            "is_the_default_head_and_setting": (head.key == DEFAULT_HEAD.key
+                                                and sector_deg == DEFAULT_SECTOR_DEG),
+        },
+        "bone_clearance_at_aperture_mm": clearance,
+        "heads_whose_footprint_would_fit": heads_that_fit(clearance),
+        # The ORIENTATION, in the body frame, beside the sector angle it was
+        # placed at. A head that recovers a view is only reusable if the way it
+        # was held is written down with it, so both axes are here as unit
+        # vectors in +X patient-left, +Y posterior, +Z superior — the same frame
+        # the aperture above is in, and the frame a future probe-head round will
+        # want them in.
+        "probe_orientation_body": {
+            "beam_axis": [round(float(v), 6) for v in beam.tolist()],
+            "lateral_axis": [round(float(v), 6) for v in lateral.tolist()],
+            "plane_normal": [round(float(v), 6) for v in sector.normal.tolist()],
+            "frame": "+X patient-left, +Y posterior, +Z superior",
+        },
         "sector_centring": centring,
         "near_field_note": (
             "The empty wedge between the transducer and the first tissue is the composite's own "
@@ -1385,6 +1734,65 @@ def load_context(pack_id: str) -> tuple[np.ndarray, np.ndarray, float, dict]:
     return rotation, translation, scale, context
 
 
+def build_with_ladder(spec: ViewSpec, chest: Chest, heart: Heart,
+                      done: dict[str, "BuiltView"]) -> tuple[BuiltView | None, dict]:
+    """
+    The default probe first, then the other heads, and stop at the first that works.
+
+    This is the manoeuvre after the manoeuvre. When a window will not open or a
+    landmark will not come inside the sector, an operator does not conclude the
+    view is impossible on this patient — they change the sector, and if that is
+    not enough they change the probe. Encoding that is what turns "no window
+    here" into a claim about the substrate rather than about one transducer.
+
+    The ladder is entered ONLY on failure and the default head is always tried
+    first, so every pose that built before builds identically and at the same
+    70 degrees. A pose that needed a different head says which, at what sector,
+    and what the default failed with — and that record is the point: it is the
+    evidence for which heads this app will eventually have to offer.
+    """
+    attempts: list[dict] = []
+    default_failure: dict | None = None
+    for head, sector_deg in PROBE_LADDER:
+        setting = f"{head.key} at {sector_deg:.0f} degrees"
+        view, report = build_view(spec, chest, heart, done, head, sector_deg)
+        if view is not None:
+            if attempts:
+                ladder = {
+                    "took": setting,
+                    "default_failed_with": attempts[0]["reason"],
+                    "settings_tried_before_it": [a["setting"] for a in attempts],
+                    "why_this_is_recorded": (
+                        "The default adult head could not place this view. The setting that "
+                        "did is written here and on the pose so a later round can offer the "
+                        "head rather than rediscover it."
+                    ),
+                }
+                # Onto the BuiltView's own report as well, not just the copy
+                # returned here: `view_document` writes the pose from
+                # `built.report`, so a ladder recorded only on the return value
+                # reaches the evidence and never reaches the pack.
+                view.report["probe_ladder"] = ladder
+                report = {**report, "probe_ladder": ladder}
+            return view, report
+        if default_failure is None:
+            default_failure = report
+        attempts.append({"setting": setting, "reason": report.get("reason", "")})
+
+    failure = dict(default_failure or {})
+    failure["probe_ladder"] = {
+        "took": None,
+        "settings_tried": [a["setting"] for a in attempts],
+        "each_failed_with": {a["setting"]: a["reason"] for a in attempts},
+        "conclusion": (
+            "No head in the ladder placed this view. That is a finding about the substrate "
+            "and the chest rather than about one transducer: the sector was opened to 90 "
+            "degrees and narrowed to 45, so sector width is not what is in the way."
+        ),
+    }
+    return None, failure
+
+
 def survey(pack_id: str, cache: Path = bc.CACHE) -> dict:
     """Build every view this pack can support, and say why the rest are absent."""
     rotation, translation, scale, context = load_context(pack_id)
@@ -1396,7 +1804,7 @@ def survey(pack_id: str, cache: Path = bc.CACHE) -> dict:
     reports: list[dict] = []
     done: dict[str, BuiltView] = {}
     for spec in VIEW_SPECS:
-        view, report = build_view(spec, chest, heart, done)
+        view, report = build_with_ladder(spec, chest, heart, done)
         reports.append(report)
         if view is not None:
             built.append(view)
@@ -1431,6 +1839,10 @@ def main() -> int:
     parser.add_argument("--write", action="store_true",
                         help="add the built poses to their packs; existing views are never "
                              "touched")
+    parser.add_argument("--replace", action="append", default=[], metavar="VIEW_ID",
+                        help="regenerate this view even though the pack already carries it. "
+                             "One id per flag, and only for a view whose DEFINITION changed "
+                             "and whose committed pose no longer satisfies it.")
     args = parser.parse_args()
     packs = list(CONTEXT_FOR_PACK) if args.pack == "all" else [args.pack]
     for pack_id in packs:
@@ -1467,8 +1879,16 @@ def main() -> int:
         if args.evidence:
             print(f"  evidence -> {write_evidence(pack_id, result).relative_to(REPO)}")
         if args.write:
-            outcome = write_views(pack_id, result, apply=True)
+            here = tuple(i for i in args.replace
+                         if any(v["view_id"] == i for v in
+                                json.loads((REPO / "public" / "packs" / pack_id
+                                            / "pack.json").read_text())["views"]))
+            outcome = write_views(pack_id, result, apply=True, replace_ids=here)
             print(f"  WROTE {len(outcome['added'])}: {', '.join(outcome['added']) or 'none'}")
+            if outcome["replaced"]:
+                print(f"  REPLACED {len(outcome['replaced'])}: "
+                      f"{', '.join(outcome['replaced'])}")
+            print(f"  pack_version -> {outcome['pack_version']}")
             if outcome["already_authored"]:
                 print(f"  left the {len(outcome['already_authored'])} pose(s) already authored "
                       f"alone: {', '.join(outcome['already_authored'])}")
@@ -1499,6 +1919,29 @@ def view_document(spec: ViewSpec, built: BuiltView, pack: dict, heart: Heart,
                   if s in {x["id"] for x in pack["meshes"]["structures"]}]
     anatomy = pack["provenance"]
     window = report["window"]
+    probe = report["probe_head"]
+    ladder = report.get("probe_ladder")
+
+    head_text = (
+        f"PROBE HEAD: {probe['name']}, sector {probe['sector_deg']:.0f} degrees, "
+        f"face {probe['footprint_mm']:.0f} mm. "
+    )
+    if ladder:
+        head_text += (
+            f"THE DEFAULT HEAD COULD NOT PLACE THIS VIEW. "
+            f"{DEFAULT_HEAD.name} at {DEFAULT_SECTOR_DEG:.0f} degrees failed with: "
+            f"{ladder['default_failed_with']} "
+            f"Settings tried before this one: {', '.join(ladder['settings_tried_before_it'])}. "
+            "The head and the sector are recorded because they are the finding: this view "
+            "exists on this substrate only with this transducer. "
+        )
+    head_text += (
+        f"The aperture has {report['bone_clearance_at_aperture_mm']} mm of clearance to the "
+        f"nearest bone, which admits the face of: "
+        f"{', '.join(report['heads_whose_footprint_would_fit']) or 'no head in the table'}. "
+        "The footprint is MEASURED and NOT ENFORCED — an aperture here is a point, so a face "
+        "wider than that clearance would be partly on a rib and is not refused yet. "
+    )
 
     note = (
         f"POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the "
@@ -1519,6 +1962,7 @@ def view_document(spec: ViewSpec, built: BuiltView, pack: dict, heart: Heart,
         f"{report['indicator_disagreement_hours']} hour(s), measured rather than imposed. "
         f"STAND-OFF: {report['stand_off_to_nearest_heart_mm']} mm from the skin to the nearest "
         f"cardiac surface, in a composite whose chest is scaled by {chest_scale}. "
+        f"{head_text}"
         f"{AGE_CORRECTNESS_CAVEAT} "
         "structures[] is MEASURED — the structures whose geometry this sector actually "
         "intersects — and is not the canon's list of what a clinician would call out. "
@@ -1539,7 +1983,7 @@ def view_document(spec: ViewSpec, built: BuiltView, pack: dict, heart: Heart,
             "beam_axis": pose["beam_axis"],
             "lateral_axis": pose["lateral_axis"],
             "fan": {
-                "angle_deg": FAN_ANGLE_DEG,
+                "angle_deg": report["probe_head"]["sector_deg"],
                 "depth_cm": report["depth_cm"],
                 "focus_cm": report["focus_cm"],
             },
@@ -1578,19 +2022,53 @@ def view_document(spec: ViewSpec, built: BuiltView, pack: dict, heart: Heart,
     }
 
 
-def write_views(pack_id: str, result: dict, *, apply: bool) -> dict:
+def bump_patch(version: str) -> str:
+    """`0.1.5` -> `0.1.6`. A pack whose views changed is a different revision."""
+    parts = version.split(".")
+    parts[-1] = str(int(parts[-1]) + 1)
+    return ".".join(parts)
+
+
+def write_views(pack_id: str, result: dict, *, apply: bool,
+                replace_ids: tuple[str, ...] = ()) -> dict:
     """
     Add this module's poses to a pack, and NEVER touch one already there.
 
     An authored pose is content. If a view id already exists it is left exactly
     as it is and reported as skipped, because replacing someone's authored pose
     with a generated one is not an improvement this module is entitled to make.
+
+    ## The one way a pose is replaced, and why it is a flag
+
+    `--replace <view_id>` is the exception, and it is deliberately awkward: a
+    caller has to name every pose it is overwriting, one at a time, on the
+    command line. That is the shape the rule should have. Regenerating a pose is
+    right when the DEFINITION of the view changed and the pose in the pack no
+    longer satisfies it — the apical two-chamber gained an enforced exclusion of
+    the aorta, and the pose that was there had the aortic orifice 0.8 mm from
+    its plane, which made it a second three-chamber wearing the two-chamber's
+    name. It is wrong for everything else, and naming ids rather than passing a
+    blanket "overwrite" is what keeps the two apart.
+
+    A pack whose views changed gets its patch version bumped, because a body
+    context pins the pack's exact bytes and a stale registration must fail loudly
+    rather than be applied to a pack it was not fitted to.
     """
     pack_path = REPO / "public" / "packs" / pack_id / "pack.json"
     pack = json.loads(pack_path.read_text())
-    existing = {view["view_id"] for view in pack["views"]}
+    replace_ids = tuple(replace_ids)
+    existing = {view["view_id"] for view in pack["views"]} - set(replace_ids)
     rotation, translation = result["_rotation"], result["_translation"]
     _, _, _, context = load_context(pack_id)
+
+    kept = [view for view in pack["views"] if view["view_id"] not in replace_ids]
+    replaced = [view["view_id"] for view in pack["views"] if view["view_id"] in replace_ids]
+    missing = [i for i in replace_ids if i not in replaced]
+    if missing:
+        raise SystemExit(
+            f"{pack_id}: asked to replace {', '.join(missing)}, which this pack does not carry."
+        )
+    pack["views"] = kept
 
     existing_names = {view["name"].lower() for view in pack["views"]}
     existing_aliases = {a.lower() for view in pack["views"] for a in view["aliases"]}
@@ -1618,9 +2096,14 @@ def write_views(pack_id: str, result: dict, *, apply: bool) -> dict:
         ))
         added.append(built.spec.view_id)
 
-    if apply and added:
+    changed = [i for i in added if i not in replaced]
+    version = pack["meta"]["pack_version"]
+    if apply and (added or replaced):
+        pack["meta"]["pack_version"] = bump_patch(version)
         pack_path.write_text(json.dumps(pack, indent=2, sort_keys=False) + "\n")
-    return {"pack_id": pack_id, "added": added, "already_authored": skipped}
+    return {"pack_id": pack_id, "added": changed, "replaced": replaced,
+            "already_authored": skipped,
+            "pack_version": bump_patch(version) if (added or replaced) else version}
 
 
 def write_evidence(pack_id: str, result: dict) -> Path:
@@ -1666,7 +2149,24 @@ def write_evidence(pack_id: str, result: dict) -> Path:
                 "geometry; what is left over is a real disagreement and is reported per view."
             ),
             "age_correctness": AGE_CORRECTNESS_CAVEAT,
+            "probe_heads": (
+                "The default head is tried first and every view that builds on it is placed at "
+                "exactly the sector the rest of this repository uses. Only a view the default "
+                "cannot place enters the ladder, and the setting that works is recorded on the "
+                "pose and here, because which transducer a view needs is the finding. Sector "
+                "width is ENFORCED. Footprint is MEASURED against the aperture's clearance to "
+                "the nearest bone and is NOT enforced: an aperture here is a point, and "
+                "refusing a face wider than its clearance needs the face modelled as a chord "
+                "on the skin, which is a change to the search rather than to the table."
+            ),
         },
+        "probe_ladder": [
+            {"order": i + 1, "head": head.key, "name": head.name,
+             "sector_deg": sector, "footprint_mm": head.footprint_mm,
+             "max_sector_deg": head.max_sector_deg, "note": head.note,
+             "is_default": i == 0}
+            for i, (head, sector) in enumerate(PROBE_LADDER)
+        ],
         "ray_target_mesh": result["ray_target_mesh"],
         "landmarks_body_mm": result["landmarks_body_mm"],
         "landmark_derivation": result["landmark_derivation"],
@@ -1675,6 +2175,22 @@ def write_evidence(pack_id: str, result: dict) -> Path:
             "built": sorted(v["view_id"] for v in result["views"] if v.get("built")),
             "not_built": {v["view_id"]: v["reason"]
                           for v in result["views"] if not v.get("built")},
+            "built_on_the_default_head": sorted(
+                v["view_id"] for v in result["views"]
+                if v.get("built") and not v.get("probe_ladder")),
+            "needed_another_probe_head": {
+                v["view_id"]: {
+                    "head": v["probe_head"]["key"],
+                    "name": v["probe_head"]["name"],
+                    "sector_deg": v["probe_head"]["sector_deg"],
+                    "footprint_mm": v["probe_head"]["footprint_mm"],
+                    "beam_axis_body": v["probe_orientation_body"]["beam_axis"],
+                    "lateral_axis_body": v["probe_orientation_body"]["lateral_axis"],
+                    "indicator_clock_implied_by_pose": v["indicator_clock_implied_by_pose"],
+                    "indicator_clock_canon": v["indicator_clock_canon"],
+                    "the_default_head_failed_with": v["probe_ladder"]["default_failed_with"],
+                }
+                for v in result["views"] if v.get("built") and v.get("probe_ladder")},
         },
     }
     path.write_text(json.dumps(document, indent=2, sort_keys=False) + "\n")

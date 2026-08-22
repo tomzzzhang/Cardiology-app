@@ -24,6 +24,17 @@ const repoRoot = join(import.meta.dirname, '..', '..');
 /** The marker every pose from this module carries in its own provenance. */
 const CHEST_WALL_MARKER = 'POSE PLACED ON A REGISTERED CHEST WALL';
 
+/**
+ * The sector settings `acoustic_windows.py: PROBE_LADDER` offers, in its order.
+ *
+ * Pinned here rather than read from the evidence, so that a change to the
+ * ladder has to be made in two places on purpose. 70 is the default adult
+ * cardiac phased array and is what every pose is placed at unless that head
+ * could not place it; the rest are a paediatric array opened wide and narrowed,
+ * and a neonatal array at its narrowest.
+ */
+const PROBE_LADDER_SECTORS = [70, 90, 60, 45];
+
 function loadPack(packId: string): Pack {
   const raw = JSON.parse(
     readFileSync(join(repoRoot, 'public', 'packs', packId, 'pack.json'), 'utf8'),
@@ -47,14 +58,20 @@ describe('poses placed through a measured window', () => {
     // reference pose.
     expect(chestPlaced(rodero).map((v) => v.view_id).sort()).toEqual([
       'a3-subcostal-coronal',
+      'a5-subcostal-rao',
+      'a6-subcostal-lao',
       'b2-apical-five-chamber',
       'b3-apical-two-chamber',
       'b5-apical-rv-focused',
     ]);
     expect(chestPlaced(chambers).map((v) => v.view_id).sort()).toEqual([
       'a3-subcostal-coronal',
+      'a5-subcostal-rao',
+      'a6-subcostal-lao',
       'b1-apical-four-chamber',
       'b2-apical-five-chamber',
+      'b3-apical-two-chamber',
+      'b4-apical-three-chamber',
       'b5-apical-rv-focused',
       'c1-parasternal-long-axis',
       'c2-parasternal-short-axis',
@@ -132,10 +149,33 @@ describe('poses placed through a measured window', () => {
     }
   });
 
-  it('reports a plausible sector: focus inside depth, real stand-off, retained angle', () => {
+  it('reports a plausible sector: focus inside depth, real stand-off, a real head\'s angle', () => {
     for (const pack of [rodero, chambers]) {
       for (const view of chestPlaced(pack)) {
-        expect(view.probe.fan.angle_deg).toBe(70);
+        // 70 degrees is the default adult phased array and is what a pose is
+        // placed at unless that head could not place it at all. The other
+        // angles are the rest of the ladder in `acoustic_windows.py`, and a
+        // pose that used one has to SAY which head and why — a sector that
+        // quietly differed from the default would be a pose nobody could
+        // reproduce with the probe the app offers.
+        expect(PROBE_LADDER_SECTORS, view.view_id).toContain(view.probe.fan.angle_deg);
+        if (view.probe.fan.angle_deg !== 70) {
+          expect(view.provenance.modified.note, view.view_id)
+            .toContain('THE DEFAULT HEAD COULD NOT PLACE THIS VIEW');
+        }
+        // Whichever head a pose names, it names one from the ladder. Poses
+        // placed before the ladder existed name none, and that is not a defect
+        // in them: they were all placed on the default head at 70 degrees,
+        // which is what their sector still says. Regenerating them to add the
+        // sentence is an owner decision about pack content, not a test's.
+        const named = /PROBE HEAD: ([^,]+), sector (\d+) degrees/
+          .exec(view.provenance.modified.note);
+        if (named) {
+          expect(PROBE_LADDER_SECTORS, view.view_id).toContain(Number(named[2]));
+          expect(Number(named[2]), view.view_id).toBe(view.probe.fan.angle_deg);
+        } else {
+          expect(view.probe.fan.angle_deg, view.view_id).toBe(70);
+        }
         expect(view.probe.fan.focus_cm).toBeLessThanOrEqual(view.probe.fan.depth_cm);
         expect(view.probe.fan.depth_cm).toBeGreaterThan(5);
         // A transducer on skin outside a chest, not a probe floating in the
@@ -159,16 +199,64 @@ describe('poses placed through a measured window', () => {
     }
   });
 
-  it('records the views it could NOT place, with the measured reason', () => {
-    // A pack has nowhere to say that a view was attempted and failed, and that
-    // is exactly what tells a reader about the substrate rather than the poses.
-    const survey = JSON.parse(readFileSync(join(
-      repoRoot, 'evidence', 'acoustic-windows', 'normal-vhl-heart0102-chambers',
-      'window-survey.json',
-    ), 'utf8')) as { summary: { built: string[]; not_built: Record<string, string> } };
-    expect(Object.keys(survey.summary.not_built).length).toBeGreaterThan(0);
-    for (const reason of Object.values(survey.summary.not_built)) {
-      expect(reason.length).toBeGreaterThan(20);
+  it('records what it could NOT place with a measured reason, and what needed another probe', () => {
+    /*
+     * A pack has nowhere to say that a view was attempted and failed, or that a
+     * view needed a transducer the app does not yet offer. Both belong in the
+     * evidence, and both are what tell a reader about the SUBSTRATE rather than
+     * about the poses.
+     *
+     * This used to assert that the chamber pack had at least one failure, which
+     * stopped being true the moment the probe ladder recovered its last two
+     * views. What has to hold is not that something failed — it is that
+     * whatever happened is recorded with numbers behind it.
+     */
+    for (const packId of ['normal-rodero', 'normal-vhl-heart0102-chambers']) {
+      const survey = JSON.parse(readFileSync(join(
+        repoRoot, 'evidence', 'acoustic-windows', packId, 'window-survey.json',
+      ), 'utf8')) as {
+        probe_ladder: { head: string; sector_deg: number; is_default: boolean }[];
+        summary: {
+          built: string[];
+          not_built: Record<string, string>;
+          built_on_the_default_head: string[];
+          needed_another_probe_head: Record<string, {
+            head: string; sector_deg: number;
+            beam_axis_body: number[]; lateral_axis_body: number[];
+          }>;
+        };
+      };
+
+      for (const reason of Object.values(survey.summary.not_built)) {
+        expect(reason.length, packId).toBeGreaterThan(20);
+      }
+
+      // The ladder is on the evidence, default first, so a reader can see what
+      // was tried rather than inferring it from which angle came out.
+      expect(survey.probe_ladder.length, packId).toBeGreaterThan(1);
+      expect(survey.probe_ladder[0].is_default, packId).toBe(true);
+      expect(survey.probe_ladder[0].sector_deg, packId).toBe(70);
+      expect(PROBE_LADDER_SECTORS, packId)
+        .toEqual(survey.probe_ladder.map((entry) => entry.sector_deg));
+
+      // Every view accounted for exactly once: on the default head, or on a
+      // named other head, or not built.
+      expect(new Set([
+        ...survey.summary.built_on_the_default_head,
+        ...Object.keys(survey.summary.needed_another_probe_head),
+      ]).size, packId).toBe(survey.summary.built.length);
+
+      // A view that needed another head is only useful to a later round if the
+      // ORIENTATION is recorded beside the angle. Unit axes, body frame.
+      for (const [viewId, took] of
+        Object.entries(survey.summary.needed_another_probe_head)) {
+        expect(took.head, viewId).not.toBe('adult-phased-array');
+        expect(PROBE_LADDER_SECTORS, viewId).toContain(took.sector_deg);
+        for (const axis of [took.beam_axis_body, took.lateral_axis_body]) {
+          expect(axis, viewId).toHaveLength(3);
+          expect(Math.hypot(...axis), viewId).toBeCloseTo(1, 4);
+        }
+      }
     }
   });
 });

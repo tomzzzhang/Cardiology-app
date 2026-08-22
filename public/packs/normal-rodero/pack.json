@@ -4,7 +4,7 @@
     "display_name": "Normal heart \u2014 Rodero/CEMRG average four-chamber",
     "anatomy": "Normal heart, four-chamber, adult population average",
     "canonical_variant": "Population-average adult four-chamber mesh (mean shape of 19 subjects); not a single individual and not a paediatric heart",
-    "pack_version": "0.1.5",
+    "pack_version": "0.1.6",
     "schema_version": "0.1"
   },
   "provenance": {
@@ -1768,6 +1768,195 @@
         "modified": {
           "flag": true,
           "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at lateral to the curve of the left rib 4, which lies both above and below this point; not an interspace. The apical window moved medially, on the plane through the apex, the tricuspid orifice and the right ventricular centroid. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 10% are stopped by bone, 0% by lung and 38% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the tricuspid and the rv'}. Landmark plane residuals in millimetres: {'tricuspid': 3.81, 'rv': 3.81}. INDICATOR: the canon gives 3:00; this pose implies 5:00, a disagreement of 2 hour(s), measured rather than imposed. STAND-OFF: 46.98 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-rodero/pack.json and its shipped glTF",
+          "public/body-context/adult-reference-chest-bp3d/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "A",
+      "view_id": "a5-subcostal-rao",
+      "name": "Subcostal right anterior oblique (draft)",
+      "aliases": [
+        "subcostal RAO",
+        "TET view",
+        "SEROV",
+        "subcostal RV three-chamber"
+      ],
+      "placement_landmark": "42 mm below the xiphoid tip, 36 mm from the midline \u2014 this window is under the costal margin, not between ribs",
+      "indicator_clock": "2:00",
+      "probe": {
+        "origin": [
+          -81.045268745,
+          -102.41755265,
+          -7.520490782
+        ],
+        "beam_axis": [
+          0.46673804892986237,
+          0.8722681246827518,
+          0.14595859804609337
+        ],
+        "lateral_axis": [
+          0.32577406870318876,
+          -0.323001943794079,
+          0.8885611968040337
+        ],
+        "fan": {
+          "angle_deg": 70.0,
+          "depth_cm": 20.27,
+          "focus_cm": 14.09
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aortic-wall",
+        "la-myocardium",
+        "lv-myocardium",
+        "pulmonary-artery-wall",
+        "pulmonary-valve-ring",
+        "ra-myocardium",
+        "rv-myocardium",
+        "tagged-region-15",
+        "tagged-region-16",
+        "tagged-region-17",
+        "tagged-region-22",
+        "tagged-region-23",
+        "tagged-region-24",
+        "tricuspid-valve-ring"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aortic-wall",
+          "la-myocardium",
+          "lv-myocardium",
+          "pulmonary-artery-wall",
+          "pulmonary-valve-ring",
+          "ra-myocardium",
+          "rv-myocardium",
+          "tagged-region-15",
+          "tagged-region-16",
+          "tagged-region-17",
+          "tagged-region-22",
+          "tagged-region-23",
+          "tagged-region-24",
+          "tricuspid-valve-ring"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+        "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+        "source_url": "https://zenodo.org/records/4593738",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at 42 mm below the xiphoid tip, 36 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, beam angled up under the costal margin, rotated counterclockwise from the coronal. What makes this view the view is that RV INFLOW and RV OUTFLOW lie in ONE plane, so that is exactly what is required here: the plane through the tricuspid orifice, the pulmonary orifice and the right ventricular centroid, with both orifices inside the sector. The canon's en-face aortic valve and its conal-septum deviation are the teaching payload and are NOT demonstrable on either substrate \u2014 neither carries valve leaflets and neither carries a separately tagged infundibular septum \u2014 so this pose reaches the plane and not the payload, which is what its Draft status is for. It is searched from its own aperture rather than turned from the subcostal coronal: the rotation is large enough that an operator repositions. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 19% are stopped by bone, 14% by lung and 62% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the tricuspid and the pulmonary'}. Landmark plane residuals in millimetres: {'tricuspid': 0.94, 'pulmonary': 0.94}. INDICATOR: the canon gives 2:00; this pose implies 2:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 67.07 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 55.56 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-rodero/pack.json and its shipped glTF",
+          "public/body-context/adult-reference-chest-bp3d/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "A",
+      "view_id": "a6-subcostal-lao",
+      "name": "Subcostal left anterior oblique (draft)",
+      "aliases": [
+        "subcostal LAO"
+      ],
+      "placement_landmark": "3 mm below the xiphoid tip, 40 mm from the midline \u2014 this window is under the costal margin, not between ribs",
+      "indicator_clock": "5:00",
+      "probe": {
+        "origin": [
+          -65.874083414,
+          -79.183318958,
+          20.325789432
+        ],
+        "beam_axis": [
+          0.6053061504240175,
+          0.7747695207837789,
+          -0.18258327941881938
+        ],
+        "lateral_axis": [
+          0.48384671309944555,
+          -0.5402646242425513,
+          -0.6884812953268359
+        ],
+        "fan": {
+          "angle_deg": 70.0,
+          "depth_cm": 18.32,
+          "focus_cm": 12.65
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aortic-valve-ring",
+        "aortic-wall",
+        "la-myocardium",
+        "lv-myocardium",
+        "mitral-valve-ring",
+        "ra-myocardium",
+        "rv-myocardium"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aortic-valve-ring",
+          "aortic-wall",
+          "la-myocardium",
+          "lv-myocardium",
+          "mitral-valve-ring",
+          "ra-myocardium",
+          "rv-myocardium"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+        "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+        "source_url": "https://zenodo.org/records/4593738",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at 3 mm below the xiphoid tip, 40 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, beam angled up under the costal margin, rotated clockwise from the coronal. The canon gives this view the left ventricular outflow tract, the atrial septum and the atrioventricular valves seen en face; of those three only the OUTFLOW TRACT is measurable on these substrates, so the plane is the one through the mitral orifice, the aortic orifice and the left atrium, and the atrial septum is what that plane passes through rather than something this pose can claim to demonstrate. There is no separately tagged atrial septum on either pack and none was invented. En-face valves need leaflets, which neither pack has. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 19% are stopped by bone, 0% by lung and 100% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': -15.0, 'plane_rocked_about': 'the line through the mitral and the aortic'}. Landmark plane residuals in millimetres: {'mitral': 4.58, 'aortic': 4.58}. INDICATOR: the canon gives 5:00; this pose implies 5:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 41.19 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 34.67 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-rodero/pack.json and its shipped glTF",

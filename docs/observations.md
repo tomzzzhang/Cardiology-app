@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-22 14:47 EDT
+**Last Updated:** 2026-08-22 17:40 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2611,3 +2611,91 @@ work-in-progress in an authoring tool, where the whole job is moving a transduce
 right. It is never acceptable in front of a learner, who has no way to know that the picture is of
 nothing. Conflating the two is what let one reach a learner-facing panel, and it is why the check
 above exists rather than a note asking someone to be careful.
+
+## 72. Every view either substrate can carry, and the one that needed a different probe
+
+*(2026-08-22.)*
+
+**What landed.** `normal-rodero` is v0.1.6 with eleven Draft views and
+`normal-vhl-heart0102-chambers` is v0.1.2 with eleven. Both now carry the SAME ten canon views —
+A3, A5, A6, B1, B2, B3, B4, B5, C1, C2 — plus their ingest reference pose. The chamber pack had six
+canon views this morning. The nine canon views that are still absent are absent on both packs and
+for a reason that is now measured rather than assumed.
+
+**A5 and A6 are new, and neither reaches its teaching payload.** The subcostal right and left
+anterior obliques are placed from their own subxiphoid apertures, on planes built from measured
+landmarks: A5 through the tricuspid orifice, the pulmonary orifice and the RV centroid, which is RV
+inflow and RV outflow in one plane and is what makes it that view; A6 through the mitral orifice,
+the aortic orifice and the left atrium. Both agree with the canon's indicator clock EXACTLY on both
+packs — 2:00 and 5:00, zero hours of disagreement, which none of the four apical views manages. And
+both stop short of what the canon says they are for: A5's en-face aortic valve needs leaflets and
+its conal-septum deviation needs a tagged infundibular septum, A6's en-face valves need leaflets and
+its atrial septum is not tagged on either pack. The pose reaches the plane. The plane is not the
+payload, and the pack says which one it has.
+
+**The apical two-chamber was a second three-chamber.** This is the correction worth reading. The
+committed `b3-apical-two-chamber` on `normal-rodero` had the AORTIC orifice **0.8 mm from its
+imaging plane** — in it, by any measure — which makes it the apical LONG AXIS, the view the same
+pack already carries as `b4-apical-three-chamber`. Every positive test it was given passed: apex in
+plane, mitral in plane, both inside the sector. Nothing asked what had to be OUT.
+
+So `ViewSpec` gained `out_of_plane`, and the two-chamber declares two exclusions that are its actual
+definition: the tricuspid must be out of the plane, which is the whole purpose of the manoeuvre, and
+so must the aorta, because a plane through the apex, the mitral orifice and the aorta is the
+three-chamber. **The pose in the pack fails its own view's definition and the corrected one is a
+different pose.** It has not been overwritten — `acoustic_windows.py` will not replace a committed
+pose without being told to, one view id at a time — so `normal-rodero`'s two-chamber is still the
+old one and this entry is where that is written down until the owner decides.
+
+**And the rotation was being applied about the wrong line.** "Rotate sixty degrees from the
+four-chamber" was implemented as a turn about the probe's own beam at the four-chamber aperture,
+which is the right physics and the wrong axis on these composites: the apical window stands 45-72 mm
+off a heart whose apex is tens of millimetres from the beam line, so turning about the beam swings
+the apex straight out of the plane — measured at **5.7 mm off by ten degrees and 28.8 mm by
+sixty**. The turn is now applied to the PLANE about the line through the measured apex and mitral
+orifice, which holds both at zero, and the aperture is searched again on the result. That is the
+honest reading of "rotate to the two-chamber" on a substrate whose window is this far from its apex,
+and it is what recovered the two-chamber on the chamber pack.
+
+**Sixty degrees does not say which way, and the canon does.** Both senses of every fixed turn are
+now built and the canon's indicator clock chooses between them, because a plane and its
+180-degree partner are the same plane while +60 and -60 are two genuinely different views. On the
+two-chamber the choice was not close: the clinically expected sense has **no window at all** on
+either pack. On `normal-rodero` the plane reaches apical skin and every aperture there is shut, at
+all four probe settings. On the chamber pack no skin in the apical window comes within 6 mm of that
+plane. Both outcomes are recorded on the pose, so the 2-3 hours of indicator disagreement that is
+left on it reads as a fact about the chest rather than as a coin flip.
+
+**A ladder of real probe heads, entered only on failure.** `PROBE_LADDER` is an adult cardiac
+phased array at 70 degrees, a paediatric array at 90 and at 60, and a neonatal array at 45. The
+default is always tried first, so every pose that built before builds identically and at the same
+70 degrees. **One view needed the ladder**: `b4-apical-three-chamber` on the chamber pack exists
+only on the **neonatal phased array at a 45 degree sector**, and it agrees with the canon's
+indicator exactly when it does. Its head, its sector, its beam axis and its lateral axis in the body
+frame are on the pose and in the window survey, because "which transducer does this view need" is a
+finding about the substrate and it is the input to whichever round adds probe heads to the app.
+
+Sector width is enforced. **Footprint is measured and not enforced**, and the reason is stated
+rather than left as an oversight: an aperture here is a POINT, so a 20 mm face centred five
+millimetres from a rib is half on the rib and this module cannot yet tell. Every pose now reports
+its aperture's clearance to the nearest bone and which heads that clearance would admit, so the rule
+can be written later against numbers measured now.
+
+**The nine that are absent, and why.** A1 and A2 are abdominal views and neither the packs nor the
+chest contexts carry liver, stomach, IVC or abdominal aorta. A4 and F1 need separately tagged cavae.
+D1 needs a descending aorta and a ductus; D2 needs branch pulmonary arteries and pulmonary veins;
+E1 needs an arch; E2 needs the SVC, the innominate vein and four pulmonary veins; F2 needs the RUPV
+and the RPA. Measured: `normal-rodero`'s entire aortic wall spans 53 mm above the valve and the
+chamber pack's aortic lumen 54 mm — ascending stubs, no arch, no descending limb — and Rodero's
+pulmonary artery never crosses the midline while the chamber pack's crosses it by about ten
+millimetres. No probe head fixes any of that, and the ladder was run to confirm it rather than
+assumed.
+
+**One owner decision would unblock two of them.** `normal-rodero` carries fourteen structures named
+"Tagged region N (unnamed pending vetting)", and they sit where venous ostia sit. If a vetter names
+the caval ones, A4 and F1 both become derivable on the pack that already has the window for them. A
+pipeline may not name them, and this one did not.
+
+**Nothing here is vetted.** Every pose is Draft, no clinician has read a window or a plane, and each
+carries the sentence the chest makes unavoidable: it is an adult male thorax, so the interspace it
+names is an adult interspace and is not age-correct.
