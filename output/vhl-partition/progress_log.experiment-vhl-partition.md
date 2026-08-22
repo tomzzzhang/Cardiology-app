@@ -11,6 +11,59 @@ Newest first.
 
 ---
 
+## 2026-08-21 22:57 ET — the cleanup was eating the atrial wall it was meant to tidy
+
+Three defects the owner saw in the viewer, all in the atria, all one cause.
+
+**Red and green inside the right atrium.** The endocardium is labelled from the lumen it
+touches, so the RA's inner surface was RA by construction - and then the cleanup took it
+away. `absorb_thin` removes strips under 1.5 mm and this wall's median half-thickness is
+1.34 mm, so the atrial layer IS a thin strip: it was absorbed whole and handed to whatever
+lay on the other side. **871 of the RA's 7,688 mm2 of endocardium came out left-atrial (475)
+or right-ventricular (340).** Smoothing over a 2 mm ball does the same thing wherever the
+wall is thinner than the ball.
+
+Fix: smoothing runs on the wall INTERIOR, and both labelled faces are restored afterwards.
+The endocardium is an observation - the lumen it touches - and the epicardium is the drawn
+grooves. Neither is a thing to take a majority vote over. Disagreement between the
+endocardium and the wall it ends up in is now **0 mm2 for all six chambers**, from 871, 250,
+694 and 515 for RA, LA, PA and aorta.
+
+**A first hypothesis, wrong, recorded because it was plausible.** The six-neighbour vote in
+`label_from_lumen` broke ties by tag NUMBER, which on a one-voxel septum hands every tied
+voxel to the same chamber - LA over RA, every time. It was replaced with local support (how
+much of the nearby free space belongs to each candidate), which is better and has no such
+bias, but it was not the bug: **21 mm2 moved.** The improvement is kept; the diagnosis was
+not the cleanup's.
+
+**The yellow speck between red and blue.** A chamber's epicardial territory is now forced to
+its single largest patch. The specks are tiny - 45 mm2 across all six labels - but a
+rendered vertex takes the nearest labelled wall voxel, so a handful of voxels paints a patch
+you can see.
+
+**The outside boundary, measured rather than judged by eye.** Of 1,158 mm2 of territory
+border on the epicardium, **149 mm2 sits more than 4 mm from any drawn groove**, and 86 mm2
+of that is a single run at the LA/aorta/PA junction near the base. The rest is groove-held.
+`where-to-draw.png` marks the unheld runs in magenta.
+
+**The render is now the limit, not the labels.** The wall mesh is at 0.775 mm and the atrial
+wall's half-thickness is 1.34 mm, so a vertex can snap across it. Measured on the exported
+vertex colours:
+
+| endocardium of | nearest labelled wall voxel | vertex normal | nearest lumen |
+|---|---|---|---|
+| RA | 94.7% | 86.7% | **96.0%** |
+| LA | 95.0% | 93.3% | **95.2%** |
+| RV | 99.0% | 98.9% | **99.0%** |
+| LV | 99.1% | 98.4% | **99.3%** |
+
+Vertex normals were tried and are WORSE: the surface is trabeculated, the normal is noisy,
+and the inward test picks the wrong side often enough to lose eight points on the RA. What
+works needs no normal - a vertex on the endocardium is within a voxel of the lumen it lines,
+and which lumen that is was already decided by touching. The residual few percent is mesh
+resolution against a wall thinner than the mesh spacing, and it is a RENDER artefact: the
+labels themselves disagree nowhere.
+
 ## 2026-08-21 22:31 ET — the wall was labelled on the wrong surface; the valve-plane rule is withdrawn
 
 **The left-atrial wall was never a missing groove.** `vhl_wall_paint.epicardium` returns

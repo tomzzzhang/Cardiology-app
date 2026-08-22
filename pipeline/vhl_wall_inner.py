@@ -32,24 +32,38 @@ def inner_surface(tissue: np.ndarray, outer: np.ndarray) -> np.ndarray:
     return boundary & ~outer
 
 
-def label_from_lumen(inner: np.ndarray, lumen: np.ndarray) -> np.ndarray:
-    """Each inner-surface voxel takes the tag of the lumen it touches.
+def label_from_lumen(inner: np.ndarray, lumen: np.ndarray, pitch: float,
+                     support_mm: float = 2.5) -> np.ndarray:
+    """Each inner-surface voxel takes the tag of the lumen it lines.
 
-    Votes over the six face neighbours, so a voxel in a crevice touching two
-    chambers goes to the one it faces more of. Ties break to the lower tag, which
-    only matters for a handful of trabecular voxels.
+    A voxel must TOUCH a lumen to be given its tag - that part is exact, and it
+    is why nothing here walks through the septum. Which lumen, when it touches
+    more than one, is decided by how much of the nearby free space belongs to
+    each rather than by counting six neighbours.
+
+    The six-neighbour count was the first attempt and it fails on a septum one
+    voxel thick, which this model has: the voxel has one neighbour in each
+    atrium, the vote ties, and any tie-break by tag NUMBER hands every such
+    voxel to the same chamber - the left atrium was taking the right atrium's
+    endocardium that way, in patches large enough to see. Local support has no
+    such bias: on the right-atrial face of the septum the free space around is
+    overwhelmingly right atrium, whichever way the single face-neighbour count
+    happens to fall.
     """
-    tags = [t for t in range(1, 7) if (lumen == t).any()]
-    votes = np.zeros((len(tags),) + inner.shape, dtype=np.uint8)
-    for n, tag in enumerate(tags):
-        cavity = lumen == tag
-        for axis, shift in _NEIGHBOURS:
-            votes[n] += np.roll(cavity, shift, axis=axis).astype(np.uint8)
-    best = votes.argmax(axis=0)
-    touched = votes.max(axis=0) > 0
+    size = max(int(round(2 * support_mm / pitch)) | 1, 3)
+    best = np.zeros(inner.shape, dtype=np.float32)
     out = np.zeros(inner.shape, dtype=np.uint8)
-    keep = inner & touched
-    out[keep] = np.asarray(tags, dtype=np.uint8)[best[keep]]
+    for tag in range(1, 7):
+        cavity = lumen == tag
+        if not cavity.any():
+            continue
+        touching = np.zeros(inner.shape, dtype=bool)
+        for axis, shift in _NEIGHBOURS:
+            touching |= np.roll(cavity, shift, axis=axis)
+        support = ndimage.uniform_filter(cavity.astype(np.float32), size=size)
+        take = inner & touching & (support > best)
+        best[take] = support[take]
+        out[take] = tag
     return out
 
 
