@@ -110,6 +110,10 @@ describe('the beam dim keeps the model labelled', () => {
       const colour = rgbOf(PALETTE[id]);
       expect(separation(colour, dimmedColour(colour)), id).toBeGreaterThan(25);
     }
+    // Every id, including the fourteen atrial inlets that deliberately SHARE
+    // their atrium's colour: sharing says "this opens into that chamber", and
+    // a shared colour still has to survive the dim.
+
   });
 
   it('pins the worst pair in the WHOLE palette, which is not a chamber pair', () => {
@@ -128,7 +132,18 @@ describe('the beam dim keeps the model labelled', () => {
      * the current figure is pinned here. A change that improves it will fail
      * this test and should raise the number.
      */
-    const ids = Object.keys(PALETTE);
+    /*
+     * DISTINCT COLOURS, not ids. Since 2026-08-22 the palette also keys the
+     * fourteen atrial inlets, and each of those takes its atrium's colour
+     * exactly rather than a new one — see `palette.ts` for why fourteen new
+     * colours could not be had. Two ids on one colour are zero apart by
+     * construction and by intent, so measuring pairs of IDS would report a
+     * legibility failure where there is only a statement that two things belong
+     * to the same chamber. What has to stay separable is the set of colours,
+     * which is what this measures and why every figure below is unchanged.
+     */
+    const ids = [...new Set(Object.keys(PALETTE).map((id) => PALETTE[id]))]
+      .map((value) => Object.keys(PALETTE).find((id) => PALETTE[id] === value)!);
     let worst = { pair: '', gap: Infinity };
     for (const first of ids) {
       for (const second of ids) {

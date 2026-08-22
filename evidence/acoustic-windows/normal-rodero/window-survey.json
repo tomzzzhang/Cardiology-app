@@ -108,6 +108,16 @@
       14.342,
       -119.352,
       1217.155
+    ],
+    "svc": [
+      -15.387,
+      -113.84,
+      1254.081
+    ],
+    "ivc": [
+      -21.84,
+      -104.482,
+      1201.36
     ]
   },
   "landmark_derivation": {
@@ -120,7 +130,9 @@
     "la": "centroid of the la-myocardium node",
     "ra": "centroid of the ra-myocardium node",
     "apex": "mean of the most apical percentile of the left ventricular cavity along that cavity's own principal axis, measured away from the atrioventricular base",
-    "av_base": "midpoint of the mitral and tricuspid orifice centroids"
+    "av_base": "midpoint of the mitral and tricuspid orifice centroids",
+    "svc": "centroid of the pack's own superior-vena-cava-inlet node. Named from the source's own element label list (Zenodo 4593738) and checked against the mesh by pipeline/name_rodero_inlets.py before the name was written.",
+    "ivc": "centroid of the pack's own inferior-vena-cava-inlet node. Named from the source's own element label list (Zenodo 4593738) and checked against the mesh by pipeline/name_rodero_inlets.py before the name was written."
   },
   "views": [
     {
@@ -436,6 +448,205 @@
         "la"
       ],
       "plane_normal_vs_lv_long_axis_deg": 61.0
+    },
+    {
+      "view_id": "a4-subcostal-sagittal",
+      "built": true,
+      "window": {
+        "region": "subxiphoid",
+        "verdict": "open",
+        "tried": 7,
+        "open": true,
+        "best_bone_fraction": 0.095,
+        "best_lung_fraction": 0.0,
+        "best_cartilage_fraction": 0.0,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 8,
+        "aperture_offset_from_imaging_plane_mm": 1.65,
+        "open_apertures": 6,
+        "sector_deg": 70.0
+      },
+      "plane_adjustment": {
+        "plane_rock_deg": 0.0,
+        "plane_rocked_about": "the line through the svc and the ivc"
+      },
+      "landmark_plane_residual_mm": {
+        "svc": 1.65,
+        "ivc": 1.65
+      },
+      "placement": "36 mm below the xiphoid tip, 3 mm from the midline \u2014 this window is under the costal margin, not between ribs",
+      "aperture_body_mm": [
+        3.42,
+        -215.38,
+        1127.86
+      ],
+      "stand_off_to_nearest_heart_mm": 66.29,
+      "depth_cm": 18.74,
+      "focus_cm": 14.74,
+      "indicator_clock_canon": "6:00",
+      "indicator_clock_implied_by_pose": "7:00",
+      "indicator_disagreement_hours": 1,
+      "probe_head": {
+        "key": "adult-phased-array",
+        "name": "Adult cardiac phased array (S5-1 class)",
+        "sector_deg": 70.0,
+        "footprint_mm": 20.0,
+        "is_the_default_head_and_setting": true
+      },
+      "bone_clearance_at_aperture_mm": 37.46,
+      "heads_whose_footprint_would_fit": [
+        "adult-phased-array",
+        "paediatric-phased-array",
+        "neonatal-phased-array"
+      ],
+      "probe_orientation_body": {
+        "beam_axis": [
+          -0.160174,
+          0.717317,
+          0.678086
+        ],
+        "lateral_axis": [
+          -0.237325,
+          0.638819,
+          -0.731838
+        ],
+        "plane_normal": [
+          -0.958134,
+          -0.278148,
+          0.067915
+        ],
+        "frame": "+X patient-left, +Y posterior, +Z superior"
+      },
+      "sector_centring": {
+        "centred": false,
+        "reason": "centring the sector closed the acoustic window; the original aim is kept"
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
+      "structures_crossed": [
+        "aortic-wall",
+        "la-myocardium",
+        "ra-myocardium",
+        "rv-myocardium",
+        "tagged-region-15",
+        "tagged-region-16",
+        "tagged-region-17",
+        "tagged-region-22",
+        "tagged-region-23",
+        "tagged-region-24",
+        "tricuspid-valve-ring"
+      ],
+      "plane_landmarks": [
+        "svc",
+        "ivc",
+        "ra"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 54.6
+    },
+    {
+      "view_id": "f1-right-parasternal-bicaval",
+      "built": true,
+      "window": {
+        "region": "right_parasternal",
+        "verdict": "open",
+        "tried": 4,
+        "open": true,
+        "best_bone_fraction": 0.19,
+        "best_lung_fraction": 0.0,
+        "best_cartilage_fraction": 0.81,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 5.02,
+        "open_apertures": 4,
+        "sector_deg": 70.0,
+        "re_cast_after_centring": true
+      },
+      "plane_adjustment": {
+        "plane_rock_deg": 18.0,
+        "plane_rocked_about": "the line through the svc and the ivc"
+      },
+      "landmark_plane_residual_mm": {
+        "svc": 5.02,
+        "ivc": 5.02
+      },
+      "placement": "right 4th intercostal space (rib 4 43 mm above, rib 5 57 mm below)",
+      "aperture_body_mm": [
+        -29.41,
+        -222.34,
+        1207.26
+      ],
+      "stand_off_to_nearest_heart_mm": 50.63,
+      "depth_cm": 15.37,
+      "focus_cm": 11.55,
+      "indicator_clock_canon": "12:00",
+      "indicator_clock_implied_by_pose": "12:00",
+      "indicator_disagreement_hours": 0,
+      "probe_head": {
+        "key": "adult-phased-array",
+        "name": "Adult cardiac phased array (S5-1 class)",
+        "sector_deg": 70.0,
+        "footprint_mm": 20.0,
+        "is_the_default_head_and_setting": true
+      },
+      "bone_clearance_at_aperture_mm": 18.14,
+      "heads_whose_footprint_would_fit": [
+        "adult-phased-array",
+        "paediatric-phased-array",
+        "neonatal-phased-array"
+      ],
+      "probe_orientation_body": {
+        "beam_axis": [
+          0.060767,
+          0.961331,
+          0.268609
+        ],
+        "lateral_axis": [
+          0.114008,
+          -0.27403,
+          0.95494
+        ],
+        "plane_normal": [
+          0.99162,
+          -0.027405,
+          -0.126251
+        ],
+        "frame": "+X patient-left, +Y posterior, +Z superior"
+      },
+      "sector_centring": {
+        "centred": true,
+        "turned_deg": 5.09,
+        "tissue_span_before_deg": [
+          -17.5,
+          27.7
+        ],
+        "dead_sector_before_deg": [
+          17.5,
+          7.3
+        ],
+        "dead_sector_after_deg": 12.4
+      },
+      "near_field_note": "The empty wedge between the transducer and the first tissue is the composite's own stand-off, not a framing choice: it is chest wall plus however far this heart sits off it.",
+      "structures_crossed": [
+        "aortic-wall",
+        "la-myocardium",
+        "ra-myocardium",
+        "rv-myocardium",
+        "tagged-region-14",
+        "tagged-region-15",
+        "tagged-region-16",
+        "tagged-region-17",
+        "tagged-region-21",
+        "tagged-region-22",
+        "tagged-region-23",
+        "tagged-region-24"
+      ],
+      "plane_landmarks": [
+        "svc",
+        "ivc",
+        "ra"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 38.0
     },
     {
       "view_id": "b1-apical-four-chamber",
@@ -1185,6 +1396,7 @@
   "summary": {
     "built": [
       "a3-subcostal-coronal",
+      "a4-subcostal-sagittal",
       "a5-subcostal-rao",
       "a6-subcostal-lao",
       "b1-apical-four-chamber",
@@ -1193,11 +1405,13 @@
       "b4-apical-three-chamber",
       "b5-apical-rv-focused",
       "c1-parasternal-long-axis",
-      "c2-parasternal-short-axis"
+      "c2-parasternal-short-axis",
+      "f1-right-parasternal-bicaval"
     ],
     "not_built": {},
     "built_on_the_default_head": [
       "a3-subcostal-coronal",
+      "a4-subcostal-sagittal",
       "a5-subcostal-rao",
       "a6-subcostal-lao",
       "b1-apical-four-chamber",
@@ -1206,7 +1420,8 @@
       "b4-apical-three-chamber",
       "b5-apical-rv-focused",
       "c1-parasternal-long-axis",
-      "c2-parasternal-short-axis"
+      "c2-parasternal-short-axis",
+      "f1-right-parasternal-bicaval"
     ],
     "needed_another_probe_head": {}
   }

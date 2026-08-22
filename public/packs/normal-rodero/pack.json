@@ -4,7 +4,7 @@
     "display_name": "Normal heart \u2014 Rodero/CEMRG average four-chamber",
     "anatomy": "Normal heart, four-chamber, adult population average",
     "canonical_variant": "Population-average adult four-chamber mesh (mean shape of 19 subjects); not a single individual and not a paediatric heart",
-    "pack_version": "0.1.6",
+    "pack_version": "0.1.8",
     "schema_version": "0.1"
   },
   "provenance": {
@@ -163,184 +163,184 @@
         "stylized": false
       },
       {
-        "id": "tagged-region-18",
+        "id": "left-atrial-appendage-border",
         "mesh_node": "tagged-region-18",
-        "display_label": "Tagged region 18 (unnamed pending vetting)",
+        "display_label": "Left atrial appendage border",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 18. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 18. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-16",
+        "id": "superior-vena-cava-inlet",
         "mesh_node": "tagged-region-16",
-        "display_label": "Tagged region 16 (unnamed pending vetting)",
+        "display_label": "Superior vena cava inlet",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 16. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 16. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-11",
+        "id": "left-atrial-appendage-inlet",
         "mesh_node": "tagged-region-11",
-        "display_label": "Tagged region 11 (unnamed pending vetting)",
+        "display_label": "Left atrial appendage inlet",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 11. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 11. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-17",
+        "id": "inferior-vena-cava-inlet",
         "mesh_node": "tagged-region-17",
-        "display_label": "Tagged region 17 (unnamed pending vetting)",
+        "display_label": "Inferior vena cava inlet",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 17. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 17. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-23",
+        "id": "superior-vena-cava-border",
         "mesh_node": "tagged-region-23",
-        "display_label": "Tagged region 23 (unnamed pending vetting)",
+        "display_label": "Superior vena cava border",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 23. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 23. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-24",
+        "id": "inferior-vena-cava-border",
         "mesh_node": "tagged-region-24",
-        "display_label": "Tagged region 24 (unnamed pending vetting)",
+        "display_label": "Inferior vena cava border",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 24. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 24. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-21",
+        "id": "right-inferior-pulmonary-vein-border",
         "mesh_node": "tagged-region-21",
-        "display_label": "Tagged region 21 (unnamed pending vetting)",
+        "display_label": "Right inferior pulmonary vein border",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 21. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 21. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-19",
+        "id": "left-superior-pulmonary-vein-border",
         "mesh_node": "tagged-region-19",
-        "display_label": "Tagged region 19 (unnamed pending vetting)",
+        "display_label": "Left superior pulmonary vein border",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 19. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 19. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-22",
+        "id": "right-superior-pulmonary-vein-border",
         "mesh_node": "tagged-region-22",
-        "display_label": "Tagged region 22 (unnamed pending vetting)",
+        "display_label": "Right superior pulmonary vein border",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 22. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 22. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-15",
+        "id": "right-superior-pulmonary-vein-inlet",
         "mesh_node": "tagged-region-15",
-        "display_label": "Tagged region 15 (unnamed pending vetting)",
+        "display_label": "Right superior pulmonary vein inlet",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 15. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 15. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-20",
+        "id": "left-inferior-pulmonary-vein-border",
         "mesh_node": "tagged-region-20",
-        "display_label": "Tagged region 20 (unnamed pending vetting)",
+        "display_label": "Left inferior pulmonary vein border",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 20. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 20. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-14",
+        "id": "right-inferior-pulmonary-vein-inlet",
         "mesh_node": "tagged-region-14",
-        "display_label": "Tagged region 14 (unnamed pending vetting)",
+        "display_label": "Right inferior pulmonary vein inlet",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 14. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 14. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-12",
+        "id": "left-superior-pulmonary-vein-inlet",
         "mesh_node": "tagged-region-12",
-        "display_label": "Tagged region 12 (unnamed pending vetting)",
+        "display_label": "Left superior pulmonary vein inlet",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 12. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 12. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       },
       {
-        "id": "tagged-region-13",
+        "id": "left-inferior-pulmonary-vein-inlet",
         "mesh_node": "tagged-region-13",
-        "display_label": "Tagged region 13 (unnamed pending vetting)",
+        "display_label": "Left inferior pulmonary vein inlet",
         "parent": null,
-        "identified": false,
+        "identified": true,
         "blood_pool": false,
         "blood_pool_decision": {
           "basis": "source_tag",
-          "evidence": "the source's own per-element tissue tag 13. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast."
+          "evidence": "the source's own per-element tissue tag 13. This mesh is volumetric tagged MYOCARDIUM throughout and models no lumen as an object: its chambers are the space the tissue encloses, so no tag in it is a cast. NAMED FROM THE SOURCE'S OWN ELEMENT LABEL LIST (Zenodo record 4593738, read 2026-08-22), not from this repository's reading of the geometry, and adopted by owner decision on 2026-08-22. Each name was then CHECKED against the shipped mesh before it was written: side of the midline, height relative to its siblings, and which chamber wall it lies against. All seven inlets pass. Zenodo record 4593738 lists tag 19 as the RIGHT INFERIOR pulmonary vein border and tag 21 as the LEFT SUPERIOR one. The shipped geometry contradicts it: tag 19's centroid sits 1.2 mm from tag 12, the left superior pulmonary vein inlet, and tag 21's sits 1.1 mm from tag 14, the right inferior one \u2014 and those two sites are 45 mm apart on opposite sides of the midline. Every one of the seven borders pairs with exactly one inlet at 0.9-1.7 mm with no other candidate inside 16 mm, so the borders are inlet+7 throughout. The record's ordering for 19 and 21 is not followed, and this is why. Names only: mesh_node still points at the glTF node the committed asset carries, no vertex moved and no pose moved. NOT VETTED \u2014 adopting the source's labels is not a clinician having read this mesh."
         },
         "stylized": false
       }
@@ -620,85 +620,85 @@
       },
       {
         "id": 11,
-        "structure": "tagged-region-18",
+        "structure": "left-atrial-appendage-border",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 12,
-        "structure": "tagged-region-16",
+        "structure": "superior-vena-cava-inlet",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 13,
-        "structure": "tagged-region-11",
+        "structure": "left-atrial-appendage-inlet",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 14,
-        "structure": "tagged-region-17",
+        "structure": "inferior-vena-cava-inlet",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 15,
-        "structure": "tagged-region-23",
+        "structure": "superior-vena-cava-border",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 16,
-        "structure": "tagged-region-24",
+        "structure": "inferior-vena-cava-border",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 17,
-        "structure": "tagged-region-21",
+        "structure": "right-inferior-pulmonary-vein-border",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 18,
-        "structure": "tagged-region-19",
+        "structure": "left-superior-pulmonary-vein-border",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 19,
-        "structure": "tagged-region-22",
+        "structure": "right-superior-pulmonary-vein-border",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 20,
-        "structure": "tagged-region-15",
+        "structure": "right-superior-pulmonary-vein-inlet",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 21,
-        "structure": "tagged-region-20",
+        "structure": "left-inferior-pulmonary-vein-border",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 22,
-        "structure": "tagged-region-14",
+        "structure": "right-inferior-pulmonary-vein-inlet",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 23,
-        "structure": "tagged-region-12",
+        "structure": "left-superior-pulmonary-vein-inlet",
         "echogenicity": 0.7,
         "attenuation": 0.6
       },
       {
         "id": 24,
-        "structure": "tagged-region-13",
+        "structure": "left-inferior-pulmonary-vein-inlet",
         "echogenicity": 0.7,
         "attenuation": 0.6
       }
@@ -787,20 +787,20 @@
         "aortic-valve-ring",
         "mitral-valve-ring",
         "pulmonary-valve-ring",
-        "tagged-region-18",
-        "tagged-region-16",
-        "tagged-region-11",
-        "tagged-region-17",
-        "tagged-region-23",
-        "tagged-region-24",
-        "tagged-region-21",
-        "tagged-region-19",
-        "tagged-region-22",
-        "tagged-region-15",
-        "tagged-region-20",
-        "tagged-region-14",
-        "tagged-region-12",
-        "tagged-region-13"
+        "left-atrial-appendage-border",
+        "superior-vena-cava-inlet",
+        "left-atrial-appendage-inlet",
+        "inferior-vena-cava-inlet",
+        "superior-vena-cava-border",
+        "inferior-vena-cava-border",
+        "right-inferior-pulmonary-vein-border",
+        "left-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-border",
+        "right-inferior-pulmonary-vein-inlet",
+        "left-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-inlet"
       ],
       "measurements": [],
       "lesion_attachments": [],
@@ -816,20 +816,20 @@
           "aortic-valve-ring",
           "mitral-valve-ring",
           "pulmonary-valve-ring",
-          "tagged-region-18",
-          "tagged-region-16",
-          "tagged-region-11",
-          "tagged-region-17",
-          "tagged-region-23",
-          "tagged-region-24",
-          "tagged-region-21",
-          "tagged-region-19",
-          "tagged-region-22",
-          "tagged-region-15",
-          "tagged-region-20",
-          "tagged-region-14",
-          "tagged-region-12",
-          "tagged-region-13"
+          "left-atrial-appendage-border",
+          "superior-vena-cava-inlet",
+          "left-atrial-appendage-inlet",
+          "inferior-vena-cava-inlet",
+          "superior-vena-cava-border",
+          "inferior-vena-cava-border",
+          "right-inferior-pulmonary-vein-border",
+          "left-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-border",
+          "right-inferior-pulmonary-vein-inlet",
+          "left-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-inlet"
         ],
         "hidden": []
       },
@@ -939,20 +939,20 @@
         "aortic-valve-ring",
         "mitral-valve-ring",
         "pulmonary-valve-ring",
-        "tagged-region-18",
-        "tagged-region-16",
-        "tagged-region-11",
-        "tagged-region-17",
-        "tagged-region-23",
-        "tagged-region-24",
-        "tagged-region-21",
-        "tagged-region-19",
-        "tagged-region-22",
-        "tagged-region-15",
-        "tagged-region-20",
-        "tagged-region-14",
-        "tagged-region-12",
-        "tagged-region-13"
+        "left-atrial-appendage-border",
+        "superior-vena-cava-inlet",
+        "left-atrial-appendage-inlet",
+        "inferior-vena-cava-inlet",
+        "superior-vena-cava-border",
+        "inferior-vena-cava-border",
+        "right-inferior-pulmonary-vein-border",
+        "left-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-border",
+        "right-inferior-pulmonary-vein-inlet",
+        "left-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-inlet"
       ],
       "measurements": [],
       "lesion_attachments": [],
@@ -968,20 +968,20 @@
           "aortic-valve-ring",
           "mitral-valve-ring",
           "pulmonary-valve-ring",
-          "tagged-region-18",
-          "tagged-region-16",
-          "tagged-region-11",
-          "tagged-region-17",
-          "tagged-region-23",
-          "tagged-region-24",
-          "tagged-region-21",
-          "tagged-region-19",
-          "tagged-region-22",
-          "tagged-region-15",
-          "tagged-region-20",
-          "tagged-region-14",
-          "tagged-region-12",
-          "tagged-region-13"
+          "left-atrial-appendage-border",
+          "superior-vena-cava-inlet",
+          "left-atrial-appendage-inlet",
+          "inferior-vena-cava-inlet",
+          "superior-vena-cava-border",
+          "inferior-vena-cava-border",
+          "right-inferior-pulmonary-vein-border",
+          "left-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-border",
+          "right-inferior-pulmonary-vein-inlet",
+          "left-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-inlet"
         ],
         "hidden": []
       },
@@ -1076,20 +1076,20 @@
         "aortic-valve-ring",
         "mitral-valve-ring",
         "pulmonary-valve-ring",
-        "tagged-region-18",
-        "tagged-region-16",
-        "tagged-region-11",
-        "tagged-region-17",
-        "tagged-region-23",
-        "tagged-region-24",
-        "tagged-region-21",
-        "tagged-region-19",
-        "tagged-region-22",
-        "tagged-region-15",
-        "tagged-region-20",
-        "tagged-region-14",
-        "tagged-region-12",
-        "tagged-region-13"
+        "left-atrial-appendage-border",
+        "superior-vena-cava-inlet",
+        "left-atrial-appendage-inlet",
+        "inferior-vena-cava-inlet",
+        "superior-vena-cava-border",
+        "inferior-vena-cava-border",
+        "right-inferior-pulmonary-vein-border",
+        "left-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-border",
+        "right-inferior-pulmonary-vein-inlet",
+        "left-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-inlet"
       ],
       "measurements": [],
       "lesion_attachments": [],
@@ -1105,20 +1105,20 @@
           "aortic-valve-ring",
           "mitral-valve-ring",
           "pulmonary-valve-ring",
-          "tagged-region-18",
-          "tagged-region-16",
-          "tagged-region-11",
-          "tagged-region-17",
-          "tagged-region-23",
-          "tagged-region-24",
-          "tagged-region-21",
-          "tagged-region-19",
-          "tagged-region-22",
-          "tagged-region-15",
-          "tagged-region-20",
-          "tagged-region-14",
-          "tagged-region-12",
-          "tagged-region-13"
+          "left-atrial-appendage-border",
+          "superior-vena-cava-inlet",
+          "left-atrial-appendage-inlet",
+          "inferior-vena-cava-inlet",
+          "superior-vena-cava-border",
+          "inferior-vena-cava-border",
+          "right-inferior-pulmonary-vein-border",
+          "left-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-border",
+          "right-inferior-pulmonary-vein-inlet",
+          "left-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-inlet"
         ],
         "hidden": []
       },
@@ -1210,20 +1210,20 @@
         "aortic-valve-ring",
         "mitral-valve-ring",
         "pulmonary-valve-ring",
-        "tagged-region-18",
-        "tagged-region-16",
-        "tagged-region-11",
-        "tagged-region-17",
-        "tagged-region-23",
-        "tagged-region-24",
-        "tagged-region-21",
-        "tagged-region-19",
-        "tagged-region-22",
-        "tagged-region-15",
-        "tagged-region-20",
-        "tagged-region-14",
-        "tagged-region-12",
-        "tagged-region-13"
+        "left-atrial-appendage-border",
+        "superior-vena-cava-inlet",
+        "left-atrial-appendage-inlet",
+        "inferior-vena-cava-inlet",
+        "superior-vena-cava-border",
+        "inferior-vena-cava-border",
+        "right-inferior-pulmonary-vein-border",
+        "left-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-border",
+        "right-inferior-pulmonary-vein-inlet",
+        "left-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-inlet"
       ],
       "measurements": [],
       "lesion_attachments": [],
@@ -1239,20 +1239,20 @@
           "aortic-valve-ring",
           "mitral-valve-ring",
           "pulmonary-valve-ring",
-          "tagged-region-18",
-          "tagged-region-16",
-          "tagged-region-11",
-          "tagged-region-17",
-          "tagged-region-23",
-          "tagged-region-24",
-          "tagged-region-21",
-          "tagged-region-19",
-          "tagged-region-22",
-          "tagged-region-15",
-          "tagged-region-20",
-          "tagged-region-14",
-          "tagged-region-12",
-          "tagged-region-13"
+          "left-atrial-appendage-border",
+          "superior-vena-cava-inlet",
+          "left-atrial-appendage-inlet",
+          "inferior-vena-cava-inlet",
+          "superior-vena-cava-border",
+          "inferior-vena-cava-border",
+          "right-inferior-pulmonary-vein-border",
+          "left-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-border",
+          "right-inferior-pulmonary-vein-inlet",
+          "left-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-inlet"
         ],
         "hidden": []
       },
@@ -1329,20 +1329,20 @@
         "aortic-valve-ring",
         "mitral-valve-ring",
         "pulmonary-valve-ring",
-        "tagged-region-18",
-        "tagged-region-16",
-        "tagged-region-11",
-        "tagged-region-17",
-        "tagged-region-23",
-        "tagged-region-24",
-        "tagged-region-21",
-        "tagged-region-19",
-        "tagged-region-22",
-        "tagged-region-15",
-        "tagged-region-20",
-        "tagged-region-14",
-        "tagged-region-12",
-        "tagged-region-13"
+        "left-atrial-appendage-border",
+        "superior-vena-cava-inlet",
+        "left-atrial-appendage-inlet",
+        "inferior-vena-cava-inlet",
+        "superior-vena-cava-border",
+        "inferior-vena-cava-border",
+        "right-inferior-pulmonary-vein-border",
+        "left-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-border",
+        "right-inferior-pulmonary-vein-inlet",
+        "left-superior-pulmonary-vein-inlet",
+        "left-inferior-pulmonary-vein-inlet"
       ],
       "measurements": [],
       "lesion_attachments": [],
@@ -1358,20 +1358,20 @@
           "aortic-valve-ring",
           "mitral-valve-ring",
           "pulmonary-valve-ring",
-          "tagged-region-18",
-          "tagged-region-16",
-          "tagged-region-11",
-          "tagged-region-17",
-          "tagged-region-23",
-          "tagged-region-24",
-          "tagged-region-21",
-          "tagged-region-19",
-          "tagged-region-22",
-          "tagged-region-15",
-          "tagged-region-20",
-          "tagged-region-14",
-          "tagged-region-12",
-          "tagged-region-13"
+          "left-atrial-appendage-border",
+          "superior-vena-cava-inlet",
+          "left-atrial-appendage-inlet",
+          "inferior-vena-cava-inlet",
+          "superior-vena-cava-border",
+          "inferior-vena-cava-border",
+          "right-inferior-pulmonary-vein-border",
+          "left-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-border",
+          "right-inferior-pulmonary-vein-inlet",
+          "left-superior-pulmonary-vein-inlet",
+          "left-inferior-pulmonary-vein-inlet"
         ],
         "hidden": []
       },
@@ -1446,12 +1446,12 @@
         "mitral-valve-ring",
         "ra-myocardium",
         "rv-myocardium",
-        "tagged-region-13",
-        "tagged-region-15",
-        "tagged-region-16",
-        "tagged-region-20",
-        "tagged-region-22",
-        "tagged-region-23",
+        "left-inferior-pulmonary-vein-inlet",
+        "right-superior-pulmonary-vein-inlet",
+        "superior-vena-cava-inlet",
+        "left-inferior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-border",
+        "superior-vena-cava-border",
         "tricuspid-valve-ring"
       ],
       "measurements": [],
@@ -1465,12 +1465,12 @@
           "mitral-valve-ring",
           "ra-myocardium",
           "rv-myocardium",
-          "tagged-region-13",
-          "tagged-region-15",
-          "tagged-region-16",
-          "tagged-region-20",
-          "tagged-region-22",
-          "tagged-region-23",
+          "left-inferior-pulmonary-vein-inlet",
+          "right-superior-pulmonary-vein-inlet",
+          "superior-vena-cava-inlet",
+          "left-inferior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-border",
+          "superior-vena-cava-border",
           "tricuspid-valve-ring"
         ],
         "hidden": []
@@ -1546,14 +1546,14 @@
         "mitral-valve-ring",
         "ra-myocardium",
         "rv-myocardium",
-        "tagged-region-11",
-        "tagged-region-12",
-        "tagged-region-15",
-        "tagged-region-16",
-        "tagged-region-18",
-        "tagged-region-19",
-        "tagged-region-22",
-        "tagged-region-23",
+        "left-atrial-appendage-inlet",
+        "left-superior-pulmonary-vein-inlet",
+        "right-superior-pulmonary-vein-inlet",
+        "superior-vena-cava-inlet",
+        "left-atrial-appendage-border",
+        "left-superior-pulmonary-vein-border",
+        "right-superior-pulmonary-vein-border",
+        "superior-vena-cava-border",
         "tricuspid-valve-ring"
       ],
       "measurements": [],
@@ -1567,14 +1567,14 @@
           "mitral-valve-ring",
           "ra-myocardium",
           "rv-myocardium",
-          "tagged-region-11",
-          "tagged-region-12",
-          "tagged-region-15",
-          "tagged-region-16",
-          "tagged-region-18",
-          "tagged-region-19",
-          "tagged-region-22",
-          "tagged-region-23",
+          "left-atrial-appendage-inlet",
+          "left-superior-pulmonary-vein-inlet",
+          "right-superior-pulmonary-vein-inlet",
+          "superior-vena-cava-inlet",
+          "left-atrial-appendage-border",
+          "left-superior-pulmonary-vein-border",
+          "right-superior-pulmonary-vein-border",
+          "superior-vena-cava-border",
           "tricuspid-valve-ring"
         ],
         "hidden": []
@@ -1613,28 +1613,28 @@
       "aliases": [
         "A2C"
       ],
-      "placement_landmark": "left 4th intercostal space (rib 4 37 mm above, rib 5 30 mm below)",
+      "placement_landmark": "lateral to the curve of the left rib 5, which lies both above and below this point; not an interspace",
       "indicator_clock": "2:00",
       "probe": {
         "origin": [
-          -38.562866268,
-          -78.24727605,
-          59.683604229
+          -42.015463732,
+          -92.989131141,
+          42.573112163
         ],
         "beam_axis": [
-          0.47770570678822594,
-          0.606220743793347,
-          -0.6358409136699231
+          0.4842654896011782,
+          0.7614217895381279,
+          -0.43095683542309193
         ],
         "lateral_axis": [
-          0.2722174848531848,
-          -0.7902838336198794,
-          -0.5489527331740621
+          0.5543551853305081,
+          -0.6481064624166558,
+          -0.5221573918570396
         ],
         "fan": {
           "angle_deg": 70.0,
-          "depth_cm": 17.94,
-          "focus_cm": 9.04
+          "depth_cm": 18.75,
+          "focus_cm": 9.22
         },
         "display": {
           "vertex": "down",
@@ -1648,11 +1648,8 @@
         "la-myocardium",
         "lv-myocardium",
         "mitral-valve-ring",
-        "pulmonary-artery-wall",
-        "pulmonary-valve-ring",
-        "rv-myocardium",
-        "tagged-region-15",
-        "tagged-region-22"
+        "ra-myocardium",
+        "rv-myocardium"
       ],
       "measurements": [],
       "lesion_attachments": [],
@@ -1663,11 +1660,8 @@
           "la-myocardium",
           "lv-myocardium",
           "mitral-valve-ring",
-          "pulmonary-artery-wall",
-          "pulmonary-valve-ring",
-          "rv-myocardium",
-          "tagged-region-15",
-          "tagged-region-22"
+          "ra-myocardium",
+          "rv-myocardium"
         ],
         "hidden": []
       },
@@ -1683,7 +1677,7 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at left 4th intercostal space (rib 4 37 mm above, rib 5 30 mm below). The four-chamber window, ROTATED about the beam until the right-sided chambers leave the plane. Sixty degrees is the canonical rotation; which structures the sector then crosses is measured rather than assumed, and is listed below. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 0% are stopped by bone, 5% by lung and 38% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'derived_from': 'b1-apical-four-chamber', 'probe_axis_turned_about': 'long_axis', 'turn_deg': 60.0, 'turn_basis': 'the canonical fixed angle for this manoeuvre', 'aperture_unchanged_from_parent': False, 'slid_within_window_mm': 54.2, 'slid_because': 'the imaging plane misses the apex by 28.8 mm; the imaging plane misses the mitral by 28.8 mm; the sector does not reach the apex; the sector does not reach the mitral'}. Landmark plane residuals in millimetres: {'apex': 4.41, 'mitral': 4.41}. INDICATOR: the canon gives 2:00; this pose implies 5:00, a disagreement of 3 hour(s), measured rather than imposed. STAND-OFF: 45.84 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at lateral to the curve of the left rib 5, which lies both above and below this point; not an interspace. The four-chamber plane, TURNED sixty degrees about the left ventricular long axis \u2014 the line through the measured apex and the mitral orifice \u2014 so that both of those stay exactly in plane while the right-sided chambers leave it. The direction of the turn is decided by the canon's indicator clock rather than assumed, because sixty degrees does not say which way, and the two ways are different views. Two exclusions are ENFORCED and they are what make this the two-chamber: the TRICUSPID must be out of plane, which is the manoeuvre's whole purpose, and so must the AORTIC orifice, because a plane through the apex, the mitral orifice and the aorta is the THREE-chamber, which this pack carries separately. The aperture is SEARCHED rather than inherited from the four-chamber pose: on this composite the apical window stands far enough off the heart that the four-chamber beam does not run along the long axis, so turning the probe where it stands swings the apex out of the plane instead of round it. Which structures the sector then crosses is measured rather than assumed. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 10% are stopped by bone, 5% by lung and 86% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': -15.0, 'plane_rocked_about': 'the line through the apex and the mitral', 'plane_turned_about_hinge_deg': 60.0, 'plane_turn_basis': \"the canon's rotation for this view, applied to the plane about the line through the apex and the mitral so that both stay in it; the sense is chosen by the canon's indicator clock\", 'both_senses_tried': [{'turn_deg': 60.0, 'built': True, 'why_not': None}, {'turn_deg': -60.0, 'built': False, 'why_not': 'SHUT \u2014 no aperture in this window clears the core'}]}. Landmark plane residuals in millimetres: {'apex': 4.0, 'mitral': 4.0, 'tricuspid (must be OUT of plane)': 28.63, 'aortic (must be OUT of plane)': 7.25}. INDICATOR: the canon gives 2:00; this pose implies 4:00, a disagreement of 2 hour(s), measured rather than imposed. STAND-OFF: 46.77 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 25.32 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-rodero/pack.json and its shipped glTF",
@@ -1738,8 +1732,8 @@
         "lv-myocardium",
         "ra-myocardium",
         "rv-myocardium",
-        "tagged-region-17",
-        "tagged-region-24",
+        "inferior-vena-cava-inlet",
+        "inferior-vena-cava-border",
         "tricuspid-valve-ring"
       ],
       "measurements": [],
@@ -1749,8 +1743,8 @@
           "lv-myocardium",
           "ra-myocardium",
           "rv-myocardium",
-          "tagged-region-17",
-          "tagged-region-24",
+          "inferior-vena-cava-inlet",
+          "inferior-vena-cava-border",
           "tricuspid-valve-ring"
         ],
         "hidden": []
@@ -1829,12 +1823,12 @@
         "pulmonary-valve-ring",
         "ra-myocardium",
         "rv-myocardium",
-        "tagged-region-15",
-        "tagged-region-16",
-        "tagged-region-17",
-        "tagged-region-22",
-        "tagged-region-23",
-        "tagged-region-24",
+        "right-superior-pulmonary-vein-inlet",
+        "superior-vena-cava-inlet",
+        "inferior-vena-cava-inlet",
+        "right-superior-pulmonary-vein-border",
+        "superior-vena-cava-border",
+        "inferior-vena-cava-border",
         "tricuspid-valve-ring"
       ],
       "measurements": [],
@@ -1848,12 +1842,12 @@
           "pulmonary-valve-ring",
           "ra-myocardium",
           "rv-myocardium",
-          "tagged-region-15",
-          "tagged-region-16",
-          "tagged-region-17",
-          "tagged-region-22",
-          "tagged-region-23",
-          "tagged-region-24",
+          "right-superior-pulmonary-vein-inlet",
+          "superior-vena-cava-inlet",
+          "inferior-vena-cava-inlet",
+          "right-superior-pulmonary-vein-border",
+          "superior-vena-cava-border",
+          "inferior-vena-cava-border",
           "tricuspid-valve-ring"
         ],
         "hidden": []
@@ -1957,6 +1951,170 @@
         "modified": {
           "flag": true,
           "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at 3 mm below the xiphoid tip, 40 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, beam angled up under the costal margin, rotated clockwise from the coronal. The canon gives this view the left ventricular outflow tract, the atrial septum and the atrioventricular valves seen en face; of those three only the OUTFLOW TRACT is measurable on these substrates, so the plane is the one through the mitral orifice, the aortic orifice and the left atrium, and the atrial septum is what that plane passes through rather than something this pose can claim to demonstrate. There is no separately tagged atrial septum on either pack and none was invented. En-face valves need leaflets, which neither pack has. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 19% are stopped by bone, 0% by lung and 100% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': -15.0, 'plane_rocked_about': 'the line through the mitral and the aortic'}. Landmark plane residuals in millimetres: {'mitral': 4.58, 'aortic': 4.58}. INDICATOR: the canon gives 5:00; this pose implies 5:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 41.19 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 34.67 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-rodero/pack.json and its shipped glTF",
+          "public/body-context/adult-reference-chest-bp3d/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "A",
+      "view_id": "a4-subcostal-sagittal",
+      "name": "Subcostal sagittal bicaval (draft)",
+      "aliases": [
+        "subcostal short axis",
+        "subxiphoid bicaval"
+      ],
+      "placement_landmark": "36 mm below the xiphoid tip, 3 mm from the midline \u2014 this window is under the costal margin, not between ribs",
+      "indicator_clock": "6:00",
+      "probe": {
+        "origin": [
+          -98.837489911,
+          -75.185619798,
+          -17.010501609
+        ],
+        "beam_axis": [
+          0.5446447671744021,
+          0.8386399349991732,
+          0.006718408600558756
+        ],
+        "lateral_axis": [
+          0.06364805516920309,
+          -0.0333451059739877,
+          -0.9974151738272091
+        ],
+        "fan": {
+          "angle_deg": 70.0,
+          "depth_cm": 18.74,
+          "focus_cm": 14.74
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aortic-wall",
+        "la-myocardium",
+        "ra-myocardium",
+        "rv-myocardium",
+        "tricuspid-valve-ring"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aortic-wall",
+          "la-myocardium",
+          "ra-myocardium",
+          "rv-myocardium",
+          "tricuspid-valve-ring"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+        "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+        "source_url": "https://zenodo.org/records/4593738",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at 36 mm below the xiphoid tip, 3 mm from the midline \u2014 this window is under the costal margin, not between ribs. Below the xiphoid process, beam angled up under the costal margin, indicator to the feet. The canon makes the BICAVAL the reference plane of this view \u2014 superior vena cava and intrahepatic inferior vena cava draining into the right atrium, with the atrial septum between the atria \u2014 so the plane is the one through both caval inlets and the right atrial centroid, with both cavae inside the sector. This view was unbuildable on every substrate in this repository until 2026-08-22, and the blocker was a NAME rather than geometry: Rodero's caval inlets shipped as \"Tagged region 16\" and \"Tagged region 17\" because naming anatomy is an owner decision and no owner had made it. The intrahepatic IVC and the azygos continuity the canon also asks for are NOT here \u2014 this mesh stops at the caval inlets \u2014 and the atrial septum is not tagged separately on this pack, so the plane passes through it rather than demonstrating it. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 10% are stopped by bone, 0% by lung and 0% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 0.0, 'plane_rocked_about': 'the line through the svc and the ivc'}. Landmark plane residuals in millimetres: {'svc': 1.65, 'ivc': 1.65}. INDICATOR: the canon gives 6:00; this pose implies 7:00, a disagreement of 1 hour(s), measured rather than imposed. STAND-OFF: 66.29 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 37.46 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
+        },
+        "derivation_chain": [
+          "public/packs/normal-rodero/pack.json and its shipped glTF",
+          "public/body-context/adult-reference-chest-bp3d/context.json (model_to_body, scale 1)",
+          "BodyParts3D 4.0 thoracic geometry: ribs 1-12, costal cartilages 1-7, manubrium, body of sternum, xiphoid process, clavicles and lungs, per side",
+          "pipeline/acoustic_windows.py (window search, blocker ray casting, plane derivation and checks)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "F",
+      "view_id": "f1-right-parasternal-bicaval",
+      "name": "Right parasternal bicaval (draft)",
+      "aliases": [
+        "bicaval",
+        "right sternal border sagittal"
+      ],
+      "placement_landmark": "right 4th intercostal space (rib 4 43 mm above, rib 5 57 mm below)",
+      "indicator_clock": "12:00",
+      "probe": {
+        "origin": [
+          -105.288156187,
+          -6.901137856,
+          35.202055189
+        ],
+        "beam_axis": [
+          0.7521729556205335,
+          0.5423462678841207,
+          -0.37429449708115775
+        ],
+        "lateral_axis": [
+          0.15169752688200713,
+          0.4102369604563052,
+          0.8992738718618787
+        ],
+        "fan": {
+          "angle_deg": 70.0,
+          "depth_cm": 15.37,
+          "focus_cm": 11.55
+        },
+        "display": {
+          "vertex": "up",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "aortic-wall",
+        "la-myocardium",
+        "ra-myocardium",
+        "rv-myocardium"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "aortic-wall",
+          "la-myocardium",
+          "ra-myocardium",
+          "rv-myocardium"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+        "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+        "source_url": "https://zenodo.org/records/4593738",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
+        "modified": {
+          "flag": true,
+          "note": "POSE PLACED ON A REGISTERED CHEST WALL, NOT ON THE HEART. The transducer sits on the skin of the body context \"adult-reference-chest-bp3d\" at right 4th intercostal space (rib 4 43 mm above, rib 5 57 mm below). Right sternal border, in the interspace named below, patient in the RIGHT lateral decubitus. The same bicaval plane as A4 reached through a different window, which is the point of carrying both: the canon gives this one the atrial septum lying most nearly perpendicular to the beam, which is what makes it the sinus-venosus-exclusion view. REAUTHORED, not restored. The pose that carried this id until 2026-08-22 was hand-authored from the canon rather than derived from this mesh, its transducer stood 66.05 mm off the skin, and it was withdrawn under the probe-contact rule. This one is placed by the same window search as every other pose here, on a plane built from the caval inlets the source itself names. The atrial septum is not tagged separately on this pack, so the perpendicularity the canon prizes is a property of the plane and not something this pose demonstrates. ACOUSTIC WINDOW MEASURED OPEN, not assumed: of the 21 rays across this sector, 19% are stopped by bone, 0% by lung and 81% by costal cartilage before they reach cardiac tissue, and the central 45% of the sector is clear of bone and air. Blockers behind the heart are not counted, because they do not obstruct a structure the beam has already imaged. Costal cartilage is scored separately from bone: it is not the same acoustic obstacle, and in a child it transmits. PLANE: {'plane_rock_deg': 18.0, 'plane_rocked_about': 'the line through the svc and the ivc'}. Landmark plane residuals in millimetres: {'svc': 5.02, 'ivc': 5.02}. INDICATOR: the canon gives 12:00; this pose implies 12:00, a disagreement of 0 hour(s), measured rather than imposed. STAND-OFF: 50.63 mm from the skin to the nearest cardiac surface, in a composite whose chest is scaled by 1.0. PROBE HEAD: Adult cardiac phased array (S5-1 class), sector 70 degrees, face 20 mm. The aperture has 18.14 mm of clearance to the nearest bone, which admits the face of: adult-phased-array, paediatric-phased-array, neonatal-phased-array. The footprint is MEASURED and NOT ENFORCED \u2014 an aperture here is a point, so a face wider than that clearance would be partly on a rib and is not refused yet. THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate. structures[] is MEASURED \u2014 the structures whose geometry this sector actually intersects \u2014 and is not the canon's list of what a clinician would call out. NOT VETTED: draft, and neither the window nor the plane has been read by a clinician. SIMULATED ECHO: any image from this pose is generated from the pack's own labels, not acquired echocardiography."
         },
         "derivation_chain": [
           "public/packs/normal-rodero/pack.json and its shipped glTF",

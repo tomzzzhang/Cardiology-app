@@ -58,11 +58,13 @@ describe('poses placed through a measured window', () => {
     // reference pose.
     expect(chestPlaced(rodero).map((v) => v.view_id).sort()).toEqual([
       'a3-subcostal-coronal',
+      'a4-subcostal-sagittal',
       'a5-subcostal-rao',
       'a6-subcostal-lao',
       'b2-apical-five-chamber',
       'b3-apical-two-chamber',
       'b5-apical-rv-focused',
+      'f1-right-parasternal-bicaval',
     ]);
     expect(chestPlaced(chambers).map((v) => v.view_id).sort()).toEqual([
       'a3-subcostal-coronal',

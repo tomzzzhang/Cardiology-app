@@ -577,6 +577,29 @@ def load_heart(pack_id: str, rotation: np.ndarray, translation: np.ndarray) -> H
     landmarks["av_base"] = base
     source["av_base"] = "midpoint of the mitral and tricuspid orifice centroids"
 
+    # The venae cavae, by STRUCTURE ID rather than by glTF node name.
+    #
+    # `normal-rodero`'s caval inlets are tags 16 and 17 of its source, named on
+    # 2026-08-22 from the source's own element label list by
+    # `pipeline/name_rodero_inlets.py`. Their glTF nodes still carry the names
+    # the asset was built with, so the pack's own id-to-node map is what is
+    # followed here — an anatomical id resolved through the pack, rather than a
+    # tag number written into this module where a re-ingest could quietly move
+    # it. A pack without them simply has no caval landmarks, which is the whole
+    # reason A4 and F1 are unbuildable on the chamber-labelled pack.
+    pack = json.loads((pack_dir / "pack.json").read_text())
+    node_for = {s["id"]: s.get("mesh_node") or s["id"] for s in pack["meshes"]["structures"]}
+    for name, structure_id in (("svc", "superior-vena-cava-inlet"),
+                               ("ivc", "inferior-vena-cava-inlet")):
+        node = node_for.get(structure_id)
+        if node is not None and node in body:
+            landmarks[name] = body[node].mean(axis=0)
+            source[name] = (
+                f"centroid of the pack's own {structure_id} node. Named from the source's own "
+                "element label list (Zenodo 4593738) and checked against the mesh by "
+                "pipeline/name_rodero_inlets.py before the name was written."
+            )
+
     parts = []
     for surface, _material, _node in read_gltf_surfaces(pack_dir / "assets" / "model.gltf"):
         parts.append(trimesh.Trimesh(
@@ -997,6 +1020,49 @@ VIEW_SPECS: tuple[ViewSpec, ...] = (
             "something this pose can claim to demonstrate. There is no separately tagged "
             "atrial septum on either pack and none was invented. En-face valves need "
             "leaflets, which neither pack has."
+        ),
+    ),
+    ViewSpec(
+        view_id="a4-subcostal-sagittal", family="A",
+        name="Subcostal sagittal bicaval (draft)",
+        aliases=("subcostal short axis", "subxiphoid bicaval"),
+        window="subxiphoid", plane=("svc", "ivc", "ra"),
+        aim=("svc", "ivc"), clock="6:00", vertex="down",
+        in_plane=("svc", "ivc"), contained=("svc", "ivc", "ra"),
+        landmark_text=(
+            "Below the xiphoid process, beam angled up under the costal margin, indicator to "
+            "the feet. The canon makes the BICAVAL the reference plane of this view — superior "
+            "vena cava and intrahepatic inferior vena cava draining into the right atrium, with "
+            "the atrial septum between the atria — so the plane is the one through both caval "
+            "inlets and the right atrial centroid, with both cavae inside the sector. This view "
+            "was unbuildable on every substrate in this repository until 2026-08-22, and the "
+            "blocker was a NAME rather than geometry: Rodero's caval inlets shipped as "
+            "\"Tagged region 16\" and \"Tagged region 17\" because naming anatomy is an owner "
+            "decision and no owner had made it. The intrahepatic IVC and the azygos continuity "
+            "the canon also asks for are NOT here — this mesh stops at the caval inlets — and "
+            "the atrial septum is not tagged separately on this pack, so the plane passes "
+            "through it rather than demonstrating it."
+        ),
+    ),
+    ViewSpec(
+        view_id="f1-right-parasternal-bicaval", family="F",
+        name="Right parasternal bicaval (draft)",
+        aliases=("bicaval", "right sternal border sagittal"),
+        window="right_parasternal", plane=("svc", "ivc", "ra"),
+        aim=("svc", "ivc"), clock="12:00", vertex="up",
+        in_plane=("svc", "ivc"), contained=("svc", "ivc"),
+        landmark_text=(
+            "Right sternal border, in the interspace named below, patient in the RIGHT lateral "
+            "decubitus. The same bicaval plane as A4 reached through a different window, which "
+            "is the point of carrying both: the canon gives this one the atrial septum lying "
+            "most nearly perpendicular to the beam, which is what makes it the "
+            "sinus-venosus-exclusion view. REAUTHORED, not restored. The pose that carried this "
+            "id until 2026-08-22 was hand-authored from the canon rather than derived from this "
+            "mesh, its transducer stood 66.05 mm off the skin, and it was withdrawn under the "
+            "probe-contact rule. This one is placed by the same window search as every other "
+            "pose here, on a plane built from the caval inlets the source itself names. The "
+            "atrial septum is not tagged separately on this pack, so the perpendicularity the "
+            "canon prizes is a property of the plane and not something this pose demonstrates."
         ),
     ),
     ViewSpec(
@@ -2061,14 +2127,12 @@ def write_views(pack_id: str, result: dict, *, apply: bool,
     rotation, translation = result["_rotation"], result["_translation"]
     _, _, _, context = load_context(pack_id)
 
-    kept = [view for view in pack["views"] if view["view_id"] not in replace_ids]
     replaced = [view["view_id"] for view in pack["views"] if view["view_id"] in replace_ids]
     missing = [i for i in replace_ids if i not in replaced]
     if missing:
         raise SystemExit(
             f"{pack_id}: asked to replace {', '.join(missing)}, which this pack does not carry."
         )
-    pack["views"] = kept
 
     existing_names = {view["name"].lower() for view in pack["views"]}
     existing_aliases = {a.lower() for view in pack["views"] for a in view["aliases"]}
@@ -2082,18 +2146,30 @@ def write_views(pack_id: str, result: dict, *, apply: bool,
         # A second id for a view the pack already carries is a duplicate, not a
         # new view. Caught by name and by alias, because ids drift and the
         # canon's own names for a view do not.
-        clash = (spec.name.lower() in existing_names
-                 or existing_aliases & {a.lower() for a in spec.aliases})
+        mine = {v["name"].lower() for v in pack["views"] if v["view_id"] == spec.view_id}
+        mine |= {a.lower() for v in pack["views"] if v["view_id"] == spec.view_id
+                 for a in v["aliases"]}
+        clash = ((spec.name.lower() in existing_names - mine)
+                 or (existing_aliases - mine) & {a.lower() for a in spec.aliases})
         if clash:
             raise SystemExit(
                 f"{pack_id}: {spec.view_id} duplicates a view this pack already carries "
                 f"under another id ({spec.name!r} / {spec.aliases}). Reconcile the id rather "
                 "than adding a second copy of one view."
             )
-        pack["views"].append(view_document(
+        document = view_document(
             built.spec, built, pack, result["_heart"], rotation, translation,
             context, result["chest_uniform_scale"],
-        ))
+        )
+        if spec.view_id in replaced:
+            # IN PLACE. A pack's view order is the order somebody put them in,
+            # and re-sorting it was a near-miss once already (observation 69):
+            # a replacement that moved a pose to the end would show up in a diff
+            # as every view changing.
+            index = next(i for i, v in enumerate(pack["views"]) if v["view_id"] == spec.view_id)
+            pack["views"][index] = document
+        else:
+            pack["views"].append(document)
         added.append(built.spec.view_id)
 
     changed = [i for i in added if i not in replaced]

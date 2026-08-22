@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-22 17:40 EDT
+**Last Updated:** 2026-08-22 19:15 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2699,3 +2699,91 @@ pipeline may not name them, and this one did not.
 **Nothing here is vetted.** Every pose is Draft, no clinician has read a window or a plane, and each
 carries the sentence the chest makes unavoidable: it is an adult male thorax, so the interspace it
 names is an adult interspace and is not age-correct.
+
+## 73. Fourteen names, two views that came back, and a colour system that said no
+
+*(2026-08-22. Owner decisions: adopt the source's own names for Rodero's unnamed tags, and correct
+the apical two-chamber.)*
+
+**A4 and F1 exist on `normal-rodero`, and what unblocked them was a NAME.** Entry 72 listed both as
+absent for want of separately tagged cavae. That was wrong in an interesting way: the cavae were
+there the whole time, as "Tagged region 16" and "Tagged region 17". What was missing was permission
+to say so. `AGENTS.md` reserves clinical naming for an owner, the owner made the decision, and
+`pipeline/name_rodero_inlets.py` carried it out. `normal-rodero` is v0.1.8 with twelve canon views —
+every one the canon defines except A1, A2, D1, D2, E1, E2 and F2, all seven of which need anatomy
+this mesh does not contain.
+
+**The names are the source's, not this repository's reading.** Zenodo record 4593738 documents its
+own element labels, and tags 11-17 are the left atrial appendage, the four pulmonary veins and the
+two venae cavae, with 18-24 their borders. So this was transcription. It was still checked before it
+was written — sidedness against the midline, superior against inferior within each pair, and which
+atrial wall each lies against — and all seven inlets pass 7/7 independently of the record.
+
+**And the record contradicts its own geometry, twice.** Its border list gives tag 19 as the RIGHT
+inferior pulmonary vein border and tag 21 as the LEFT superior one. The mesh says otherwise and is
+not subtle about it: each border sits within 0.9-1.7 mm of exactly one inlet with no other candidate
+inside 16 mm, and that pairing puts 19 beside tag 12 — the LEFT superior vein, at x = +29 mm — and
+21 beside tag 14, the right inferior one at x = −16 mm. **Forty-five millimetres apart, opposite
+sides of the midline.** The borders are inlet+7 throughout; the record's ordering for those two is
+recorded as wrong rather than quietly followed.
+
+**F1 is reauthored, not restored, and it agrees with the canon exactly.** The pose withdrawn that
+morning stood 66.05 mm off the skin and had been hand-authored from the canon. This one is searched
+through a measured window in the right 4th intercostal space on the plane through both caval inlets
+and the right atrium, and its implied indicator is 12:00 against a canon of 12:00. A4 lands 36 mm
+below the xiphoid tip, 3 mm off the midline, at 7:00 against a canon of 6:00. Neither reaches its
+full payload: this mesh stops at the caval inlets, so there is no intrahepatic IVC and no azygos,
+and the atrial septum is not tagged separately on either pack, so the near-perpendicularity that
+makes F1 THE sinus-venosus-exclusion view is a property of the plane rather than something the pose
+can show.
+
+**The apical two-chamber was replaced.** Entry 72 left it: `normal-rodero`'s committed
+`b3-apical-two-chamber` had the aortic orifice 0.8 mm from its plane, which made it a second
+three-chamber. The owner's decision was to replace it, and it is replaced IN PLACE — the first
+implementation appended the new pose and dropped the old one, which re-sorted the pack's views and
+would have shown up in a diff as everything changing. That is the near-miss entry 69 recorded,
+arriving a second time from a different direction.
+
+**The colour system refused fourteen new structures, and it was right to.** This is the part worth
+keeping. Naming the tags flipped them to `identified`, which moves them out of the unnamed grey and
+into a colour — and there was no colour to give them.
+
+The derived band could not: it is a third of the hue circle wide by construction, because a
+generated colour is forbidden from claiming a side, and it was already holding ten siblings. A
+search over four thousand salts got the worst sibling pair to **4.8 dE2000 against a bar of 7.5**.
+The salt exists precisely so it can be re-picked when a pack crowds it, and re-picking it was not
+enough.
+
+The palette could not either. A search over hue, chroma and lightness, constrained to keep every
+dimmed pair above the beam dim's threshold, placed **two** of the fourteen before every remaining
+candidate collided with something.
+
+So they take **their atrium's colour** — the two cavae the right atrium's green, the four pulmonary
+veins and the appendage the left atrium's gold. No new colour value enters the palette, every tuned
+separation in `beamDim.ts` is untouched and every pinned figure in its tests is unchanged, and the
+statement the colour makes is true: these are 3 to 8 mm rings lying on an atrial wall, and which
+atrium they open into is the useful thing to see. The pointer supplies the name that tells the LSPV
+from the LIPV. Two searches that both failed are what established that this was the right answer
+rather than the easy one.
+
+**Rodero now has nothing on the unnamed grey.** It was the only pack using it. The grey is unchanged
+and stays reserved, because what it communicates depends on being available for the next substrate
+that genuinely has something nobody has read — not on anything currently using it.
+
+**And renaming a structure found a bug that had been latent since wave 0.** `mesh_node` is the glTF
+node a structure is drawn from and `id` is what the rest of the app calls it. They are separate
+schema fields and they had been EQUAL in every pack ever built, so `PackViewer.tsx` keyed the scene
+by the node's own name and treated that name as the id — for the hidden set, the colour, the hover
+label, the isolate and the caps. The moment the two diverged, isolating the left ventricle drew
+**fifteen structures instead of one**, because the hidden set named ids the scene had never heard
+of. `tests/visual/viewer.spec.ts` caught it; no unit test could have, because the divergence had
+never existed to test.
+
+The first fix was to rename the glTF nodes so the two agreed again. That was reverted, and what it
+cost is the more useful finding: `model.gltf` is a JSON header and renaming a node moves no vertex,
+but its bytes are PINNED in three places that refused it simultaneously — both
+`evidence/view-candidates` sets bind it by digest, `viewCandidateEvidence.test.ts` checks those
+digests against the checkout, and `check:provenance` keys the pack's public-Git rights approval on
+its asset set. A label is not worth invalidating a pack revision's evidence for. So the asset did
+not move and the viewer learned to translate, once, at the traversal where the scene is built —
+which is what `mesh_node` was always for.

@@ -1,6 +1,6 @@
 # Contract: viewer-core
 
-**Last Updated:** 2026-08-22 15:41 EDT
+**Last Updated:** 2026-08-22 19:15 EDT
 
 **Owns:** `src/viewer/**`
 **Status:** implemented for the wave 1c slice. Superseded clauses are marked below; where this
@@ -112,6 +112,14 @@ else changes: the sector is still drawn, the echo still renders, the pose is sti
 the gate remains what stops an off-skin pose becoming a canon-family view in a pack. The badge is
 authoring-only because an off-skin pose is a normal work-in-progress there and must never reach a
 learner at all.
+
+**A structure's id and its glTF node may differ, and the viewer resolves them.** *(Added
+2026-08-22.)* `mesh_node` names the node a structure is drawn from; `id` is what everything else
+calls it. They were equal in every pack until `normal-rodero`'s fourteen tagged regions were named,
+which changed the ids and deliberately left the committed asset alone. The scene traversal maps node
+name to structure id once, at the point the objects are built, so that the hidden set, the colours,
+the hover label, the isolate and the caps all speak in ids and no consumer below that line has to
+know the distinction exists.
 
 Load failure leaves the heart and the echo fully working and says so on screen. Colour, opacity and
 default visibility are provisional and freely reversible; they are display choices, not clinical

@@ -1673,10 +1673,37 @@ export default function PackViewer({
         const unidentified = new Set(
           pack.meshes.structures.filter((s) => !s.identified).map((s) => s.id),
         );
+        /*
+         * NODE NAME -> STRUCTURE ID, resolved once, at the only boundary where
+         * the two are ever different.
+         *
+         * `mesh_node` is the glTF node a structure is drawn from and `id` is
+         * what the rest of the app calls it, and everything downstream of this
+         * traversal — the hidden set, the colour, the hover label, the isolate,
+         * the caps, the echo's label table — speaks in ids. They were equal in
+         * every pack until `normal-rodero`'s fourteen tagged regions were named
+         * on 2026-08-22: the names changed, the committed asset did not,
+         * because its bytes are pinned by two view-candidate evidence sets and
+         * by the pack's public-Git rights record.
+         *
+         * This viewer treated the node's name AS the id, so the moment they
+         * diverged the hidden set named structures the scene had never heard of
+         * and isolating one chamber drew fifteen. Translating here, once, is
+         * what `mesh_node` is for; the alternative was to leave every consumer
+         * to remember which of the two names it was holding.
+         */
+        const idForNode = new Map(
+          pack.meshes.structures
+            .filter((structure) => structure.mesh_node !== null)
+            .map((structure) => [structure.mesh_node as string, structure.id]),
+        );
         const capSources: CapSource[] = [];
 
         gltf.scene.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
+          // From here down `object.name` IS the structure id, so that no code
+          // below this line has to know the distinction exists.
+          object.name = idForNode.get(object.name) ?? object.name;
           byStructure.set(object.name, object);
           const isPool = bloodPool.has(object.name);
           const colour = structureColour(object.name, isPool, !unidentified.has(object.name));

@@ -83,15 +83,44 @@ describe('the three states', () => {
     expect(UNNAMED_COLOUR).toBe(0x8a8f96);
   });
 
-  it("keeps Rodero's unnamed tags on the grey, structure by structure", () => {
+  it('keeps the grey reserved, and Rodero no longer needs it', () => {
+    /*
+     * Rodero's fourteen tags 11-24 were the repository's only users of the
+     * unnamed grey, and on 2026-08-22 an owner decision adopted the source's
+     * own element labels for all fourteen — `pipeline/name_rodero_inlets.py`.
+     * So the pack now has nothing unidentified in it, and this test flipped
+     * from "the tags are grey" to "there are no tags left to be grey".
+     *
+     * The grey itself is unchanged and stays reserved. The test above still
+     * pins what it means, because what it communicates depends on it being
+     * available for the next substrate that genuinely has something nobody has
+     * read — not on anything currently using it.
+     */
     const pack = everyPack().find((entry) => entry.id === 'normal-rodero')!.pack;
     const unidentified = pack.meshes.structures.filter((structure) => !structure.identified);
-    expect(unidentified.map((s) => s.id).sort()).toEqual(
-      Array.from({ length: 14 }, (_, index) => `tagged-region-${index + 11}`).sort(),
-    );
-    for (const structure of unidentified) {
-      expect(structureColour(structure.id, structure.blood_pool, structure.identified))
-        .toBe(UNNAMED_COLOUR);
+    expect(unidentified.map((s) => s.id)).toEqual([]);
+    expect(pack.meshes.structures.filter((s) => s.id.startsWith('tagged-region-'))).toEqual([]);
+  });
+
+  it('gives each atrial inlet the colour of the atrium it opens into', () => {
+    /*
+     * Fourteen new colours could not be had — `palette.ts` records the two
+     * searches that established it — and these are 3 to 8 mm rings lying on an
+     * atrial wall rather than peers of the four chambers. So the colour says
+     * which atrium, and the pointer says which vein.
+     */
+    const right = ['superior-vena-cava', 'inferior-vena-cava'];
+    const left = ['left-superior-pulmonary-vein', 'left-inferior-pulmonary-vein',
+      'right-superior-pulmonary-vein', 'right-inferior-pulmonary-vein',
+      'left-atrial-appendage'];
+    for (const [family, chamber] of [
+      ...right.map((f) => [f, 'ra-myocardium'] as const),
+      ...left.map((f) => [f, 'la-myocardium'] as const),
+    ]) {
+      for (const part of ['inlet', 'border']) {
+        expect(structureColour(`${family}-${part}`, false, true), `${family}-${part}`)
+          .toBe(structureColour(chamber, false, true));
+      }
     }
   });
 

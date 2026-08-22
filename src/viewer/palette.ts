@@ -27,6 +27,47 @@ export const PALETTE: Record<string, number> = {
   'tricuspid-valve-ring': 0x9fe0b4,
   'aortic-valve-ring': 0xe7a8e7,
   'pulmonary-valve-ring': 0x8fdcd6,
+
+  /*
+   * THE ATRIAL INLETS, and they take their atrium's own colour rather than
+   * fourteen new ones. *(Added 2026-08-22, when they were named.)*
+   *
+   * Rodero's tags 11-24 were "Tagged region N (unnamed pending vetting)" until
+   * an owner decision adopted the source's own element labels. They are the
+   * seven openings of the atria, each present twice as an inlet and its border:
+   * the two venae cavae draining to the RIGHT atrium, the four pulmonary veins
+   * and the appendage belonging to the LEFT.
+   *
+   * Fourteen distinct colours were tried first and the measurement refused
+   * them. The derived band cannot hold them — no salt in four thousand gets the
+   * worst sibling pair above 4.8 dE2000 against a bar of 7.5, because the band
+   * is a third of the hue circle wide by construction and would then be holding
+   * twenty-four siblings. Nor can the palette: a search over hue, chroma and
+   * lightness found room for two of the fourteen before every remaining
+   * candidate collided with something once the beam dim cut it.
+   *
+   * That is not a defeat, it is the right answer arriving the hard way. These
+   * are 3 to 8 mm rings lying ON the atrial wall, not peers of the four
+   * chambers, and what a learner needs from their colour is which atrium they
+   * open into. So each takes that atrium's colour exactly: no new colour value
+   * enters the palette, every tuned separation in `beamDim.ts` is untouched,
+   * and the pointer supplies the name that tells the LSPV from the LIPV.
+   */
+  'superior-vena-cava-inlet': 0x5fb87a,
+  'superior-vena-cava-border': 0x5fb87a,
+  'inferior-vena-cava-inlet': 0x5fb87a,
+  'inferior-vena-cava-border': 0x5fb87a,
+
+  'left-superior-pulmonary-vein-inlet': 0xe0a33c,
+  'left-superior-pulmonary-vein-border': 0xe0a33c,
+  'left-inferior-pulmonary-vein-inlet': 0xe0a33c,
+  'left-inferior-pulmonary-vein-border': 0xe0a33c,
+  'right-superior-pulmonary-vein-inlet': 0xe0a33c,
+  'right-superior-pulmonary-vein-border': 0xe0a33c,
+  'right-inferior-pulmonary-vein-inlet': 0xe0a33c,
+  'right-inferior-pulmonary-vein-border': 0xe0a33c,
+  'left-atrial-appendage-inlet': 0xe0a33c,
+  'left-atrial-appendage-border': 0xe0a33c,
 };
 
 export const BLOOD_POOL_COLOUR = 0x8fbcd8;

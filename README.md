@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Last Updated:** 2026-08-22 17:40 EDT
+**Last Updated:** 2026-08-22 19:15 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -37,19 +37,28 @@ nothing behind the spine or outside the skin), while the **cardiothoracic ratio 
 population-average heart is 14 mm wider than the heart that chest was built around. Neither body is
 scaled to hide it. This is a **reference composite, not a patient and not clinical ground truth**.
 
-`normal-rodero` is at **v0.1.6 with eleven Draft views** — B1, B4, C1, C2 and a non-clinical ingest
-reference pose, plus A3, A5, A6, B2, B3 and B5 placed through a MEASURED acoustic window by
+`normal-rodero` is at **v0.1.8 with thirteen Draft views** — B1, B4, C1, C2 and a non-clinical
+ingest reference pose, plus A3, A4, A5, A6, B2, B3, B5 and F1 placed through a MEASURED acoustic
+window by
 `pipeline/acoustic_windows.py`: the transducer stands on the registered chest wall and its whole fan
 is cast against the ribs, the costal cartilages, the sternum, the clavicles and the lungs, and a
 window counts as open only when the centre of the sector reaches cardiac tissue without crossing
 bone or air. A3 is the subcostal view the heart-only substrate could not support at all.
 `normal-vhl-heart0102-chambers` is at **v0.1.2 with eleven Draft views**, ten of them placed the
 same way, its valve orifices recovered from where two lumen labels touch because that source has no
-valve-ring geometry. **Both packs now carry every canon view either substrate can support**: the ten
-of A3, A5, A6, B1-B5, C1 and C2. The nine that are absent are absent for a measured reason rather
-than for want of trying — A1 and A2 need abdominal organs, A4 and F1 need separately tagged cavae,
-D1, D2, E1, E2 and F2 need an aortic arch, branch pulmonary arteries or pulmonary veins, and neither
-substrate carries any of them.
+valve-ring geometry. **Both packs carry every canon view their own substrate can support** — ten on
+the chamber pack and TWELVE on `normal-rodero`, which also has A4 and F1, the two bicaval views.
+Those two arrived by NAMING rather than by geometry: Rodero's caval inlets shipped as "Tagged region
+16" and "Tagged region 17" because naming anatomy is an owner decision, and on 2026-08-22 the owner
+adopted the source's own element labels for all fourteen unnamed tags
+(`pipeline/name_rodero_inlets.py`, which verifies each name against the mesh before writing it and
+records where the source's own list contradicts its own geometry). F1 is REAUTHORED, not restored:
+the pose withdrawn that morning stood 66.05 mm off the skin, and this one is placed through a
+measured window in the right 4th interspace with its indicator agreeing with the canon exactly.
+
+The seven canon views that remain absent are absent for a measured reason — A1 and A2 need
+abdominal organs, and D1, D2, E1, E2 and F2 need an aortic arch, branch pulmonary arteries or
+pulmonary veins, none of which either substrate carries.
 
 **One view needed a different transducer.** The apical three-chamber on the chamber-labelled pack
 does not exist at the default adult sector: `pipeline/acoustic_windows.py` now tries a ladder of

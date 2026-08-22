@@ -1,6 +1,6 @@
 # View canon — pediatric TTE views and sweeps
 
-**Last Updated:** 2026-08-22 17:40 EDT
+**Last Updated:** 2026-08-22 19:15 EDT
 
 > **Clinical view/sweep specification.** Clinical collaborators are referred to by role, not name. The backing research report lives in the owner's planning folder.
 
@@ -50,23 +50,22 @@ The structured, machine-encodable canon of standard pediatric TTE views and swee
   `body-context/v0` registration with a diaphragm, a xiphoid process and a costal margin, so the
   window is placed where it actually is — on skin below the xiphoid — and the beam is cast under
   the costal margin and checked against bone, cartilage and lung before the pose is kept. A3 is
-  authored on both. **A4 remains unauthored on a different and unfixed ground**: it is the bicaval
-  reference, and neither substrate has separately tagged cavae to build it on. **F1 is not a route
-  to that content either, and no longer exists as a pose.** *(Updated 2026-08-22: this note used to
-  say F1 "remains the honest route to that content on Rodero".)* `f1-right-parasternal-bicaval` was
-  WITHDRAWN from `normal-rodero` at v0.1.5 under the probe-contact rule — hand-authored from this
-  canon rather than derived from the mesh, its transducer sat 66.05 mm off the skin, and the missing
-  cavae that block A4 are the same reason there is no measured bicaval plane to reauthor it onto.
-  The pack no longer carries the view. Its canon entry below is RETAINED, along with its authoring
-  slot and its review-session evidence, so reauthoring it is picking the work back up rather than
-  starting over — but nothing in this file should be read as saying the content is reachable on
-  Rodero today. **A4 and F1 are the same blocker seen twice**, and it is one owner decision wide:
-  `normal-rodero` carries fourteen tagged regions whose names are "unnamed pending vetting", sitting
-  where venous ostia sit. If a vetter names the caval ones, both views become derivable; a pipeline
-  may not name them for them.)*
+  authored on both. **A4 and F1 are now authored on `normal-rodero` and remain unbuildable on the
+  chamber pack**, and the difference between those two facts is a NAME rather than a geometry.
+  *(Updated 2026-08-22, twice in one day. This note first said F1 "remains the honest route to that
+  content on Rodero"; F1 was then withdrawn at v0.1.5 under the probe-contact rule, its transducer
+  standing 66.05 mm off the skin; and both bicaval views were then built at v0.1.8.)* Both need the
+  superior and inferior venae cavae as separate landmarks. `normal-rodero` had them all along, as
+  "Tagged region 16" and "Tagged region 17" — real geometry that nothing in this repository was
+  allowed to name, because naming anatomy is an owner decision. That decision was made on
+  2026-08-22: all fourteen unnamed tags carry the SOURCE'S OWN element labels from Zenodo record
+  4593738, checked against the mesh before being written by `pipeline/name_rodero_inlets.py`. F1 is
+  REAUTHORED and not restored — the withdrawn pose is gone and this one is searched through a
+  measured window in the right 4th interspace, with its indicator agreeing with the canon exactly.
+  `normal-vhl-heart0102-chambers` has no cavae at all and neither view is buildable on it.)*
 
 - **A3. Coronal (long-axis) view + sweep** — below xiphoid; indicator 3:00. Sweep posterior→anterior: atrial septum + pulmonary veins to LA → LV long axis, AoV, ascending aorta (SVC right of AAo, MPA left) → RV inflow/outflow + pulmonary valve. Structures: coronary sinus, atrial septum (near-perpendicular to beam — best atrial-septal window), AV connections, LVOT, RVOT, anterior muscular septum, VA connections. Protocol clips: 2D+color IVC→RVOT; focused low-Nyquist atrial-septal sweep.
-- **A4. Sagittal (short-axis) view + sweep** — below xiphoid; indicator 6:00. Reference = bicaval (SVC + intrahepatic IVC → RA; atrial septum between RA and LA). Sweep rightward→leftward: bicaval → ventricular base/AV valves with AoV in cross-section → LV/MV cross-section + RVOT/PV → midmuscular septum, LV papillary muscles, apex. Key: RUPV courses inferior to RPA, posterior to SVC, into LA. Protocol clips: bicaval→apex sweep; atrial-septal low-Nyquist sweep; RUPV clip; RVOT clip ± PW/CW.
+- **A4. Sagittal (short-axis) view + sweep** — below xiphoid; indicator 6:00. Reference = bicaval (SVC + intrahepatic IVC → RA; atrial septum between RA and LA). Sweep rightward→leftward: bicaval → ventricular base/AV valves with AoV in cross-section → LV/MV cross-section + RVOT/PV → midmuscular septum, LV papillary muscles, apex. Key: RUPV courses inferior to RPA, posterior to SVC, into LA. Protocol clips: bicaval→apex sweep; atrial-septal low-Nyquist sweep; RUPV clip; RVOT clip ± PW/CW. *(**First draft encoding shipped on `normal-rodero`, 2026-08-22**, `a4-subcostal-sagittal`: the REFERENCE plane only, through both caval inlets and the right atrial centroid, from a subxiphoid aperture 36 mm below the xiphoid tip and 3 mm off the midline. Implied indicator 7:00 against the canon's 6:00, one hour, measured and reported. Unvetted. **The sweep is not encoded and most of the payload is not present**: this mesh stops at the caval inlets, so there is no intrahepatic IVC and no azygos; the atrial septum is not tagged separately, so the plane passes through it rather than demonstrating it; and the RUPV/RPA relationship the canon makes the key teaching point needs a right pulmonary artery, which this substrate does not have. Not buildable on `normal-vhl-heart0102-chambers`, which carries no cavae.)*
 - **A5. Right anterior oblique (RAO)** — canonical name; aliases "TET view", SEROV, subcostal RV-3-chamber. From coronal, rotate counterclockwise; indicator 2:00. RV inflow + RV outflow in one plane + en-face AoV; shows conal (infundibular) septum deviation. Lesion attachments: TOF/conotruncal, DCRV; perimembranous VSD (TV–AoV fibrous continuity). *(**First draft encoding shipped on BOTH packs, 2026-08-22**, `a5-subcostal-rao`: its own subxiphoid aperture, searched rather than turned from A3, on the plane through the tricuspid orifice, the pulmonary orifice and the RV centroid — RV inflow and RV outflow in ONE plane, which is what makes this the view, with both orifices inside the sector. The pose implies indicator 2:00 on both packs, agreeing with the canon exactly. Unvetted. **The teaching payload is NOT demonstrable**: the en-face aortic valve needs leaflets and the conal-septum deviation needs a separately tagged infundibular septum, and neither substrate carries either. This pose reaches the plane, not the payload.)*
 - **A6. Left anterior oblique (LAO)** — from coronal, rotate clockwise; indicator 5:00. En-face AV valves, atrial septum, LVOT. Lesion attachment: AVSD (common AV valve en face, balance assessment). *(**First draft encoding shipped on BOTH packs, 2026-08-22**, `a6-subcostal-lao`: its own subxiphoid aperture on the plane through the mitral orifice, the aortic orifice and the left atrium. Of the three things the canon gives this view, only the LVOT is measurable here — en-face valves need leaflets and neither pack has an atrial septum tagged separately, so the septum is what the plane passes through rather than something the pose demonstrates. Implied indicator 5:00 on both, agreeing exactly. Unvetted.)*
 
@@ -95,8 +94,8 @@ The structured, machine-encodable canon of standard pediatric TTE views and swee
 
 ### Family F — Right parasternal. RIGHT lateral decubitus, right arm up.
 
-- **F1. Sagittal (bicaval)** — right sternal border; indicator 12:00. SVC + IVC → RA, atrial septum near-perpendicular to beam. THE sinus-venosus-exclusion view (overriding SVC vs RA/LA); right pulmonary veins; also the highest-gradient aortic-stenosis Doppler window. Lesion attachments: sinus venosus ASD, PAPVR.
-- **F2. Transverse** — high right sternal border; indicator 3:00. RUPV → LA below RPA level. *(**Not encodable on either substrate, 2026-08-22.** Both structures it names — the right upper pulmonary vein and the right pulmonary artery — are absent from both packs. `normal-rodero` carries fourteen UNNAMED tagged regions in roughly the positions venous ostia occupy, and naming any of them is a clinical decision for the owner, not something a pipeline may assume; until one is made they cannot be used as landmarks.)*
+- **F1. Sagittal (bicaval)** — right sternal border; indicator 12:00. SVC + IVC → RA, atrial septum near-perpendicular to beam. THE sinus-venosus-exclusion view (overriding SVC vs RA/LA); right pulmonary veins; also the highest-gradient aortic-stenosis Doppler window. Lesion attachments: sinus venosus ASD, PAPVR. *(**REAUTHORED on `normal-rodero` at v0.1.8, 2026-08-22**, `f1-right-parasternal-bicaval`. Not restored: the pose that carried this id until that morning was hand-authored from this canon rather than derived from the mesh, stood 66.05 mm off the skin, and was withdrawn under the probe-contact rule. This one is searched through a measured window in the **right 4th intercostal space** on the same bicaval plane A4 uses, and its implied indicator is 12:00 — agreeing with the canon exactly. Unvetted. The atrial septum is not tagged separately on this pack, so the near-perpendicularity that makes this THE sinus-venosus-exclusion view is a property of the plane and not something the pose demonstrates; the right pulmonary veins ARE present and named. Not buildable on `normal-vhl-heart0102-chambers`, which carries no cavae.)*
+- **F2. Transverse** — high right sternal border; indicator 3:00. RUPV → LA below RPA level. *(**Not encodable on either substrate, 2026-08-22.** Both structures it names — the right upper pulmonary vein and the right pulmonary artery — are absent from both packs. `normal-rodero`'s fourteen formerly unnamed tagged regions were named on 2026-08-22 and DO include the right superior and inferior pulmonary vein inlets — but not the right pulmonary artery, which this view needs to place the RUPV below, and which neither substrate carries.)*
 
 ## Per-lesion essential views
 

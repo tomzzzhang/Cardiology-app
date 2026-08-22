@@ -434,6 +434,48 @@
       "plane_normal_vs_lv_long_axis_deg": 48.7
     },
     {
+      "view_id": "a4-subcostal-sagittal",
+      "built": false,
+      "reason": "pack has no landmark(s): svc, ivc",
+      "probe_ladder": {
+        "took": null,
+        "settings_tried": [
+          "adult-phased-array at 70 degrees",
+          "paediatric-phased-array at 90 degrees",
+          "paediatric-phased-array at 60 degrees",
+          "neonatal-phased-array at 45 degrees"
+        ],
+        "each_failed_with": {
+          "adult-phased-array at 70 degrees": "pack has no landmark(s): svc, ivc",
+          "paediatric-phased-array at 90 degrees": "pack has no landmark(s): svc, ivc",
+          "paediatric-phased-array at 60 degrees": "pack has no landmark(s): svc, ivc",
+          "neonatal-phased-array at 45 degrees": "pack has no landmark(s): svc, ivc"
+        },
+        "conclusion": "No head in the ladder placed this view. That is a finding about the substrate and the chest rather than about one transducer: the sector was opened to 90 degrees and narrowed to 45, so sector width is not what is in the way."
+      }
+    },
+    {
+      "view_id": "f1-right-parasternal-bicaval",
+      "built": false,
+      "reason": "pack has no landmark(s): svc, ivc",
+      "probe_ladder": {
+        "took": null,
+        "settings_tried": [
+          "adult-phased-array at 70 degrees",
+          "paediatric-phased-array at 90 degrees",
+          "paediatric-phased-array at 60 degrees",
+          "neonatal-phased-array at 45 degrees"
+        ],
+        "each_failed_with": {
+          "adult-phased-array at 70 degrees": "pack has no landmark(s): svc, ivc",
+          "paediatric-phased-array at 90 degrees": "pack has no landmark(s): svc, ivc",
+          "paediatric-phased-array at 60 degrees": "pack has no landmark(s): svc, ivc",
+          "neonatal-phased-array at 45 degrees": "pack has no landmark(s): svc, ivc"
+        },
+        "conclusion": "No head in the ladder placed this view. That is a finding about the substrate and the chest rather than about one transducer: the sector was opened to 90 degrees and narrowed to 45, so sector width is not what is in the way."
+      }
+    },
+    {
       "view_id": "b1-apical-four-chamber",
       "built": true,
       "window": {
@@ -1184,7 +1226,10 @@
       "c1-parasternal-long-axis",
       "c2-parasternal-short-axis"
     ],
-    "not_built": {},
+    "not_built": {
+      "a4-subcostal-sagittal": "pack has no landmark(s): svc, ivc",
+      "f1-right-parasternal-bicaval": "pack has no landmark(s): svc, ivc"
+    },
     "built_on_the_default_head": [
       "a3-subcostal-coronal",
       "a5-subcostal-rao",
