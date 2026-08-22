@@ -85,6 +85,22 @@ export interface AuthoringIngestInput {
   slotId: string;
   viewId: string;
   nextPackVersion: string;
+  /**
+   * The pack revision the EXPORT was authored against.
+   *
+   * Defaults to the target pack's own version, which is the single-view case
+   * and the only case that existed before: an export may not cross a revision,
+   * because its coordinates are model-space against one mesh.
+   *
+   * A BATCH supplies it explicitly, and the reason is precise rather than a
+   * loosening. When several poses authored against 0.1.1 are applied in one
+   * atomic step, the pack's version has already moved to the new one by the
+   * time the second is applied — but the GEOMETRY has not changed, and the
+   * geometry is what the guard exists to protect. Comparing against the base
+   * revision keeps the real invariant ("these coordinates belong to this mesh")
+   * while allowing one revision to carry more than one pose.
+   */
+  exportBaseVersion?: string;
 }
 
 export interface AuthoringIngestSummary {
@@ -239,10 +255,11 @@ export function prepareAuthoringIngest(input: AuthoringIngestInput): AuthoringIn
       + `schema "${pack.meta.schema_version}"`,
     );
   }
-  if (document.pack_version !== pack.meta.pack_version) {
+  const expectedExportVersion = input.exportBaseVersion ?? pack.meta.pack_version;
+  if (document.pack_version !== expectedExportVersion) {
     refuse(
       `export pack_version "${document.pack_version}" does not equal target pack version `
-      + `"${pack.meta.pack_version}"; model-space authoring data cannot cross pack revisions`,
+      + `"${expectedExportVersion}"; model-space authoring data cannot cross pack revisions`,
     );
   }
   if (input.nextPackVersion.trim().length === 0) {

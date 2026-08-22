@@ -11,6 +11,8 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +31,35 @@ import {
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packRelativePath = 'public/packs/normal-rodero/pack.json';
-const packPath = join(repoRoot, ...packRelativePath.split('/'));
+
+/**
+ * The pack bytes the checked-in evidence actually describes.
+ *
+ * These fixtures build a temporary repository and drop the Rodero pack into it,
+ * because the evidence is validated against the pack it is bound to. They used
+ * to copy the CHECKOUT's pack, which was the same thing — the evidence was a
+ * live proposal against the current revision.
+ *
+ * It is not the same thing any more. The corrected poses that evidence proposed
+ * were adopted into pack 0.1.2 (owner decision, 2026-08-21), so the checkout has
+ * moved on and the evidence now describes a superseded revision. Copying the
+ * checkout's pack here would be handing these tests a pack the evidence never
+ * described and then asserting it validates, which would test nothing.
+ *
+ * So the fixture materialises the pack AT THE BOUND REVISION. That keeps every
+ * assertion below aimed at what it was always aimed at.
+ */
+function boundRevisionPackBytes(): Buffer {
+  return execFileSync(
+    'git',
+    ['show', `${sourcePackRevision}:${packRelativePath}`],
+    { cwd: repoRoot, maxBuffer: 64 * 1024 * 1024 },
+  );
+}
+
+function writeBoundRevisionPack(destination: string): void {
+  writeFileSync(destination, boundRevisionPackBytes());
+}
 const modelGltfRelativePath = 'public/packs/normal-rodero/assets/model.gltf';
 const modelBinRelativePath = 'public/packs/normal-rodero/assets/model.bin';
 const echoVolumeRelativePath = 'public/packs/normal-rodero/assets/echo-volume.raw';
@@ -61,8 +91,21 @@ const checkedRegistryEntryV2 = registry.candidate_sets.find(
   (entry) => entry.path.endsWith('/candidate-set-002.json'),
 ) ?? (() => { throw new Error('the candidate registry must pin candidate-set-002.json'); })();
 
-const parsedPack = validatePack(JSON.parse(readFileSync(packPath, 'utf8')) as unknown);
-if (!parsedPack.ok) throw new Error('the checked-in Rodero pack must validate for this test');
+/*
+ * The synthetic fixtures below describe the pack AT THE BOUND REVISION, not the
+ * checkout.
+ *
+ * They must be internally consistent: an evidence document that carried the
+ * checkout's version and digest while naming the old revision is not a document
+ * this validator should ever accept, and building one here would mean these
+ * tests were asserting against something that cannot legitimately exist. Since
+ * the corrected poses were adopted into 0.1.2, the checkout and the bound
+ * revision are different packs, so the fixture reads the bound one.
+ */
+const boundPackBuffer = boundRevisionPackBytes();
+const boundPackSha256 = createHash('sha256').update(boundPackBuffer).digest('hex');
+const parsedPack = validatePack(JSON.parse(boundPackBuffer.toString('utf8')) as unknown);
+if (!parsedPack.ok) throw new Error('the bound-revision Rodero pack must validate for this test');
 const sourcePack = parsedPack.pack;
 const sourceFrame = sourcePack.meshes.anatomical_frame
   ?? (() => { throw new Error('the checked-in Rodero pack must contain an anatomical frame'); })();
@@ -126,7 +169,7 @@ function unsignedEvidence(candidateSetVersion: '001' | '002' = '001'): any {
       source_pack_version: sourcePack.meta.pack_version,
       source_pack_schema_version: sourcePack.meta.schema_version,
       source_pack_path: packRelativePath,
-      source_pack_sha256: sha256File(packPath),
+      source_pack_sha256: boundPackSha256,
       source: {
         path: 'pipeline/.cache/rodero/average.vtk',
         sha256: '1'.repeat(64),
@@ -327,7 +370,7 @@ describe('view-candidates/v1 current generated evidence envelope', () => {
     const packDir = join(workDir, 'public', 'packs', 'normal-rodero');
     const assetDir = join(packDir, 'assets');
     mkdirSync(assetDir, { recursive: true });
-    copyFileSync(packPath, join(packDir, 'pack.json'));
+    writeBoundRevisionPack(join(packDir, 'pack.json'));
     copyFileSync(join(repoRoot, ...modelGltfRelativePath.split('/')), join(assetDir, 'model.gltf'));
     copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
     copyFileSync(
@@ -632,7 +675,7 @@ describe('view-candidates/v1 current generated evidence envelope', () => {
     const packDir = join(workDir, 'public', 'packs', 'normal-rodero');
     const assetDir = join(packDir, 'assets');
     mkdirSync(assetDir, { recursive: true });
-    copyFileSync(packPath, join(packDir, 'pack.json'));
+    writeBoundRevisionPack(join(packDir, 'pack.json'));
     copyFileSync(join(repoRoot, ...modelGltfRelativePath.split('/')), join(assetDir, 'model.gltf'));
     copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
     copyFileSync(

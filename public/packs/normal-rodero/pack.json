@@ -1,10 +1,10 @@
 {
   "meta": {
     "id": "normal-rodero",
-    "display_name": "Normal heart — Rodero/CEMRG average four-chamber",
+    "display_name": "Normal heart \u2014 Rodero/CEMRG average four-chamber",
     "anatomy": "Normal heart, four-chamber, adult population average",
     "canonical_variant": "Population-average adult four-chamber mesh (mean shape of 19 subjects); not a single individual and not a paediatric heart",
-    "pack_version": "0.1.1",
+    "pack_version": "0.1.2",
     "schema_version": "0.1"
   },
   "provenance": {
@@ -16,7 +16,7 @@
     "license_state": "confirmed",
     "modified": {
       "flag": true,
-      "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. Pose normalised into a CARDIAC frame measured from this mesh: +y from the left-ventricular apex (located by the source's universal ventricular coordinate) to the centroid of the four valve rings, +x from the right-atrial to the left-atrial centroid orthogonalised against it, +z completing a right-handed basis. The axes are cardiac, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. 9 of 9 independent anatomical checks pass; the full derivation is in meshes.anatomical_frame. Views docs/view_canon.md asks for that this substrate cannot support, and why: a3-subcostal-coronal: Subcostal coronal sweep. NOT AUTHORED: the subcostal family is defined by the beam entering from below the diaphragm, which is what puts the atrial septum near-perpendicular to it — the view's whole teaching payload. That direction is a BODY axis, and this heart-only mesh carries no spine, diaphragm or chest wall; the three defensible proxies for body superior-inferior disagree by up to 46 degrees on it. A guessed placement would render a plausible sector whose stated claim is false. a4-subcostal-sagittal: Subcostal sagittal (bicaval) sweep. NOT AUTHORED, for the same reason as A3. The bicaval PLANE is derivable here — the caval stubs and the right atrium are all measured landmarks — but the subcostal WINDOW is not, and approaching that plane from a guessed direction would misstate the angle every structure in it makes with the beam. The right parasternal bicaval view F1 reaches the same plane from a side this mesh can locate, and is the honest route to this content."
+      "note": "Ingested by pipeline/ingest.py: structures split and labelled, pose normalised, decimated for interactive display, exported to glTF, and voxelised to a labelled echo volume at 192^3. No geometry was added, sculpted, or invented. Pose normalised into a CARDIAC frame measured from this mesh: +y from the left-ventricular apex (located by the source's universal ventricular coordinate) to the centroid of the four valve rings, +x from the right-atrial to the left-atrial centroid orthogonalised against it, +z completing a right-handed basis. The axes are cardiac, not the patient's: a heart-only mesh carries no spine, diaphragm or chest wall, and three defensible proxies for body superior-inferior disagree by up to 46 degrees on this mesh, so no body frame is claimed. 9 of 9 independent anatomical checks pass; the full derivation is in meshes.anatomical_frame. Views docs/view_canon.md asks for that this substrate cannot support, and why: a3-subcostal-coronal: Subcostal coronal sweep. NOT AUTHORED: the subcostal family is defined by the beam entering from below the diaphragm, which is what puts the atrial septum near-perpendicular to it \u2014 the view's whole teaching payload. That direction is a BODY axis, and this heart-only mesh carries no spine, diaphragm or chest wall; the three defensible proxies for body superior-inferior disagree by up to 46 degrees on it. A guessed placement would render a plausible sector whose stated claim is false. a4-subcostal-sagittal: Subcostal sagittal (bicaval) sweep. NOT AUTHORED, for the same reason as A3. The bicaval PLANE is derivable here \u2014 the caval stubs and the right atrium are all measured landmarks \u2014 but the subcostal WINDOW is not, and approaching that plane from a guessed direction would misstate the angle every structure in it makes with the beam. The right parasternal bicaval view F1 reaches the same plane from a side this mesh can locate, and is the honest route to this content."
     },
     "derivation_chain": [
       "https://zenodo.org/records/4593738",
@@ -714,13 +714,13 @@
         "A4C",
         "apical 4C"
       ],
-      "placement_landmark": "Cardiac apex, derived from this mesh: probe at the left-ventricular apex located by the source's universal ventricular coordinate, looking along the measured long axis at the valve plane. The model carries no chest wall, so the transducer stands off the epicardium rather than sitting in an intercostal space.",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-b1-apical-four-chamber\" (\"DRAFT TEST \u00b7 B1 \u00b7 b1-apical-four-chamber-fan-envelope-candidate-002\"); prior placement landmark invalidated pending content review",
       "indicator_clock": "3:00",
       "probe": {
         "origin": [
-          0.1054158086849426,
-          -79.87412567548702,
-          12.86589048118901
+          0.961642983,
+          -101.370688444,
+          17.463287239
         ],
         "beam_axis": [
           -0.03892056723675134,
@@ -734,8 +734,8 @@
         ],
         "fan": {
           "angle_deg": 80,
-          "depth_cm": 16.79,
-          "focus_cm": 9.23
+          "depth_cm": 18.26,
+          "focus_cm": 11.43
         },
         "display": {
           "vertex": "down",
@@ -747,14 +747,14 @@
         "mode": "tilt",
         "axis": {
           "direction": [
-            0.9992134710353209,
-            0.039647631078269435,
-            -0.0007103882230686514
+            0.9992134710353213,
+            0.03964763107826945,
+            -0.0007103882230686512
           ],
           "origin": [
-            0.1054158086849426,
-            -79.87412567548702,
-            12.86589048118901
+            0.961642983,
+            -101.370688444,
+            17.463287239
           ]
         },
         "range": {
@@ -845,11 +845,12 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex and BOTH atrioventricular ring centroids, which is the defining property of the view; probe standing off the apical epicardium along the plane, beam toward the midpoint of the two rings. Sweep tilts the plane posteriorly to anteriorly about the in-plane axis. Geometry only — not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
+          "note": "Current probe pose came from authoring-slots/v1 slot \"view-b1-apical-four-chamber\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement. structures_in_order was then REMEASURED against this pose by pipeline/remeasure_sweeps.py, walking the sweep and recording which labelled structures have geometry inside the sector. The list is a measurement, not a clinical reading of what the sweep is for."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
-          "docs/view_canon.md B1 (family, indicator clock, display convention)"
+          "docs/view_canon.md B1 (family, indicator clock, display convention)",
+          "scripts/ingest-authoring-export.ts (authoring-slots/v1 slot view-b1-apical-four-chamber, source pack 0.1.1, exported 2026-08-21T01:42:00.000Z)"
         ],
         "vetted": {
           "status": "draft",
@@ -865,13 +866,13 @@
       "aliases": [
         "PLAX"
       ],
-      "placement_landmark": "Mid left sternal border. Derived from this mesh as the plane through the left-ventricular apex, the mitral ring and the aortic ring, viewed from the measured ANTERIOR side. The model carries no chest wall or sternum, so the transducer stands off the epicardium rather than sitting in an intercostal space.",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-c1-parasternal-long-axis\" (\"DRAFT TEST \u00b7 C1 \u00b7 c1-parasternal-long-axis-distance-candidate-002\"); prior placement landmark invalidated pending content review",
       "indicator_clock": "10:00",
       "probe": {
         "origin": [
-          -33.36292056688886,
-          21.812232728931654,
-          55.98793320029994
+          -47.599846769,
+          22.742123027,
+          72.747425648
         ],
         "beam_axis": [
           0.6468421621667504,
@@ -885,8 +886,8 @@
         ],
         "fan": {
           "angle_deg": 70,
-          "depth_cm": 12.74,
-          "focus_cm": 7.01
+          "depth_cm": 14.32,
+          "focus_cm": 9.21
         },
         "display": {
           "vertex": "up",
@@ -898,14 +899,14 @@
         "mode": "tilt",
         "axis": {
           "direction": [
-            -0.06517650693500611,
-            -0.9978737510044801,
-            1.387778780781446e-17
+            -0.06517650693500614,
+            -0.9978737510044805,
+            1.970909184644879e-17
           ],
           "origin": [
-            -33.36292056688886,
-            21.812232728931654,
-            55.98793320029994
+            -47.599846769,
+            22.742123027,
+            72.747425648
           ]
         },
         "range": {
@@ -919,8 +920,8 @@
           "rv-myocardium",
           "ra-myocardium",
           "la-myocardium",
-          "aortic-wall",
           "tricuspid-valve-ring",
+          "aortic-wall",
           "aortic-valve-ring",
           "mitral-valve-ring",
           "pulmonary-artery-wall",
@@ -996,11 +997,12 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane through the left-ventricular apex, the mitral ring centroid and the aortic ring centroid — the long axis of the left ventricle together with the aortic root. Probe standing off the anterior epicardium along the measured anterior axis. Screen-x runs toward the base so the apex falls on screen-left. Geometry only — not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is MEASURED: it lists the structures whose geometry the sector intersects, in the order the sweep first reaches them. It is not the canon's list of what a clinician would call out, which is a reading this pipeline may not assert. A structure counts as reached when ANY of its surface vertices falls inside the sector, which over-calls a structure the beam only clips a corner of."
+          "note": "Current probe pose came from authoring-slots/v1 slot \"view-c1-parasternal-long-axis\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement. structures_in_order was then REMEASURED against this pose by pipeline/remeasure_sweeps.py, walking the sweep and recording which labelled structures have geometry inside the sector. The list is a measurement, not a clinical reading of what the sweep is for."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
-          "docs/view_canon.md C1 (family, indicator clock, display convention)"
+          "docs/view_canon.md C1 (family, indicator clock, display convention)",
+          "scripts/ingest-authoring-export.ts (authoring-slots/v1 slot view-c1-parasternal-long-axis, source pack 0.1.1, exported 2026-08-21T01:42:00.000Z)"
         ],
         "vetted": {
           "status": "draft",
@@ -1017,13 +1019,13 @@
         "PSAX",
         "short axis"
       ],
-      "placement_landmark": "Mid left sternal border, indicator toward the left shoulder. Derived from this mesh as the plane perpendicular to the measured long axis, entered from the measured anterior side and slid from the aortic ring's level toward the apex. The model carries no chest wall, so the transducer stands off the epicardium.",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-c2-parasternal-short-axis\" (\"DRAFT TEST \u00b7 C2 \u00b7 c2-parasternal-short-axis-distance-candidate-002\"); prior placement landmark invalidated pending content review",
       "indicator_clock": "2:00",
       "probe": {
         "origin": [
-          -0.354699350951943,
-          22.20965766588477,
-          67.9155387878418
+          -0.354699351,
+          22.209657666,
+          89.915662514
         ],
         "beam_axis": [
           -2.100093521801519e-34,
@@ -1037,8 +1039,8 @@
         ],
         "fan": {
           "angle_deg": 70,
-          "depth_cm": 12.16,
-          "focus_cm": 6.69
+          "depth_cm": 13.93,
+          "focus_cm": 8.89
         },
         "display": {
           "vertex": "up",
@@ -1132,11 +1134,12 @@
         "license_state": "confirmed",
         "modified": {
           "flag": true,
-          "note": "Probe pose DERIVED from the cardiac frame measured in meshes.anatomical_frame. Imaging plane perpendicular to the long axis measured between the left-ventricular apex and the centroid of the four valve rings, translated along that axis from the aortic ring's level to 88 percent of the distance to the apex. Probe standing off the anterior epicardium. Geometry only — not read from an imaging protocol, not reviewed by a clinician, and not a claim that this is a reachable window on a real patient. sweep.structures_in_order is DELIBERATELY EMPTY: every named structure is first reached at the same sample of this sweep, so the only thing ordering them would be the size tie-break — the structures sorted largest first, which is a fact about the mesh and not about the sweep. An ordering the sweep did not produce is not shipped, because the sweep scrubber takes its ticks from this list and would otherwise annotate events that do not happen."
+          "note": "Current probe pose came from authoring-slots/v1 slot \"view-c2-parasternal-short-axis\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z) through scripts/ingest-authoring-export.ts. Status remains Draft; ingestion did not promote review state. The existing sweep axis was rigidly transported from the previous probe frame to the new probe frame; structures_in_order was cleared pending remeasurement. structures_in_order was then REMEASURED against this pose by pipeline/remeasure_sweeps.py, walking the sweep and recording which labelled structures have geometry inside the sector. The list is a measurement, not a clinical reading of what the sweep is for."
         },
         "derivation_chain": [
           "pipeline/views.py (view derived from the measured cardiac frame)",
-          "docs/view_canon.md C2 (family, indicator clock, display convention)"
+          "docs/view_canon.md C2 (family, indicator clock, display convention)",
+          "scripts/ingest-authoring-export.ts (authoring-slots/v1 slot view-c2-parasternal-short-axis, source pack 0.1.1, exported 2026-08-21T01:42:00.000Z)"
         ],
         "vetted": {
           "status": "draft",
@@ -1148,9 +1151,9 @@
     {
       "family": "INGEST",
       "view_id": "ingest-reference-pose",
-      "name": "Ingest reference pose — not a clinical view",
+      "name": "Ingest reference pose \u2014 not a clinical view",
       "aliases": [],
-      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-ingest-reference-pose\" (\"Ingest reference pose — not a clinical view\"); prior placement landmark invalidated pending content review",
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-ingest-reference-pose\" (\"Ingest reference pose \u2014 not a clinical view\"); prior placement landmark invalidated pending content review",
       "indicator_clock": "12:00",
       "probe": {
         "origin": [
@@ -1270,6 +1273,248 @@
         "derivation_chain": [
           "pipeline/ingest.py",
           "scripts/ingest-authoring-export.ts (authoring-slots/v1 slot view-ingest-reference-pose, source pack 0.1.0, exported 2026-08-20T21:19:34.981Z)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "B",
+      "view_id": "b4-apical-three-chamber",
+      "name": "Apical three-chamber (draft)",
+      "aliases": [
+        "A3C",
+        "apical long axis"
+      ],
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-b4-apical-three-chamber\" (\"DRAFT TEST \u00b7 B4 \u00b7 b4-apical-three-chamber-candidate-002\"). This view is NEW: the pack did not previously claim it, and no prior placement landmark existed to invalidate.",
+      "indicator_clock": "11:00",
+      "probe": {
+        "origin": [
+          -5.047184577,
+          -101.609260549,
+          13.34732406
+        ],
+        "beam_axis": [
+          0.139055796,
+          0.986413282,
+          -0.087477561
+        ],
+        "lateral_axis": [
+          0.635071843,
+          -0.156607207,
+          -0.756411222
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 18.3,
+          "focus_cm": 11.46
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "left"
+        }
+      },
+      "structures": [
+        "lv-myocardium",
+        "rv-myocardium",
+        "ra-myocardium",
+        "la-myocardium",
+        "aortic-wall",
+        "pulmonary-artery-wall",
+        "tricuspid-valve-ring",
+        "aortic-valve-ring",
+        "mitral-valve-ring",
+        "pulmonary-valve-ring",
+        "tagged-region-18",
+        "tagged-region-16",
+        "tagged-region-11",
+        "tagged-region-17",
+        "tagged-region-23",
+        "tagged-region-24",
+        "tagged-region-21",
+        "tagged-region-19",
+        "tagged-region-22",
+        "tagged-region-15",
+        "tagged-region-20",
+        "tagged-region-14",
+        "tagged-region-12",
+        "tagged-region-13"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "lv-myocardium",
+          "rv-myocardium",
+          "ra-myocardium",
+          "la-myocardium",
+          "aortic-wall",
+          "pulmonary-artery-wall",
+          "tricuspid-valve-ring",
+          "aortic-valve-ring",
+          "mitral-valve-ring",
+          "pulmonary-valve-ring",
+          "tagged-region-18",
+          "tagged-region-16",
+          "tagged-region-11",
+          "tagged-region-17",
+          "tagged-region-23",
+          "tagged-region-24",
+          "tagged-region-21",
+          "tagged-region-19",
+          "tagged-region-22",
+          "tagged-region-15",
+          "tagged-region-20",
+          "tagged-region-14",
+          "tagged-region-12",
+          "tagged-region-13"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+        "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+        "source_url": "https://zenodo.org/records/4593738",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
+        "modified": {
+          "flag": true,
+          "note": "View CREATED by scripts/ingest-authoring-batch.ts from authoring-slots/v1 slot \"view-b4-apical-three-chamber\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z). Clinical identity \u2014 family, name, aliases and indicator clock \u2014 is content taken from docs/view_canon.md (DRAFT canon, lines 53 and 73), not derived from this mesh. No sweep was created: a sweep states how the plane moves through the anatomy and nothing in the carrier measures one. Status is Draft with no review history. Creating a view does not review it, and the pose has not been clinically validated."
+        },
+        "derivation_chain": [
+          "https://zenodo.org/records/4593738",
+          "pipeline/fetch.py (checksum-verified acquisition)",
+          "pipeline/ingest.py (split, pose-normalise, decimate, voxelise)",
+          "scripts/ingest-authoring-batch.ts (created b4-apical-three-chamber from authoring-slots/v1 slot view-b4-apical-three-chamber, source pack 0.1.1, exported 2026-08-21T01:42:00.000Z)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    },
+    {
+      "family": "F",
+      "view_id": "f1-right-parasternal-bicaval",
+      "name": "Right parasternal bicaval (draft)",
+      "aliases": [
+        "bicaval",
+        "right sternal border sagittal"
+      ],
+      "placement_landmark": "Authoring placement imported from authoring-slots/v1 slot \"view-f1-right-parasternal-bicaval\" (\"DRAFT TEST \u00b7 F1 \u00b7 f1-right-parasternal-bicaval-candidate-002\"). This view is NEW: the pack did not previously claim it, and no prior placement landmark existed to invalidate.",
+      "indicator_clock": "12:00",
+      "probe": {
+        "origin": [
+          -88.357204316,
+          60.814318836,
+          -26.567130385
+        ],
+        "beam_axis": [
+          0.973333525,
+          -0.194625095,
+          0.121420429
+        ],
+        "lateral_axis": [
+          0,
+          0.529308313,
+          0.848429555
+        ],
+        "fan": {
+          "angle_deg": 80,
+          "depth_cm": 14.82,
+          "focus_cm": 9.82
+        },
+        "display": {
+          "vertex": "up",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      },
+      "structures": [
+        "lv-myocardium",
+        "rv-myocardium",
+        "ra-myocardium",
+        "la-myocardium",
+        "aortic-wall",
+        "pulmonary-artery-wall",
+        "tricuspid-valve-ring",
+        "aortic-valve-ring",
+        "mitral-valve-ring",
+        "pulmonary-valve-ring",
+        "tagged-region-18",
+        "tagged-region-16",
+        "tagged-region-11",
+        "tagged-region-17",
+        "tagged-region-23",
+        "tagged-region-24",
+        "tagged-region-21",
+        "tagged-region-19",
+        "tagged-region-22",
+        "tagged-region-15",
+        "tagged-region-20",
+        "tagged-region-14",
+        "tagged-region-12",
+        "tagged-region-13"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "lv-myocardium",
+          "rv-myocardium",
+          "ra-myocardium",
+          "la-myocardium",
+          "aortic-wall",
+          "pulmonary-artery-wall",
+          "tricuspid-valve-ring",
+          "aortic-valve-ring",
+          "mitral-valve-ring",
+          "pulmonary-valve-ring",
+          "tagged-region-18",
+          "tagged-region-16",
+          "tagged-region-11",
+          "tagged-region-17",
+          "tagged-region-23",
+          "tagged-region-24",
+          "tagged-region-21",
+          "tagged-region-19",
+          "tagged-region-22",
+          "tagged-region-15",
+          "tagged-region-20",
+          "tagged-region-14",
+          "tagged-region-12",
+          "tagged-region-13"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Rodero, C., Strocchi, M., Marciniak, M., et al. (CEMRG, King's College London)",
+        "source": "Virtual cohort of adult healthy four-chamber heart meshes from CT images, Zenodo record 4593738, file average.tar.gz",
+        "source_url": "https://zenodo.org/records/4593738",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "license_state": "confirmed",
+        "modified": {
+          "flag": true,
+          "note": "View CREATED by scripts/ingest-authoring-batch.ts from authoring-slots/v1 slot \"view-f1-right-parasternal-bicaval\" (source pack 0.1.1; saved 2026-08-21T01:42:00.000Z; exported 2026-08-21T01:42:00.000Z). Clinical identity \u2014 family, name, aliases and indicator clock \u2014 is content taken from docs/view_canon.md (DRAFT canon, lines 53 and 73), not derived from this mesh. No sweep was created: a sweep states how the plane moves through the anatomy and nothing in the carrier measures one. Status is Draft with no review history. Creating a view does not review it, and the pose has not been clinically validated."
+        },
+        "derivation_chain": [
+          "https://zenodo.org/records/4593738",
+          "pipeline/fetch.py (checksum-verified acquisition)",
+          "pipeline/ingest.py (split, pose-normalise, decimate, voxelise)",
+          "scripts/ingest-authoring-batch.ts (created f1-right-parasternal-bicaval from authoring-slots/v1 slot view-f1-right-parasternal-bicaval, source pack 0.1.1, exported 2026-08-21T01:42:00.000Z)"
         ],
         "vetted": {
           "status": "draft",

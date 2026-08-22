@@ -4,9 +4,9 @@
   "display_name": "Adult reference chest \u2014 BodyParts3D",
   "pack_binding": {
     "pack_id": "normal-rodero",
-    "pack_version": "0.1.1",
+    "pack_version": "0.1.2",
     "pack_schema_version": "0.1",
-    "pack_json_sha256": "65678c34665064d00cad4cf8aa39ff3bce34b16065f42d114602180d5bd094a9"
+    "pack_json_sha256": "182eb75d7feaaea329edaba3ea09c46beff6dc14da4d357aeacee3616c1ecc47"
   },
   "body_frame": {
     "patient_left": [

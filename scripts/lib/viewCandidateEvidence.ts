@@ -621,7 +621,20 @@ export interface ViewCandidateIssue {
 }
 
 export type ViewCandidateValidation =
-  | { ok: true; evidence: ViewCandidateEvidence; issues: [] }
+  | {
+      ok: true;
+      evidence: ViewCandidateEvidence;
+      issues: [];
+      /**
+       * The checked-out pack has moved past the revision this evidence
+       * describes, so it was validated against that revision's bytes instead.
+       *
+       * Reported rather than passed over in silence: "this proposal is live"
+       * and "this proposal was adopted and the pack has moved on" are different
+       * facts about a file whose whole job is to be believed.
+       */
+      supersededBy: { checkoutPackVersion: string; checkoutPackSha256: string } | null;
+    }
   | { ok: false; evidence: null; issues: ViewCandidateIssue[] };
 
 export interface ViewCandidateValidationOptions {
@@ -760,9 +773,15 @@ function expectedPackAssets(repoRoot: string, packDir: string, pack: Pack): stri
   return [...expected].sort();
 }
 
+/** Filled in by `verifyBinding` when the checkout has moved past the binding. */
+interface SupersessionSink {
+  value: { checkoutPackVersion: string; checkoutPackSha256: string } | null;
+}
+
 function verifyBinding(
   evidence: ViewCandidateEvidence,
   options: ViewCandidateValidationOptions,
+  supersession: SupersessionSink,
 ): ViewCandidateIssue[] {
   const issues: ViewCandidateIssue[] = [];
   const fail = (path: string, message: string) => issues.push({ path, message });
@@ -782,13 +801,34 @@ function verifyBinding(
     return issues;
   }
 
+  /*
+   * SUPERSEDED EVIDENCE IS STILL TRUE EVIDENCE.
+   *
+   * A candidate set records what was measured against ONE pack revision. While
+   * that revision is what is checked out, the evidence is a live proposal and
+   * the checkout is the right thing to compare it to.
+   *
+   * Once the proposal is ADOPTED — the corrected poses ingested, the pack
+   * bumped — the checkout no longer matches, and it never will again. That is
+   * the proposal succeeding, not the evidence rotting. Failing here would mean
+   * a project could never act on its own evidence without deleting it, and the
+   * obvious workaround, regenerating the set against the new pack, is worse
+   * than useless for this generator: it reads the pack's CURRENT poses as its
+   * "original", so re-running it after an ingest re-applies the same correction
+   * to an already-corrected pose and doubles it.
+   *
+   * So a digest mismatch downgrades the comparison target rather than failing:
+   * everything below is validated against the pack AT THE BOUND REVISION, read
+   * from git. The integrity guarantee is unchanged and arguably stronger — the
+   * revision must be an ancestor of HEAD and its bytes must hash to exactly
+   * what the evidence claims, both checked below.
+   */
   const actualPackSha = sha256File(packPath);
-  if (actualPackSha !== binding.source_pack_sha256) {
-    fail(
-      'binding.source_pack_sha256',
-      `digest mismatch: evidence ${binding.source_pack_sha256}, checkout ${actualPackSha}`,
-    );
-  }
+  const superseded = actualPackSha !== binding.source_pack_sha256;
+
+  /** The bound revision's pack bytes, once git has proved they are the right ones. */
+  let boundPackBytes: Buffer | null = null;
+  let boundRevisionVerified = false;
 
   if (options.verifyGitBinding !== false) {
     let revisionAvailable = true;
@@ -823,6 +863,11 @@ function verifyBinding(
             'binding.source_pack_revision',
             `pack bytes at revision ${binding.source_pack_revision} hash to ${revisionSha}, not ${binding.source_pack_sha256}`,
           );
+        } else {
+          // Proved: an ancestor commit, and its bytes are exactly what the
+          // evidence claims. Safe to validate the evidence against them.
+          boundPackBytes = revisionBytes;
+          boundRevisionVerified = true;
         }
       } catch (error) {
         fail(
@@ -833,13 +878,45 @@ function verifyBinding(
     }
   }
 
+  if (superseded && boundRevisionVerified) {
+    supersession.value = {
+      checkoutPackVersion: '(unread)',
+      checkoutPackSha256: actualPackSha,
+    };
+  }
+
+  if (superseded && !boundRevisionVerified) {
+    // No git proof available, so there is nothing trustworthy to compare to.
+    fail(
+      'binding.source_pack_sha256',
+      `digest mismatch: evidence ${binding.source_pack_sha256}, checkout ${actualPackSha}. `
+      + 'The bound revision could not be verified, so the evidence cannot be checked against '
+      + 'the pack it describes.',
+    );
+    return issues;
+  }
+
   let rawPack: unknown;
   try {
-    rawPack = JSON.parse(readFileSync(packPath, 'utf8')) as unknown;
+    rawPack = superseded && boundPackBytes !== null
+      ? (JSON.parse(boundPackBytes.toString('utf8')) as unknown)
+      : (JSON.parse(readFileSync(packPath, 'utf8')) as unknown);
   } catch (error) {
     fail('binding.source_pack_path', `bound pack is not JSON: ${(error as Error).message}`);
     return issues;
   }
+  if (supersession.value !== null) {
+    // The checkout's own version, so the message can name both sides.
+    try {
+      const checkoutPack = JSON.parse(readFileSync(packPath, 'utf8')) as {
+        meta?: { pack_version?: string };
+      };
+      supersession.value.checkoutPackVersion = checkoutPack.meta?.pack_version ?? '(unknown)';
+    } catch {
+      supersession.value.checkoutPackVersion = '(unreadable)';
+    }
+  }
+
   const parsedPack = validatePack(rawPack);
   if (!parsedPack.ok) {
     fail('binding.source_pack_path', 'bound pack does not validate against the current pack schema');
@@ -1101,9 +1178,10 @@ export function validateViewCandidateEvidence(
       });
     }
   }
-  issues.push(...verifyBinding(parsed.data, options));
+  const supersession: SupersessionSink = { value: null };
+  issues.push(...verifyBinding(parsed.data, options, supersession));
   if (issues.length > 0) return { ok: false, evidence: null, issues };
-  return { ok: true, evidence: parsed.data, issues: [] };
+  return { ok: true, evidence: parsed.data, issues: [], supersededBy: supersession.value };
 }
 
 export function formatViewCandidateIssues(issues: ViewCandidateIssue[]): string {

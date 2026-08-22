@@ -94,6 +94,13 @@ for (const path of candidateSets) {
     failures.push(`${label}:\n${formatViewCandidateIssues(result.issues)}`);
     continue;
   }
+  if (failures.length === failureCountBefore && result.supersededBy !== null) {
+    console.log(
+      `    superseded: describes pack ${result.evidence.binding.source_pack_version} at `
+        + `${result.evidence.binding.source_pack_revision.slice(0, 12)}; the checkout is `
+        + `${result.supersededBy.checkoutPackVersion}. Validated against the bound revision.`,
+    );
+  }
   if (failures.length === failureCountBefore) {
     console.log(
       `ok  ${label}  (${result.evidence.candidate_set_id}, `
