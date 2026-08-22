@@ -1,5 +1,7 @@
 # Build plan — Cardiology app
 
+**Last Updated:** 2026-08-22 07:13 EDT
+
 > **Build specification.** Clinical collaborators are referred to by role, not name. Referenced `research/DR*.md` reports live in the owner's planning folder.
 
 Status: **v1.6 — platform-first phase active** (2026-08-20). The MVP destination remains; the

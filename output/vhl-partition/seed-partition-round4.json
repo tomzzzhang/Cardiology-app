@@ -1,0 +1,110 @@
+{
+  "mask": "occlusion from the 553 epicardial marks, opened 1.25 mm, observer exclusions struck",
+  "rounds": {
+    "round3_corrections": 6594,
+    "round4_corrections": 4361
+  },
+  "anatomical_constraints": [
+    "right-atrial lumen may not lie more than 10 mm apical of the mitral floor; a larger tricuspid offset is Ebstein's anomaly and this is a normal donor. 10.8 mL reassigned to the right ventricle.",
+    "each chamber is one cavity; islands under 0.5 mL re-homed to the surrounding label"
+  ],
+  "space_ml": 375.1,
+  "chambers": [
+    {
+      "tag": 1,
+      "name": "LV",
+      "ml": 77.8,
+      "components": 1,
+      "bbox_mm": [
+        45.7,
+        83.3,
+        87.2
+      ],
+      "in_range": true,
+      "height_mm": [
+        -66.4,
+        20.2
+      ]
+    },
+    {
+      "tag": 2,
+      "name": "RV",
+      "ml": 127.7,
+      "components": 1,
+      "bbox_mm": [
+        68.2,
+        91.4,
+        112.7
+      ],
+      "in_range": false,
+      "height_mm": [
+        -75.2,
+        31.3
+      ]
+    },
+    {
+      "tag": 3,
+      "name": "LA",
+      "ml": 41.5,
+      "components": 1,
+      "bbox_mm": [
+        44.9,
+        83.7,
+        62.0
+      ],
+      "in_range": true,
+      "height_mm": [
+        -4.0,
+        57.3
+      ]
+    },
+    {
+      "tag": 4,
+      "name": "RA",
+      "ml": 95.8,
+      "components": 1,
+      "bbox_mm": [
+        64.7,
+        70.5,
+        74.4
+      ],
+      "in_range": false,
+      "height_mm": [
+        -14.3,
+        54.4
+      ]
+    },
+    {
+      "tag": 5,
+      "name": "Aorta",
+      "ml": 11.6,
+      "components": 1,
+      "bbox_mm": [
+        24.8,
+        24.8,
+        54.2
+      ],
+      "in_range": false,
+      "height_mm": [
+        9.7,
+        56.4
+      ]
+    },
+    {
+      "tag": 6,
+      "name": "PA",
+      "ml": 20.8,
+      "components": 1,
+      "bbox_mm": [
+        46.9,
+        61.6,
+        42.2
+      ],
+      "in_range": true,
+      "height_mm": [
+        15.8,
+        65.6
+      ]
+    }
+  ]
+}

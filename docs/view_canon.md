@@ -1,5 +1,7 @@
 # View canon — pediatric TTE views and sweeps
 
+**Last Updated:** 2026-08-22 07:13 EDT
+
 > **Clinical view/sweep specification.** Clinical collaborators are referred to by role, not name. The backing research report lives in the owner's planning folder.
 
 **STATUS: DRAFT — NOT YET VETTED.** Every view below carries the draft flag until the clinical vetter and an imaging attending sign off (vetting checklist at the bottom). Anchored on the 2024 ASE comprehensive pediatric TTE guideline.

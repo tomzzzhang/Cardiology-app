@@ -317,12 +317,13 @@ const BoundFile = z.strictObject({
   sha256: Sha256,
 });
 
-/** Current file and canonical-payload digests; this is not a historical lock. */
+/** Current immutable bytes plus the ancestor revision that records their derivation closure. */
 const RegisteredCandidateSet = z.strictObject({
   candidate_set_id: EvidenceId,
   path: AssetPath,
   file_sha256: Sha256,
   canonical_payload_sha256: Sha256,
+  evidence_revision: GitRevision,
 });
 export type RegisteredCandidateSet = z.infer<typeof RegisteredCandidateSet>;
 
@@ -829,6 +830,11 @@ function verifyBinding(
   /** The bound revision's pack bytes, once git has proved they are the right ones. */
   let boundPackBytes: Buffer | null = null;
   let boundRevisionVerified = false;
+  /**
+   * The registry-pinned commit that contains this exact immutable evidence file
+   * and therefore the derivation-file bytes its bindings describe.
+   */
+  let evidenceRevision: string | null = null;
 
   if (options.verifyGitBinding !== false) {
     let revisionAvailable = true;
@@ -883,6 +889,84 @@ function verifyBinding(
       checkoutPackVersion: '(unread)',
       checkoutPackSha256: actualPackSha,
     };
+
+    /*
+     * The pack revision and the evidence revision are deliberately distinct.
+     * `source_pack_revision` identifies the pack the coordinates were measured
+     * against; the generator and some of its closure may have been introduced
+     * later, in the commit that records the evidence itself. The registry pins
+     * that second ancestor explicitly so an unrelated later edit to a shared
+     * derivation file cannot make truthful superseded evidence rot, and so the
+     * validator never guesses a convenient commit from history.
+     */
+    const registered = options.registryEntry;
+    const evidencePath = options.evidencePath;
+    if (registered === undefined || evidencePath === undefined) {
+      fail(
+        'registry.evidence_revision',
+        'superseded evidence requires a registry-pinned evidence_revision and evidencePath',
+      );
+    } else {
+      const actualEvidencePath = repoRelative(options.repoRoot, resolve(evidencePath));
+      if (registered.path !== actualEvidencePath) {
+        fail(
+          'registry.path',
+          `registry path "${registered.path}" does not equal evidence file "${actualEvidencePath}"`,
+        );
+      }
+
+      let revisionAvailable = true;
+      try {
+        execFileSync(
+          'git',
+          ['merge-base', '--is-ancestor', registered.evidence_revision, 'HEAD'],
+          { cwd: options.repoRoot, stdio: 'ignore' },
+        );
+      } catch {
+        revisionAvailable = false;
+        fail(
+          'registry.evidence_revision',
+          `revision ${registered.evidence_revision} is not an ancestor available in this checkout`,
+        );
+      }
+
+      if (revisionAvailable) {
+        try {
+          const historicalEvidenceBytes = execFileSync(
+            'git',
+            ['show', `${registered.evidence_revision}:${registered.path}`],
+            {
+              cwd: options.repoRoot,
+              maxBuffer: 64 * 1024 * 1024,
+              stdio: ['ignore', 'pipe', 'pipe'],
+            },
+          );
+          const historicalEvidenceSha = sha256Bytes(historicalEvidenceBytes);
+          const currentEvidenceSha = sha256File(evidencePath);
+          if (historicalEvidenceSha !== registered.file_sha256) {
+            fail(
+              'registry.evidence_revision',
+              `candidate-set bytes at revision ${registered.evidence_revision} hash to `
+                + `${historicalEvidenceSha}, not registry digest ${registered.file_sha256}`,
+            );
+          } else if (currentEvidenceSha !== historicalEvidenceSha) {
+            fail(
+              '<file>',
+              `current immutable evidence hashes to ${currentEvidenceSha}, not the bytes at `
+                + `registry evidence revision ${registered.evidence_revision}`,
+            );
+          } else {
+            evidenceRevision = registered.evidence_revision;
+          }
+        } catch (error) {
+          fail(
+            'registry.evidence_revision',
+            `cannot read candidate-set bytes from revision ${registered.evidence_revision}: `
+              + `${(error as Error).message}`,
+          );
+        }
+      }
+    }
   }
 
   if (superseded && !boundRevisionVerified) {
@@ -1000,6 +1084,36 @@ function verifyBinding(
     );
   }
   for (const [index, file] of binding.derivation_files.entries()) {
+    if (superseded) {
+      if (evidenceRevision === null) continue;
+      try {
+        const historicalBytes = execFileSync(
+          'git',
+          ['show', `${evidenceRevision}:${file.path}`],
+          {
+            cwd: options.repoRoot,
+            maxBuffer: 64 * 1024 * 1024,
+            stdio: ['ignore', 'pipe', 'pipe'],
+          },
+        );
+        const historicalSha = sha256Bytes(historicalBytes);
+        if (historicalSha !== file.sha256) {
+          fail(
+            `binding.derivation_files.${index}.sha256`,
+            `digest mismatch for "${file.path}" at evidence revision ${evidenceRevision}: `
+              + `evidence ${file.sha256}, revision ${historicalSha}`,
+          );
+        }
+      } catch (error) {
+        fail(
+          `binding.derivation_files.${index}.path`,
+          `cannot read derivation file "${file.path}" at evidence revision `
+            + `${evidenceRevision}: ${(error as Error).message}`,
+        );
+      }
+      continue;
+    }
+
     const filePath = safeRepoPath(options.repoRoot, file.path);
     if (filePath === null || !existsSync(filePath)) {
       fail(`binding.derivation_files.${index}.path`, `derivation file does not exist at "${file.path}"`);

@@ -1,0 +1,1422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Heart0102 chamber review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#0a0e13; --panel:#11171f; --panel-2:#161d27; --line:#232c39;
+    --ink:#dbe4ef; --muted:#8896a8; --dim:#5f6c7d; --accent:#5aa9e6;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:"Newsreader",Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font-family:var(--sans)}
+  #wrap{display:grid;grid-template-columns:1fr 312px;height:100%}
+  #stage{position:relative;min-width:0}
+  #gl{display:block;width:100%;height:100%;cursor:crosshair}
+  #hud{position:absolute;left:20px;top:18px;pointer-events:none}
+  #hud h1{font-family:var(--serif);font-weight:500;font-size:21px;margin:0;letter-spacing:.01em}
+  #hud p{margin:3px 0 0;font-size:12px;color:var(--muted);letter-spacing:.03em}
+  #probe{position:absolute;left:20px;bottom:18px;font-family:var(--mono);font-size:12px;
+         color:var(--muted);background:rgba(10,14,19,.82);border:1px solid var(--line);
+         border-radius:7px;padding:8px 11px;pointer-events:none;min-width:230px}
+  #probe b{color:var(--ink);font-weight:500}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;
+        display:flex;flex-direction:column}
+  section{padding:14px 16px;border-bottom:1px solid var(--line)}
+  h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.11em;color:var(--dim);
+     margin:0 0 11px;font-weight:600}
+  .row{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:13px}
+  .row:last-child{margin-bottom:0}
+  .sw{width:12px;height:12px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+  .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ml{font-family:var(--mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .warn{color:#e8a33d}
+  input[type=checkbox]{accent-color:var(--accent);margin:0}
+  input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0 0}
+  .btns{display:flex;gap:6px;flex-wrap:wrap}
+  button{font:inherit;font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer;
+         background:var(--panel-2);border:1px solid var(--line);color:var(--ink)}
+  button:hover{border-color:#33405240;background:#1b2431}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  button.on{background:#17324a;border-color:var(--accent);color:#dcecfb}
+  .tagbtn{display:flex;align-items:center;gap:7px;width:100%;justify-content:flex-start;
+          margin-bottom:5px;text-align:left}
+  .kbd{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+  .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);
+       font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .note{font-size:11.5px;color:var(--dim);line-height:1.5;margin:9px 0 0}
+  .count{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="gl"></canvas>
+    <div id="hud">
+      <h1>Heart0102 — chamber review</h1>
+      <p>Visible Heart Labs · seeded partition, round six · wall on the outer epicardium · posed in the measured cardiac frame</p>
+    </div>
+    <div id="probe">move over the cut face</div>
+  </div>
+  <aside>
+    <section>
+      <h2>Chamber lumen</h2>
+      <div id="parts"></div>
+      <div class="lbl" style="margin-top:11px"><span>lumen opacity</span><span id="lumenval">0.38</span></div>
+      <input type="range" id="lumen" min="0.05" max="1" step="0.01" value="0.38">
+    </section>
+    <section>
+      <h2>Myocardium</h2>
+      <div class="row"><input type="checkbox" id="wallon" checked>
+        <span class="sw" style="background:#9aa1a8"></span><span class="name">Tissue</span></div>
+      <div class="btns" style="margin:0 0 9px">
+        <button id="wallpaint">Colour by chamber</button>
+      </div>
+      <div class="lbl" style="margin-top:9px"><span>opacity</span><span id="wallval">1.00</span></div>
+      <input type="range" id="wall" min="0.05" max="1" step="0.01" value="1">
+    </section>
+    <section>
+      <h2>Cross section</h2>
+      <div class="btns" style="margin-bottom:9px">
+        <button id="faceme">Face me</button>
+        <button id="reaxis">Re-align to cardiac</button>
+      </div>
+      <div class="btns" style="margin-bottom:9px">
+        <button data-axis="0" class="axisbtn">Sagittal</button>
+        <button data-axis="1" class="axisbtn">Short axis</button>
+        <button data-axis="2" class="axisbtn on">Coronal</button>
+      </div>
+      <div class="lbl"><span>depth</span><span id="depthval">0.50</span></div>
+      <input type="range" id="depth" min="0" max="1" step="0.002" value="0.5">
+      <div class="btns" style="margin-top:9px">
+        <button id="flip">Flip side</button>
+        <button id="capon" class="on">Cut face</button>
+      </div>
+      <div class="btns" style="margin-top:9px">
+        <button id="noghost">No ghost</button>
+        <button id="wallonly">Wall only</button>
+      </div>
+      <div class="lbl" style="margin-top:9px"><span>cut face opacity</span><span id="capval">1.00</span></div>
+      <input type="range" id="capalpha" min="0" max="1" step="0.01" value="1">
+    </section>
+    <section>
+      <h2>Valve planes</h2>
+      <div id="discs"></div>
+      <p class="note" id="discnote"></p>
+    </section>
+    <section>
+      <h2>Paint the wall</h2>
+      <div class="btns" style="margin-bottom:9px">
+        <button id="wp-off" class="on">Off</button>
+        <button id="wp-groove">Draw groove</button>
+        <button id="wp-region">Name region</button>
+      </div>
+      <div id="wp-tags" style="display:none"></div>
+      <div class="lbl" style="margin-top:9px"><span>brush</span><span id="wp-brushval">2.5 mm</span></div>
+      <input type="range" id="wp-brush" min="0.5" max="8" step="0.5" value="2.5">
+      <div class="btns" style="margin-top:9px">
+        <button id="wp-undo">Undo</button>
+        <button id="wp-clear">Clear</button>
+        <button id="wp-export">Export wall marks</button>
+      </div>
+      <p class="note">Drag along a groove to lay a barrier, then name one point inside
+        each region it encloses. The flood runs on the epicardial surface and stops at
+        the grooves. <span class="count" id="wp-count">nothing painted</span></p>
+    </section>
+    <section>
+      <h2>Paint the inner surface</h2>
+      <div class="btns" style="margin-bottom:9px">
+        <button id="ip-off" class="on">Off</button>
+        <button id="ip-bound">Draw boundary</button>
+        <button id="ip-region">Name region</button>
+      </div>
+      <div id="ip-tags" style="display:none"></div>
+      <div class="lbl" style="margin-top:9px"><span>brush</span><span id="ip-brushval">2.5 mm</span></div>
+      <input type="range" id="ip-brush" min="0.5" max="8" step="0.5" value="2.5">
+      <div class="btns" style="margin-top:9px">
+        <button id="ip-undo">Undo</button>
+        <button id="ip-clear">Clear</button>
+        <button id="ip-export">Export inner marks</button>
+      </div>
+      <p class="note">Cut into a chamber, then drag along the boundary on the
+        ENDOcardium. Name one point in each region the boundary divides &mdash; two
+        for a plain boundary, three at a Y. A click on the outside surface is
+        refused, so an epicardial slip cannot become an inner mark.
+        <span class="count" id="ip-count">nothing painted</span></p>
+    </section>
+    <section>
+      <h2>Trace a valve</h2>
+      <div class="btns" style="margin-bottom:9px">
+        <button id="mode-label" class="on">Label voxels</button>
+        <button id="mode-valve">Trace rim</button>
+      </div>
+      <div id="valvepick" style="display:none">
+        <div class="btns" id="vbtns" style="margin-bottom:9px"></div>
+        <p class="note" style="margin-top:0">Click around the orifice rim on the
+          tissue. Six points or more; they need not be evenly spaced.
+          <span class="count" id="nvalve">0 points</span></p>
+        <div class="btns" style="margin-top:9px">
+          <button id="vundo">Undo point</button>
+          <button id="vclear">Clear</button>
+          <button id="vfit">Fit disc</button>
+          <button id="vexport">Export valves</button>
+        </div>
+        <div id="vfitout" class="note"></div>
+      </div>
+    </section>
+    <section>
+      <h2>Correct a label</h2>
+      <div id="tags"></div>
+      <div class="lbl" style="margin-top:10px"><span>brush radius</span><span id="brushval">3 vx</span></div>
+      <input type="range" id="brush" min="1" max="12" step="1" value="3">
+      <div class="btns" style="margin-top:10px">
+        <button id="undo">Undo</button>
+        <button id="clear">Clear all</button>
+        <button id="export">Export marks</button>
+      </div>
+      <p class="note">Click the cut face to mark the voxel under the pointer; shift-drag to paint a stroke. Drag anywhere to orbit.
+        <span class="count" id="ncorr">0 marks</span></p>
+    </section>
+  </aside>
+</div>
+
+<script type="importmap">{"imports":{"three":"./three.module.min.js","three/addons/":"./"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './OrbitControls.js';
+
+/* ------------------------------------------------------------------ data */
+const meta   = await (await fetch('./volume.json')).json();
+const parts  = (await (await fetch('./manifest.json')).json()).parts;
+const volume = new Uint8Array(await (await fetch('./volume.u8')).arrayBuffer());
+const N = meta.resolution, PITCH = meta.pitch_mm, ORIGIN = meta.origin_mm;
+
+const TAGS = [
+  {id:1, key:'left-ventricle',  label:'Left ventricle',  colour:'#3f8fd0'},
+  {id:2, key:'right-ventricle', label:'Right ventricle', colour:'#d8544c'},
+  {id:3, key:'left-atrium',     label:'Left atrium',     colour:'#46a95c'},
+  {id:4, key:'right-atrium',    label:'Right atrium',    colour:'#e69a33'},
+  {id:5, key:'aorta',           label:'Aorta',           colour:'#9878c9'},
+  {id:6, key:'pulmonary',       label:'Pulmonary artery',colour:'#3fb6bd'},
+  // The four valve planes, numbered as anatomy.py numbers them. A valve is
+  // defined there by the PAIR of chambers it separates, so the ring has to be
+  // its own tag rather than a face shared between two chamber labels - which is
+  // also what identify_valve_planes needs before it will run at all. Neutral
+  // bone tones on purpose: the fibrous skeleton is not a chamber and should not
+  // read as one.
+  {id:7,  key:'mitral',    label:'Mitral valve',    colour:'#f2f0e6'},
+  {id:8,  key:'tricuspid', label:'Tricuspid valve', colour:'#cbc3b0'},
+  {id:9,  key:'aortic',    label:'Aortic valve',    colour:'#8d7b68'},
+  {id:10, key:'pulmvalve', label:'Pulmonary valve', colour:'#5c5346'},
+  // Vessel stubs. These numbers are anatomy.py's own: it reserves 16 and 17 for
+  // the cavae and treats 11-24 as the veins, stubs and appendage that each hang
+  // off exactly one chamber. A pulmonary vein is continuous with the left atrium
+  // through a wide ostium and a caval stub with the right atrium through no
+  // valve at all, so neither calibre nor connectivity separates them - only a
+  // name does.
+  {id:11,key:'pulmonary-vein',  label:'Pulmonary vein',  colour:'#7fd4a2'},
+  {id:16,key:'svc',             label:'Superior vena cava', colour:'#f2c14e'},
+  {id:17,key:'ivc',             label:'Inferior vena cava', colour:'#c98f2e'},
+  {id:99,key:'not-lumen',       label:'Not lumen',       colour:'#78899c'},
+  {id:0, key:'erase',           label:'Erase mark',      colour:'#39424f'},
+];
+// Neutral grey, so nothing on the cut face competes with a chamber colour.
+const TISSUE_COLOUR = '#9aa1a8';
+const byId = Object.fromEntries(TAGS.map(t => [t.id, t]));
+
+// Rows of the measured cardiac frame. Meshes are already baked into it, so
+// going the other way — from a point on screen back to a voxel — is the transpose.
+const R = [meta.rotation_rows.patient_left, meta.rotation_rows.base, meta.rotation_rows.anterior];
+function toModel(p) {           // cardiac -> model
+  return [R[0][0]*p[0] + R[1][0]*p[1] + R[2][0]*p[2],
+          R[0][1]*p[0] + R[1][1]*p[1] + R[2][1]*p[2],
+          R[0][2]*p[0] + R[1][2]*p[1] + R[2][2]*p[2]];
+}
+function voxelAt(pCardiac) {
+  const m = toModel(pCardiac);
+  const k = Math.round((m[0]-ORIGIN[0])/PITCH - 0.5);
+  const j = Math.round((m[1]-ORIGIN[1])/PITCH - 0.5);
+  const i = Math.round((m[2]-ORIGIN[2])/PITCH - 0.5);
+  if (k<0||j<0||i<0||k>=N||j>=N||i>=N) return -1;
+  return (k*N + j)*N + i;
+}
+
+/* --------------------------------------------------------------- renderer */
+const canvas = document.getElementById('gl');
+// `stencil` is REQUIRED, not incidental: three.js has defaulted it to false
+// since r163, and without it every stencil cap silently renders nothing.
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true,
+                                           preserveDrawingBuffer:true, stencil:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.06;
+renderer.localClippingEnabled = true;
+
+let interacting = false, settle = 0;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e13);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a2028, 1.35));
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.85);
+keyLight.position.set(1, 1.4, 1);
+scene.add(keyLight);
+const rim = new THREE.DirectionalLight(0x9fc4ff, 0.55);
+rim.position.set(-1.1, 0.35, -1.2);
+scene.add(rim);
+
+const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 6000);
+// A headlight. The scene lights are fixed in world space, which is right for
+// judging the outside of the organ but leaves the inside of a cut unlit - and
+// the inside is the whole point when you are looking for an orifice rim.
+const headlight = new THREE.DirectionalLight(0xfff4e8, 1.15);
+headlight.position.set(0, 0, 1);
+camera.add(headlight);
+scene.add(camera);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.075;
+controls.rotateSpeed = 0.85;
+
+const root = new THREE.Group();
+scene.add(root);
+
+/* ------------------------------------------------------------- geometry */
+async function bin(url, Type){ return new Type(await (await fetch(url)).arrayBuffer()); }
+
+const clipPlane = new THREE.Plane(new THREE.Vector3(0,0,-1), 0);
+const meshes = {};
+let bounds = new THREE.Box3();
+
+for (const part of parts) {
+  const pos = await bin(`./${part.key}.pos.bin`, Float32Array);
+  const idx = await bin(`./${part.key}.idx.bin`, Uint32Array);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeVertexNormals();
+  g.computeBoundingBox();
+  bounds.union(g.boundingBox);
+
+  const isWall = part.wall;
+  // Same material model the app uses in src/viewer/PackViewer.tsx: standard, not
+  // physical, at roughness 0.55 and metalness 0.05. The clearcoat sheen tried
+  // here earlier fought the shading on a trabeculated surface and made every
+  // ridge read as a highlight.
+  const material = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(isWall ? TISSUE_COLOUR : (TAGS.find(t=>t.key===part.key)||{}).colour),
+    roughness: 0.55,
+    metalness: 0.05,
+    transparent: !isWall,
+    opacity: isWall ? 1.0 : 0.38,
+    depthWrite: true,
+    side: THREE.DoubleSide,
+    clippingPlanes: [clipPlane],
+    clipIntersection: false,
+    flatShading: false,
+  });
+  if (isWall) {
+    // Per-vertex chamber colour on the wall, the way normal-rodero ships
+    // per-chamber myocardium. One attribute on the mesh that already exists;
+    // six separate wall meshes would duplicate every shared interface.
+    try {
+      const col = await bin('./myocardium.col.bin', Float32Array);
+      if (col.length === pos.length) g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    } catch (err) { /* no colours exported; stays grey */ }
+  }
+  const mesh = new THREE.Mesh(g, material);
+  mesh.name = part.key;
+  mesh.renderOrder = isWall ? 1 : 2;
+  root.add(mesh);
+  meshes[part.key] = mesh;
+}
+
+const centre = bounds.getCenter(new THREE.Vector3());
+const size = bounds.getSize(new THREE.Vector3());
+const extent = Math.max(size.x, size.y, size.z);
+
+/* ------------------------------------------------------------- cut face */
+// The cut face is sampled from the label volume rather than capped with a
+// stencil, for two reasons: it shows what is actually THERE at the cut, and it
+// gives a click somewhere real to land — a pixel on this quad is a voxel.
+const CAP = 720;
+const capCanvas = document.createElement('canvas');
+capCanvas.width = capCanvas.height = CAP;
+const capCtx = capCanvas.getContext('2d', { willReadFrequently:false });
+const capImage = capCtx.createImageData(CAP, CAP);
+const capTexture = new THREE.CanvasTexture(capCanvas);
+capTexture.colorSpace = THREE.SRGBColorSpace;
+capTexture.magFilter = THREE.NearestFilter;
+capTexture.minFilter = THREE.LinearMipmapLinearFilter;
+
+// The quad's four corners come from the SAME function that paints the texture.
+// Rotating a PlaneGeometry instead means the rotation and the texture's flipY
+// have to agree by argument, and here they did not: the face came out mirrored
+// against the body it was cutting.
+capTexture.flipY = false;
+const capGeom = new THREE.BufferGeometry();
+capGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(12), 3));
+capGeom.setAttribute('uv', new THREE.BufferAttribute(
+  new Float32Array([0,0, 1,0, 1,1, 0,1]), 2));
+capGeom.setIndex([0,1,2, 0,2,3]);
+const capMesh = new THREE.Mesh(
+  capGeom,
+  new THREE.MeshBasicMaterial({ map:capTexture, transparent:true, side:THREE.DoubleSide,
+                                depthWrite:false, toneMapped:false, opacity:1 })
+);
+capMesh.renderOrder = 3;
+root.add(capMesh);
+
+// The cut is a general plane {n . p = d}, not an axis-aligned slab, so it can be
+// swung to face the camera. The three cardiac axes are just presets for n.
+const AXES = [new THREE.Vector3(1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,1)];
+let cutNormal = new THREE.Vector3(0,0,1);
+let e1 = new THREE.Vector3(1,0,0), e2 = new THREE.Vector3(0,1,0);
+function rebuildBasis() {
+  const up = Math.abs(cutNormal.y) < 0.9 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
+  e1.copy(up).cross(cutNormal).normalize();
+  e2.copy(cutNormal).cross(e1).normalize();
+}
+const rgb = hex => [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+const TISSUE = 20;                   // volume sentinel for myocardium
+const SPACE  = 21;                   // chamber space carrying no chamber tag
+const VOID   = 22;                   // sealed void inside the wall
+// 7 until the valve tags arrived, which anatomy.py numbers 7-10. Anything in
+// 1-24 is a real anatomy tag there, so the sentinel sits above the range.
+const COLOUR_OF = {};
+for (const t of TAGS) if (t.id > 0 && t.id !== 99) COLOUR_OF[t.id] = rgb(t.colour);
+const TISSUE_RGB = rgb('#7e858c');
+const SPACE_RGB = rgb('#3b4148');   // chamber space no chamber has claimed
+const VOID_RGB  = rgb('#2a2e33');   // sealed interstice inside the wall
+
+const corrections = new Map();      // flat voxel index -> tag
+const history = [];
+
+let axis = 2, depth = 0.5, side = 1, capOn = true, capAlpha = 1.0;
+const capSpan = () => extent * 1.06;
+
+const _pp = new THREE.Vector3();
+function planePoint(u, v, t) {
+  // u,v in [-0.5,0.5] on the face; returns a point in CARDIAC coordinates.
+  const s = capSpan();
+  // Project the model centre onto the plane, so the face stays over the heart
+  // whichever way the plane is swung.
+  const k = t - centre.dot(cutNormal);
+  _pp.copy(centre).addScaledVector(cutNormal, k)
+     .addScaledVector(e1, u * s).addScaledVector(e2, v * s);
+  return [_pp.x, _pp.y, _pp.z];
+}
+function planeRange() {
+  // How far the geometry extends along the current normal.
+  const c = [bounds.min, bounds.max];
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < 8; i++) {
+    const v = new THREE.Vector3(c[i&1].x, c[(i>>1)&1].y, c[(i>>2)&1].z).dot(cutNormal);
+    lo = Math.min(lo, v); hi = Math.max(hi, v);
+  }
+  return [lo, hi];
+}
+function planeCoord() {
+  const [lo, hi] = planeRange();
+  return lo + (hi - lo) * depth;
+}
+
+function paintCap() {
+  const t = planeCoord(), data = capImage.data;
+  let n = 0;
+  for (let y = 0; y < CAP; y++) {
+    const v = (y + 0.5) / CAP - 0.5;
+    for (let x = 0; x < CAP; x++, n += 4) {
+      const p = planePoint((x + 0.5) / CAP - 0.5, v, t);
+      const vi = voxelAt(p);
+      if (vi < 0) { data[n+3] = 0; continue; }
+      const corr = corrections.get(vi);
+      const value = corr !== undefined ? corr : volume[vi];
+      if (value === 0) { data[n+3] = 0; continue; }
+      if (capWallOnly && value !== TISSUE) { data[n+3] = 0; continue; }
+      let c = value === TISSUE ? TISSUE_RGB : value === SPACE ? SPACE_RGB : value === VOID ? VOID_RGB : COLOUR_OF[value];
+      if (!c) { data[n+3] = 0; continue; }
+      let boost = corr !== undefined ? 58 : 0;
+      data[n]   = Math.min(255, c[0] + boost);
+      data[n+1] = Math.min(255, c[1] + boost);
+      data[n+2] = Math.min(255, c[2] + boost);
+      data[n+3] = 255;
+    }
+  }
+  capCtx.putImageData(capImage, 0, 0);
+  capTexture.needsUpdate = true;
+
+  // Corner (u, v) of the texture sits at planePoint(u - 0.5, v - 0.5), so the
+  // face cannot drift from what was painted onto it.
+  const eps = t - side * extent * 0.0012;
+  const pos = capGeom.getAttribute('position');
+  const corners = [[0,0],[1,0],[1,1],[0,1]];
+  corners.forEach(([u, v], n) => {
+    const q = planePoint(u - 0.5, v - 0.5, eps);
+    pos.setXYZ(n, q[0], q[1], q[2]);
+  });
+  pos.needsUpdate = true;
+  capGeom.computeBoundingSphere();
+
+  capMesh.visible = capOn && capAlpha > 0.004;
+  capMesh.material.opacity = capAlpha;
+
+  clipPlane.normal.copy(cutNormal).multiplyScalar(-side);
+  clipPlane.constant = side * t;
+}
+
+/* ------------------------------------------------------------- interaction */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const probe = document.getElementById('probe');
+let activeTag = 1, brush = 3, painting = false;
+
+function hit(event) {
+  const r = canvas.getBoundingClientRect();
+  pointer.x = ((event.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((event.clientY - r.top) / r.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const list = raycaster.intersectObject(capMesh, false);
+  if (!list.length) return null;
+  // The intersection already lies on the cut plane, so use it directly rather
+  // than round-tripping through a local basis.
+  const q = list[0].point;
+  const p = [q.x, q.y, q.z];
+  p[axis] = planeCoord();
+  return { point: p, voxel: voxelAt(p) };
+}
+
+function describe(vi) {
+  if (vi < 0) return 'outside the volume';
+  const corr = corrections.get(vi);
+  const base = volume[vi];
+  const nameOf = v => v === 0 ? 'empty' : v === TISSUE ? 'myocardium'
+    : v === SPACE ? 'chamber space, unlabelled' : v === VOID ? 'sealed void in the wall'
+    : (byId[v]||{label:'?'}).label;
+  return corr !== undefined
+    ? `<b>${nameOf(corr)}</b> &nbsp;marked · was ${nameOf(base)}`
+    : `<b>${nameOf(base)}</b>`;
+}
+
+canvas.addEventListener('pointermove', e => {
+  if (innerMode !== 'off' && !painting) {
+    const h = pickTissue(e, true);
+    if (!h) { probe.innerHTML = 'no anatomy under the pointer'; return; }
+    const f = facing(h.point);
+    probe.innerHTML =
+      f === VOID  ? '<b>sealed void</b> &nbsp;inside the wall — a mark here would be refused'
+      : f === SPACE ? '<b>endocardium</b> &nbsp;facing chamber space that carries no label — draw here'
+      : f > 0     ? `<b>endocardium</b> &nbsp;lining the ${(byId[f]||{label:'?'}).label.toLowerCase()}`
+      : f === 0   ? '<b>outer surface</b> &nbsp;a mark here would be refused'
+                  : 'cannot tell which side of the wall this is';
+    return;
+  }
+  if (mode === 'valve') {
+    const p = pickTissue(e);
+    probe.innerHTML = p
+      ? `<b>${p.object.name.replace(/-/g,' ')}</b><br>rim point ` +
+        `${['x','y','z'].map(k => p.point[k].toFixed(1)).join(', ')} mm`
+      : 'no anatomy under the pointer';
+    return;
+  }
+  const h = hit(e);
+  if (!h) { probe.innerHTML = 'move over the cut face'; return; }
+  const m = toModel(h.point);
+  probe.innerHTML = describe(h.voxel) +
+    `<br>voxel ${h.voxel < 0 ? '—' : h.voxel} &nbsp; ` +
+    `mm ${m.map(v=>v.toFixed(1)).join(', ')}`;
+  if (painting && h.voxel >= 0) applyBrush(h.point);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!painting) return;
+  if (innerMode !== 'off') { ipDrag(e); return; }
+  if (wallMode === 'off') return;
+  const h = pickTissue(e);
+  if (!h) return;
+  const key = wallMode === 'groove' ? 'groove' : String(wallTag);
+  const last = (wallPaint[key] || []).at(-1);
+  // one mark per brush-width of travel, so a drag lays a stroke rather than a blob
+  if (!last || last.distanceTo(h.point) >= wpBrush) wpAdd(h.point);
+});
+
+function applyBrush(p) {
+  const [a, b] = BASIS[axis];
+  const step = PITCH;
+  const batch = [];
+  for (let dy = -brush; dy <= brush; dy++) {
+    for (let dx = -brush; dx <= brush; dx++) {
+      if (dx*dx + dy*dy > brush*brush) continue;
+      const q = p.slice();
+      q[a] += dx * step;
+      q[b] += dy * step;
+      const vi = voxelAt(q);
+      if (vi < 0) continue;
+      const before = corrections.has(vi) ? corrections.get(vi) : null;
+      if (activeTag === 0) { if (before !== null) { corrections.delete(vi); batch.push([vi, before]); } }
+      else if (before !== activeTag) { corrections.set(vi, activeTag); batch.push([vi, before]); }
+    }
+  }
+  if (batch.length) { history.push(batch); updateCount(); paintCap(); }
+}
+
+// A click marks, a drag orbits. Distinguishing them by travel keeps both on the
+// left button, so marking never needs a modifier and orbiting never needs a mode.
+let downAt = null;
+canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  downAt = { x:e.clientX, y:e.clientY };
+  if (innerMode !== 'off') {              // the inner painter wins over everything
+    const h = pickTissue(e, true);
+    if (h && ipAdd(h)) { painting = true; controls.enabled = false; }
+    return;
+  }
+  if (wallMode !== 'off') {               // painting the wall wins over everything
+    const h = pickTissue(e);
+    if (h) { painting = true; controls.enabled = false; wpAdd(h.point); }
+    return;
+  }
+  if (e.shiftKey) {                       // shift-drag paints a stroke
+    const h = hit(e);
+    if (h && h.voxel >= 0) { painting = true; controls.enabled = false; applyBrush(h.point); }
+  }
+});
+addEventListener('pointerup', e => {
+  if (painting) { painting = false; controls.enabled = true; downAt = null; return; }
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  downAt = null;
+  if (moved > 4) return;                  // that was an orbit, not a mark
+  if (innerMode !== 'off') {
+    const h = pickTissue(e, true);
+    if (h) ipAdd(h);
+    return;
+  }
+  if (wallMode !== 'off') {
+    const h = pickTissue(e);
+    if (h) wpAdd(h.point);
+    return;
+  }
+  if (mode === 'valve') {
+    const p = pickTissue(e);
+    if (p) { traced[valve].push(p.point.clone()); delete fitted[valve]; redrawMarkers(); }
+    return;
+  }
+  const h = hit(e);
+  if (h && h.voxel >= 0) applyBrush(h.point);
+});
+
+function updateCount() {
+  document.getElementById('ncorr').textContent =
+    `${corrections.size} voxel${corrections.size === 1 ? '' : 's'} marked`;
+}
+
+/* ------------------------------------------------------------------- ui */
+const partsBox = document.getElementById('parts');
+for (const part of parts.filter(p => !p.wall)) {
+  const mesh = meshes[part.key];
+  const row = document.createElement('label');
+  row.className = 'row';
+  row.innerHTML =
+    `<input type="checkbox" checked><span class="sw" style="background:${part.colour}"></span>` +
+    `<span class="name">${part.label}</span>` +
+    `<span class="ml${part.in_range ? '' : ' warn'}">${part.ml.toFixed(1)} mL</span>`;
+  row.title = part.expected ? `expected ${part.expected[0]}\u2013${part.expected[1]} mL` : '';
+  row.querySelector('input').addEventListener('change', e => {
+    if (mesh) mesh.visible = e.target.checked;
+  });
+  partsBox.appendChild(row);
+}
+
+const tagsBox = document.getElementById('tags');
+TAGS.forEach((t, n) => {
+  const b = document.createElement('button');
+  b.className = 'tagbtn' + (t.id === 1 ? ' on' : '');
+  b.innerHTML = `<span class="sw" style="background:${t.colour}"></span>` +
+                `<span class="name">${t.label}</span>` +
+                `<span class="kbd">${n < 9 ? n+1 : ''}</span>`;
+  b.addEventListener('click', () => {
+    activeTag = t.id;
+    [...tagsBox.children].forEach(c => c.classList.remove('on'));
+    b.classList.add('on');
+  });
+  tagsBox.appendChild(b);
+});
+addEventListener('keydown', e => {
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= 9 && n <= TAGS.length) tagsBox.children[n-1].click();
+});
+
+const bind = (id, fn) => document.getElementById(id)
+  .addEventListener('input', fn);
+bind('lumen', e => {
+  document.getElementById('lumenval').textContent = (+e.target.value).toFixed(2);
+  for (const part of parts) if (!part.wall && meshes[part.key])
+    meshes[part.key].material.opacity = +e.target.value;
+});
+bind('wall', e => {
+  const v = +e.target.value;
+  document.getElementById('wallval').textContent = v.toFixed(2);
+  const m = meshes['myocardium'].material;
+  m.opacity = v;
+  m.transparent = v < 0.99;   // fully opaque tissue must not sort as transparent
+  m.depthWrite = true;
+  m.needsUpdate = true;
+});
+let wallPainted = false;
+document.getElementById('wallpaint').addEventListener('click', () => {
+  const m = meshes['myocardium'];
+  if (!m || !m.geometry.getAttribute('color')) return;
+  wallPainted = !wallPainted;
+  m.material.vertexColors = wallPainted;
+  // vertexColors MULTIPLIES the base colour, so it has to go white or every
+  // chamber hue comes out tinted with the grey.
+  m.material.color.set(wallPainted ? 0xffffff : TISSUE_COLOUR);
+  m.material.needsUpdate = true;
+  document.getElementById('wallpaint').classList.toggle('on', wallPainted);
+});
+document.getElementById('wallon').addEventListener('change', e => {
+  meshes['myocardium'].visible = e.target.checked;
+});
+bind('depth', e => {
+  depth = +e.target.value;
+  document.getElementById('depthval').textContent = depth.toFixed(2);
+  paintCap();
+});
+bind('brush', e => {
+  brush = +e.target.value;
+  document.getElementById('brushval').textContent = `${brush} vx`;
+});
+function setNormal(n) {
+  cutNormal.copy(n).normalize();
+  rebuildBasis();
+  paintCap();
+}
+document.querySelectorAll('.axisbtn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.axisbtn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  axis = +b.dataset.axis;
+  setNormal(AXES[axis]);
+}));
+document.getElementById('faceme').addEventListener('click', () => {
+  // Swing the cut to face the camera, so the rim being traced is seen square on.
+  document.querySelectorAll('.axisbtn').forEach(x => x.classList.remove('on'));
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  setNormal(dir.negate());
+  // Keep the far half, so the freshly cut face is the side turned towards you.
+  side = 1;
+  depth = 0.42;
+  const s = document.getElementById('depth'); s.value = 0.42;
+  document.getElementById('depthval').textContent = '0.42';
+  paintCap();
+});
+document.getElementById('reaxis').addEventListener('click', () => {
+  document.querySelector('.axisbtn[data-axis="2"]').click();
+});
+/**
+ * The clipped half should leave NOTHING behind.
+ *
+ * Material clipping already discards that geometry, but the surfaces are drawn
+ * DoubleSide, so what remains is the inside of the far wall - a hollow shell that
+ * reads as a ghost of the half just removed. Front faces only, and no painted cut
+ * face, gives a clean look straight into the chambers, which is what tracing a rim
+ * needs.
+ */
+let ghost = true;
+function setGhost(on) {
+  ghost = on;
+  for (const part of parts) {
+    const m = meshes[part.key];
+    if (!m) continue;
+    // Stay DOUBLE sided even with the ghost off. This wall is a trabeculated
+    // surface with real holes in it, so drawing front faces only does not make
+    // it solid - it skeletonises it, and you see through the holes into nothing.
+    // What removes the ghost is opacity, not face culling.
+    m.material.side = THREE.DoubleSide;
+    if (part.wall) {
+      // Front faces alone are not enough: this wall is a trabeculated surface
+      // full of real holes, and at 0.9 opacity it still sorts into the
+      // transparent pass, so you see straight through it. For tracing, the half
+      // that remains has to read as solid muscle.
+      const slider = +document.getElementById('wall').value;
+      m.material.opacity = on ? slider : 1.0;
+      m.material.transparent = on ? slider < 0.99 : false;
+      m.material.depthWrite = true;
+    }
+    m.material.needsUpdate = true;
+  }
+  document.getElementById('noghost').classList.toggle('on', !on);
+  paintCap();
+}
+document.getElementById('noghost').addEventListener('click', () => setGhost(!ghost));
+bind('capalpha', e => {
+  capAlpha = +e.target.value;
+  document.getElementById('capval').textContent = capAlpha.toFixed(2);
+  paintCap();
+});
+document.getElementById('flip').addEventListener('click', () => { side = -side; paintCap(); });
+document.getElementById('capon').addEventListener('click', e => {
+  capOn = !capOn; e.target.classList.toggle('on', capOn); paintCap();
+});
+document.getElementById('undo').addEventListener('click', () => {
+  const batch = history.pop();
+  if (!batch) return;
+  for (const [vi, before] of batch) {
+    if (before === null) corrections.delete(vi); else corrections.set(vi, before);
+  }
+  updateCount(); paintCap();
+});
+document.getElementById('clear').addEventListener('click', () => {
+  corrections.clear(); history.length = 0; updateCount(); paintCap();
+});
+document.getElementById('export').addEventListener('click', () => {
+  // Same schema the pipeline already reads, at the full 384 grid, so this file
+  // drops straight back into vhl_seed_partition.py.
+  const seeds = [];
+  for (const [vi, tag] of corrections) {
+    const i = vi % N, j = Math.floor(vi / N) % N, k = Math.floor(vi / (N*N));
+    seeds.push({
+      slice: '3d', axis: -1,
+      voxel: [k*2, j*2, i*2],
+      model_point_mm: [ORIGIN[0] + (k+0.5)*PITCH, ORIGIN[1] + (j+0.5)*PITCH,
+                       ORIGIN[2] + (i+0.5)*PITCH],
+      tag, confidence: 'sure',
+    });
+  }
+  const blob = new Blob([JSON.stringify({
+    pack: 'normal-vhl-heart0102', resolution: meta.full_resolution,
+    source: '3d-mesh', slices: [],
+    note: 'corrections placed on the cut face of the round-two partition',
+    seeds,
+  }, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'seeds.corrections.json';
+  a.click();
+});
+
+
+/* ------------------------------------------------------------ valve discs */
+// Two candidates per valve, drawn together so they can be judged side by side:
+// what the observer traced, and the narrowest cross-section of the passage found
+// near it. Neither is asserted to be right - that is the point of showing both.
+const discRoot = new THREE.Group();
+scene.add(discRoot);
+const discBox = document.getElementById('discs');
+const discNote = document.getElementById('discnote');
+try {
+  const discs = await (await fetch('./discs.json')).json();
+  const notes = [];
+  for (const disc of discs) {
+    const degenerate = disc.radius < 1.0;
+    const colour = new THREE.Color(disc.colour);
+    const g = new THREE.Group();
+    if (!degenerate) {
+      const face = new THREE.Mesh(
+        new THREE.CircleGeometry(disc.radius, 72),
+        new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.22,
+                                      side: THREE.DoubleSide, depthWrite: false }));
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(disc.radius * 0.97, disc.radius, 72),
+        new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.95,
+                                      side: THREE.DoubleSide, depthWrite: false }));
+      g.add(face, ring);
+    }
+    g.position.fromArray(disc.centre);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1),
+                                    new THREE.Vector3().fromArray(disc.normal).normalize());
+    g.renderOrder = 5;
+    g.visible = !degenerate;
+    discRoot.add(g);
+
+    const row = document.createElement('label');
+    row.className = 'row';
+    row.innerHTML = `<input type="checkbox" ${degenerate ? '' : 'checked'} ${degenerate ? 'disabled' : ''}>` +
+      `<span class="sw" style="background:${disc.colour}"></span>` +
+      `<span class="name">${disc.label}</span>` +
+      `<span class="ml${disc.area_mm2 < 800 || disc.area_mm2 > 1200 ? ' warn' : ''}">` +
+      `${disc.area_mm2.toFixed(0)} mm²</span>`;
+    row.querySelector('input').addEventListener('change', e => { g.visible = e.target.checked; });
+    discBox.appendChild(row);
+    if (disc.style === 'refined') {
+      notes.push(degenerate
+        ? `${disc.label.split(' — ')[0]}: the search degenerated onto a crevice — ignore it.`
+        : `${disc.label.split(' — ')[0]}: tilted ${disc.tilt_deg.toFixed(0)}° and moved ` +
+          `${disc.shift_mm.toFixed(1)} mm from the traced plane.`);
+    }
+  }
+  discNote.innerHTML = notes.join('<br>');
+} catch (err) {
+  discNote.textContent = 'no discs.json';
+}
+
+/* --------------------------------------------------------- solid cut faces */
+/**
+ * The cut face is a BAKED texture, not geometry.
+ *
+ * A stencil cap was built here first, following the app's `src/viewer/caps.ts`,
+ * and then removed. It works, but it costs two extra full passes over the
+ * myocardium every frame - back faces then front, with `depthTest: false` so
+ * nothing is rejected early - about 1.6 M triangles of pure overdraw, and it was
+ * the thing making rotation lag.
+ *
+ * It was also redundant. The face is already sampled from the label volume into
+ * a canvas texture and drawn as one quad, which is solid by construction and
+ * costs two triangles. `capWallOnly` paints tissue and leaves lumen clear, so the
+ * wall reads solid while you can still see into a chamber to find its rim - which
+ * is the only thing the stencil version was still being used for.
+ */
+let capWallOnly = false;
+
+/* ----------------------------------------------------- painting the wall */
+/**
+ * Assigning wall to the nearest labelled cavity gives ragged boundaries, because
+ * the nearest cavity is not what defines a chamber's territory on the outside -
+ * the atrioventricular and interventricular GROOVES are, and they are plainly
+ * visible on this specimen. So they get drawn rather than inferred.
+ *
+ * Two kinds of mark, which is the same seeded-watershed shape that has worked for
+ * every other step here: a GROOVE stroke is a barrier, and a REGION point names
+ * what lies inside one. The flood then runs over the epicardial surface only,
+ * stops at the grooves, and the wall beneath inherits the surface above it.
+ */
+let wallMode = 'off', wallTag = 1, wpBrush = 2.5;
+const wallPaint = { groove: [] };          // tag -> points, plus 'groove'
+const wallRoot = new THREE.Group();
+scene.add(wallRoot);
+const wpGeom = new THREE.SphereGeometry(1, 10, 7);
+
+function wpCount() {
+  const parts = [];
+  if (wallPaint.groove.length) parts.push(`groove ${wallPaint.groove.length}`);
+  for (const k of Object.keys(wallPaint)) {
+    if (k === 'groove' || !wallPaint[k].length) continue;
+    parts.push(`${(byId[k] || {}).label || k} ${wallPaint[k].length}`);
+  }
+  document.getElementById('wp-count').textContent = parts.join(' · ') || 'nothing painted';
+}
+function wpDraw() {
+  for (const c of [...wallRoot.children]) { wallRoot.remove(c); c.material.dispose(); }
+  const r = extent * 0.004;
+  for (const [key, pts] of Object.entries(wallPaint)) {
+    const colour = key === 'groove' ? 0xf2f4f7 : new THREE.Color((byId[key] || {}).colour || '#fff');
+    for (const p of pts) {
+      const m = new THREE.Mesh(wpGeom, new THREE.MeshBasicMaterial({ color: colour }));
+      m.position.copy(p);
+      m.scale.setScalar(key === 'groove' ? r : r * 1.9);
+      m.renderOrder = 6;
+      wallRoot.add(m);
+    }
+  }
+  wpCount();
+}
+function wpAdd(point) {
+  const key = wallMode === 'groove' ? 'groove' : String(wallTag);
+  (wallPaint[key] ||= []).push(point.clone());
+  wpDraw();
+}
+const wpTagBox = document.getElementById('wp-tags');
+for (const spec of TAGS.filter(x => x.id > 0 && x.id !== 99)) {
+  const b = document.createElement('button');
+  b.className = 'tagbtn' + (spec.id === wallTag ? ' on' : '');
+  b.innerHTML = `<span class="sw" style="background:${spec.colour}"></span>` +
+                `<span class="name">${spec.label}</span>`;
+  b.addEventListener('click', () => {
+    wallTag = spec.id;
+    wpTagBox.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  });
+  wpTagBox.appendChild(b);
+}
+function setWallMode(m) {
+  wallMode = m;
+  for (const [id, name] of [['wp-off','off'],['wp-groove','groove'],['wp-region','region']])
+    document.getElementById(id).classList.toggle('on', name === m);
+  wpTagBox.style.display = m === 'region' ? '' : 'none';
+}
+document.getElementById('wp-off').addEventListener('click', () => setWallMode('off'));
+document.getElementById('wp-groove').addEventListener('click', () => setWallMode('groove'));
+document.getElementById('wp-region').addEventListener('click', () => setWallMode('region'));
+document.getElementById('wp-brush').addEventListener('input', e => {
+  wpBrush = +e.target.value;
+  document.getElementById('wp-brushval').textContent = `${wpBrush.toFixed(1)} mm`;
+});
+document.getElementById('wp-undo').addEventListener('click', () => {
+  const key = wallMode === 'groove' ? 'groove' : String(wallTag);
+  (wallPaint[key] || []).pop(); wpDraw();
+});
+document.getElementById('wp-clear').addEventListener('click', () => {
+  for (const k of Object.keys(wallPaint)) wallPaint[k] = [];
+  wpDraw();
+});
+document.getElementById('wp-export').addEventListener('click', () => {
+  const payload = { pack:'normal-vhl-heart0102', kind:'wall-paint',
+    note:'grooves are barriers on the epicardial surface; region points name what they enclose',
+    frame:'cardiac (patient-left, base, anterior); rotation rows in volume.json',
+    brush_mm: wpBrush, grooves: wallPaint.groove.map(p => [p.x,p.y,p.z]), regions: {} };
+  for (const [k, pts] of Object.entries(wallPaint)) {
+    if (k === 'groove' || !pts.length) continue;
+    payload.regions[k] = { label: (byId[k]||{}).label || k, points: pts.map(p => [p.x,p.y,p.z]) };
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'wall-paint.json'; a.click();
+});
+
+/* ----------------------------------------------- painting the inner surface
+ *
+ * The endocardium needs the same treatment the epicardium got, and for the
+ * mirror-image reason. Outside, the grooves say where one chamber's territory
+ * ends; inside, most of the surface can read its chamber straight off the lumen
+ * it lines - but not all of it. Where the lumen carries no label the inner
+ * surface has nothing to read, and that is where a boundary has to be drawn.
+ *
+ * Same two kinds of mark as the wall tool: a BOUNDARY stroke is a barrier and a
+ * REGION point names what lies on one side of it. Three region points around a
+ * Y junction name three territories; nothing special is needed for that.
+ *
+ * One rule the outer tool does not need: a mark must be ON the endocardium.
+ * `facing` decides that from the data rather than from the camera - it steps a
+ * short way back along the ray, into the space being looked through, and reads
+ * the shipped label volume. Chamber lumen there means the hit is endocardium,
+ * and says WHICH chamber it lines; open air means the pointer is on the
+ * epicardium and the mark is refused.
+ */
+let innerMode = 'off', innerTag = 1, ipBrush = 2.5;
+const innerPaint = { boundary: [] };
+const innerFacing = { boundary: [] };      // chamber each mark's surface lines
+const innerRoot = new THREE.Group();
+scene.add(innerRoot);
+
+function facing(hitPoint) {
+  // The strongest signal first: the mesh vertex sits ON the tissue boundary, so
+  // the voxel it falls in is often already the lumen it lines. When it is, there
+  // is nothing to infer.
+  const here = voxelAt([hitPoint.x, hitPoint.y, hitPoint.z]);
+  if (here >= 0) {
+    const v0 = volume[here];
+    if (v0 >= 1 && v0 <= 6) return v0;
+  }
+  const d = raycaster.ray.direction;
+  // Walk back along the ray until the space being looked THROUGH is identified.
+  // Short steps because a trabecular strut is about a millimetre thick, and a
+  // long reach because the cut can open a chamber several centimetres deep.
+  for (let back = 0.6; back <= 8.0; back += 0.6) {
+    const vi = voxelAt([hitPoint.x - d.x*back, hitPoint.y - d.y*back, hitPoint.z - d.z*back]);
+    if (vi < 0) continue;
+    const v = volume[vi];
+    if (v === TISSUE) continue;            // still inside the wall, keep walking
+    if (v >= 1 && v <= 6) return v;        // a labelled chamber: endocardium, named
+    if (v === SPACE) return SPACE;         // chamber space, but nothing names it yet
+    if (v === VOID) return VOID;           // a sealed interstice, not a surface to draw on
+    if (v === 0) return 0;                 // open air: this is the epicardium
+  }
+  return -1;
+}
+function ipCount() {
+  const parts = [];
+  if (innerPaint.boundary.length) parts.push(`boundary ${innerPaint.boundary.length}`);
+  for (const k of Object.keys(innerPaint)) {
+    if (k === 'boundary' || !innerPaint[k].length) continue;
+    parts.push(`${(byId[k] || {}).label || k} ${innerPaint[k].length}`);
+  }
+  document.getElementById('ip-count').textContent = parts.join(' · ') || 'nothing painted';
+}
+function ipDraw() {
+  for (const c of [...innerRoot.children]) { innerRoot.remove(c); c.material.dispose(); }
+  const r = extent * 0.004;
+  for (const [key, pts] of Object.entries(innerPaint)) {
+    const colour = key === 'boundary' ? 0xffd166 : new THREE.Color((byId[key] || {}).colour || '#fff');
+    for (const p of pts) {
+      const m = new THREE.Mesh(wpGeom, new THREE.MeshBasicMaterial({ color: colour }));
+      m.position.copy(p);
+      m.scale.setScalar(key === 'boundary' ? r : r * 1.9);
+      m.renderOrder = 6;
+      innerRoot.add(m);
+    }
+  }
+  ipCount();
+}
+function ipAdd(hit) {
+  const face = facing(hit.point);
+  if (face === 0 || face === VOID || face < 0) {
+    probe.innerHTML =
+      face === 0    ? '<b>refused</b> &nbsp;that is the OUTER surface — cut into a chamber first'
+      : face === VOID ? '<b>refused</b> &nbsp;that is a sealed void inside the wall, not endocardium'
+                      : '<b>refused</b> &nbsp;could not tell which side of the wall that is';
+    return false;
+  }
+  const key = innerMode === 'boundary' ? 'boundary' : String(innerTag);
+  (innerPaint[key] ||= []).push(hit.point.clone());
+  (innerFacing[key] ||= []).push(face);
+  ipDraw();
+  return true;
+}
+function ipDrag(e) {
+  const h = pickTissue(e, true);
+  if (!h) return;
+  const key = innerMode === 'boundary' ? 'boundary' : String(innerTag);
+  const last = (innerPaint[key] || []).at(-1);
+  if (!last || last.distanceTo(h.point) >= ipBrush) ipAdd(h);
+}
+const ipTagBox = document.getElementById('ip-tags');
+for (const spec of TAGS.filter(x => x.id > 0 && x.id !== 99)) {
+  const b = document.createElement('button');
+  b.className = 'tagbtn' + (spec.id === innerTag ? ' on' : '');
+  b.innerHTML = `<span class="sw" style="background:${spec.colour}"></span>` +
+                `<span class="name">${spec.label}</span>`;
+  b.addEventListener('click', () => {
+    innerTag = spec.id;
+    ipTagBox.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  });
+  ipTagBox.appendChild(b);
+}
+function setInnerMode(m) {
+  innerMode = m;
+  if (m !== 'off') setWallMode('off');     // one painter at a time
+  for (const [id, name] of [['ip-off','off'],['ip-bound','boundary'],['ip-region','region']])
+    document.getElementById(id).classList.toggle('on', name === m);
+  ipTagBox.style.display = m === 'region' ? '' : 'none';
+}
+document.getElementById('ip-off').addEventListener('click', () => setInnerMode('off'));
+document.getElementById('ip-bound').addEventListener('click', () => setInnerMode('boundary'));
+document.getElementById('ip-region').addEventListener('click', () => setInnerMode('region'));
+document.getElementById('ip-brush').addEventListener('input', e => {
+  ipBrush = +e.target.value;
+  document.getElementById('ip-brushval').textContent = `${ipBrush.toFixed(1)} mm`;
+});
+document.getElementById('ip-undo').addEventListener('click', () => {
+  const key = innerMode === 'boundary' ? 'boundary' : String(innerTag);
+  (innerPaint[key] || []).pop(); (innerFacing[key] || []).pop(); ipDraw();
+});
+document.getElementById('ip-clear').addEventListener('click', () => {
+  for (const k of Object.keys(innerPaint)) { innerPaint[k] = []; innerFacing[k] = []; }
+  ipDraw();
+});
+document.getElementById('ip-export').addEventListener('click', () => {
+  const payload = { pack:'normal-vhl-heart0102', kind:'inner-paint',
+    note:'boundaries are barriers on the ENDOcardial surface; region points name what they divide',
+    frame:'cardiac (patient-left, base, anterior); rotation rows in volume.json',
+    brush_mm: ipBrush,
+    boundaries: innerPaint.boundary.map(p => [p.x,p.y,p.z]),
+    boundary_faces: innerFacing.boundary.slice(),
+    regions: {} };
+  for (const [k, pts] of Object.entries(innerPaint)) {
+    if (k === 'boundary' || !pts.length) continue;
+    payload.regions[k] = { label: (byId[k]||{}).label || k, points: pts.map(p => [p.x,p.y,p.z]) };
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'inner-paint.json'; a.click();
+});
+
+// debug hooks, so the inner painter can be driven and inspected from outside
+window.__dbg = { facing, pickTissue, voxelAt, volume, raycaster,
+                 consts: { TISSUE, SPACE, VOID } };
+
+/* ------------------------------------------------------------ valve tracing */
+// A traced rim gives what no automatic method could: a CENTRE and a RADIUS.
+// The infinite-plane search failed on the tricuspid because the right
+// ventricular outflow tract runs basally past the annulus, so any plane that
+// separates atrium from ventricle also slices the outflow. A bounded disc does
+// not have that problem.
+let mode = 'label', valve = 'tricuspid';
+// Every orifice worth naming, not only the four valves. The `separates` pair is
+// what `anatomy.py` identifies a valve plane BY - it reads the identity off which
+// two tags a plane borders - so tracing these gives that module its missing input.
+// Ranges are given only for the four cardiac valves, where a normal area for this
+// age is something I can state. A vein or caval ostium gets its area reported and
+// no verdict: how much of the stub this specimen retains depends on where it was
+// trimmed, not on the donor.
+const VALVES = {
+  tricuspid:   { label:'Tricuspid',        pair:[4,2],  colour:0xe8b03d, typical:[1000,1200] },
+  mitral:      { label:'Mitral',           pair:[3,1],  colour:0x66d08a, typical:[ 800,1000] },
+  aortic:      { label:'Aortic',           pair:[1,5],  colour:0xb08de0, typical:[ 300, 500] },
+  pulmonary:   { label:'Pulmonary',        pair:[2,6],  colour:0x53c8cf, typical:[ 500, 600] },
+  'pv-rs':     { label:'PV right superior',pair:[11,3], colour:0x7fd4a2, typical:null },
+  'pv-ri':     { label:'PV right inferior',pair:[11,3], colour:0x5fbf8c, typical:null },
+  'pv-ls':     { label:'PV left superior', pair:[11,3], colour:0x9ee0ba, typical:null },
+  'pv-li':     { label:'PV left inferior', pair:[11,3], colour:0x49a878, typical:null },
+  svc:         { label:'SVC ostium',       pair:[16,4], colour:0xf2c14e, typical:null },
+  ivc:         { label:'IVC ostium',       pair:[17,4], colour:0xc98f2e, typical:null },
+  'cor-sinus': { label:'Coronary sinus',   pair:[18,4], colour:0xd07a5a, typical:null },
+};
+const traced = Object.fromEntries(Object.keys(VALVES).map(k => [k, []]));
+const fitted = {};
+const markerRoot = new THREE.Group();
+scene.add(markerRoot);
+const markerGeom = new THREE.SphereGeometry(1, 12, 8);
+
+function redrawMarkers() {
+  for (const child of [...markerRoot.children]) {
+    markerRoot.remove(child);
+    if (child.geometry !== markerGeom) child.geometry.dispose();
+    child.material.dispose();
+  }
+  const r = extent * 0.008;
+  for (const [name, pts] of Object.entries(traced)) {
+    const col = VALVES[name].colour;
+    for (const p of pts) {
+      const m = new THREE.Mesh(markerGeom, new THREE.MeshBasicMaterial({ color: col }));
+      m.position.copy(p); m.scale.setScalar(r); m.renderOrder = 4;
+      markerRoot.add(m);
+    }
+    const fit = fitted[name];
+    if (fit) {
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(fit.radius, 64),
+        new THREE.MeshBasicMaterial({ color: col, transparent:true, opacity:0.34,
+                                      side:THREE.DoubleSide, depthWrite:false }));
+      disc.position.copy(fit.centre);
+      disc.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), fit.normal);
+      disc.renderOrder = 3;
+      markerRoot.add(disc);
+    }
+  }
+  const listed = Object.entries(traced).filter(([,v]) => v.length)
+    .map(([k,v]) => `${VALVES[k].label} ${v.length}`);
+  document.getElementById('nvalve').textContent = listed.join(' · ') || '0 points';
+}
+
+/** Raycast the anatomy, skipping the half the cut has removed. */
+function pickTissue(event, wallOnly) {
+  const r = canvas.getBoundingClientRect();
+  pointer.x = ((event.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((event.clientY - r.top) / r.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  // The lumen casts are pickable too, and for the inner painter that is wrong:
+  // a ray into an opened chamber meets the cast BEFORE the endocardium behind
+  // it, so a mark meant for the wall lands on a blob of blood pool instead.
+  const targets = root.children.filter(o => o !== capMesh && o.visible &&
+                                            (!wallOnly || o.name === 'myocardium'));
+  // three.js raycasting ignores material clipping planes, so a ray happily hits
+  // the half of the heart that has been cut away and is not on screen. Reject
+  // anything on the removed side before taking the nearest hit.
+  for (const hit of raycaster.intersectObjects(targets, false)) {
+    if (clipPlane.distanceToPoint(hit.point) >= -1e-4) return hit;
+  }
+  return null;
+}
+
+function fitDisc(name) {
+  const pts = traced[name];
+  if (pts.length < 3) return null;
+  const c = new THREE.Vector3();
+  for (const p of pts) c.add(p);
+  c.multiplyScalar(1 / pts.length);
+  // Plane of best fit: the eigenvector of the scatter matrix with the smallest
+  // eigenvalue, found by inverse iteration - no SVD needed for a 3x3.
+  const S = [[0,0,0],[0,0,0],[0,0,0]];
+  for (const p of pts) {
+    const d = [p.x-c.x, p.y-c.y, p.z-c.z];
+    for (let i=0;i<3;i++) for (let j=0;j<3;j++) S[i][j] += d[i]*d[j];
+  }
+  let tr = S[0][0]+S[1][1]+S[2][2];
+  const M = [[tr-S[0][0], -S[0][1], -S[0][2]],
+             [-S[1][0], tr-S[1][1], -S[1][2]],
+             [-S[2][0], -S[2][1], tr-S[2][2]]];
+  let v = new THREE.Vector3(1,1,1).normalize();
+  for (let k=0;k<64;k++) {
+    v = new THREE.Vector3(
+      M[0][0]*v.x + M[0][1]*v.y + M[0][2]*v.z,
+      M[1][0]*v.x + M[1][1]*v.y + M[1][2]*v.z,
+      M[2][0]*v.x + M[2][1]*v.y + M[2][2]*v.z).normalize();
+  }
+  let rms = 0, rad = 0;
+  for (const p of pts) {
+    const d = p.clone().sub(c);
+    const out = d.dot(v);
+    rms += out*out;
+    rad += Math.sqrt(Math.max(d.lengthSq() - out*out, 0));
+  }
+  rms = Math.sqrt(rms / pts.length);
+  rad = rad / pts.length;
+  return { centre:c, normal:v, radius:rad, rms, n:pts.length, area: Math.PI*rad*rad };
+}
+
+function setWallOnly(on) {
+  capWallOnly = on;
+  document.getElementById('wallonly').classList.toggle('on', on);
+  paintCap();
+}
+document.getElementById('wallonly').addEventListener('click', () => setWallOnly(!capWallOnly));
+document.getElementById('mode-label').addEventListener('click', () => {
+  mode='label'; setWallOnly(false);
+  document.getElementById('mode-label').classList.add('on');
+  document.getElementById('mode-valve').classList.remove('on');
+  document.getElementById('valvepick').style.display='none';
+});
+document.getElementById('mode-valve').addEventListener('click', () => {
+  mode='valve';
+  document.getElementById('mode-valve').classList.add('on');
+  document.getElementById('mode-label').classList.remove('on');
+  document.getElementById('valvepick').style.display='';
+  // Tracing a rim means seeing INTO the chamber while the wall still reads as
+  // solid, which is exactly what the wall-only face gives.
+  setWallOnly(true);
+  const s = document.getElementById('capalpha');
+  s.value = 1; s.dispatchEvent(new Event('input'));
+});
+const vbtns = document.getElementById('vbtns');
+for (const [key, spec] of Object.entries(VALVES)) {
+  const b = document.createElement('button');
+  b.className = 'vbtn' + (key === valve ? ' on' : '');
+  b.dataset.valve = key;
+  b.innerHTML = `<span class="sw" style="background:#${spec.colour.toString(16).padStart(6,'0')};` +
+                `display:inline-block;margin-right:6px;vertical-align:-1px"></span>${spec.label}`;
+  b.addEventListener('click', () => {
+    vbtns.querySelectorAll('.vbtn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on'); valve = key;
+  });
+  vbtns.appendChild(b);
+}
+document.getElementById('vundo').addEventListener('click', () => {
+  traced[valve].pop(); delete fitted[valve]; redrawMarkers();
+});
+document.getElementById('vclear').addEventListener('click', () => {
+  traced[valve].length = 0; delete fitted[valve]; redrawMarkers();
+  document.getElementById('vfitout').textContent = '';
+});
+document.getElementById('vfit').addEventListener('click', () => {
+  const out=[];
+  for (const name of Object.keys(traced)) {
+    const fit = fitDisc(name);
+    if (!fit) continue;
+    fitted[name]=fit;
+    const spec = VALVES[name];
+    let note = '';
+    if (spec.typical) {
+      const [lo,hi] = spec.typical;
+      note = ` (${lo}-${hi} expected, ${fit.area<lo?'small':fit.area>hi?'large':'in range'})`;
+    }
+    out.push(`${spec.label}: r ${fit.radius.toFixed(1)} mm, area ${fit.area.toFixed(0)} mm2`
+           + `${note}, out-of-plane rms ${fit.rms.toFixed(2)} mm, ${fit.n} points`);
+  }
+  redrawMarkers();
+  document.getElementById('vfitout').innerHTML = out.join('<br>') || 'no valve has 3 points yet';
+});
+document.getElementById('vexport').addEventListener('click', () => {
+  const payload = { pack:'normal-vhl-heart0102', kind:'valve-rims',
+    note:'points traced on the orifice rim; disc fitted by least squares', valves:{} };
+  for (const name of Object.keys(traced)) {
+    if (!traced[name].length) continue;
+    const fit = fitted[name] || fitDisc(name);
+    payload.valves[name] = {
+      label: VALVES[name].label,
+      separates: VALVES[name].pair,
+      points_mm: traced[name].map(p => [p.x, p.y, p.z]),
+      fit: fit ? { centre_mm:[fit.centre.x,fit.centre.y,fit.centre.z],
+                   normal:[fit.normal.x,fit.normal.y,fit.normal.z],
+                   radius_mm:fit.radius, rms_mm:fit.rms, area_mm2:fit.area } : null,
+      frame: 'cardiac (patient-left, base, anterior); rotation rows in volume.json',
+    };
+  }
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='valve-rims.json'; a.click();
+});
+
+/* ------------------------------------------------------------------ loop */
+/*
+ * Draw on demand, and drop quality only while the pointer is down.
+ *
+ * Three costs, in the order they hurt:
+ *
+ * 1. The stencil cap pass draws the myocardium TWICE more per frame, back faces
+ *    then front, with `depthTest: false` so nothing is rejected early - about
+ *    1.6 M triangles of pure overdraw on top of the 1.24 M scene. It is skipped
+ *    while the camera is moving and restored the moment it settles, so a cut
+ *    reads hollow for the duration of a drag and solid whenever you are looking.
+ * 2. Pixel ratio 2 on a Retina panel is four times the fragments. Dropped to 1
+ *    during interaction.
+ * 3. Rendering every frame regardless of whether anything changed. Now the loop
+ *    only draws when something is dirty or the orbit damping is still running.
+ */
+function setInteracting(on) {
+  if (interacting === on) return;
+  interacting = on;
+  renderer.setPixelRatio(on ? 1 : Math.min(devicePixelRatio, 2));
+  resizeNow();
+}
+canvas.addEventListener('pointerdown', () => setInteracting(true));
+addEventListener('pointerup', () => setInteracting(false));
+canvas.addEventListener('wheel', () => {
+  setInteracting(true);
+  clearTimeout(settle);
+  settle = setTimeout(() => setInteracting(false), 200);
+}, { passive: true });
+
+function resizeNow() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+let lastW = 0, lastH = 0;
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (w !== lastW || h !== lastH) { lastW = w; lastH = h; resizeNow(); }
+}
+window.view = (yawDeg = 38, pitchDeg = 16, k = 1.55) => {
+  const a = yawDeg * Math.PI/180, b = pitchDeg * Math.PI/180, d = extent * k;
+  camera.position.set(
+    centre.x + d * Math.cos(b) * Math.sin(a),
+    centre.y + d * Math.sin(b),
+    centre.z + d * Math.cos(b) * Math.cos(a));
+  controls.target.copy(centre);
+  controls.update();
+};
+window.__extent = extent;
+window.__centre = centre.toArray();
+
+/**
+ * Self-check: is the pixel drawn on the cut face the voxel that is actually
+ * there? Samples the painted canvas and the label volume at the same plane
+ * point and compares. A mirrored or transposed face shows up immediately as a
+ * high mismatch rate; agreement is only possible if the two use one mapping.
+ */
+window.auditCap = (samples = 4000) => {
+  const t0 = planeCoord();
+  const px = capCtx.getImageData(0, 0, CAP, CAP).data;
+  let checked = 0, bad = 0;
+  for (let n = 0; n < samples; n++) {
+    const x = (n * 7919) % CAP, y = (n * 104729) % CAP;
+    const p = planePoint((x + 0.5) / CAP - 0.5, (y + 0.5) / CAP - 0.5, t0);
+    const vi = voxelAt(p);
+    const value = vi < 0 ? 0 : (corrections.get(vi) ?? volume[vi]);
+    const o = (y * CAP + x) * 4;
+    if (value === 0) { checked++; if (px[o+3] !== 0) bad++; continue; }
+    const want = value === TISSUE ? TISSUE_RGB : value === SPACE ? SPACE_RGB : value === VOID ? VOID_RGB : COLOUR_OF[value];
+    if (!want) continue;
+    checked++;
+    if (px[o] !== want[0] || px[o+1] !== want[1] || px[o+2] !== want[2]) bad++;
+  }
+  return { checked, mismatched: bad, rate: +(bad / Math.max(checked,1)).toFixed(5) };
+};
+/* ------------------------------------------------------------------ start */
+camera.position.set(centre.x + extent * 0.95, centre.y + extent * 0.55,
+                    centre.z + extent * 1.25);
+controls.target.copy(centre);
+resizeNow();
+paintCap();
+updateCount();
+redrawMarkers();
+
+function tick() {
+  resize();
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+document.title = 'Heart0102 chamber review';
+</script>
+</body>
+</html>

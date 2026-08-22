@@ -1,5 +1,7 @@
 # Contract: provenance UI
 
+**Last Updated:** 2026-08-22 07:13 EDT
+
 **Owns:** `src/provenance/**`
 **Status:** contract only. Implementation is wave 2.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (5), "Licensing plan"; `docs/mvp_scope.md` locked decision 6.

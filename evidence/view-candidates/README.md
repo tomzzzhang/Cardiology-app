@@ -1,6 +1,6 @@
 # Rodero view-coordinate candidates
 
-**Updated:** 2026-08-22 03:30 EDT
+**Last Updated:** 2026-08-22 07:13 EDT
 
 This directory holds review evidence for **Draft Rodero view coordinates**. A candidate is a
 machine-authored or manually authored probe pose, fan, and optional sweep bound to one exact source
@@ -39,13 +39,17 @@ BLAS-dependent last-bit drift does not churn the file. Existing pack poses are c
 rather than quantized.
 
 [`registry.json`](registry.json) is a separate **current-digest registry**. It pins the exact
-file-byte digest and canonical-payload digest expected for each generated set in the checkout. A
-regeneration must update the set and its registry entry together. The Node content gate checks the
-current schema, source-revision and file bindings, canon coverage, and both registered digests; it
-does not compare candidate bytes with Git history and does not recompute raw-source geometry. The
-version-matched Python `--check` remains the source replay boundary and must pass before current
-coordinates are shared for assessment. Assessment sidecars bind exact candidate digests, so an old
-assessment cannot silently follow regenerated coordinates.
+file-byte digest and canonical-payload digest expected for each generated set in the checkout. It
+also pins `evidence_revision`, the ancestor commit containing those immutable set bytes and the
+derivation-file closure they record. A regeneration must update the set and its registry entry
+together. For live evidence, the Node content gate checks derivation files in the checkout. For a
+superseded set, it proves both source-pack and evidence revisions are ancestors, requires the
+historical evidence bytes to match the registry and current immutable file, and checks derivation
+files at `evidence_revision`; a later `sources.py` edit therefore cannot rot truthful historical
+evidence. The gate does not recompute raw-source geometry. The version-matched Python `--check`
+remains the source replay boundary and must pass before current coordinates are shared for
+assessment. Assessment sidecars bind exact candidate digests, so an old assessment cannot silently
+follow regenerated coordinates.
 
 `candidate-set-001.json` is the earlier generated comparison baseline. Visual review of that
 generation showed tissue touching or crossing the B1, B4, F1, and B2 fan sides despite unused

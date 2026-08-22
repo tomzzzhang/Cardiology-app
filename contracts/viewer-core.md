@@ -1,5 +1,7 @@
 # Contract: viewer-core
 
+**Last Updated:** 2026-08-22 07:13 EDT
+
 **Owns:** `src/viewer/**`
 **Status:** implemented for the wave 1c slice. Superseded clauses are marked below; where this
 page and the code disagree, the code is what shipped and this page is what was fixed.

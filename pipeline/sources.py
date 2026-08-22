@@ -90,6 +90,11 @@ class Source:
     #: substrate that was selected.
     rejection: str = ""
 
+    #: Additional pack ids derived from this same acquired substrate. This is
+    #: immutable registry metadata only: each derivative still has its own
+    #: explicit build recipe, and fetch continues to operate once per source.
+    derived_packs: tuple[str, ...] = ()
+
 
 RODERO = Source(
     key="rodero",
@@ -226,6 +231,7 @@ VHL = Source(
         "institutional access. A free educational app with zero revenue is squarely permitted. "
         "Kept logically separable so it can be dropped without touching the others.",
     ],
+    derived_packs=("normal-vhl-heart0102-chambers",),
 )
 
 SOURCES = {s.key: s for s in (RODERO, ALBERTA, VHL)}

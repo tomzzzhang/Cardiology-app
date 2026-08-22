@@ -93,6 +93,13 @@ const PUBLIC_GIT_RIGHTS_APPROVALS = new Map<string, PublicGitRightsApproval>([
     licenseState: 'non_commercial',
     assetFingerprint: 'f7adb6bb62a9262ec7310b4c17673f172179a77dd4076e03be44fe43094a0160',
   }],
+  ['normal-vhl-heart0102-chambers', {
+    sourceUrl: 'https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e',
+    license: 'CC-BY-NC-4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-nc/4.0/',
+    licenseState: 'non_commercial',
+    assetFingerprint: '4e3a013804f5d91978a9692c75db0151db9771005feba2e5dd1ba14085b27649',
+  }],
   ['stub', {
     sourceUrl: 'https://github.com/tomzzzhang/Cardiology-app',
     license: 'CC0-1.0',

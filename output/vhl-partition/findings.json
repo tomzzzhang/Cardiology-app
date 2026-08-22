@@ -1,0 +1,216 @@
+{
+  "source_measure": {
+    "vertices": 401569,
+    "triangles": 803542,
+    "boundary_edges": 0,
+    "nonmanifold_edges": 0,
+    "components": 1026,
+    "watertight": 1
+  },
+  "debris": {
+    "components": 1026,
+    "negative_volume_components": 1025,
+    "separation_ratio": 4986.1,
+    "triangles_kept_fraction": 0.973734,
+    "volume_kept_fraction": 0.9984468,
+    "dropped_volume_mm3": 566.4252,
+    "component_triangles_sorted": [
+      782436,
+      822,
+      758,
+      746,
+      596,
+      392,
+      356,
+      316,
+      276,
+      210,
+      204,
+      198,
+      176,
+      170,
+      164,
+      152,
+      140,
+      138,
+      138,
+      132
+    ]
+  },
+  "cleaned_measure": {
+    "vertices": 388972,
+    "triangles": 782436,
+    "boundary_edges": 0,
+    "nonmanifold_edges": 0,
+    "components": 1,
+    "watertight": 1
+  },
+  "cleaned_review_measure": {
+    "vertices": 58009,
+    "triangles": 120000,
+    "boundary_edges": 0,
+    "nonmanifold_edges": 712,
+    "components": 29,
+    "watertight": 0
+  },
+  "cavity_reports": [
+    {
+      "resolution": 384,
+      "pitch_mm": 0.3874,
+      "seal_radius_mm": 10.0,
+      "tissue_mm3": 363559.6257,
+      "envelope_mm3": 804979.1431,
+      "cavity_mm3": 441419.5174,
+      "cavity_components": 12013,
+      "largest_cavity_mm3": 437673.5918,
+      "largest_inscribed_radius_mm": 17.6584,
+      "interior_void_count": 658,
+      "interior_void_mm3": 697.6491,
+      "largest_interior_void_mm3": 72.3109,
+      "odd_scanlines": 0
+    }
+  ],
+  "seal_radius_sweep": [
+    {
+      "seal_radius_mm": 6.0,
+      "cavity_ml": 424.1,
+      "largest_cavity_ml": 414.2,
+      "largest_inscribed_radius_mm": 17.66
+    },
+    {
+      "seal_radius_mm": 8.0,
+      "cavity_ml": 432.7,
+      "largest_cavity_ml": 423.5,
+      "largest_inscribed_radius_mm": 17.66
+    },
+    {
+      "seal_radius_mm": 10.0,
+      "cavity_ml": 441.4,
+      "largest_cavity_ml": 437.7,
+      "largest_inscribed_radius_mm": 17.66
+    },
+    {
+      "seal_radius_mm": 12.0,
+      "cavity_ml": 450.3,
+      "largest_cavity_ml": 446.9,
+      "largest_inscribed_radius_mm": 17.66
+    },
+    {
+      "seal_radius_mm": 14.0,
+      "cavity_ml": 459.3,
+      "largest_cavity_ml": 456.3,
+      "largest_inscribed_radius_mm": 17.66
+    },
+    {
+      "seal_radius_mm": 16.0,
+      "cavity_ml": 471.1,
+      "largest_cavity_ml": 468.2,
+      "largest_inscribed_radius_mm": 17.66
+    }
+  ],
+  "chamber_core_sweep": [
+    {
+      "threshold_mm": 3.0,
+      "cores": 139,
+      "cores_over_5ml": 2,
+      "largest_cores_ml": [
+        125.06,
+        55.71,
+        3.92,
+        0.72,
+        0.64,
+        0.62
+      ]
+    },
+    {
+      "threshold_mm": 4.0,
+      "cores": 88,
+      "cores_over_5ml": 2,
+      "largest_cores_ml": [
+        94.56,
+        41.95,
+        4.66,
+        2.3,
+        0.23,
+        0.13
+      ]
+    },
+    {
+      "threshold_mm": 5.0,
+      "cores": 46,
+      "cores_over_5ml": 2,
+      "largest_cores_ml": [
+        75.61,
+        30.99,
+        2.85,
+        1.25,
+        0.04,
+        0.01
+      ]
+    },
+    {
+      "threshold_mm": 6.0,
+      "cores": 54,
+      "cores_over_5ml": 2,
+      "largest_cores_ml": [
+        59.8,
+        21.99,
+        1.47,
+        0.57,
+        0.09,
+        0.0
+      ]
+    },
+    {
+      "threshold_mm": 7.0,
+      "cores": 61,
+      "cores_over_5ml": 3,
+      "largest_cores_ml": [
+        46.35,
+        9.43,
+        5.14,
+        0.49,
+        0.17,
+        0.01
+      ]
+    },
+    {
+      "threshold_mm": 8.0,
+      "cores": 23,
+      "cores_over_5ml": 2,
+      "largest_cores_ml": [
+        35.42,
+        5.98,
+        3.09,
+        0.11,
+        0.03,
+        0.0
+      ]
+    },
+    {
+      "threshold_mm": 9.0,
+      "cores": 19,
+      "cores_over_5ml": 1,
+      "largest_cores_ml": [
+        26.51,
+        3.59,
+        1.65,
+        0.01,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "seed_threshold_mm": 8.0,
+  "core_regions_ml": [
+    276.7,
+    93.2,
+    67.8
+  ],
+  "verdict": {
+    "debris_solvable": true,
+    "chambers_present_as_space": true,
+    "six_tag_partition_emitted": false,
+    "reason": "The debris is separable with a volume threshold at essentially no cost. The chambers ARE present as open space \u2014 about 447 mL of connected chamber lumen once the valve orifices are sealed at 12 mm \u2014 but they arrive as ONE connected region, because the model leaves every valve orifice open. Distance-transform seeding splits that region into two stable chamber-scale cores, almost certainly the two ventricles, and no further. Separating atrium from ventricle needs a valve cut plane, which this module does not have and does not invent. No six-tag partition is emitted, so no anatomy.py frame or valve check has been run."
+  }
+}

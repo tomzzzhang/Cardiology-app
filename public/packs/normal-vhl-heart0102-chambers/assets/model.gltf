@@ -1,0 +1,839 @@
+{
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 202508,
+   "max": [
+    48.616905212402344,
+    20.304367065429688,
+    47.98442459106445
+   ],
+   "min": [
+    -23.722360610961914,
+    -66.52417755126953,
+    -19.555919647216797
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 202508,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5125,
+   "count": 1218036,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 380922,
+   "max": [
+    23.177417755126953,
+    31.44722557067871,
+    65.70598602294922
+   ],
+   "min": [
+    -66.2897720336914,
+    -75.3156967163086,
+    -25.973276138305664
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 380922,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5125,
+   "count": 2290644,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 87662,
+   "max": [
+    28.57284927368164,
+    57.398536682128906,
+    37.159175872802734
+   ],
+   "min": [
+    -28.87004852294922,
+    0.2220837026834488,
+    -24.705747604370117
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5126,
+   "count": 87662,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 8,
+   "componentType": 5125,
+   "count": 523176,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 9,
+   "componentType": 5126,
+   "count": 124952,
+   "max": [
+    -8.087702751159668,
+    54.52415466308594,
+    35.41335678100586
+   ],
+   "min": [
+    -72.64707946777344,
+    -11.932711601257324,
+    -27.353328704833984
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 10,
+   "componentType": 5126,
+   "count": 124952,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 11,
+   "componentType": 5125,
+   "count": 749220,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 12,
+   "componentType": 5126,
+   "count": 34655,
+   "max": [
+    -3.9128053188323975,
+    56.48169708251953,
+    48.09947967529297
+   ],
+   "min": [
+    -40.22268295288086,
+    9.587717056274414,
+    11.061782836914062
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 13,
+   "componentType": 5126,
+   "count": 34655,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 14,
+   "componentType": 5125,
+   "count": 207948,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 15,
+   "componentType": 5126,
+   "count": 58844,
+   "max": [
+    16.478984832763672,
+    65.70814514160156,
+    61.915260314941406
+   ],
+   "min": [
+    -27.47237205505371,
+    15.720842361450195,
+    8.217930793762207
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 16,
+   "componentType": 5126,
+   "count": 58844,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 17,
+   "componentType": 5125,
+   "count": 353280,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 18,
+   "componentType": 5126,
+   "count": 530971,
+   "max": [
+    58.05799865722656,
+    28.08164405822754,
+    56.37245559692383
+   ],
+   "min": [
+    -24.029178619384766,
+    -76.77523803710938,
+    -30.03212547302246
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 19,
+   "componentType": 5126,
+   "count": 530971,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 20,
+   "componentType": 5125,
+   "count": 3211044,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 21,
+   "componentType": 5126,
+   "count": 872913,
+   "max": [
+    27.69598388671875,
+    36.28921127319336,
+    69.40377807617188
+   ],
+   "min": [
+    -73.0085220336914,
+    -79.11978149414062,
+    -30.623212814331055
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 22,
+   "componentType": 5126,
+   "count": 872913,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 23,
+   "componentType": 5125,
+   "count": 5276292,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 24,
+   "componentType": 5126,
+   "count": 216737,
+   "max": [
+    43.51227951049805,
+    64.21685028076172,
+    39.791114807128906
+   ],
+   "min": [
+    -35.67380142211914,
+    -0.6397237181663513,
+    -26.776611328125
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 25,
+   "componentType": 5126,
+   "count": 216737,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 26,
+   "componentType": 5125,
+   "count": 1319544,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 27,
+   "componentType": 5126,
+   "count": 260165,
+   "max": [
+    -5.39284086227417,
+    57.134464263916016,
+    48.98385238647461
+   ],
+   "min": [
+    -74.34970092773438,
+    -13.461104393005371,
+    -27.681425094604492
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 28,
+   "componentType": 5126,
+   "count": 260165,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 29,
+   "componentType": 5125,
+   "count": 1590456,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 30,
+   "componentType": 5126,
+   "count": 92690,
+   "max": [
+    0.26542991399765015,
+    59.562339782714844,
+    50.60722351074219
+   ],
+   "min": [
+    -43.223243713378906,
+    8.654571533203125,
+    5.949420928955078
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 31,
+   "componentType": 5126,
+   "count": 92690,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 32,
+   "componentType": 5125,
+   "count": 574632,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 33,
+   "componentType": 5126,
+   "count": 125074,
+   "max": [
+    17.824993133544922,
+    68.28482818603516,
+    63.01517868041992
+   ],
+   "min": [
+    -30.21418571472168,
+    15.767919540405273,
+    5.607631683349609
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 34,
+   "componentType": 5126,
+   "count": 125074,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 35,
+   "componentType": 5125,
+   "count": 775080,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "generator": "Cardiology app labelled VHL builder (pipeline/vhl_pack.py)",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 2430096,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 2430096,
+   "byteOffset": 2430096,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 4872144,
+   "byteOffset": 4860192,
+   "target": 34963
+  },
+  {
+   "buffer": 1,
+   "byteLength": 4571064,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 1,
+   "byteLength": 4571064,
+   "byteOffset": 4571064,
+   "target": 34962
+  },
+  {
+   "buffer": 1,
+   "byteLength": 9162576,
+   "byteOffset": 9142128,
+   "target": 34963
+  },
+  {
+   "buffer": 2,
+   "byteLength": 1051944,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 2,
+   "byteLength": 1051944,
+   "byteOffset": 1051944,
+   "target": 34962
+  },
+  {
+   "buffer": 2,
+   "byteLength": 2092704,
+   "byteOffset": 2103888,
+   "target": 34963
+  },
+  {
+   "buffer": 3,
+   "byteLength": 1499424,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 3,
+   "byteLength": 1499424,
+   "byteOffset": 1499424,
+   "target": 34962
+  },
+  {
+   "buffer": 3,
+   "byteLength": 2996880,
+   "byteOffset": 2998848,
+   "target": 34963
+  },
+  {
+   "buffer": 4,
+   "byteLength": 415860,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 4,
+   "byteLength": 415860,
+   "byteOffset": 415860,
+   "target": 34962
+  },
+  {
+   "buffer": 4,
+   "byteLength": 831792,
+   "byteOffset": 831720,
+   "target": 34963
+  },
+  {
+   "buffer": 5,
+   "byteLength": 706128,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 5,
+   "byteLength": 706128,
+   "byteOffset": 706128,
+   "target": 34962
+  },
+  {
+   "buffer": 5,
+   "byteLength": 1413120,
+   "byteOffset": 1412256,
+   "target": 34963
+  },
+  {
+   "buffer": 6,
+   "byteLength": 6371652,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 6,
+   "byteLength": 6371652,
+   "byteOffset": 6371652,
+   "target": 34962
+  },
+  {
+   "buffer": 6,
+   "byteLength": 12844176,
+   "byteOffset": 12743304,
+   "target": 34963
+  },
+  {
+   "buffer": 7,
+   "byteLength": 10474956,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 7,
+   "byteLength": 10474956,
+   "byteOffset": 10474956,
+   "target": 34962
+  },
+  {
+   "buffer": 7,
+   "byteLength": 21105168,
+   "byteOffset": 20949912,
+   "target": 34963
+  },
+  {
+   "buffer": 8,
+   "byteLength": 2600844,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 8,
+   "byteLength": 2600844,
+   "byteOffset": 2600844,
+   "target": 34962
+  },
+  {
+   "buffer": 8,
+   "byteLength": 5278176,
+   "byteOffset": 5201688,
+   "target": 34963
+  },
+  {
+   "buffer": 9,
+   "byteLength": 3121980,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 9,
+   "byteLength": 3121980,
+   "byteOffset": 3121980,
+   "target": 34962
+  },
+  {
+   "buffer": 9,
+   "byteLength": 6361824,
+   "byteOffset": 6243960,
+   "target": 34963
+  },
+  {
+   "buffer": 10,
+   "byteLength": 1112280,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 10,
+   "byteLength": 1112280,
+   "byteOffset": 1112280,
+   "target": 34962
+  },
+  {
+   "buffer": 10,
+   "byteLength": 2298528,
+   "byteOffset": 2224560,
+   "target": 34963
+  },
+  {
+   "buffer": 11,
+   "byteLength": 1500888,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 11,
+   "byteLength": 1500888,
+   "byteOffset": 1500888,
+   "target": 34962
+  },
+  {
+   "buffer": 11,
+   "byteLength": 3100320,
+   "byteOffset": 3001776,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 9732336,
+   "uri": "model.lv-lumen.bin"
+  },
+  {
+   "byteLength": 18304704,
+   "uri": "model.rv-lumen.bin"
+  },
+  {
+   "byteLength": 4196592,
+   "uri": "model.la-lumen.bin"
+  },
+  {
+   "byteLength": 5995728,
+   "uri": "model.ra-lumen.bin"
+  },
+  {
+   "byteLength": 1663512,
+   "uri": "model.aorta-lumen.bin"
+  },
+  {
+   "byteLength": 2825376,
+   "uri": "model.pulmonary-artery-lumen.bin"
+  },
+  {
+   "byteLength": 25587480,
+   "uri": "model.lv-myocardium.bin"
+  },
+  {
+   "byteLength": 42055080,
+   "uri": "model.rv-myocardium.bin"
+  },
+  {
+   "byteLength": 10479864,
+   "uri": "model.la-myocardium.bin"
+  },
+  {
+   "byteLength": 12605784,
+   "uri": "model.ra-myocardium.bin"
+  },
+  {
+   "byteLength": 4523088,
+   "uri": "model.aortic-wall.bin"
+  },
+  {
+   "byteLength": 6102096,
+   "uri": "model.pulmonary-artery-wall.bin"
+  }
+ ],
+ "meshes": [
+  {
+   "name": "lv-lumen",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0
+     },
+     "indices": 2,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "rv-lumen",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 4,
+      "POSITION": 3
+     },
+     "indices": 5,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "la-lumen",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 7,
+      "POSITION": 6
+     },
+     "indices": 8,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "ra-lumen",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 10,
+      "POSITION": 9
+     },
+     "indices": 11,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "aorta-lumen",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 13,
+      "POSITION": 12
+     },
+     "indices": 14,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "pulmonary-artery-lumen",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 16,
+      "POSITION": 15
+     },
+     "indices": 17,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "lv-myocardium",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 19,
+      "POSITION": 18
+     },
+     "indices": 20,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "rv-myocardium",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 22,
+      "POSITION": 21
+     },
+     "indices": 23,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "la-myocardium",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 25,
+      "POSITION": 24
+     },
+     "indices": 26,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "ra-myocardium",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 28,
+      "POSITION": 27
+     },
+     "indices": 29,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "aortic-wall",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 31,
+      "POSITION": 30
+     },
+     "indices": 32,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "pulmonary-artery-wall",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 34,
+      "POSITION": 33
+     },
+     "indices": 35,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "lv-lumen"
+  },
+  {
+   "mesh": 1,
+   "name": "rv-lumen"
+  },
+  {
+   "mesh": 2,
+   "name": "la-lumen"
+  },
+  {
+   "mesh": 3,
+   "name": "ra-lumen"
+  },
+  {
+   "mesh": 4,
+   "name": "aorta-lumen"
+  },
+  {
+   "mesh": 5,
+   "name": "pulmonary-artery-lumen"
+  },
+  {
+   "mesh": 6,
+   "name": "lv-myocardium"
+  },
+  {
+   "mesh": 7,
+   "name": "rv-myocardium"
+  },
+  {
+   "mesh": 8,
+   "name": "la-myocardium"
+  },
+  {
+   "mesh": 9,
+   "name": "ra-myocardium"
+  },
+  {
+   "mesh": 10,
+   "name": "aortic-wall"
+  },
+  {
+   "mesh": 11,
+   "name": "pulmonary-artery-wall"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ]
+  }
+ ]
+}
