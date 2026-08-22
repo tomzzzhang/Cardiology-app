@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { UNPUBLISHED_PACKS, cataloguedPacks } from '../../src/packs/published.ts';
 
 /**
@@ -19,6 +19,42 @@ test.beforeEach(async ({ page }) => {
     timeout: 30_000,
   });
 });
+
+/**
+ * The structure count, read only once it is actually a count.
+ *
+ * `Number(await getAttribute(...))` on an attribute that is not set yet returns
+ * `Number(null)` — which is `0`, not `NaN`. Every assertion built on it then
+ * waits for `data-drawn-structures` to become `"0"`, which it never does, and
+ * the test fails on a timeout that looks like a rendering bug and is really a
+ * read that happened one frame too early. `a drag orbits and does not isolate
+ * anything` failed exactly once this way under parallel workers and passed in
+ * isolation and on a clean re-run, so the mechanism was never captured; this
+ * removes the dependency rather than claiming the diagnosis.
+ *
+ * Waiting on the attribute matching a positive integer is what makes it safe:
+ * the wait cannot succeed on an unset attribute, so the value that comes back
+ * is always a real one.
+ */
+async function structureCount(page: Page): Promise<number> {
+  const viewer = page.getByTestId('anatomy-viewer');
+  await expect(viewer).toHaveAttribute('data-structure-count', /^[1-9][0-9]*$/);
+  return Number(await viewer.getAttribute('data-structure-count'));
+}
+
+/**
+ * Enter Explore and wait until the viewer says it is actually there.
+ *
+ * Clicking the control and waiting for the panel proves React re-rendered. It
+ * does not prove the SCENE has switched, and the tests below then drag on that
+ * scene and count what it drew.
+ */
+async function enterExplore(page: Page): Promise<void> {
+  await page.getByTestId('mode-explore').click();
+  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await expect(page.getByTestId('anatomy-viewer'))
+    .toHaveAttribute('data-viewer-mode', 'explore');
+}
 
 test('renders a non-blank WebGL canvas', async ({ page }) => {
   const canvas = page.locator('.anatomy canvas');
@@ -781,8 +817,7 @@ test('Explore drops the probe entirely, and keeps the notice', async ({ page }) 
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   // Everything that belongs to the probe is absent, not merely hidden.
   await expect(page.getByTestId('echo-panel')).toHaveCount(0);
@@ -1108,11 +1143,10 @@ test('isolate shows one structure, and empty space brings the rest back', async 
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   expect(total).toBeGreaterThan(1);
   await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
 
@@ -1131,11 +1165,10 @@ test('a click on the model isolates, and a click on empty space shows all', asyn
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   const canvas = page.locator('.anatomy canvas');
   const box = (await canvas.boundingBox())!;
 
@@ -1169,11 +1202,10 @@ test('a drag orbits and does not isolate anything', async ({ page }) => {
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   const box = (await page.locator('.anatomy canvas').boundingBox())!;
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
@@ -1192,11 +1224,10 @@ test('hide takes one structure off, and show all is the escape', async ({ page }
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
 
   await page.getByTestId('structure-hide-lv-myocardium').click();
   await expect(viewer).toHaveAttribute('data-drawn-structures', String(total - 1));
@@ -1209,11 +1240,10 @@ test('the structure filter narrows the list without touching the model', async (
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
 
   await page.getByTestId('structure-filter').fill('mitral');
   await expect(page.getByTestId('structure-count')).toContainText(`of ${total}`);
@@ -1232,8 +1262,7 @@ test('the structure list is operable from the keyboard', async ({ page }) => {
   // Switch modes rather than reloading: `beforeEach` has already loaded the
   // pack, and a second full load of a WebGL scene per test is what pushed this
   // file past the 30 s timeout under parallel workers.
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
+  await enterExplore(page);
 
   const viewer = page.getByTestId('anatomy-viewer');
   await page.getByTestId('structure-filter').focus();
@@ -1259,7 +1288,7 @@ test('Echo mode has no structure list and no click-to-isolate', async ({ page })
   await expect(viewer).toHaveAttribute('data-viewer-mode', 'echo');
   await expect(page.getByTestId('structure-panel')).toHaveCount(0);
 
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  const total = await structureCount(page);
   const box = (await page.locator('.anatomy canvas').boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(viewer).toHaveAttribute('data-drawn-structures', String(total));
@@ -1267,9 +1296,8 @@ test('Echo mode has no structure list and no click-to-isolate', async ({ page })
 
 test('an isolate made in Explore does not follow the learner into Echo', async ({ page }) => {
   const viewer = page.getByTestId('anatomy-viewer');
-  await page.getByTestId('mode-explore').click();
-  await expect(page.getByTestId('structure-panel')).toBeVisible();
-  const total = Number(await viewer.getAttribute('data-structure-count'));
+  await enterExplore(page);
+  const total = await structureCount(page);
 
   await page.getByTestId('structure-isolate-lv-myocardium').click();
   await expect(viewer).toHaveAttribute('data-drawn-structures', '1');
