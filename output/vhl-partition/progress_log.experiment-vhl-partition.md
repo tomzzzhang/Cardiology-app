@@ -11,6 +11,95 @@ Newest first.
 
 ---
 
+## 2026-08-21 22:31 ET — the wall was labelled on the wrong surface; the valve-plane rule is withdrawn
+
+**The left-atrial wall was never a missing groove.** `vhl_wall_paint.epicardium` returns
+every tissue voxel with a free neighbour, and on this model that is not the epicardium.
+The chambers hold 425 mL of open lumen and the wall is trabeculated throughout, so the
+tissue boundary is **149,074 mm2 of which only 57,557 (38.6%) faces outside**. The rest is
+endocardium and the surface of trabecular struts.
+
+**80% of the LA's surface territory sat on that inner surface.** The flood left the atrium's
+outer patch, passed through the open mitral orifice onto the left ventricular endocardium,
+and ran down the trabeculae to the apex - a route that never crosses a groove, because
+grooves are drawn on the outside. 82.5 of the 109.6 mL was nearer the LV lumen than any
+other chamber and it reached 89 mm from LA lumen. No groove could have closed it.
+
+`pipeline/vhl_epicardium.py`: outside is `free AND NOT chamber space`, take the component
+reaching the grid border, the epicardium is the tissue facing it. No new parameter - it
+rests on the chamber-space mask this branch already built.
+
+| | LV | RV | LA | RA | Ao | PA |
+|---|---|---|---|---|---|---|
+| whole boundary | 68.6 | 127.1 | **109.6** | 34.2 | 9.7 | 14.8 |
+| outer only | 147.1 | 138.6 | **22.7** | 34.9 | 11.5 | 9.2 |
+| + endocardium from lumen | 149.9 | 137.8 | 25.1 | 32.1 | 8.6 | 10.5 |
+
+Territory interface fell from 38,139 to 12,160 mm2 on the first step.
+
+**The endocardium needs no drawing at all.** An inner-surface voxel is FACE-ADJACENT to the
+lumen it lines, so it reads its tag straight off the lumen voxel it touches - the owner's
+suggestion, and it is better than nearest-lumen because nothing is measured at a distance
+and so nothing walks through the septum. `pipeline/vhl_wall_inner.py`. The wall between is
+then nearest-labelled-SURFACE, an interpolation between two observed faces rather than an
+extrapolation from one.
+
+**A WITHDRAWAL.** An infinite half-space at each valve plane was applied - no atrium apical
+of its own plane, no ventricle basal of it - and it is wrong in the second direction.
+Measured against the groove flood it pushes **7,169 mm2 of epicardium, 12.5%, off the
+grooves**, 6,263 mm2 of it atrial colour crossing the atrioventricular groove onto
+ventricle. Without the rule the disagreement is 901 mm2, 1.6%. The owner saw it in a
+section before the number was in hand.
+
+The rule was never needed in the direction it was asked for: with the endocardium taking
+the lumen's tag, **RA apical of the tricuspid plane is 0.0 mL and LA apical of the mitral
+is 0.7 mL** - the round-six atrioventricular divide carries through for free. It only fired
+the other way, on 22.9 mL of RV and 12.3 mL of LV. `index.html` already carried the reason,
+from the valve-tracing work: *any plane that separates atrium from ventricle also slices the
+outflow; a bounded disc does not have that problem.* An infinite plane was used anyway.
+
+**Two more things the inner surface turned up, both measured rather than assumed:**
+
+* **Sealed voids.** 18.39 mL of free space in **17,387 disconnected pieces**, inside the
+  wall, neither chamber nor outside air - the trabecular interstices the occlusion mask
+  closed off. They carry **35,881 of the 91,517 mm2 of inner surface**, so 39% of what looks
+  like endocardium is not a surface anyone can draw on. Tagged 22 in the shipped volume so
+  the viewer names them instead of reading them as open air.
+* **Unlabelled chamber space** is only 8,942 voxels. Tagged 21, for the same reason: it was
+  indistinguishable from outside air, and a mark on endocardium facing it was refused.
+
+**Valve rings are now first-class.** Tags 7-10, numbered as `anatomy.py` numbers them, with
+`VALVE_PAIR` recording which chamber pair each divides - which is the definition
+`identify_valve_planes` checks. The myocardium sentinel in the shipped volume moved from 7
+to 20 to clear the collision; `anatomy.py` owns 1-24, so the sentinel sits above the range.
+
+**New tool: paint the inner surface.** Same shape as the groove painter - a boundary stroke
+is a barrier, a region point names what it divides, and three region points around a Y name
+three territories with no special case. One rule the outer tool does not need: a mark must
+be ON the endocardium, decided from the data rather than the camera. `facing` reads the hit
+voxel first and otherwise walks back along the ray until it finds what is being looked
+through: a chamber tag means endocardium and says which chamber, 21 means endocardium facing
+unnamed space, 22 means a sealed void, 0 means the epicardium and the mark is refused.
+
+Two bugs found by driving it, both real: the ray could land on a **lumen cast** rather than
+the wall, so a mark meant for endocardium landed on blood pool - the picker is now
+restricted to the myocardium mesh; and the side test ignored the strongest signal it had,
+the tag of the voxel the hit already falls in.
+
+Verified in the browser: a mark inside the opened right ventricle reads *endocardium lining
+the right ventricle* and registers; a click on the outer shell is refused and the count does
+not move.
+
+**Housekeeping.** `vhl_wall_labels.py` (nearest labelled lumen, straight-line) moved to
+`pipeline/archive/` with a note on why it was superseded. A stale `http.server` from the
+previous session was still bound to :8777 on IPv6 serving round-five data, with this
+session's server on IPv4 - `localhost` could reach either. Killed; use `127.0.0.1:8777`.
+
+**Recovered, and worth recording:** the previous session's scratch directory survived, and
+the round-five and round-six lumen labels existed ONLY there. The committed
+`seed-partition-labels.npz` is byte-identical to `round4-final-labels.npz`, so the headline
+six-chamber volumes were one reboot from needing a rebuild.
+
 ## 2026-08-21 15:49 ET — round six: the atrioventricular divide enforced, and the wall drawn rather than inferred
 
 **A real error the observer caught by eye.** Atrial lumen was sitting BELOW its own valve

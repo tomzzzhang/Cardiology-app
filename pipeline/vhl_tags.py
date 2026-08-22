@@ -26,6 +26,10 @@ TAGS: dict[int, tuple[str, tuple[int, int] | None]] = {
     4: ("RA", (25, 45)),
     5: ("Aorta", (15, 25)),
     6: ("PA", (15, 25)),
+    7: ("mitral", None),
+    8: ("tricuspid", None),
+    9: ("aortic", None),
+    10: ("pulmonary", None),
     11: ("pulm vein", None),
     16: ("SVC", None),
     17: ("IVC", None),
@@ -33,6 +37,13 @@ TAGS: dict[int, tuple[str, tuple[int, int] | None]] = {
 
 #: Tags that are a cardiac chamber or great vessel, in report order.
 CHAMBERS = (1, 2, 3, 4, 5, 6)
+#: The four valve planes, numbered as `anatomy.PUBLISHED_VALVES` numbers them.
+#: A valve is defined by the PAIR of chambers it separates, which is what
+#: `anatomy.identify_valve_planes` checks, so the ring must be its own tag
+#: rather than a face shared between two chambers.
+VALVES = (7, 8, 9, 10)
+#: Which chamber pair each valve ring divides.
+VALVE_PAIR = {7: (1, 3), 8: (2, 4), 9: (1, 5), 10: (2, 6)}
 #: Tags that are a vessel stub hanging off a chamber.
 STUBS = (11, 16, 17)
 
