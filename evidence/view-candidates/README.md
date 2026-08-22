@@ -1,6 +1,6 @@
 # Rodero view-coordinate candidates
 
-**Updated:** 2026-08-21 00:47 EDT
+**Updated:** 2026-08-22 03:30 EDT
 
 This directory holds review evidence for **Draft Rodero view coordinates**. A candidate is a
 machine-authored or manually authored probe pose, fan, and optional sweep bound to one exact source
@@ -91,6 +91,29 @@ conda run -n cardiology-app python pipeline/view_candidates_v2.py --check
 
 Candidate files contain coordinates and derivation evidence only. They contain no review promotion
 and no reviewer identity.
+
+## These sets are SUPERSEDED, and that is not the same as stale
+
+The corrected poses these sets proposed were **adopted into the pack on 2026-08-22** (owner
+decision). `normal-rodero` moved to v0.1.2 and then, after the apertures were migrated to the
+reference chest wall, to v0.1.3. The sets still describe pack **0.1.1** at revision `770d5d2a`, and
+they are byte-unchanged.
+
+That is the proposal succeeding, not the evidence rotting, and the checker was changed to say so.
+`check-view-candidates` used to require the CHECKED-OUT pack to still hash to the pinned digest,
+which meant a project could never act on its own evidence without deleting it. A superseded set is
+now validated against the pack **at its bound git revision**, read from git, with ancestry and
+digest as the integrity proof, and the gate prints:
+
+```
+superseded: describes pack 0.1.1 at 770d5d2aa65f; the checkout is 0.1.3.
+```
+
+**Do not regenerate these sets to "fix" the binding.** `pipeline/view_candidates_v2.py` reads the
+pack's CURRENT view poses as its `original_probe`, so re-running it after an ingest re-applies the
+same correction to an already-corrected pose. The 22 mm retreat these sets propose would become
+roughly 44 mm. If a genuinely new candidate set is needed, it has to start from a pack revision
+whose poses have not already had the correction applied.
 
 ## Visual-review session carriers
 

@@ -1,6 +1,6 @@
 # Coding agents — start here
 
-**Updated:** 2026-08-20 14:40 EDT
+**Updated:** 2026-08-22 03:30 EDT
 
 This is the repository's sole normative agent entrypoint. The current phase is
 **platform-first development** on `dev`.
@@ -26,7 +26,7 @@ separate later design workstream; they do not constrain current components or ga
 
 - Work directly on `dev` in coherent, reversible units.
 - `npm run check:fast` is the normal inner-loop check. Use `npm run verify` for a coherent
-  platform milestone (it production-builds learner and authoring surfaces), `npm run check:content` when pack/schema/provenance material changes, and
+  platform milestone (it production-builds learner and authoring surfaces), `npm run check:content` when pack/schema/provenance material changes, `npm run check:body-context` when the registration or the chest assets change (local only: it needs the `cardiology-app` conda env and the gitignored source cache), and
   targeted browser checks only for the UI behavior being changed.
 - Schema v0, draft packs, temporary controls, unverified poses, and experimental behavior may
   change freely on `dev`. Do not block platform work on clinical review, content completeness,
@@ -53,6 +53,8 @@ separate later design workstream; they do not constrain current components or ga
   ignored local workspace; commit metadata, checksums, or fetch instructions instead.
 - No PHI, patient uploads, secrets, private collaborator context, or machine-specific absolute
   paths in committed material.
+- **No imaging view may define the patient/body frame.** The frame is `+X` patient-left, `+Y` posterior, `+Z` superior, established by a `body-context/v0` registration and gated by `scripts/check-frame-decoupling.ts`. An acquisition window is not evidence for which way is up.
+- **Evidence may describe a superseded pack revision.** Adopting a proposal must not require deleting the evidence for it; `check-view-candidates` validates a superseded set against the pack at its bound git revision and says so.
 - Shared and user-facing material labels synthetic output `Simulated` and unreviewed content
   `Draft`. A free or working pose must not inherit a saved view's name or review state.
 - Keep changes reversible. Do not force-push shared history or discard unknown work.

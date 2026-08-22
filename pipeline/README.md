@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-21 00:47 EDT
+**Updated:** 2026-08-22 03:30 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -22,7 +22,8 @@ npm run ingest -- --budget-table               # volume size against resolution
 
 An authoring export takes a separate, Node-only route because it updates one existing draft view;
 it does not rebuild the anatomical substrate. The completed Rodero proof used the following command
-while the pack was v0.1.0; the checked-in v0.1.1 pack now correctly refuses a same-version replay:
+while the pack was v0.1.0; the checked-in pack is now v0.1.3 and correctly refuses a replay whose
+export names a different revision:
 
 ```bash
 npm run ingest:authoring -- \
@@ -265,3 +266,33 @@ Raw BodyParts3D archives are never committed; they live in the gitignored cache 
 source. The BodyParts3D subject is a LIVING adult male MRI reference, not a cadaver — older text in
 `sources.py` and in the committed `anatomy-bodyparts3d-heart` pack says otherwise and is recorded
 for a separate evidence-safe migration.
+
+## Adopting a whole corrected pose set, and what follows from it
+
+`scripts/ingest-authoring-batch.ts` applies several authoring poses in ONE revision and creates the
+views a pack does not have yet. The single-view tool refuses more than one pose per revision, which
+is right — an export must not cross a pack revision — so the batch pins `exportBaseVersion` to the
+revision the export names and chains through the same guarded path, keeping every refusal.
+
+Two steps follow a pose change, and both exist because moving a probe invalidates things measured
+against where it used to be:
+
+```bash
+# 1. put the apertures on the chest wall (needs a bound body context)
+conda run -n cardiology-app python pipeline/migrate_apertures.py \
+  --views b1-apical-four-chamber b4-apical-three-chamber c2-parasternal-short-axis \
+  --pack-version 0.1.3 --write
+
+# 2. remeasure the sweep orderings the move invalidated
+conda run -n cardiology-app python pipeline/remeasure_sweeps.py \
+  --views b1-apical-four-chamber c1-parasternal-long-axis c2-parasternal-short-axis --write
+```
+
+Both take their target views as EXPLICIT arguments rather than inferring them. Inference was tried
+and was wrong: `ingest-reference-pose` carries an ingest's cleared-ordering marker from its own
+history while being empty ON PURPOSE, so a rule that filled in every empty list would have
+manufactured a clinical claim out of a housekeeping pose. `migrate_apertures.py` additionally
+refuses a retreat over 40 mm, because a correction that large means the authored plane is wrong
+rather than merely offset.
+
+Re-run `pipeline/body_context.py` after any pose change: the descriptor pins the pack's bytes.

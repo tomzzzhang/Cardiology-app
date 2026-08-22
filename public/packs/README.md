@@ -22,7 +22,7 @@ A pack is one of two kinds, and the distinction decides which modes it can even 
 | Pack | Kind | What it is | Licence | Licence state | On Pages? |
 | --- | --- | --- | --- | --- | --- |
 | `stub/` | echo | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | confirmed | yes, but never offered in the picker |
-| `normal-rodero/` | echo | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. | CC BY 4.0 | confirmed | **yes — the selected substrate** |
+| `normal-rodero/` | echo | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. **v0.1.3, six Draft views** (B1, B4, C1, C2, F1 + a non-clinical ingest reference pose); apertures on the reference chest wall except F1. Carries a `body-context/v0` registration. | CC BY 4.0 | confirmed | **yes — the selected substrate** |
 | `normal-alberta-neonatal/` | echo | Normal neonatal heart, 3D Heart Project. Blood pool plus a separate myocardium. | CC BY 4.0 (contested) | unconfirmed | **no** |
 | `normal-vhl-heart0102/` | echo | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. | CC BY-NC 4.0 | non_commercial | **no** |
 | `motion-biv-cinemri/` | explore | **Moving.** Ten biventricular cine-MRI segmentations, end-diastole to end-systole. Unlabelled. | CC BY 4.0 | confirmed | **no** |

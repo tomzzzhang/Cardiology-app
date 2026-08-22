@@ -2,8 +2,10 @@
 
 **Owns:** `src/App.tsx`, `src/main.tsx`, `src/styles.css`, `index.html`, `vite.config.ts`
 **Status:** partial. Echo and Explore modes, the model picker, deep-link params, the responsive
-two-panel stage and the undismissible non-diagnostic notice are built. The view rail, the provenance
-strip and the full `?a=`/`?v=`/`?s=` scheme are wave 2.
+two-panel stage and the undismissible non-diagnostic notice are built. The provenance strip and the
+full `?a=`/`?v=`/`?s=` scheme are wave 2. The **view rail was superseded** (owner decision,
+2026-08-21) and is not being built as specified; how a learner picks a view is an open question and
+`?view=` is the only route today. See `contracts/view-rail-sweep-scrubber.md`.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (7), "Repo and hosting"; `docs/mvp_scope.md` "Design direction (core screen)".
 
 ## Responsibility

@@ -1,9 +1,18 @@
 # Contract: view rail + sweep scrubber
 
 **Owns:** `src/views/**`
-**Status:** contract only. Implementation is wave 1d. A single sweep slider and the probe's tilt
-arrow stand in for the scrubber today; views are reachable only by `?view=`. Two clauses were
-superseded by the 2026-08-19 interaction pass and are marked below.
+**Status:** NOT BEING BUILT AS SPECIFIED. The rail and canonical scrubber were **superseded by
+owner decision on 2026-08-21**, after this contract had been queued as the next platform unit. The
+existing model dropdown and the existing synchronised sweep slider stay; the probe's tilt arrow
+stands in for the scrubber; views are reachable by `?view=` in the learner build and by the
+authoring selector.
+
+**The problem it was written for is still open.** A learner has no way to pick a view without
+typing a URL, and this document remains the fullest statement of what a solution has to respect —
+in particular that nothing learner-facing may write `views[]`, and that the scrubber is the only
+learner-facing driver of the saved echo wedge. Read it as requirements for whatever replaces it,
+not as a queued implementation. Two further clauses were superseded by the 2026-08-19 interaction
+pass and are marked below.
 **Spec:** `docs/build_plan.md` v1.2 — "Architecture" (4); `docs/view_canon.md` (DRAFT).
 
 ## Responsibility

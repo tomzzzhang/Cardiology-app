@@ -183,8 +183,26 @@ This is a flag-gated review aid, not the learner rail.
 
 Active, in order:
 
-1. Build the view rail and canonical sweep scrubber.
+1. **Decide how a learner picks a view.** The view rail and canonical sweep scrubber were
+   superseded by owner decision on 2026-08-21 and are not being built as specified; `?view=` is
+   still the only learner route. `contracts/view-rail-sweep-scrubber.md` holds the requirements
+   whatever replaces it must respect.
 2. Complete the integrated authoring/learner platform path.
+
+Also open, arising from the body-context work:
+
+- **F1 needs reauthoring, not migrating.** Its aperture is 66.5 mm inside the thorax; reaching the
+  chest wall would need a 22.19 cm imaging depth, outside adult transthoracic range.
+- **The composite's cardiothoracic ratio is 0.543** against 0.491 for the source's own native pair.
+  Placement is right; the population-average heart is simply 14 mm wider than the heart that chest
+  was built around. Not repaired, because repairing it means scaling one of the two.
+- **Two legacy provenance defects**, both blocked from in-place correction by byte-pinned evidence:
+  `pipeline/sources.py` and the committed `anatomy-bodyparts3d-heart` pack describe BodyParts3D as a
+  cadaver (it is a living adult male MRI reference), and that pack's declared `orientation`
+  (`up=+y, anterior=+z`) is measurably wrong — the source's own axes are `+X` left, `+Y` posterior,
+  `+Z` superior. Both need an evidence-safe migration.
+- **No learner-visible provenance for the body context.** A stale or failed registration falls back
+  to model space silently, apart from the chest-load warning.
 
 Deferred to desktop integration/release: clinical review, schema v1 freeze, complete provenance UI,
 supported desktop-browser qualification, full Normal/lesion content, and advancement of `main`.

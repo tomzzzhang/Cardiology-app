@@ -2204,3 +2204,50 @@ so the authoring selector no longer appends `— overridden` or presents that as
 browser still keeps the loaded pack pose intact underneath and offers **Restore pack pose**; the
 storage boundary remains exact without turning implementation language into the author-facing
 meaning of the row.
+
+## 65. A registered chest turns three proxies into measurements — and disagrees with two of them
+
+*(2026-08-22.)*
+
+**The chest wall was a number, and now it is anatomy.** Every Rodero pose was authored against a
+heart-only mesh, so the stand-off was measured from the EPICARDIUM and a 30 mm "adult visual-layout
+proxy" stood in for a chest. With the BodyParts3D chest registered, that proxy is checkable, and it
+was wrong in the direction nobody could have seen: five of six apertures sat INSIDE the body — B1
+19.7 mm deep to the skin, B4 21.6 mm, C2 11.9 mm, F1 66.5 mm. Only C1 was on the wall. B1, B4 and
+C2 were migrated back along their own beams; the imaging plane is preserved exactly and only the
+stand-off and the depth change.
+
+**F1 says something different, and it was not migrated.** Reaching skin needs 73.7 mm of retreat
+and a 22.19 cm imaging depth, outside the range adult transthoracic imaging works in. A correction
+that large is not a stand-off error; it says the right-parasternal plane itself needs reauthoring.
+`migrate_apertures.py` refuses retreats over 40 mm for exactly this reason: a tool that slid it
+anyway would have produced a geometrically consistent, clinically useless pose.
+
+**The composite is slightly too big for its chest, and that is disclosed rather than fixed.**
+Cardiothoracic ratio 0.543 against 0.491 for BodyParts3D's own heart in the same chest; diaphragm
+overlap 9.9 mm against 3.3 mm. Placement is right — apex at the midclavicular line, two thirds left
+of midline, nothing behind the spine or outside the skin. The difference is one fact: Rodero is
+14 mm wider. And Rodero is the credible heart (LV 86.7 mm base-to-apex, normal adult range) while
+BodyParts3D's is 65.9 mm, below range, in a source that admits artist adjustment. Repairing the
+ratio means scaling one of the two bodies and then reporting false dimensions for whichever was
+scaled, so it is measured and published instead.
+
+**Two containment methods were wrong before one was right.** BodyParts3D's skin is a thin closed
+SHELL, not a solid: its own volume reads 3.4 L. `trimesh.contains` returns false for everything
+including the thoracic spine, and ray-parity voting counts two crossings from an interior point —
+one through each face of the layer — so both call a point inside the chest "outside". Only a
+radially-outward ray, validated against a known-inside and two known-outside controls, gives the
+right answer. Worth recording because the wrong methods are the obvious ones.
+
+**The probe was a third of life size.** 33 mm end to end with a 16 mm barrel, built from four
+cylinders and a sphere. Against a heart alone that read as hardware; against a true chest it read
+as a marker lying on skin. It is now an adult phased-array transthoracic probe: 21 x 15 mm
+footprint, 30 x 22 mm handle, 108 mm housing, 126 mm with the cable stub — comparable in length to
+the heart is wide, which is what those two objects are. One revolved profile rather than stacked
+primitives, flattened into an elliptical cross-section whose wide axis IS the array's long axis, so
+the silhouette states the imaging plane without any marker on it. Off-white, like the hardware.
+
+**Known cost.** At the default framing a real probe runs past the panel edge, because the camera is
+framed on the heart and the framing cap that keeps it the subject was left alone. The scan head and
+most of the handle are visible.
+
