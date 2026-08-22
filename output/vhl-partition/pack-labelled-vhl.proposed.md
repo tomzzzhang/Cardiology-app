@@ -1,6 +1,6 @@
 # Proposed — introduce the labelled heart as a SEPARATE pack
 
-**Last Updated:** 2026-08-22 01:12 EDT
+**Last Updated:** 2026-08-22 07:13 EDT
 
 Written as a proposal, not applied. **The owner applies it or discards it.**
 Nothing here reverses the 2026-08-19 rejection, and nothing here publishes

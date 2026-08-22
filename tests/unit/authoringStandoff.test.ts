@@ -201,8 +201,8 @@ function shelf(): Shelf[] {
 describe('every pack on the shelf', () => {
   const rows = shelf();
 
-  it('is measurable: nine packs, every one with a readable bounding sphere', () => {
-    expect(rows).toHaveLength(9);
+  it('is measurable: ten packs, every one with a readable bounding sphere', () => {
+    expect(rows).toHaveLength(10);
     for (const row of rows) expect(row.radius).toBeGreaterThan(0);
   });
 
@@ -253,7 +253,9 @@ describe('every pack on the shelf', () => {
      * carry authored fans whose depth cannot reach the far side of their own
      * model from ANY standoff that satisfies the angle — the two constraints
      * together need `depth >= radius * (1/sin(half) + 1)`, and all three are
-     * under it. That is a content finding, reported here and in
+     * under it. The chamber-labelled derivative instead authors its INGEST
+     * depth from that measured minimum and therefore does not join this list.
+     * This is a content finding, reported here and in
      * `docs/observations.md`. Explicit placement reports and applies the
      * shortfall only to its local working pose; it does not bulk-edit these packs.
      */

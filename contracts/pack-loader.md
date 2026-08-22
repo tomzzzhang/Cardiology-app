@@ -1,5 +1,7 @@
 # Contract: pack-loader
 
+**Last Updated:** 2026-08-22 07:13 EDT
+
 **Owns:** `src/schema/**`, `src/packs/**`, `scripts/validate-packs.ts`, `scripts/check-provenance.ts`
 **Status:** implemented in wave 0; extended to **v0.1** (2026-08-19) so the pack system can carry
 unlabelled and moving geometry. Revisited once more at the v1 revision after the wave 1 slice.

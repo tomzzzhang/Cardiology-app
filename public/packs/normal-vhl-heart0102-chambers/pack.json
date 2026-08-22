@@ -1,0 +1,585 @@
+{
+  "meta": {
+    "id": "normal-vhl-heart0102-chambers",
+    "display_name": "Healthy Pediatric Heart \u2014 Heart0102, chamber-labelled",
+    "anatomy": "Normal paediatric heart, observer-labelled chambers and myocardium",
+    "canonical_variant": "Single 14-year-old specimen, MR-segmented tissue, no known cardiac history; six lumen and six wall identities hand-seeded by one observer",
+    "pack_version": "0.1.0",
+    "schema_version": "0.1"
+  },
+  "provenance": {
+    "creator": "Visible Heart Laboratories (University of Minnesota)",
+    "source": "Sketchfab model 'Healthy Pediatric Heart Model- Heart0102', uid b7cb05c398894395a329cfff4c1caf0e",
+    "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
+    "license": "CC-BY-NC-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "license_state": "non_commercial",
+    "modified": {
+      "flag": true,
+      "note": "HAND-SEEDED DERIVATIVE. Built by pipeline/vhl_pack.py from the CC BY-NC 4.0 source STL and two 384^3 label fields authored by one observer: 27 chamber seeds, 553 barrier marks, approximately 11,000 manual corrections, two traced valve rims, 375 groove strokes, and 1,076 region points. Every one of the twelve structure identities is the observer's interpretation, not a tag or group in the source. Six lumen and six per-chamber myocardium surfaces were extracted at the authored grid resolution with no cross-label blur, smoothing, thin-structure absorption, decimation, hole filling, or invented geometry. The wall labels were reduced to a 192^3 echo volume by dominant nonzero tag in each 2^3 block, with lower tag winning exact ties; zero is blood or outside. ORIENTATION MEASURED, NOT VETTED: the cardiac frame comes from the same one observer's chamber marks. It is a cardiac basis only; no patient/body frame is claimed. The source has no valve-ring geometry and no separately tagged cavae, so neither was invented and pipeline/anatomy.py's nine checks were deliberately not run on fabricated inputs. CAVEATS: RV lumen is 148.3 mL against an expected 60\u2013100 mL; its 384^3 label is one face-connected volume, while the extracted boundary topology is reported separately, and the excess volume is unresolved. RA lumen is 75.0 mL against 25\u201345 mL and includes the caval stubs and atrial appendage. LV wall : RV wall is 1.09 : 1, against about 2.6 : 1 for normal-rodero; three independent measurements agree this model carries no left-right wall asymmetry, so it must not be used to teach wall thickness. NOT PUBLISHED: license_state is non_commercial and CC BY-NC 4.0 remains binding. This new derivative does not alter the 2026-08-19 substrate rejection of normal-vhl-heart0102, which remains retained evidence. SIMULATED ECHO: the echo volume is generated from observer-authored wall labels, not acquired patient echocardiography. This CC BY-NC 4.0 pack is for non-commercial educational and research/development proof-of-concept use only. It is not for diagnosis, treatment, or clinical decision-making."
+    },
+    "derivation_chain": [
+      "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
+      "pipeline/.cache/vhl/Heart102_Tissue.stl (sha256 5843eb9619ff9644c1ded5dd2911d9bbdfd3e5e43c8d622ff753b83272f41402)",
+      "pipeline/labeller/ and pipeline/vhl_* (one-observer authoring and 384^3 partition)",
+      "pipeline/.cache/vhl/labels/round6-labels.npz (sha256 d29a1cec28eb5f8b350635c32571f7bdb681ddc9439e59ea239999d4ef4531b2)",
+      "pipeline/.cache/vhl/labels/wall-labels-current.npz (sha256 7414ee196263ed80a93720e37cb4dd49b86346c747ece5f2ac4a9aaf2dd9ea72)",
+      "pipeline/vhl_pack.py (exact label surfaces, measured cardiac rotation, dominant-nonzero 192^3 wall volume, glTF/raw-u8 export)"
+    ],
+    "vetted": {
+      "status": "draft",
+      "vetters": [],
+      "last_reviewed": null
+    }
+  },
+  "meshes": {
+    "gltf": "assets/model.gltf",
+    "structures": [
+      {
+        "id": "lv-lumen",
+        "mesh_node": "lv-lumen",
+        "display_label": "Left ventricular lumen",
+        "parent": null,
+        "identified": true,
+        "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 1 as left ventricular lumen in round6-labels.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 3,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 361,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 lumen tag 1 partition: 3 surface component(s), 0 boundary edge(s), and 361 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "rv-lumen",
+        "mesh_node": "rv-lumen",
+        "display_label": "Right ventricular lumen",
+        "parent": null,
+        "identified": true,
+        "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 2 as right ventricular lumen in round6-labels.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 5,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 593,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 lumen tag 2 partition: 5 surface component(s), 0 boundary edge(s), and 593 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "la-lumen",
+        "mesh_node": "la-lumen",
+        "display_label": "Left atrial lumen",
+        "parent": null,
+        "identified": true,
+        "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 3 as left atrial lumen in round6-labels.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 268,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 87,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 lumen tag 3 partition: 268 surface component(s), 0 boundary edge(s), and 87 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "ra-lumen",
+        "mesh_node": "ra-lumen",
+        "display_label": "Right atrial lumen",
+        "parent": null,
+        "identified": true,
+        "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 4 as right atrial lumen in round6-labels.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 73,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 57,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 lumen tag 4 partition: 73 surface component(s), 0 boundary edge(s), and 57 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "aorta-lumen",
+        "mesh_node": "aorta-lumen",
+        "display_label": "Aortic lumen",
+        "parent": null,
+        "identified": true,
+        "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 5 as aortic lumen in round6-labels.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 1,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 5,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 lumen tag 5 partition: 1 surface component(s), 0 boundary edge(s), and 5 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "pulmonary-artery-lumen",
+        "mesh_node": "pulmonary-artery-lumen",
+        "display_label": "Pulmonary artery lumen",
+        "parent": null,
+        "identified": true,
+        "blood_pool": true,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 6 as pulmonary artery lumen in round6-labels.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 3,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 40,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 lumen tag 6 partition: 3 surface component(s), 0 boundary edge(s), and 40 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "lv-myocardium",
+        "mesh_node": "lv-myocardium",
+        "display_label": "Left ventricular myocardium",
+        "parent": null,
+        "identified": true,
+        "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 1 as left ventricular myocardium in wall-labels-current.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is tissue rather than a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 13,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 3527,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 wall tag 1 partition: 13 surface component(s), 0 boundary edge(s), and 3527 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "rv-myocardium",
+        "mesh_node": "rv-myocardium",
+        "display_label": "Right ventricular myocardium",
+        "parent": null,
+        "identified": true,
+        "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 2 as right ventricular myocardium in wall-labels-current.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is tissue rather than a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 20,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 5077,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 wall tag 2 partition: 20 surface component(s), 0 boundary edge(s), and 5077 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "la-myocardium",
+        "mesh_node": "la-myocardium",
+        "display_label": "Left atrial myocardium",
+        "parent": null,
+        "identified": true,
+        "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 3 as left atrial myocardium in wall-labels-current.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is tissue rather than a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 13,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 3104,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 wall tag 3 partition: 13 surface component(s), 0 boundary edge(s), and 3104 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "ra-myocardium",
+        "mesh_node": "ra-myocardium",
+        "display_label": "Right atrial myocardium",
+        "parent": null,
+        "identified": true,
+        "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 4 as right atrial myocardium in wall-labels-current.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is tissue rather than a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 16,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 5073,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 wall tag 4 partition: 16 surface component(s), 0 boundary edge(s), and 5073 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "aortic-wall",
+        "mesh_node": "aortic-wall",
+        "display_label": "Aortic wall",
+        "parent": null,
+        "identified": true,
+        "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 5 as aortic wall in wall-labels-current.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is tissue rather than a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 2,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 3177,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 wall tag 5 partition: 2 surface component(s), 0 boundary edge(s), and 3177 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      },
+      {
+        "id": "pulmonary-artery-wall",
+        "mesh_node": "pulmonary-artery-wall",
+        "display_label": "Pulmonary artery wall",
+        "parent": null,
+        "identified": true,
+        "blood_pool": false,
+        "blood_pool_decision": {
+          "basis": "authored",
+          "evidence": "One observer authored tag 6 as pulmonary artery wall in wall-labels-current.npz. The source STL contains no chamber tags or named groups; this identity and the decision that the structure is tissue rather than a lumen cast come from those marks."
+        },
+        "topology": {
+          "watertight": false,
+          "components": 12,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 4406,
+          "declared_reason": "Measured as shipped from the observer-authored 384^3 wall tag 6 partition: 12 surface component(s), 0 boundary edge(s), and 4406 non-manifold edge(s). No component was merged, no opening was filled, and no geometry was invented to make this clean."
+        },
+        "stylized": false
+      }
+    ],
+    "canonical_pose": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_euler_xyz_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0
+    },
+    "units": "mm",
+    "orientation": {
+      "up": "+y",
+      "anterior": "+z",
+      "patient_left": "+x",
+      "handedness": "right"
+    },
+    "anatomical_frame": {
+      "method": "observer-seed-centroids-v1",
+      "description": "CARDIAC basis re-derived by pipeline/vhl_seed_partition.py from 27 chamber marks placed and named by one observer. Patient-left is the right-ventricle to left-ventricle seed-centroid direction; basal is the ventricular midpoint to the atrial midpoint, orthogonalised against it; anterior completes a right-handed basis. The identities are authored, not source tags, and this was one unreplicated observer round. This is not a patient/body frame: the heart-only source has no spine, diaphragm, or chest wall, so no body superior-inferior direction is claimed.",
+      "inputs": {
+        "source": "output/vhl-partition/seeds.observer-A.json",
+        "observer_count": 1,
+        "replicated": false,
+        "seed_counts": {
+          "left_ventricle": 4,
+          "right_ventricle": 9,
+          "left_atrium": 8,
+          "right_atrium": 5,
+          "aorta": 1
+        },
+        "patient_left": "right-ventricular to left-ventricular seed centroid",
+        "basal": "ventricular midpoint to atrial midpoint, orthogonalised",
+        "anterior": "right-handed cross product of patient-left and basal",
+        "not_run": "pipeline/anatomy.py's nine substrate checks: the source has no valve-ring geometry or separately tagged cavae, and those inputs were not fabricated"
+      },
+      "landmarks_source_mm": {
+        "observer_seed_centroids": {
+          "left_ventricle": [
+            0.6509927865830889,
+            -24.027803619965876,
+            -8.579202165602432
+          ],
+          "right_ventricle": [
+            -35.17846795016382,
+            -1.9332077860611336,
+            7.98591794302294
+          ],
+          "left_atrium": [
+            9.826900813453946,
+            18.227728852423944,
+            33.79440312496259
+          ],
+          "right_atrium": [
+            6.391562621566306,
+            -22.55186725307462,
+            49.58246340800134
+          ],
+          "aorta": [
+            -16.850976943969727,
+            -4.051312752963108,
+            55.19142473792742
+          ]
+        }
+      },
+      "basis_source_to_pack": {
+        "patient_left": [
+          0.7920507442286409,
+          -0.4884260246687758,
+          -0.3661907112327028
+        ],
+        "basal": [
+          0.5139748304843037,
+          0.20990598219700565,
+          0.8317267293207197
+        ],
+        "anterior": [
+          -0.32937135910016146,
+          -0.8469825836840842,
+          0.4172948726504385
+        ]
+      },
+      "measurements": {
+        "raw_left_right_vs_basal_deg": 89.36,
+        "declared_axis_disagreement_deg": {
+          "patient_left": 37.6,
+          "base": 77.9,
+          "anterior": 65.3
+        },
+        "check_margins_mm": {
+          "LA posterior to RA": 42.3,
+          "RA right of LA": -11.4,
+          "aorta basal to ventricles": 48.2
+        }
+      },
+      "checks": {
+        "LA posterior to RA": true,
+        "RA right of LA": false,
+        "aorta basal to ventricles": true
+      },
+      "checks_passed": 2,
+      "checks_total": 3
+    }
+  },
+  "interaction": {
+    "pivot": [
+      -8.145851135253906,
+      -5.417476654052734,
+      19.39028263092041
+    ],
+    "free_cut": {
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": 0.0
+    }
+  },
+  "echo_volume": {
+    "asset": "assets/echo-volume.raw",
+    "format": "raw-u8",
+    "resolution": [
+      192,
+      192,
+      192
+    ],
+    "mesh_to_volume": [
+      1.0223396659313928,
+      -0.6304359948280422,
+      -0.4726607381114346,
+      0.0,
+      0.6634131213476695,
+      0.2709361909952837,
+      1.0735514520954692,
+      0.0,
+      -0.42513615154513934,
+      -1.0932429493473648,
+      0.538623445289234,
+      0.0,
+      95.15436323399045,
+      95.99064473952268,
+      85.96706414898007,
+      1.0
+    ],
+    "labels": [
+      {
+        "id": 1,
+        "structure": "lv-myocardium",
+        "echogenicity": 0.55,
+        "attenuation": 0.45
+      },
+      {
+        "id": 2,
+        "structure": "rv-myocardium",
+        "echogenicity": 0.55,
+        "attenuation": 0.45
+      },
+      {
+        "id": 3,
+        "structure": "la-myocardium",
+        "echogenicity": 0.55,
+        "attenuation": 0.45
+      },
+      {
+        "id": 4,
+        "structure": "ra-myocardium",
+        "echogenicity": 0.55,
+        "attenuation": 0.45
+      },
+      {
+        "id": 5,
+        "structure": "aortic-wall",
+        "echogenicity": 0.7,
+        "attenuation": 0.6
+      },
+      {
+        "id": 6,
+        "structure": "pulmonary-artery-wall",
+        "echogenicity": 0.7,
+        "attenuation": 0.6
+      }
+    ],
+    "scatterer_seed": 20260822
+  },
+  "views": [
+    {
+      "family": "INGEST",
+      "view_id": "ingest-reference-pose",
+      "name": "Ingest reference pose \u2014 not a clinical view",
+      "aliases": [],
+      "placement_landmark": "Derived mechanically from the rotated model bounds; carries no anatomical landmark, imaging window, or clinical meaning",
+      "indicator_clock": "12:00",
+      "probe": {
+        "origin": [
+          -8.145851135253906,
+          -5.417476654052734,
+          223.56950196100584
+        ],
+        "beam_axis": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "lateral_axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "fan": {
+          "angle_deg": 75.0,
+          "depth_cm": 32.0,
+          "focus_cm": 17.6
+        },
+        "display": {
+          "vertex": "down",
+          "flip_lr": false,
+          "marker_side": "right"
+        }
+      },
+      "sweep": {
+        "mode": "tilt",
+        "axis": {
+          "direction": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        "range": {
+          "unit": "deg",
+          "from": -22.0,
+          "to": 22.0
+        },
+        "interpolation": "slerp",
+        "structures_in_order": []
+      },
+      "structures": [
+        "lv-lumen",
+        "rv-lumen",
+        "la-lumen",
+        "ra-lumen",
+        "aorta-lumen",
+        "pulmonary-artery-lumen",
+        "lv-myocardium",
+        "rv-myocardium",
+        "la-myocardium",
+        "ra-myocardium",
+        "aortic-wall",
+        "pulmonary-artery-wall"
+      ],
+      "measurements": [],
+      "lesion_attachments": [],
+      "show_hide_preset": {
+        "visible": [
+          "lv-lumen",
+          "rv-lumen",
+          "la-lumen",
+          "ra-lumen",
+          "aorta-lumen",
+          "pulmonary-artery-lumen",
+          "lv-myocardium",
+          "rv-myocardium",
+          "la-myocardium",
+          "ra-myocardium",
+          "aortic-wall",
+          "pulmonary-artery-wall"
+        ],
+        "hidden": []
+      },
+      "echo_tuning": {},
+      "real_clip_slot": null,
+      "emphasis": null,
+      "provenance": {
+        "creator": "Visible Heart Laboratories (University of Minnesota)",
+        "source": "Sketchfab model 'Healthy Pediatric Heart Model- Heart0102', uid b7cb05c398894395a329cfff4c1caf0e",
+        "source_url": "https://sketchfab.com/3d-models/healthy-pediatric-heart-model-heart0102-b7cb05c398894395a329cfff4c1caf0e",
+        "license": "CC-BY-NC-4.0",
+        "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "license_state": "non_commercial",
+        "modified": {
+          "flag": true,
+          "note": "Pose generated mechanically from the labelled pack's rotated bounding sphere by pipeline/vhl_pack.py. It is not a clinical view, not derived from an imaging protocol, and not vetted. structures_in_order is empty because no clinical sweep reading was authored. SIMULATED ECHO: the echo volume is generated from observer-authored wall labels, not acquired patient echocardiography. This CC BY-NC 4.0 pack is for non-commercial educational and research/development proof-of-concept use only. It is not for diagnosis, treatment, or clinical decision-making."
+        },
+        "derivation_chain": [
+          "pipeline/vhl_pack.py (bounds-derived non-clinical reference pose)"
+        ],
+        "vetted": {
+          "status": "draft",
+          "vetters": [],
+          "last_reviewed": null
+        }
+      }
+    }
+  ],
+  "display_flags": {
+    "pediatric_vertex_convention": true,
+    "plax_apex_left_exception": true,
+    "dextrocardia_indicator_profile": {
+      "enabled": false,
+      "profile": null
+    }
+  }
+}

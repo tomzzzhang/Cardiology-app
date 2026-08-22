@@ -1,6 +1,6 @@
 # Handoff — `experiment/vhl-partition`
 
-**Last Updated:** 2026-08-22 01:30 ET
+**Last Updated:** 2026-08-22 07:13 EDT
 **Branch:** `experiment/vhl-partition`, cut from `dev` at `294751faf124b79693cae99d9335e881189a032c`
 **Head:** whatever `git bundle list-heads` reports for the bundle in this folder.
 The branch is committed locally and **has never been pushed**; the bundle is the only copy
@@ -16,7 +16,8 @@ or `NOTES.md` and the progress log if you are continuing the labelling.
 ```bash
 git clone https://github.com/tomzzzhang/Cardiology-app.git <dir>
 cd <dir>
-B="$HOME/Library/CloudStorage/GoogleDrive-tomzzzhang@gmail.com/My Drive/Cardiology app temp/vhl-partition-handoff/vhl-partition-session.bundle"
+VHL_HANDOFF_DIR="/path/to/vhl-partition-handoff"
+B="$VHL_HANDOFF_DIR/vhl-partition-session.bundle"
 git bundle verify "$B"
 git fetch "$B" 'refs/heads/experiment/vhl-partition:refs/heads/experiment/vhl-partition'
 git checkout experiment/vhl-partition
@@ -27,7 +28,8 @@ Then the source mesh, which is **CC BY-NC 4.0, gitignored, and never committed**
 
 ```bash
 mkdir -p pipeline/.cache/vhl
-cp /Users/yipeng/dev/Cardiology-app/pipeline/.cache/vhl/Heart102_Tissue.stl pipeline/.cache/vhl/
+VHL_SOURCE_CHECKOUT="/path/to/existing/Cardiology-app-source-checkout"
+cp "$VHL_SOURCE_CHECKOUT/pipeline/.cache/vhl/Heart102_Tissue.stl" pipeline/.cache/vhl/
 shasum -a 256 pipeline/.cache/vhl/Heart102_Tissue.stl   # 5843eb96…f41402, 40,177,184 bytes
 ```
 

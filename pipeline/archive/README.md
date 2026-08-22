@@ -1,5 +1,7 @@
 # Superseded wall-labelling
 
+**Last Updated:** 2026-08-22 07:13 EDT
+
 Kept for provenance, not imported by anything.
 
 * `vhl_wall_labels.py` — a wall voxel took the label of its nearest labelled

@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-21 01:00 EDT
+**Last Updated:** 2026-08-22 07:13 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2250,4 +2250,3 @@ the silhouette states the imaging plane without any marker on it. Off-white, lik
 **Known cost.** At the default framing a real probe runs past the panel edge, because the camera is
 framed on the heart and the framing cap that keeps it the subject was left alone. The scan head and
 most of the handle are visible.
-

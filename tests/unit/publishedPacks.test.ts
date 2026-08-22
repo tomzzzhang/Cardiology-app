@@ -1,10 +1,10 @@
 /**
  * The published allowlist is a licence control, not a preference.
  *
- * Two packs in this repository may not reach a public URL: one has an
- * unreconciled grant, the other is non-commercial. These tests pin the list and
- * the reasons, so removing a pack from the allowlist stays a deliberate act with
- * a recorded justification rather than an edit that passes unnoticed.
+ * Most research packs in this repository do not reach the deployed site, for
+ * licence, substrate, or deliberate shelf-selection reasons. These tests pin
+ * the list and the reasons, so changing the allowlist stays a deliberate act
+ * with a recorded justification rather than an edit that passes unnoticed.
  */
 import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -56,6 +56,7 @@ describe('the published allowlist', () => {
   it('refuses the licence-blocked packs', () => {
     expect(isPublishedPack('normal-alberta-neonatal')).toBe(false);
     expect(isPublishedPack('normal-vhl-heart0102')).toBe(false);
+    expect(isPublishedPack('normal-vhl-heart0102-chambers')).toBe(false);
   });
 
   it('records a publication reason for every unpublished pack', () => {
@@ -78,6 +79,11 @@ describe('the published allowlist', () => {
     expect(UNPUBLISHED_PACKS['normal-alberta-neonatal'].licence).toMatch(/CC BY-NC/);
     expect(UNPUBLISHED_PACKS['normal-alberta-neonatal'].licence).toMatch(/CC BY 4\.0/);
     expect(UNPUBLISHED_PACKS['normal-vhl-heart0102'].licence).toMatch(/CC BY-NC 4\.0/);
+    expect(UNPUBLISHED_PACKS['normal-vhl-heart0102-chambers'].licence).toMatch(/CC BY-NC 4\.0/);
+  });
+
+  it('does not apply the original substrate rejection to the chamber-labelled derivative', () => {
+    expect(UNPUBLISHED_PACKS['normal-vhl-heart0102-chambers'].substrate).toBeUndefined();
   });
 
   it('states that both rejected packs render in unverified orientations', () => {
@@ -223,8 +229,9 @@ describe('the model picker catalogue', () => {
     expect(isPublishedPack('stub')).toBe(true);
   });
 
-  it('withdraws exactly four owner-rejected geometry-only models from the development picker', () => {
+  it('withdraws superseded or owner-rejected research packs from the development picker', () => {
     expect([...PICKER_HIDDEN_PACK_IDS]).toEqual([
+      'normal-vhl-heart0102',
       'tof-cobivecox-chd0017001',
       'motion-straus-us-patient01',
       'normal-kit-four-chamber',
@@ -238,6 +245,8 @@ describe('the model picker catalogue', () => {
     );
     expect(offered.filter((entry) => entry.kind === 'explore').map((entry) => entry.id))
       .toEqual(['anatomy-bodyparts3d-heart']);
+    expect(offered.map((entry) => entry.id)).toContain('normal-vhl-heart0102-chambers');
+    expect(offered.map((entry) => entry.id)).not.toContain('normal-vhl-heart0102');
   });
 
   it('retains picker-hidden packs in the registry and on disk', () => {

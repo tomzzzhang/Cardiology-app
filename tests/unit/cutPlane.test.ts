@@ -490,6 +490,7 @@ describe('blood pool is never capped at the cut', () => {
       'anatomy-bodyparts3d-heart',
       'normal-alberta-neonatal',
       'normal-kit-four-chamber',
+      'normal-vhl-heart0102-chambers',
       'stub',
     ]);
 

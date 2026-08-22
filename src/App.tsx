@@ -112,7 +112,7 @@ const EXPLORE_ONLY_REFUSAL =
  * A learner is offered Echo to look at an image, and on these packs there is no
  * image, so the mode is withheld. An author is in Echo to place a PROBE, and
  * the probe does not need a volume — the wedge on the model is the whole
- * feedback loop for a placement. Five of the nine packs are in this state and
+ * feedback loop for a placement. Five of the ten packs are in this state and
  * they are exactly the ones with no authored pose, so withholding Echo from an
  * author means placing blind on the packs the tool exists for.
  *

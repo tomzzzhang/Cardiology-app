@@ -60,6 +60,24 @@ function boundRevisionPackBytes(): Buffer {
 function writeBoundRevisionPack(destination: string): void {
   writeFileSync(destination, boundRevisionPackBytes());
 }
+
+function materializeBoundFixture(destination: string): void {
+  const packDir = join(destination, 'public', 'packs', 'normal-rodero');
+  const assetDir = join(packDir, 'assets');
+  mkdirSync(assetDir, { recursive: true });
+  writeBoundRevisionPack(join(packDir, 'pack.json'));
+  copyFileSync(join(repoRoot, ...modelGltfRelativePath.split('/')), join(assetDir, 'model.gltf'));
+  copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
+  copyFileSync(
+    join(repoRoot, ...echoVolumeRelativePath.split('/')),
+    join(assetDir, 'echo-volume.raw'),
+  );
+  for (const path of VIEW_CANDIDATE_DERIVATION_FILES) {
+    const target = join(destination, ...path.split('/'));
+    mkdirSync(dirname(target), { recursive: true });
+    copyFileSync(join(repoRoot, ...path.split('/')), target);
+  }
+}
 const modelGltfRelativePath = 'public/packs/normal-rodero/assets/model.gltf';
 const modelBinRelativePath = 'public/packs/normal-rodero/assets/model.bin';
 const echoVolumeRelativePath = 'public/packs/normal-rodero/assets/echo-volume.raw';
@@ -344,7 +362,7 @@ afterEach(() => {
 });
 
 describe('view-candidates/v1 current generated evidence envelope', () => {
-  it('validates the checked-in Rodero candidate set against the current pack bytes', () => {
+  it('validates superseded evidence derivation files at its registry-pinned revision', () => {
     const raw = JSON.parse(readFileSync(checkedEvidencePath, 'utf8')) as unknown;
     const result = validateViewCandidateEvidence(raw, {
       repoRoot,
@@ -353,9 +371,22 @@ describe('view-candidates/v1 current generated evidence envelope', () => {
     });
     expect(result.ok, messages(result)).toBe(true);
     if (!result.ok) return;
+    expect(result.supersededBy).not.toBeNull();
     expect(result.evidence.binding.derivation_files.map((file) => file.path).sort())
       .toEqual([...VIEW_CANDIDATE_DERIVATION_FILES].sort());
     expect(result.evidence.binding.derivation_files).toHaveLength(8);
+    const sourcesBinding = result.evidence.binding.derivation_files.find(
+      (file) => file.path === 'pipeline/sources.py',
+    ) ?? (() => { throw new Error('candidate evidence must bind pipeline/sources.py'); })();
+    expect(sourcesBinding.sha256)
+      .not.toBe(sha256File(join(repoRoot, 'pipeline', 'sources.py')));
+    const historicalSources = execFileSync(
+      'git',
+      ['show', `${checkedRegistryEntry.evidence_revision}:pipeline/sources.py`],
+      { cwd: repoRoot },
+    );
+    expect(createHash('sha256').update(historicalSources).digest('hex'))
+      .toBe(sourcesBinding.sha256);
     const covered = [
       ...result.evidence.existing_views.map((entry) => entry.intended_view_id),
       ...result.evidence.candidates.map((entry) => entry.intended_view_id),
@@ -532,7 +563,12 @@ describe('view-candidates/v1 current generated evidence envelope', () => {
   });
 
   it('accepts a B2 variant series with no selected variant and coordinate-free deferrals', () => {
-    const result = validateViewCandidateEvidence(evidence(), { repoRoot });
+    const raw = JSON.parse(readFileSync(checkedEvidencePath, 'utf8')) as unknown;
+    const result = validateViewCandidateEvidence(raw, {
+      repoRoot,
+      evidencePath: checkedEvidencePath,
+      registryEntry: checkedRegistryEntry,
+    });
     expect(result.ok, messages(result)).toBe(true);
     if (!result.ok) return;
     const b2 = result.evidence.candidates.find((candidate) => candidate.kind === 'series');
@@ -643,7 +679,13 @@ describe('view-candidates/v1 current generated evidence envelope', () => {
 
     const wrongDerivationDigest = evidence();
     wrongDerivationDigest.binding.derivation_files[0].sha256 = 'f'.repeat(64);
-    expect(messages(validateViewCandidateEvidence(wrongDerivationDigest, { repoRoot })))
+    signEvidence(wrongDerivationDigest);
+    workDir = mkdtempSync(join(tmpdir(), 'view-candidate-live-derivation-'));
+    materializeBoundFixture(workDir);
+    expect(messages(validateViewCandidateEvidence(wrongDerivationDigest, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    })))
       .toMatch(/derivation_files\.0\.sha256.*digest mismatch/);
 
     const wrongFrame = evidence();
@@ -674,19 +716,7 @@ describe('view-candidates/v1 current generated evidence envelope', () => {
     workDir = mkdtempSync(join(tmpdir(), 'view-candidate-evidence-'));
     const packDir = join(workDir, 'public', 'packs', 'normal-rodero');
     const assetDir = join(packDir, 'assets');
-    mkdirSync(assetDir, { recursive: true });
-    writeBoundRevisionPack(join(packDir, 'pack.json'));
-    copyFileSync(join(repoRoot, ...modelGltfRelativePath.split('/')), join(assetDir, 'model.gltf'));
-    copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
-    copyFileSync(
-      join(repoRoot, ...echoVolumeRelativePath.split('/')),
-      join(assetDir, 'echo-volume.raw'),
-    );
-    for (const path of VIEW_CANDIDATE_DERIVATION_FILES) {
-      const destination = join(workDir, ...path.split('/'));
-      mkdirSync(dirname(destination), { recursive: true });
-      copyFileSync(join(repoRoot, ...path.split('/')), destination);
-    }
+    materializeBoundFixture(workDir);
 
     const raw = evidence();
     expect(validateViewCandidateEvidence(raw, {
@@ -701,6 +731,31 @@ describe('view-candidates/v1 current generated evidence envelope', () => {
     });
     expect(changed.ok).toBe(false);
     expect(messages(changed)).toMatch(/digest mismatch.*model\.bin/);
+
+    copyFileSync(join(repoRoot, ...modelBinRelativePath.split('/')), join(assetDir, 'model.bin'));
+    writeFileSync(join(workDir, '.gitattributes'), '# changed live derivation bytes\n');
+    const changedDerivation = validateViewCandidateEvidence(raw, {
+      repoRoot: workDir,
+      verifyGitBinding: false,
+    });
+    expect(changedDerivation.ok).toBe(false);
+    expect(messages(changedDerivation)).toMatch(/derivation_files\.0\.sha256.*digest mismatch/);
+  });
+
+  it('fails closed when the registry evidence revision does not contain the immutable set', () => {
+    const raw = JSON.parse(readFileSync(checkedEvidencePath, 'utf8')) as unknown;
+    const result = validateViewCandidateEvidence(raw, {
+      repoRoot,
+      evidencePath: checkedEvidencePath,
+      registryEntry: {
+        ...checkedRegistryEntry,
+        evidence_revision: sourcePackRevision,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(messages(result)).toMatch(
+      /registry\.evidence_revision.*cannot read candidate-set bytes from revision/,
+    );
   });
 
   it('verifies the canonical payload digest rather than accepting a syntactic hash', () => {

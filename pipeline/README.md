@@ -1,16 +1,19 @@
 # Model ingest pipeline
 
-**Updated:** 2026-08-22 03:30 EDT
+**Last Updated:** 2026-08-22 07:13 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
 
-**Two paths, one entry point.** A source that carries an anatomical reading —
+**Two generic paths, plus explicit derived recipes.** A source that carries an anatomical reading —
 per-element tags, named glTF groups — goes through `ingest.py` and comes out as a
 full pack: decimated glTF, labelled echo volume, derived cardiac frame, clinical
 views. A source that is *just geometry* goes through `geometry.py` and comes out
 as an EXPLORE-ONLY pack: meshes, no echo, no views, and no frame claimed. Which
 path a source needs is a property of the source, so it is asked for the same way.
+An authored derivative of an already-acquired substrate uses a dedicated recipe:
+`Source.derived_packs` records the relationship without duplicating acquisition,
+and the recipe states which authored evidence creates the new structures.
 
 ```bash
 conda env create -f ../environment.yml         # once
@@ -18,6 +21,8 @@ npm run ingest -- --source rodero              # one labelled substrate
 npm run ingest -- --source cardiac-motion      # one geometry-only source
 npm run ingest -- --source all                 # everything in both registries
 npm run ingest -- --budget-table               # volume size against resolution
+conda run --no-capture-output -n cardiology-app python pipeline/vhl_pack.py
+                                                # Heart0102 chamber-labelled derivative
 ```
 
 An authoring export takes a separate, Node-only route because it updates one existing draft view;
@@ -72,8 +77,10 @@ npm run check:view-candidates
 tracked file; it no-ops when the bytes already match and never calls pack-writing code. Update the
 separate current-digest registry in the same checkpoint. The Node content gate verifies the
 current registered file bytes, canonical payload, source revision, pack/assets, derivation closure,
-and schema boundary. It does not use Git history as an append-only authority. The Python `--check`
-command remains the required raw-source geometry replay before current coordinates are shared.
+and schema boundary. For a superseded set, the registry also pins the ancestor revision containing
+those exact immutable evidence bytes; derivation files are checked there instead of against
+unrelated later pipeline edits. The Python `--check` command remains the required raw-source
+geometry replay before current coordinates are shared.
 
 The current set 002 uses full fan-envelope correction for B1, B4, F1, and the seven unselected B2
 variants. C1 and C2 instead apply distance-only corrections while preserving their 70-degree probe
@@ -86,7 +93,7 @@ validating the input and output boundary. See `evidence/view-candidates/README.m
 
 | File | What it does |
 | --- | --- |
-| `sources.py` | Two source registries: `SOURCES` (labelled substrates) and `GEOMETRY_SOURCES`. |
+| `sources.py` | Two source registries: `SOURCES` (labelled substrates) and `GEOMETRY_SOURCES`; a source may name immutable `derived_packs` built by explicit recipes. |
 | `fetch.py` | Checksum-verified download into the gitignored `.cache/`, one file or many. |
 | `meshlib.py` | Readers (legacy VTK tets/PolyData/unstructured, XML VTU, glTF, STL, OBJ, PLY) and the glTF writer. |
 | `geometry.py` | The geometry-only path: plain surfaces in, an Explore-only pack out. |
@@ -94,6 +101,7 @@ validating the input and output boundary. See `evidence/view-candidates/README.m
 | `anatomy.py` | Valve identification by face adjacency, and the cardiac frame derived from it. |
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
+| `vhl_pack.py` | Exact recipe for the one-observer Heart0102 derivative: pinned 384^3 labels to 12 unsmoothed meshes and a 192^3 wall-labelled echo volume. |
 | `view_candidates.py` | Deterministic first-generation, revision-bound Rodero coordinate evidence; never pack content. |
 | `view_candidates_v2.py` | Current distance/envelope correction pass and source-replay checks for set 002. |
 
@@ -230,8 +238,9 @@ not. Any pack whose `license_state` is not `confirmed` is kept off Pages by
 
 **Raw sources and uncertain-rights derivatives are never committed.** The repository is public,
 so pushing either is distribution even if the deployed site never serves it. Raw files live in the
-gitignored `.cache/`; exploratory derivatives live under `build/packs/`. Rights-cleared derived
-assets may be committed within the 15 MB per-pack budget that `geometry.py` enforces.
+gitignored `.cache/`; exploratory derivatives live under `build/packs/`. Rights-cleared outputs
+from the generic Explore-only path may be committed; `geometry.py` enforces its 15 MB per-pack
+budget.
 
 ## Credentials
 

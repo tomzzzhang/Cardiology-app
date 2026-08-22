@@ -77,7 +77,7 @@ export type AnchorTemplate = Pick<ProbePose, 'fan' | 'display'>;
 /**
  * The template for a pack with no authored view at all.
  *
- * Five of the nine packs on the shelf are in this state, and they are the ones
+ * Five of the ten packs on the shelf are in this state, and they are the ones
  * this whole unit exists for. Something has to be chosen; `angle_deg` is a
  * middle-of-the-road sector and the depth follows the model, so the first
  * anchored pose on an unlabelled pack is usable rather than arbitrary.

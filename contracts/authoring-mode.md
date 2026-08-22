@@ -1,5 +1,7 @@
 # Contract: authoring mode
 
+**Last Updated:** 2026-08-22 07:13 EDT
+
 **Owns:** `src/authoring/**`, `scripts/ingest-authoring-export.ts`, and
 `scripts/lib/authoringIngest.ts`
 **Status:** implemented through the explicit authoring round trip: view-axis anchoring, monotonic

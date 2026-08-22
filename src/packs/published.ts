@@ -82,6 +82,12 @@ export const UNPUBLISHED_PACKS: Readonly<Record<string, NotPublished>> = {
       'CC BY-NC 4.0. Not published: a non-commercial pack binds the whole application to the ' +
       'non-commercial red lines, and that constraint is not accepted for the published build.',
   },
+  'normal-vhl-heart0102-chambers': {
+    licence:
+      'CC BY-NC 4.0. Not published: a non-commercial pack binds the whole application to the ' +
+      'non-commercial red lines, and that constraint is not accepted for the published build. ' +
+      'Identical to the position on normal-vhl-heart0102, from which this pack is derived.',
+  },
   'tof-cobivecox-chd0017001': {
     licence:
       'CC BY 4.0, state "confirmed" — read from the Zenodo record\'s own licence field. Not ' +
@@ -235,6 +241,14 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
     summary: 'Wave 1a reject. One undivided tissue body, 1,026 components.',
   },
   {
+    id: 'normal-vhl-heart0102-chambers',
+    displayName: 'Healthy Pediatric Heart — Heart0102, chamber-labelled',
+    kind: 'echo',
+    licenseState: 'non_commercial',
+    moving: false,
+    summary: 'Hand-labelled derivative. Six lumen and six chamber myocardium structures.',
+  },
+  {
     id: 'tof-cobivecox-chd0017001',
     displayName: 'Tetralogy of Fallot — CobivecoX patient-specific biventricular surfaces',
     kind: 'explore',
@@ -279,13 +293,17 @@ export const PACK_CATALOGUE: readonly CatalogueEntry[] = [
 /**
  * Research packs retained on disk but withdrawn from the normal picker.
  *
- * Owner decision, 2026-08-20: these four geometry-only models are not useful
- * enough to offer in their current form. Their packs and provenance remain in
- * the repository, and development deep links still work, so the decision is
- * reversible without re-ingesting any source material. BodyParts3D is the one
- * geometry-only pack that remains selectable.
+ * Owner decisions: four geometry-only models were withdrawn on 2026-08-20 as
+ * not useful enough to offer in their current form; on 2026-08-22 the original
+ * undivided Heart0102 was superseded in the picker by its chamber-labelled
+ * derivative. Their packs and provenance remain in the repository, and
+ * development deep links still work, so neither decision deletes evidence.
+ * BodyParts3D is the one geometry-only pack that remains selectable.
  */
 export const PICKER_HIDDEN_PACK_IDS = [
+  // Retained as the 2026-08-19 substrate-rejection evidence, but superseded in
+  // the research shelf by the chamber-labelled derivative.
+  'normal-vhl-heart0102',
   'tof-cobivecox-chd0017001',
   'motion-straus-us-patient01',
   'normal-kit-four-chamber',
