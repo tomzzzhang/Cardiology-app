@@ -11,6 +11,59 @@ Newest first.
 
 ---
 
+## 2026-08-22 01:12 ET — the labeller becomes a tool, and a proposal for landing the model
+
+**The tool is stored.** `pipeline/labeller/` — the viewer, a parameterised exporter and a
+server. It had been living in a scratch directory outside the repository, which nearly cost
+the work once already: the round-five and round-six lumen labels existed ONLY there, and the
+committed `seed-partition-labels.npz` is byte-identical to round FOUR.
+
+`export.py` replaces two hardcoded scratch scripts with one CLI over a grid, a tissue mask, a
+lumen labelling, a wall labelling and a measured cardiac frame. It knows nothing about which
+source produced them. three.js is copied from `node_modules` rather than vendored, so it
+cannot drift from the pinned version, and every file it reads stays gitignored because they
+are derived from a CC BY-NC source. Verified by building a fresh directory with the committed
+exporter and loading it in the browser: same volume counts, same per-chamber vertex colours.
+
+`serve.py` sends `no-store`. A stale page was twice mistaken for a labelling bug in this
+session, once for long enough to send me looking for the fault in code the page had never
+loaded.
+
+**A proposal for merging, in `pack-labelled-vhl.proposed.md`.** Shape: a NEW pack
+`normal-vhl-heart0102-chambers` beside the rejected one, registered in `UNPUBLISHED_PACKS`
+for a licence reason and deliberately with no `substrate` key, since this artefact was not in
+the wave-1a comparison.
+
+Read against the repository's own rules rather than from memory:
+
+* `mayBePublished` returns false for `non_commercial`, the build filter in `vite.config.ts`
+  drops anything outside `PUBLISHED_PACK_IDS`, and `check-published-packs.ts` fails CI if
+  `dist/` disagrees. The pack is safe to hold in Git and cannot reach Pages by any route.
+* `PUBLIC_GIT_LICENSE_STATES` already admits `non_commercial` and `public_repo_eligible` is
+  already true on this source, so committing derived files needs no new policy decision.
+* `BloodPoolDecision.basis` allows exactly `label_match`, `label_no_match`, `source_tag`,
+  `authored`. For a hand-seeded pack only `authored` is honest.
+* `AnatomicalFrame` enforces an orthonormal right-handed `basis_source_to_pack` and has a
+  `checks` record where a FAILING check is allowed to be recorded. The measured frame must be
+  checked against that tolerance before a pack is written; it has not been.
+
+**Three of the four rejection grounds are answered for the derived pack** - debris, per-chamber
+structures, and the unverified orientation, which is now measured rather than declared. The
+fourth, CC BY-NC 4.0, is untouched and is the binding one. The rejection of the ORIGINAL pack
+stands exactly as written: it describes an artefact that still has those properties.
+
+**An open registry question, flagged rather than decided.** `SOURCES` is keyed by source and
+carries `pack_id` as a single field, so one source produces one pack. With the labeller now a
+tool intended for more models, one source producing several labelled packs is about to be the
+normal case. A `derived_packs` list on `Source` is the cleaner of the two options and it is a
+schema change, so it is the owner's call.
+
+**One correction to NOTES §6b.** Its ladder says the anatomy gates need five fabrications
+including a pulmonary artery. There is now a real PA at tag 6, 20.7 mL, so that rung is gone.
+Still missing: valve rings 7-10 (the tags exist now, the geometry does not), an SVC at 16, an
+IVC at 17, and a `Z` field whose derivation from this partition would make the apex check
+partly circular. The recommendation not to run the gates on a fabricated mesh stands.
+
 ## 2026-08-21 22:57 ET — the cleanup was eating the atrial wall it was meant to tidy
 
 Three defects the owner saw in the viewer, all in the atria, all one cause.
