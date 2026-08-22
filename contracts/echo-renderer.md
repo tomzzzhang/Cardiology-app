@@ -1,6 +1,6 @@
 # Contract: echo-renderer
 
-**Last Updated:** 2026-08-22 07:13 EDT
+**Last Updated:** 2026-08-22 10:33 EDT
 
 **Owns:** `src/echo/**`
 **Status:** implemented. Scan, separable PSF and display passes run over the labelled volume with

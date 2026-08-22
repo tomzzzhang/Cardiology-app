@@ -1,6 +1,6 @@
 # Handoff — `experiment/vhl-partition`
 
-**Last Updated:** 2026-08-22 07:13 EDT
+**Last Updated:** 2026-08-22 10:33 EDT
 **Branch:** `experiment/vhl-partition`, cut from `dev` at `294751faf124b79693cae99d9335e881189a032c`
 **Head:** whatever `git bundle list-heads` reports for the bundle in this folder.
 The branch is committed locally and **has never been pushed**; the bundle is the only copy
