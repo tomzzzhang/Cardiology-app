@@ -1,6 +1,6 @@
 # View canon — pediatric TTE views and sweeps
 
-**Last Updated:** 2026-08-22 12:45 EDT
+**Last Updated:** 2026-08-22 14:01 EDT
 
 > **Clinical view/sweep specification.** Clinical collaborators are referred to by role, not name. The backing research report lives in the owner's planning folder.
 
@@ -41,7 +41,19 @@ The structured, machine-encodable canon of standard pediatric TTE views and swee
 
 - **A1. Coronal situs view** — abdomen between xiphoid and navel; indicator 3:00. Transverse plane: spine, IVC (anterior-right of spine), descending aorta (left of spine), liver, stomach → abdominal situs + cardiac position. No sweep; anchoring plane.
 - **A2. Sagittal IVC/DAo view** — same placement; indicator 12:00. Longitudinal IVC→RA connection; abdominal aorta. (Azygos prominence behind DAo → interrupted IVC teaching point.)
-- *(**A3 and A4 are NOT authored in the Rodero Normal pack, and the reason is structural.** The subcostal family is defined by the beam entering from below the diaphragm — that is what puts the atrial septum near-perpendicular to it, which is A3's whole teaching payload. "Below" is a body axis, and a heart-only mesh carries no spine, diaphragm or chest wall: three defensible proxies for body superior-inferior disagree by up to 46 degrees on this substrate. A guessed placement renders a plausible sector whose stated claim is false, which is worse than an absent view. A4's bicaval PLANE is derivable here — the caval stubs and the right atrium are all measured landmarks — so **F1, the right parasternal bicaval, is the honest route to that content** on this substrate. Unblocked by a torso-bearing substrate or by a clinician placing the window.)*
+- *(**A4 is still NOT authored, and A3 now is.** *(Updated 2026-08-22.)* The subcostal family is
+  defined by the beam entering from BELOW THE DIAPHRAGM — that is what puts the atrial septum
+  near-perpendicular to it, which is A3's whole teaching payload. "Below" is a body axis, and the
+  original blocker was real: a heart-only mesh carries no spine, diaphragm or chest wall, and three
+  defensible proxies for body superior-inferior disagreed by up to 46 degrees. **A registered chest
+  removed that blocker.** Both `normal-rodero` and `normal-vhl-heart0102-chambers` now carry a
+  `body-context/v0` registration with a diaphragm, a xiphoid process and a costal margin, so the
+  window is placed where it actually is — on skin below the xiphoid — and the beam is cast under
+  the costal margin and checked against bone, cartilage and lung before the pose is kept. A3 is
+  authored on both. **A4 remains unauthored on a different and unfixed ground**: it is the bicaval
+  reference, and neither substrate has separately tagged cavae to build it on. F1, the right
+  parasternal bicaval, remains the honest route to that content on Rodero.)*
+
 - **A3. Coronal (long-axis) view + sweep** — below xiphoid; indicator 3:00. Sweep posterior→anterior: atrial septum + pulmonary veins to LA → LV long axis, AoV, ascending aorta (SVC right of AAo, MPA left) → RV inflow/outflow + pulmonary valve. Structures: coronary sinus, atrial septum (near-perpendicular to beam — best atrial-septal window), AV connections, LVOT, RVOT, anterior muscular septum, VA connections. Protocol clips: 2D+color IVC→RVOT; focused low-Nyquist atrial-septal sweep.
 - **A4. Sagittal (short-axis) view + sweep** — below xiphoid; indicator 6:00. Reference = bicaval (SVC + intrahepatic IVC → RA; atrial septum between RA and LA). Sweep rightward→leftward: bicaval → ventricular base/AV valves with AoV in cross-section → LV/MV cross-section + RVOT/PV → midmuscular septum, LV papillary muscles, apex. Key: RUPV courses inferior to RPA, posterior to SVC, into LA. Protocol clips: bicaval→apex sweep; atrial-septal low-Nyquist sweep; RUPV clip; RVOT clip ± PW/CW.
 - **A5. Right anterior oblique (RAO)** — canonical name; aliases "TET view", SEROV, subcostal RV-3-chamber. From coronal, rotate counterclockwise; indicator 2:00. RV inflow + RV outflow in one plane + en-face AoV; shows conal (infundibular) septum deviation. Lesion attachments: TOF/conotruncal, DCRV; perimembranous VSD (TV–AoV fibrous continuity).

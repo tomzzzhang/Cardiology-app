@@ -1,6 +1,6 @@
 # Model ingest pipeline
 
-**Last Updated:** 2026-08-22 12:45 EDT
+**Last Updated:** 2026-08-22 14:01 EDT
 
 Turns a raw anatomical source into a content pack conforming to schema v0.1, with
 complete provenance.
@@ -102,6 +102,7 @@ validating the input and output boundary. See `evidence/view-candidates/README.m
 | `substrate.py` | The substrate probe: geometry type, wall thickness, interior surfaces. |
 | `ingest.py` | The pipeline, and its CLI. |
 | `vhl_pack.py` | Exact recipe for the one-observer Heart0102 derivative: pinned 384^3 labels to 12 unsmoothed meshes and a 192^3 wall-labelled echo volume. |
+| `acoustic_windows.py` | Probe poses placed on a registered chest wall, through a window measured open against ribs, costal cartilages, sternum, clavicles and lungs. Writes poses into a pack and a survey — failures included — under `evidence/acoustic-windows/`. |
 | `view_candidates.py` | Deterministic first-generation, revision-bound Rodero coordinate evidence; never pack content. |
 | `view_candidates_v2.py` | Current distance/envelope correction pass and source-replay checks for set 002. |
 

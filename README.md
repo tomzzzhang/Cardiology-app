@@ -1,6 +1,6 @@
 # Cardiology app
 
-**Last Updated:** 2026-08-22 12:45 EDT
+**Last Updated:** 2026-08-22 14:01 EDT
 
 A free, browser-based teaching tool where a pediatric cardiology trainee picks a heart, rotates
 and cuts a labelled 3D model, and for any standard echo view sees exactly where that cut plane
@@ -37,8 +37,16 @@ nothing behind the spine or outside the skin), while the **cardiothoracic ratio 
 population-average heart is 14 mm wider than the heart that chest was built around. Neither body is
 scaled to hide it. This is a **reference composite, not a patient and not clinical ground truth**.
 
-`normal-rodero` is at **v0.1.3 with six Draft views** — B1, B4, C1, C2, F1 and a non-clinical
-ingest reference pose. The corrected review poses were adopted into the pack, and the apertures of
+`normal-rodero` is at **v0.1.4 with ten Draft views** — B1, B4, C1, C2, F1 and a non-clinical
+ingest reference pose, plus A3, B2, B3 and B5 placed through a MEASURED acoustic window by
+`pipeline/acoustic_windows.py`: the transducer stands on the registered chest wall and its whole fan
+is cast against the ribs, the costal cartilages, the sternum, the clavicles and the lungs, and a
+window counts as open only when the centre of the sector reaches cardiac tissue without crossing
+bone or air. A3 is the subcostal view the heart-only substrate could not support at all.
+`normal-vhl-heart0102-chambers` is at **v0.1.1 with seven Draft views**, six of them placed the same
+way, its valve orifices recovered from where two lumen labels touch because that source has no
+valve-ring geometry. Every one of those poses carries the same caveat: the chest is an adult male's,
+so the interspace it names is an adult interspace and is not age-correct. The corrected review poses were adopted into the pack, and the apertures of
 B1, B4 and C2 were then migrated back along their own beams to the reference chest wall, preserving
 each imaging plane exactly while depth and focus grew by the retreat. F1 was deliberately NOT
 migrated: reaching the skin needs a 73.7 mm retreat and a 22.19 cm depth, outside adult

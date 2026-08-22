@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-22 12:45 EDT
+**Last Updated:** 2026-08-22 14:01 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2427,3 +2427,81 @@ pipeline uses the pleural span at the heart's own height. Measured both ways on 
 differ by **0.0027** of ratio, so the proxy is fair — and it is now named as one, measured on every
 run, and flagged for the further gap no measurement here closes: the radiographic figure is read off
 a projected film with its own magnification, and these are true three-dimensional extents.
+
+## 69. Ten probe poses that had to find a window first
+
+*(2026-08-22.)*
+
+**What to look at.** `normal-rodero` is v0.1.4 with ten Draft views (was six) and
+`normal-vhl-heart0102-chambers` is v0.1.1 with seven (was one). The ten new ones were placed by
+`pipeline/acoustic_windows.py`, and the thing to look at is not the plane — it is where the
+transducer is standing. It is on skin, in a named interspace, and its whole fan has been cast
+against the ribs, the costal cartilages, the sternum, the clavicles and the lungs before the pose
+was kept.
+
+**A window is a gap, not a direction.** Every pose in this repository before now was aimed: build a
+plane out of cardiac landmarks, then back the probe away from the geometry until it is outside.
+That produces a beautiful plane through the fourth rib, which is not a view, it is a picture of a
+rib. Ultrasound crosses neither bone nor air, so a real study is a search — slide and angle until
+the beam finds a path between two ribs and through the cardiac notch. This does that search
+exhaustively: a named region of skin, every candidate aperture that can stand in the view's own
+imaging plane, twenty-one rays each, and a window counts as open only when the central 45 percent of
+the sector reaches cardiac tissue without crossing bone or air.
+
+**The bug worth recording.** The first run reported almost every window shut, including the
+parasternal. The rays were being run past the heart and out the other side, so the lung behind the
+left atrium and the vertebral body behind that were counted as obstructions — to structures the beam
+had already imaged. A blocker only blocks if it lies BETWEEN the transducer and the heart. Lengthing
+each ray at its first intersection with cardiac tissue turned five shut windows open, and it is the
+difference between a physical test and a plausible one.
+
+**Ribs are named, so interspaces are reported rather than asserted.** BodyParts3D ships every rib
+1–12 and every costal cartilage 1–7 per side as separate concepts, so each aperture is bracketed by
+its own two ribs and says which. Costal cartilage is scored separately from bone and never folded
+into it: it is not the same acoustic obstacle, and in a child it transmits. Where an aperture is not
+between two consecutive ribs the placement says exactly that instead of rounding to a plausible
+number — four of the apical poses land "lateral to the curve of the left rib 6", which is honest and
+is also a finding about where these hearts sit.
+
+**The subcostal blocker was half real.** Entry 58 and `view_canon.md` recorded that A3 and A4 could
+not be authored on Rodero because the subcostal family is defined by the beam entering from below
+the diaphragm, "below" is a body axis, and a heart-only mesh has none. A registered chest removes
+exactly that: **A3 is now authored on both packs**, entering below the xiphoid with the beam cast
+under the costal margin. **A4 is still not authored, on a different ground that no chest fixes** —
+it is the bicaval reference and neither substrate has separately tagged cavae.
+
+**A pack with no valve rings got its valves back.** `normal-vhl-heart0102-chambers` has no
+valve-ring geometry and never will; its source carries none and its provenance records that none was
+invented. But two chamber lumens are separated by myocardium *everywhere except at the valve they
+share*, so the surface where two lumen labels come within 2 mm of each other IS that orifice. All
+four come back: mitral, tricuspid, aortic and pulmonary, each a compact and strongly planar patch.
+At 1 mm the aortic one is empty — the authored 384³ partition leaves a one-voxel gap there — which
+is why the tolerance is 2 mm and why that number is in the code with its reason.
+
+**What is visibly wrong, and is reported per pose.** The parasternal long axis on the chamber pack
+lands in the left **2nd** intercostal space; a PLAX belongs at the 3rd or 4th, and this is the
+floating, high-sitting heart of entry 68 pushing the plane's skin trace upward. Stand-offs run
+41–51 mm on Rodero and 52–110 mm on the chamber pack, where a real adult parasternal window is
+20–30 mm of chest wall; the chamber pack's are additionally inflated by its 21 percent chest. Its
+subcostal pose sits 62 mm below the xiphoid and needs 24.9 cm of depth, past where transthoracic
+imaging works. And two views could not be placed on it at all: the apical two-chamber and the apical
+long axis found no plane in their allowed range with both an open window and their own landmarks in
+it. Those failures are in `evidence/acoustic-windows/`, because a pack has nowhere to say that a
+view was attempted and failed, and that is what tells a reader about the substrate rather than about
+the poses.
+
+**One near-miss caught by a guard rather than by luck.** The first write added
+`b4-apical-long-axis` to Rodero, which already carried `b4-apical-three-chamber` — the same clinical
+view under a second id — and it also re-sorted the pack's existing views. Both were reverted. The
+writer now refuses to add a view that collides with an existing one by name or alias, never
+reorders, and leaves an authored pose untouched; `tests/unit/acousticWindows.test.ts` asserts that
+the six poses a person authored on Rodero still carry no trace of this module.
+
+**The cascade.** Adding views moves a pack's bytes, and a `body-context/v0` registration pins those
+bytes, so both contexts had to be re-derived or every new pose would be placed through a
+registration the loader refuses to apply. Only `pack_binding` changed in either descriptor — the
+registrations, the residuals and both chest assets are byte-identical.
+
+**Nothing here is vetted.** Every pose is Draft, no clinician has read a window or a plane, and each
+one carries the sentence the chest makes unavoidable: it is an adult male thorax, so the interspace
+it names is an adult interspace and is not age-correct.

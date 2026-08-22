@@ -4,9 +4,9 @@
   "display_name": "Fitted reference chest \u2014 BodyParts3D scaled to this heart",
   "pack_binding": {
     "pack_id": "normal-vhl-heart0102-chambers",
-    "pack_version": "0.1.0",
+    "pack_version": "0.1.1",
     "pack_schema_version": "0.1",
-    "pack_json_sha256": "e39624e685e2cd9c58e2f8db289ddb16be01fee8f766b8c24698d49f3cc9c9b0"
+    "pack_json_sha256": "946bff2f15a132e7aa4c7e9b31befbea9c80c25a5ddc37623c170fd9df33c88a"
   },
   "body_frame": {
     "patient_left": [

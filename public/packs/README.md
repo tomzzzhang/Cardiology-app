@@ -1,6 +1,6 @@
 # Content packs
 
-**Last Updated:** 2026-08-22 12:45 EDT
+**Last Updated:** 2026-08-22 14:01 EDT
 
 One directory per pack: `public/packs/<id>/pack.json`, with assets alongside under `assets/`.
 Asset paths inside `pack.json` are pack-relative; the loader rejects absolute URLs and `..`.
@@ -24,10 +24,10 @@ A pack is one of two kinds, and the distinction decides which modes it can even 
 | Pack | Kind | What it is | Licence | Licence state | On Pages? |
 | --- | --- | --- | --- | --- | --- |
 | `stub/` | echo | Synthetic engine fixture. Two nested boxes. **Not anatomy, not clinical content.** | CC0-1.0 | confirmed | yes, but never offered in the picker |
-| `normal-rodero/` | echo | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. **v0.1.3, six Draft views** (B1, B4, C1, C2, F1 + a non-clinical ingest reference pose); apertures on the reference chest wall except F1. Carries a `body-context/v0` registration. | CC BY 4.0 | confirmed | **yes — the selected substrate** |
+| `normal-rodero/` | echo | Normal heart, Rodero/CEMRG average four-chamber. Volumetric myocardium, 24 structures. **v0.1.4, ten Draft views** (B1, B4, C1, C2, F1 + a non-clinical ingest reference pose, plus A3, B2, B3, B5 placed through a measured acoustic window); apertures on the reference chest wall except F1. Carries a `body-context/v0` registration. | CC BY 4.0 | confirmed | **yes — the selected substrate** |
 | `normal-alberta-neonatal/` | echo | Normal neonatal heart, 3D Heart Project. Blood pool plus a separate myocardium. | CC BY 4.0 (contested) | unconfirmed | **no** |
 | `normal-vhl-heart0102/` | echo | Normal paediatric heart (14 y), Visible Heart Labs. Single undivided tissue body. Retained as rejection evidence and hidden from the normal picker. | CC BY-NC 4.0 | non_commercial | **no** |
-| `normal-vhl-heart0102-chambers/` | echo | Chamber-labelled derivative of Heart0102. Six lumen and six per-chamber myocardium structures; measured cardiac frame. The active VHL development-picker option; not suitable for teaching wall thickness. | CC BY-NC 4.0 | non_commercial | **no — public Git only; Pages-blocked** |
+| `normal-vhl-heart0102-chambers/` | echo | Chamber-labelled derivative of Heart0102. Six lumen and six per-chamber myocardium structures; measured cardiac frame. **v0.1.1, seven Draft views**, six placed through a measured acoustic window. The active VHL development-picker option; not suitable for teaching wall thickness. | CC BY-NC 4.0 | non_commercial | **no — public Git only; Pages-blocked** |
 | `motion-biv-cinemri/` | explore | **Moving.** Ten biventricular cine-MRI segmentations, end-diastole to end-systole. Unlabelled. | CC BY 4.0 | confirmed | **no** |
 | `anatomy-bodyparts3d-heart/` | explore | 86 separately modelled parts: valve leaflets and cusps, papillary muscles, chamber walls and cavities, coronaries. | CC BY 4.0 | confirmed | **no** |
 | `normal-kit-four-chamber/` | explore | Four chamber cavities, epicardium, great-vessel trunks and a pericardial shell. Six of seven watertight. | CC BY-NC 4.0 | non_commercial | **no — never** |

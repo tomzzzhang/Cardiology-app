@@ -1,6 +1,6 @@
 # Coding agents — start here
 
-**Last Updated:** 2026-08-22 12:45 EDT
+**Last Updated:** 2026-08-22 14:01 EDT
 
 This is the repository's sole normative agent entrypoint. The current phase is
 **platform-first development** on `dev`.

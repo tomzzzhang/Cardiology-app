@@ -1,6 +1,6 @@
 # MVP scope — Cardiology app
 
-**Last Updated:** 2026-08-22 12:45 EDT
+**Last Updated:** 2026-08-22 14:01 EDT
 
 > **Product scope.** Clinical collaborators are referred to by role, not name; interview documents stay in the owner's planning folder.
 

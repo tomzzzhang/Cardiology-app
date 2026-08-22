@@ -1,0 +1,471 @@
+{
+  "schema": "acoustic-windows/v0",
+  "pack_id": "normal-vhl-heart0102-chambers",
+  "context_id": "fitted-chest-bp3d-heart0102-chambers",
+  "chest_uniform_scale": 1.211184,
+  "method": {
+    "window": "A named region of skin is sampled, every candidate aperture is restricted to those that can stand in the view's own imaging plane, and each one's whole 70 degree fan is cast against the ribs, the costal cartilages, the sternum, the clavicles and the lungs. A blocker counts only if it lies BEFORE the beam first reaches cardiac tissue. The window is open when the central 45% of the sector is clear of bone and air and no more than 34% of the whole fan is stopped by bone.",
+    "cartilage": "Scored separately and never counted as bone. Costal cartilage is not the same acoustic obstacle as rib, and in a child it transmits.",
+    "plane": "Derived from measured cardiac landmarks, never from the window. Where the landmark plane meets no open skin the plane is ROCKED about the line through two of its own landmarks, smallest rock first, and the rock is reported. Views reached by turning the probe in a window another view already found say so, name the axis, and give the angle.",
+    "indicator": "The canon's clock is checked against the pose, not imposed on it. The marker SIGN is chosen to agree with the canon, because flipping it changes no geometry; what is left over is a real disagreement and is reported per view.",
+    "age_correctness": "THE CHEST IS AN ADULT MALE BodyParts3D THORAX. Its rib obliquity, its intercostal spacing and its costal cartilage are the adult source's, at whatever size that context built it, so the interspace named here is the ADULT source's interspace and is NOT age-correct. A probe window indexed to an intercostal space on this chest is approximate."
+  },
+  "ray_target_mesh": {
+    "full_triangles": 6029784,
+    "triangles_used": 120594,
+    "max_vertex_shift_mm": 0.406
+  },
+  "landmarks_body_mm": {
+    "mitral": [
+      23.799,
+      -131.294,
+      1485.171
+    ],
+    "tricuspid": [
+      -5.964,
+      -147.708,
+      1480.536
+    ],
+    "aortic": [
+      18.579,
+      -145.285,
+      1503.551
+    ],
+    "pulmonary": [
+      32.649,
+      -157.349,
+      1527.285
+    ],
+    "lv": [
+      49.678,
+      -150.565,
+      1473.75
+    ],
+    "rv": [
+      21.587,
+      -175.949,
+      1479.379
+    ],
+    "la": [
+      18.262,
+      -116.929,
+      1502.4
+    ],
+    "ra": [
+      -18.329,
+      -140.232,
+      1501.546
+    ],
+    "apex": [
+      81.527,
+      -183.438,
+      1445.344
+    ],
+    "av_base": [
+      8.917,
+      -139.501,
+      1482.853
+    ]
+  },
+  "landmark_derivation": {
+    "mitral": "centroid of the surface where the lv-lumen and la-lumen labels come within 2.0 mm of each other \u2014 the orifice they share. The pack has no valve-ring geometry and none was invented.",
+    "tricuspid": "centroid of the surface where the rv-lumen and ra-lumen labels come within 2.0 mm of each other \u2014 the orifice they share. The pack has no valve-ring geometry and none was invented.",
+    "aortic": "centroid of the surface where the lv-lumen and aorta-lumen labels come within 2.0 mm of each other \u2014 the orifice they share. The pack has no valve-ring geometry and none was invented.",
+    "pulmonary": "centroid of the surface where the rv-lumen and pulmonary-artery-lumen labels come within 2.0 mm of each other \u2014 the orifice they share. The pack has no valve-ring geometry and none was invented.",
+    "lv": "centroid of the lv-lumen node",
+    "rv": "centroid of the rv-lumen node",
+    "la": "centroid of the la-lumen node",
+    "ra": "centroid of the ra-lumen node",
+    "apex": "mean of the most apical percentile of the left ventricular cavity along that cavity's own principal axis, measured away from the atrioventricular base",
+    "av_base": "midpoint of the mitral and tricuspid orifice centroids"
+  },
+  "views": [
+    {
+      "view_id": "a3-subcostal-coronal",
+      "built": true,
+      "window": {
+        "region": "subxiphoid",
+        "verdict": "open",
+        "tried": 10,
+        "open": true,
+        "best_bone_fraction": 0.0,
+        "best_lung_fraction": 0.0,
+        "best_cartilage_fraction": 0.0,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 0.11,
+        "open_apertures": 10
+      },
+      "plane_adjustment": {
+        "plane_rock_deg": 0.0,
+        "plane_rocked_about": "the line through the mitral and the tricuspid"
+      },
+      "landmark_plane_residual_mm": {
+        "mitral": 0.11,
+        "tricuspid": 0.11
+      },
+      "placement": "62 mm below the xiphoid tip, 22 mm from the midline \u2014 this window is under the costal margin, not between ribs",
+      "aperture_body_mm": [
+        21.55,
+        -264.22,
+        1348.22
+      ],
+      "stand_off_to_nearest_heart_mm": 110.53,
+      "depth_cm": 24.91,
+      "focus_cm": 18.4,
+      "indicator_clock_canon": "3:00",
+      "indicator_clock_implied_by_pose": "3:00",
+      "indicator_disagreement_hours": 0,
+      "structures_crossed": [
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "plane_landmarks": [
+        "mitral",
+        "tricuspid",
+        "la"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 74.0
+    },
+    {
+      "view_id": "b1-apical-four-chamber",
+      "built": true,
+      "window": {
+        "region": "apex",
+        "verdict": "open",
+        "tried": 1,
+        "open": true,
+        "best_bone_fraction": 0.0,
+        "best_lung_fraction": 0.095,
+        "best_cartilage_fraction": 0.286,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 0.99,
+        "open_apertures": 1
+      },
+      "plane_adjustment": {
+        "plane_rock_deg": 0.0,
+        "plane_rocked_about": "the line through the apex and the mitral"
+      },
+      "landmark_plane_residual_mm": {
+        "apex": 0.99,
+        "mitral": 0.99,
+        "tricuspid": 0.99
+      },
+      "placement": "left 5th intercostal space (rib 5 40 mm above, rib 6 41 mm below)",
+      "aperture_body_mm": [
+        75.84,
+        -263.09,
+        1401.13
+      ],
+      "stand_off_to_nearest_heart_mm": 71.77,
+      "depth_cm": 22.72,
+      "focus_cm": 16.26,
+      "indicator_clock_canon": "3:00",
+      "indicator_clock_implied_by_pose": "3:00",
+      "indicator_disagreement_hours": 0,
+      "structures_crossed": [
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "plane_landmarks": [
+        "apex",
+        "mitral",
+        "tricuspid"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 90.0
+    },
+    {
+      "view_id": "b2-apical-five-chamber",
+      "built": true,
+      "window": {
+        "region": "apex",
+        "verdict": "open",
+        "tried": 1,
+        "open": true,
+        "best_bone_fraction": 0.048,
+        "best_lung_fraction": 0.048,
+        "best_cartilage_fraction": 0.143,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 0.0,
+        "open_apertures": 1
+      },
+      "plane_adjustment": {
+        "derived_from": "b1-apical-four-chamber",
+        "probe_axis_turned_about": "lateral",
+        "turn_deg": 7.25,
+        "turn_basis": "solved to bring the aortic into the plane",
+        "aperture_unchanged_from_parent": true
+      },
+      "landmark_plane_residual_mm": {
+        "aortic": 0.0
+      },
+      "placement": "left 5th intercostal space (rib 5 40 mm above, rib 6 41 mm below)",
+      "aperture_body_mm": [
+        75.84,
+        -263.09,
+        1401.13
+      ],
+      "stand_off_to_nearest_heart_mm": 71.77,
+      "depth_cm": 22.47,
+      "focus_cm": 16.51,
+      "indicator_clock_canon": "3:00",
+      "indicator_clock_implied_by_pose": "3:00",
+      "indicator_disagreement_hours": 0,
+      "structures_crossed": [
+        "aorta-lumen",
+        "aortic-wall",
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "pulmonary-artery-lumen",
+        "pulmonary-artery-wall",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "plane_landmarks": [
+        "apex",
+        "mitral",
+        "tricuspid"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 83.6
+    },
+    {
+      "view_id": "b3-apical-two-chamber",
+      "built": false,
+      "reason": "the imaging plane misses the apex by 55.9 mm; the imaging plane misses the mitral by 55.9 mm; the sector does not reach the apex; the sector does not reach the mitral, and no other aperture in the apex window is open on the turned plane",
+      "window": {
+        "region": "apex",
+        "verdict": "open",
+        "tried": 1,
+        "open": true,
+        "best_bone_fraction": 0.095,
+        "best_lung_fraction": 0.19,
+        "best_cartilage_fraction": 0.762,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 2,
+        "aperture_offset_from_imaging_plane_mm": 0.0,
+        "open_apertures": 1
+      }
+    },
+    {
+      "view_id": "b4-apical-three-chamber",
+      "built": false,
+      "reason": "no plane in this view's allowed range found an open window that also contained the view's own landmarks",
+      "planes_tried": 13,
+      "window": {
+        "region": "apex",
+        "verdict": "open",
+        "tried": 7,
+        "open": true,
+        "best_bone_fraction": 0.095,
+        "best_lung_fraction": 0.0,
+        "best_cartilage_fraction": 0.429,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 3.9,
+        "open_apertures": 4
+      },
+      "first_rejection": "the imaging plane misses the aortic by 10.0 mm; the sector does not reach the aortic"
+    },
+    {
+      "view_id": "b5-apical-rv-focused",
+      "built": true,
+      "window": {
+        "region": "apex",
+        "verdict": "open",
+        "tried": 3,
+        "open": true,
+        "best_bone_fraction": 0.333,
+        "best_lung_fraction": 0.0,
+        "best_cartilage_fraction": 0.905,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 3.25,
+        "open_apertures": 1
+      },
+      "plane_adjustment": {
+        "plane_rock_deg": 12.0,
+        "plane_rocked_about": "the line through the tricuspid and the rv"
+      },
+      "landmark_plane_residual_mm": {
+        "tricuspid": 3.25,
+        "rv": 3.25
+      },
+      "placement": "lateral to the curve of the left rib 4, which lies both above and below this point; not an interspace",
+      "aperture_body_mm": [
+        69.36,
+        -264.11,
+        1487.95
+      ],
+      "stand_off_to_nearest_heart_mm": 66.41,
+      "depth_cm": 17.22,
+      "focus_cm": 11.96,
+      "indicator_clock_canon": "3:00",
+      "indicator_clock_implied_by_pose": "4:00",
+      "indicator_disagreement_hours": 1,
+      "structures_crossed": [
+        "lv-lumen",
+        "lv-myocardium",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "plane_landmarks": [
+        "apex",
+        "tricuspid",
+        "rv"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 77.3
+    },
+    {
+      "view_id": "c1-parasternal-long-axis",
+      "built": true,
+      "window": {
+        "region": "left_parasternal",
+        "verdict": "open",
+        "tried": 4,
+        "open": true,
+        "best_bone_fraction": 0.0,
+        "best_lung_fraction": 0.095,
+        "best_cartilage_fraction": 0.476,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 0.02,
+        "open_apertures": 4
+      },
+      "plane_adjustment": {
+        "plane_rock_deg": 0.0,
+        "plane_rocked_about": "the line through the apex and the mitral"
+      },
+      "landmark_plane_residual_mm": {
+        "apex": 0.02,
+        "mitral": 0.02,
+        "aortic": 0.02
+      },
+      "placement": "left 2nd intercostal space (rib 2 38 mm above, rib 3 32 mm below)",
+      "aperture_body_mm": [
+        43.58,
+        -237.7,
+        1541.43
+      ],
+      "stand_off_to_nearest_heart_mm": 51.61,
+      "depth_cm": 16.4,
+      "focus_cm": 11.22,
+      "indicator_clock_canon": "10:00",
+      "indicator_clock_implied_by_pose": "11:00",
+      "indicator_disagreement_hours": 1,
+      "structures_crossed": [
+        "aorta-lumen",
+        "aortic-wall",
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "plane_landmarks": [
+        "apex",
+        "mitral",
+        "aortic"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 80.3
+    },
+    {
+      "view_id": "c2-parasternal-short-axis",
+      "built": true,
+      "window": {
+        "region": "left_parasternal",
+        "verdict": "open",
+        "tried": 1,
+        "open": true,
+        "best_bone_fraction": 0.19,
+        "best_lung_fraction": 0.19,
+        "best_cartilage_fraction": 0.238,
+        "core_rays_blocked_by_bone": 0,
+        "core_rays_blocked_by_lung": 0,
+        "core_rays_reaching_the_heart": 9,
+        "aperture_offset_from_imaging_plane_mm": 0.0,
+        "open_apertures": 1
+      },
+      "plane_adjustment": {
+        "derived_from": "c1-parasternal-long-axis",
+        "probe_axis_turned_about": "to_aim",
+        "turn_deg": 90.0,
+        "turn_basis": "the canonical fixed angle for this manoeuvre",
+        "aperture_unchanged_from_parent": true
+      },
+      "landmark_plane_residual_mm": {},
+      "placement": "left 2nd intercostal space (rib 2 38 mm above, rib 3 32 mm below)",
+      "aperture_body_mm": [
+        43.58,
+        -237.7,
+        1541.43
+      ],
+      "stand_off_to_nearest_heart_mm": 51.61,
+      "depth_cm": 15.37,
+      "focus_cm": 12.2,
+      "indicator_clock_canon": "2:00",
+      "indicator_clock_implied_by_pose": "2:00",
+      "indicator_disagreement_hours": 0,
+      "structures_crossed": [
+        "la-lumen",
+        "la-myocardium",
+        "lv-lumen",
+        "lv-myocardium",
+        "pulmonary-artery-wall",
+        "ra-lumen",
+        "ra-myocardium",
+        "rv-lumen",
+        "rv-myocardium"
+      ],
+      "plane_landmarks": [
+        "apex",
+        "mitral",
+        "aortic"
+      ],
+      "plane_normal_vs_lv_long_axis_deg": 23.1
+    }
+  ],
+  "summary": {
+    "built": [
+      "a3-subcostal-coronal",
+      "b1-apical-four-chamber",
+      "b2-apical-five-chamber",
+      "b5-apical-rv-focused",
+      "c1-parasternal-long-axis",
+      "c2-parasternal-short-axis"
+    ],
+    "not_built": {
+      "b3-apical-two-chamber": "the imaging plane misses the apex by 55.9 mm; the imaging plane misses the mitral by 55.9 mm; the sector does not reach the apex; the sector does not reach the mitral, and no other aperture in the apex window is open on the turned plane",
+      "b4-apical-three-chamber": "no plane in this view's allowed range found an open window that also contained the view's own landmarks"
+    }
+  }
+}
