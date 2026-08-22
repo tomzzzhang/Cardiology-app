@@ -1,6 +1,6 @@
 # View canon — pediatric TTE views and sweeps
 
-**Last Updated:** 2026-08-22 14:47 EDT
+**Last Updated:** 2026-08-22 15:41 EDT
 
 > **Clinical view/sweep specification.** Clinical collaborators are referred to by role, not name. The backing research report lives in the owner's planning folder.
 
@@ -51,8 +51,16 @@ The structured, machine-encodable canon of standard pediatric TTE views and swee
   window is placed where it actually is — on skin below the xiphoid — and the beam is cast under
   the costal margin and checked against bone, cartilage and lung before the pose is kept. A3 is
   authored on both. **A4 remains unauthored on a different and unfixed ground**: it is the bicaval
-  reference, and neither substrate has separately tagged cavae to build it on. F1, the right
-  parasternal bicaval, remains the honest route to that content on Rodero.)*
+  reference, and neither substrate has separately tagged cavae to build it on. **F1 is not a route
+  to that content either, and no longer exists as a pose.** *(Updated 2026-08-22: this note used to
+  say F1 "remains the honest route to that content on Rodero".)* `f1-right-parasternal-bicaval` was
+  WITHDRAWN from `normal-rodero` at v0.1.5 under the probe-contact rule — hand-authored from this
+  canon rather than derived from the mesh, its transducer sat 66.05 mm off the skin, and the missing
+  cavae that block A4 are the same reason there is no measured bicaval plane to reauthor it onto.
+  The pack no longer carries the view. Its canon entry below is RETAINED, along with its authoring
+  slot and its review-session evidence, so reauthoring it is picking the work back up rather than
+  starting over — but nothing in this file should be read as saying the content is reachable on
+  Rodero today.)*
 
 - **A3. Coronal (long-axis) view + sweep** — below xiphoid; indicator 3:00. Sweep posterior→anterior: atrial septum + pulmonary veins to LA → LV long axis, AoV, ascending aorta (SVC right of AAo, MPA left) → RV inflow/outflow + pulmonary valve. Structures: coronary sinus, atrial septum (near-perpendicular to beam — best atrial-septal window), AV connections, LVOT, RVOT, anterior muscular septum, VA connections. Protocol clips: 2D+color IVC→RVOT; focused low-Nyquist atrial-septal sweep.
 - **A4. Sagittal (short-axis) view + sweep** — below xiphoid; indicator 6:00. Reference = bicaval (SVC + intrahepatic IVC → RA; atrial septum between RA and LA). Sweep rightward→leftward: bicaval → ventricular base/AV valves with AoV in cross-section → LV/MV cross-section + RVOT/PV → midmuscular septum, LV papillary muscles, apex. Key: RUPV courses inferior to RPA, posterior to SVC, into LA. Protocol clips: bicaval→apex sweep; atrial-septal low-Nyquist sweep; RUPV clip; RVOT clip ± PW/CW.

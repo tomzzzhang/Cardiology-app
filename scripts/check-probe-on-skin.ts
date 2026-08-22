@@ -11,9 +11,13 @@
  * so a pose whose origin is off the body is not a bad view, it is not a view.
  *
  * It was not hypothetical. When this check was written, `normal-rodero`'s
- * right-parasternal bicaval sat **66.5 mm** off the skin and the chamber-labelled
- * pack's reference pose sat **92.6 mm** off it — nine centimetres — and both
- * rendered a confident-looking sector in the viewer.
+ * right-parasternal bicaval sat **66.05 mm** off the skin and the chamber-labelled
+ * pack's reference pose sat **92.31 mm** off it — nine centimetres — and both
+ * rendered a confident-looking sector in the viewer. *(Corrected 2026-08-22:
+ * these first read 66.5 mm and 92.6 mm, which are nearest-VERTEX distances, in a
+ * header that goes on to explain why vertex distance is the wrong measure. They
+ * are now what `distanceToSkin` below returns for F1 at `normal-rodero` v0.1.4
+ * and for the chamber pack's ingest reference pose as it stands.)*
  *
  * ## What it checks, and what it deliberately does not
  *

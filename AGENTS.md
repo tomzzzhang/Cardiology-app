@@ -1,6 +1,6 @@
 # Coding agents — start here
 
-**Last Updated:** 2026-08-22 14:47 EDT
+**Last Updated:** 2026-08-22 15:41 EDT
 
 This is the repository's sole normative agent entrypoint. The current phase is
 **platform-first development** on `dev`.
@@ -33,8 +33,13 @@ Archived means PAUSED, not deleted and not unguarded. The learner bundle still b
 check that protects something other than product quality still runs and still gates:
 `check:published-packs` and `check:authoring-absent` are licence and exposure controls, not
 development targets, and they do not become optional because the surface they protect is paused.
-What is suspended is learner-facing UX work, learner polish, and treating the learner bundle as the
-thing being iterated on.
+They run in CI's `quality` job — every push to `dev` and to `main`, and every pull request — after
+the two build steps, because both read `dist/`; and again in `npm run verify:release` and before a
+`main` deployment. *(Corrected 2026-08-22: this paragraph claimed they "still run and still gate"
+while they ran only in `verify:release` and before a `main` deployment, so nothing on `dev`
+enforced either one. The CI steps were added rather than the claim being softened.)* What is
+suspended is learner-facing UX work, learner polish, and treating the learner bundle as the thing
+being iterated on.
 
 ## Platform work
 
@@ -84,3 +89,16 @@ Commit and push useful completed checkpoints. Update the planning folder's `prog
 when a checkpoint changes project state, a blocker, or the exact next step; do not create log
 entries for incomplete experiments. Never claim a test, CI job, push, or deployment succeeded
 without verifying it.
+
+**Documentation and the log are HANDBACK work, not build-run work.** Sweeping the documents and
+writing the `progress_log.md` entry happen at handback, or when the owner asks for them — not
+partway through a build run, and not as a reflex at the end of every commit. A build run's
+documentation duty is the material its own change makes wrong: the contract it altered, the
+observation it recorded, the claim it falsified.
+
+**Never bump a `Last Updated` line on a file whose substance did not change.** The line means "last
+known good state" and a repository-wide bump makes it mean "somebody ran a command", which is not a
+fact anyone can use. Six commits on 2026-08-22 each restamped 22 to 26 files that they had not
+otherwise touched, against a rule the owner's workflow documents already carried and this
+repository did not — which is why it is written here now. A diff whose only content is a date is
+noise in the history and hides the files that did change.

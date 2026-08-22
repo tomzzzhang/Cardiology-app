@@ -2539,9 +2539,14 @@ panel is wanted and is recorded as deferred in `docs/build_plan.md`.
 
 **And the lag has a number.** `pipeline/geometry.py` has carried a per-pack budget since wave 0 —
 15 MB of derived assets and 220,000 triangles, from the build plan — and enforces it by decimating
-on the way out. `normal-rodero` sits at 11.9 MB and 222,380 triangles, which is that budget working.
-`normal-vhl-heart0102-chambers` sits at **144 MB and 6,029,784 triangles: nine times the byte budget
-and twenty-seven times the triangle budget.** It is not a regression and not a mistake — that pack
+on the way out. `normal-rodero` sits at 12.4 MB and 222,380 triangles, which is that budget working.
+`normal-vhl-heart0102-chambers` sits at **151.2 MB and 6,029,784 triangles: ten times the byte
+budget and twenty-seven times the triangle budget.** *(Corrected 2026-08-22: the two byte figures
+first read 11.9 MB and 144 MB, and the ratio "nine times". Those are MiB, and the budget they were
+being compared against is not: `GEOMETRY_BUDGET_BYTES` is 15_000_000 and the gate divides by 1e6, so
+the same packs print 12.4 MB and 151.2 MB. Decimal MB is now the convention wherever a pack size is
+quoted, stated once at the constant in `pipeline/geometry.py`. Only the units moved; the bytes and
+the triangles are unchanged.)* It is not a regression and not a mistake — that pack
 is built by `pipeline/vhl_pack.py`, which decimates nothing on purpose, and "no smoothing,
 decimation or hole filling" is one of its stated properties. But the budget was a STEP inside one
 pipeline and never a CHECK, so a pack built by another pipeline simply never met it. Now it is
@@ -2555,10 +2560,16 @@ exists.
 
 *(2026-08-22. Owner decision, from looking at a pose in the viewer and not recognising it.)*
 
-**The pose nobody could name was 92.6 mm off the body.** The chamber-labelled pack's ingest
+**The pose nobody could name was 92.31 mm off the body.** The chamber-labelled pack's ingest
 reference pose put its transducer nine centimetres clear of the skin, and `normal-rodero`'s
-right-parasternal bicaval put its 66.5 mm clear, and both drew a confident sector with an echo image
-under it. Nothing in the repository checked the most basic fact about transthoracic
+right-parasternal bicaval put its 66.05 mm clear, and both drew a confident sector with an echo
+image under it. *(Corrected 2026-08-22: these two first read 92.6 mm and 66.5 mm, which are
+nearest-VERTEX distances — 92.55 mm and 66.51 mm exactly — in an entry whose whole argument is that
+vertex distance is the wrong measure. Both figures are now the point-to-TRIANGLE distance this gate
+actually computes, re-derived by running the gate's own `distanceToSkin` against F1 at
+`normal-rodero` v0.1.4, the revision it was withdrawn from, and against
+`normal-vhl-heart0102-chambers`/`ingest-reference-pose` as it stands. The correction does not
+change the conclusion: both are more than an order of magnitude past the 5 mm tolerance.)* Nothing in the repository checked the most basic fact about transthoracic
 echocardiography: **ultrasound does not cross an air gap.** A transducer not in contact with skin
 images nothing, so a pose whose origin is off the body is not a poor view — it is not a view.
 

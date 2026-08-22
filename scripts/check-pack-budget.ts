@@ -5,7 +5,7 @@
  *
  * `pipeline/geometry.py` has carried a budget since wave 0 — 15 MB of derived
  * assets and 220,000 triangles per pack, from `docs/build_plan.md` — and it
- * enforces it by decimating on the way out. `normal-rodero` lands at 11.9 MB
+ * enforces it by decimating on the way out. `normal-rodero` lands at 12.4 MB
  * and 222,380 triangles, which is what that budget looks like when it is
  * working.
  *
@@ -15,7 +15,7 @@
  * 384^3 partition and deliberately does not decimate — "no cross-label blur,
  * smoothing, thin-structure absorption, decimation, hole filling, or invented
  * geometry" is a stated property of that pack and a defensible one. The result
- * is 144 MB and 6.0 million triangles: nine times the byte budget and
+ * is 151.2 MB and 6.0 million triangles: ten times the byte budget and
  * twenty-seven times the triangle budget, and the reason the viewer is heavy on
  * that pack.
  *
@@ -33,7 +33,12 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(repoRoot, 'public', 'packs');
 
-/** `pipeline/geometry.py: GEOMETRY_BUDGET_BYTES`. */
+/**
+ * `pipeline/geometry.py: GEOMETRY_BUDGET_BYTES`, and its unit convention with
+ * it: MB here is 10^6 bytes, decimal, never MiB. Every figure this file prints
+ * or quotes divides by 1e6, and so must every size written about a pack
+ * anywhere else.
+ */
 const GEOMETRY_BUDGET_BYTES = 15_000_000;
 
 /**
@@ -43,7 +48,7 @@ const GEOMETRY_BUDGET_BYTES = 15_000_000;
  */
 const OVER_BUDGET_EXCEPTIONS: Readonly<Record<string, string>> = {
   'normal-vhl-heart0102-chambers':
-    'About 144 MB of surfaces extracted from an authored 384^3 partition at grid resolution. ' +
+    'About 151.2 MB of surfaces extracted from an authored 384^3 partition at grid resolution. ' +
     'pipeline/vhl_pack.py decimates nothing on purpose — the pack states that no smoothing, ' +
     'decimation or hole filling was applied — and that claim is the point of the pack. The ' +
     'cost is real: it is roughly twenty-seven times the triangle budget and it is why the ' +

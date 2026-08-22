@@ -44,6 +44,18 @@ jobs:
       - name: Build primary authoring surface
         run: npm run build:authoring
 
+      # The two exposure gates, and they run HERE rather than only before a
+      # `main` deployment. They read `dist/`, so they have to follow the two
+      # build steps above; they are licence and exposure controls rather than
+      # product-quality checks, and an unpublishable pack or an authoring
+      # surface in the learner bundle is not less exposed for having been
+      # pushed to `dev` instead of to `main`.
+      - name: Only publishable packs reached the bundle
+        run: npm run check:published-packs
+
+      - name: No authoring surface in the learner bundle
+        run: npm run check:authoring-absent
+
   visual:
     name: Desktop browser suite
     if: >-

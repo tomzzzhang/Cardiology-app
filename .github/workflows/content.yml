@@ -10,12 +10,15 @@ on:
       - pipeline/**
       - evidence/view-candidates/**
       - evidence/body-context/**
+      - evidence/acoustic-windows/**
       - public/body-context/**
       - .gitattributes
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
       - scripts/check-view-candidates.ts
       - scripts/check-frame-decoupling.ts
+      - scripts/check-pack-budget.ts
+      - scripts/check-probe-on-skin.ts
       - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**
@@ -31,12 +34,15 @@ on:
       - pipeline/**
       - evidence/view-candidates/**
       - evidence/body-context/**
+      - evidence/acoustic-windows/**
       - public/body-context/**
       - .gitattributes
       - scripts/validate-packs.ts
       - scripts/check-provenance.ts
       - scripts/check-view-candidates.ts
       - scripts/check-frame-decoupling.ts
+      - scripts/check-pack-budget.ts
+      - scripts/check-probe-on-skin.ts
       - scripts/ingest-authoring-export.ts
       - scripts/make-stub-assets.mjs
       - scripts/lib/**

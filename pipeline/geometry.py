@@ -67,6 +67,15 @@ REPO = Path(__file__).resolve().parent.parent
 #: full pack including its echo volume; an Explore-only pack is geometry alone,
 #: so it is held to the lower end. Exceeding it aborts the ingest rather than
 #: committing an oversized pack to a public repository.
+#:
+#: UNIT CONVENTION, and it holds everywhere a pack size is quoted — here, in
+#: `scripts/check-pack-budget.ts`, in `public/packs/README.md` and in
+#: `docs/observations.md`. **MB means 10^6 bytes, decimal, never MiB**, which is
+#: what this constant is (15_000_000, not 15 * 1024 * 1024) and what every
+#: message below prints by dividing by 1e6. Quoting a MiB figure beside a
+#: decimal budget is how `normal-rodero` came to be written up as "11.9 MB"
+#: against a 15 MB budget it actually meets at 12.4 MB: same bytes, two units,
+#: and the reader has no way to tell which is in hand.
 GEOMETRY_BUDGET_BYTES = 15_000_000
 
 #: Triangle budget for the whole pack, matching `ingest.py`.
