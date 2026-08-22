@@ -1,6 +1,6 @@
 # Content packs
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 One directory per pack: `public/packs/<id>/pack.json`, with assets alongside under `assets/`.
 Asset paths inside `pack.json` are pack-relative; the loader rejects absolute URLs and `..`.

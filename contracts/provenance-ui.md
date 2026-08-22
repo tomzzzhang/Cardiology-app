@@ -1,6 +1,6 @@
 # Contract: provenance UI
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 **Owns:** `src/provenance/**`
 **Status:** contract only. Implementation is wave 2.

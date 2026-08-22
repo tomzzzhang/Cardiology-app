@@ -1,6 +1,6 @@
 # Build plan — Cardiology app
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 > **Build specification.** Clinical collaborators are referred to by role, not name. Referenced `research/DR*.md` reports live in the owner's planning folder.
 

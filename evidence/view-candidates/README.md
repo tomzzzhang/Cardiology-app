@@ -1,6 +1,6 @@
 # Rodero view-coordinate candidates
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 This directory holds review evidence for **Draft Rodero view coordinates**. A candidate is a
 machine-authored or manually authored probe pose, fan, and optional sweep bound to one exact source

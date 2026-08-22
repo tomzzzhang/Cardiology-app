@@ -158,6 +158,12 @@
       "internal_thoracic_width_mm": 235.58,
       "cardiothoracic_ratio": 0.4911,
       "note": "The ratio of a body to itself does not change when that body is scaled uniformly, so this control reads the same in the fitted chest as at native size. That is the check that the scaling really was uniform."
+    },
+    "ratio_method_cross_check": {
+      "native_ratio_this_pipelines_method": 0.4911,
+      "native_ratio_radiographic_level": 0.4938,
+      "radiographic_level_note": "Denominator taken in an 8 mm band at the dome of the right hemidiaphragm, which is where the radiographic internal thoracic diameter is defined, instead of in the heart's own z band. Measured both ways on the native pair, the difference is the figure below: small enough that this pipeline's denominator is a fair proxy, and reported rather than claimed. It is a proxy in one further way that no measurement here fixes \u2014 the radiographic quantity is read off a projected PA film with its own magnification, and these are true three-dimensional extents.",
+      "difference": 0.0027
     }
   },
   "landmarks_body_mm": {
@@ -1081,6 +1087,92 @@
         }
       },
       "all_clearances_positive": true
+    },
+    "placement_verification": {
+      "what_this_checks": "Orientation and position against BodyParts3D's own heart in the same chest, and against the textbook facts a rigid chamber fit is not told: that a heart rests on the diaphragm, sits behind the sternum with the right ventricle in front, keeps about two thirds of itself left of midline, and points its apex to just medial of the left mid-clavicular line.",
+      "chamber_topology_margins_mm": {
+        "placed": {
+          "right atrium is right of the left atrium": 36.6,
+          "right ventricle is right of the left ventricle": 28.1,
+          "right ventricle is anterior to the left ventricle": 25.4,
+          "left atrium is posterior to the right atrium": 23.3,
+          "atria are superior to the ventricles": 25.4,
+          "left ventricle is left of the right atrium": 68.0
+        },
+        "native_control": {
+          "right atrium is right of the left atrium": 39.8,
+          "right ventricle is right of the left ventricle": 18.4,
+          "right ventricle is anterior to the left ventricle": 30.8,
+          "left atrium is posterior to the right atrium": 33.7,
+          "atria are superior to the ventricles": 16.0,
+          "left ventricle is left of the right atrium": 59.9
+        },
+        "note": "All positive is correct on both. Signs, not sizes, are the test."
+      },
+      "long_axis": {
+        "placed": {
+          "unit_body": [
+            0.719,
+            -0.4836,
+            -0.4992
+          ],
+          "leftward_tilt_off_midsagittal_deg": 55.2,
+          "anterior_tilt_off_coronal_deg": 44.1
+        },
+        "native_control": {
+          "unit_body": [
+            0.6751,
+            -0.5153,
+            -0.5279
+          ],
+          "leftward_tilt_off_midsagittal_deg": 52.0,
+          "anterior_tilt_off_coronal_deg": 44.3
+        },
+        "disagreement_deg": 3.51
+      },
+      "apex_and_midline": {
+        "midline_x_mm": 0.0,
+        "left_mid_clavicular_line_x_mm": 92.24,
+        "placed_apex_x_mm": 81.53,
+        "placed_apex_medial_to_mid_clavicular_line_mm": 10.72,
+        "placed_left_border_past_mid_clavicular_line_mm": 2.91,
+        "native_left_border_past_mid_clavicular_line_mm": 3.91,
+        "placed_percent_left_of_midline": 74.36,
+        "native_percent_left_of_midline": 68.84
+      },
+      "contact": {
+        "placed": {
+          "gap_to_sternum_mm": 14.59,
+          "gap_above_diaphragm_dome_mm": 7.19,
+          "points_below_the_dome": 0
+        },
+        "native_control": {
+          "gap_to_sternum_mm": 7.15,
+          "gap_above_diaphragm_dome_mm": -4.59,
+          "points_below_the_dome": 418
+        },
+        "sternal_gap_excess_over_native_mm": 7.44,
+        "rests_on_the_diaphragm": {
+          "placed": false,
+          "native_control": true
+        },
+        "verdict": "The placed heart sits +7.44 mm further off the sternum than the native pair does, and its relationship to the diaphragm differs in KIND rather than degree: it clears the dome by 7.19 mm at every one of its vertices, where the native heart overlaps the dome by 4.59 mm across 418 of its own. Anatomy texts agree that a heart RESTS on the superior surface of the diaphragm, so this one is sitting too high. Neither gap is a bare fitting error a better registration would remove \u2014 see shape \u2014 and neither is repaired here, because moving the heart to make it touch would be authoring a placement rather than measuring one."
+      },
+      "shape": {
+        "placed": {
+          "transverse_width_mm": 140.1,
+          "anteroposterior_depth_mm": 113.0,
+          "superoinferior_height_mm": 124.2,
+          "depth_over_width": 0.807
+        },
+        "native_control": {
+          "transverse_width_mm": 140.1,
+          "anteroposterior_depth_mm": 128.8,
+          "superoinferior_height_mm": 126.7,
+          "depth_over_width": 0.919
+        },
+        "why_it_matters": "At equal transverse width the placed heart is about a tenth SHALLOWER front-to-back than the heart this thorax was built around. A chest scaled down far enough to close the sternal gap drives the cardiothoracic ratio well past 0.50 and then pushes the heart out through the left ribs, so no uniform scale of either body buys a normal ratio AND anatomical contact. Scaling the HEART instead changes nothing here: the relative fit depends only on the ratio of the two scales, so heart scale buys absolute composite size and no more. The specimen is perfusion-fixed at end-diastole and carries no pericardium or mediastinum to hold its in-situ shape."
+      }
     }
   },
   "rigid_validation": {

@@ -82,14 +82,15 @@
       "uniform_scale_factor": 1.211184,
       "uniform_not_per_axis": "One factor on all three axes. Per-axis factors would invent proportions no measurement in this repository supports: the source is one man's thorax and there is no second body here to say how a chest that is deeper is also wide. The uniform fit clears the ribs, the sternum and the spine with positive margin on every heart point, so no per-axis fit was needed or considered.",
       "rule": "Scale uniformly until the bound pack's heart occupies the same fraction of the thorax that BodyParts3D's own heart occupies in its own thorax, measuring the cardiothoracic ratio exactly as the existing composite measures it.",
-      "ratio_method": "Transverse cardiac width is the heart's own extent along body +X. The denominator is the pleural span \u2014 left lung maximum +X minus right lung minimum +X \u2014 taken in the z band the heart itself occupies, which is the radiographic internal thoracic diameter. Identical to the method composite_validation reports.",
+      "ratio_method": "Transverse cardiac width is the heart's own extent along body +X. The denominator is the pleural span \u2014 left lung maximum +X minus right lung minimum +X \u2014 taken in the z band the heart itself occupies. Identical to the method composite_validation reports. It is a PROXY for the radiographic internal thoracic diameter, which is defined as the inner rib margin at the level of the dome of the right hemidiaphragm rather than the pleural span at the heart's own height; measured both ways on the native pair the two agree closely, and by how much is measured into the evidence file rather than assumed.",
       "target_cardiothoracic_ratio": 0.4911,
       "achieved_cardiothoracic_ratio": 0.4911,
       "transverse_cardiac_width_mm": 140.13,
       "internal_thoracic_width_mm": 285.33,
       "cardiothoracic_ratio_at_native_chest_size": 0.5975,
       "scaled_whole_body_skin_height_mm": 2082.0,
-      "direction_of_the_fit": "The factor is greater than 1: the chest was made LARGER, by 21.1 percent. This heart is wider than the one BodyParts3D's thorax was built around, which is partly that BodyParts3D's own heart is undersized for its body and partly that this pack's right atrial and right ventricular lumens are larger than expected. The fitted thorax is therefore bigger than the adult source it came from, not smaller.",
+      "direction_of_the_fit": "The factor is greater than 1: the chest was made LARGER, by 21.1 percent. Two independent reasons, and neither is the pack's interior labelling. This specimen's outer transverse width is 140.1 mm, wide for its age and consistent with a heart perfusion-fixed at end-diastole; and BodyParts3D's own heart is undersized for its own body, with a 65.9 mm base-to-apex left ventricle in a source whose publisher admits artist adjustment. The fitted thorax is therefore bigger than the adult source it came from, not smaller.",
+      "scaling_the_heart_instead": "Considered and not done, and the reason is arithmetic rather than policy. The composite's relative geometry depends only on the RATIO of the two scales, so moving the factor from the chest to the heart leaves the cardiothoracic ratio, the orientation, the clearances and the contact gaps pixel-for-pixel identical and buys exactly one thing: the absolute size of the pair. It cannot improve the fit. It also is not free \u2014 `frameToBody` carries every probe pose's depth and focus in millimetres through the model-to-body transform UNCHANGED, which is correct only at unit scale, so a scaled heart would show one size on screen and another in the echo's own depth scale. That is why body-context/v0 pins the scale to literal 1.",
       "owner_decision_date": "2026-08-22",
       "owner_decision": "Reuse BodyParts3D 4.0 rather than sourcing a new body; scale the chest to fit THIS HEART rather than to an age; keep both contexts, one per pack, with adult-reference-chest-bp3d unchanged and still bound to normal-rodero."
     },
@@ -143,6 +144,91 @@
         "min_clearance_mm": 77.139,
         "median_clearance_mm": 160.389,
         "violations": 0
+      }
+    },
+    "placement_verification": {
+      "chamber_topology_margins_mm": {
+        "placed": {
+          "right atrium is right of the left atrium": 36.6,
+          "right ventricle is right of the left ventricle": 28.1,
+          "right ventricle is anterior to the left ventricle": 25.4,
+          "left atrium is posterior to the right atrium": 23.3,
+          "atria are superior to the ventricles": 25.4,
+          "left ventricle is left of the right atrium": 68.0
+        },
+        "native_control": {
+          "right atrium is right of the left atrium": 39.8,
+          "right ventricle is right of the left ventricle": 18.4,
+          "right ventricle is anterior to the left ventricle": 30.8,
+          "left atrium is posterior to the right atrium": 33.7,
+          "atria are superior to the ventricles": 16.0,
+          "left ventricle is left of the right atrium": 59.9
+        },
+        "note": "All positive is correct on both. Signs, not sizes, are the test."
+      },
+      "long_axis": {
+        "placed": {
+          "unit_body": [
+            0.719,
+            -0.4836,
+            -0.4992
+          ],
+          "leftward_tilt_off_midsagittal_deg": 55.2,
+          "anterior_tilt_off_coronal_deg": 44.1
+        },
+        "native_control": {
+          "unit_body": [
+            0.6751,
+            -0.5153,
+            -0.5279
+          ],
+          "leftward_tilt_off_midsagittal_deg": 52.0,
+          "anterior_tilt_off_coronal_deg": 44.3
+        },
+        "disagreement_deg": 3.51
+      },
+      "apex_and_midline": {
+        "midline_x_mm": 0.0,
+        "left_mid_clavicular_line_x_mm": 92.24,
+        "placed_apex_x_mm": 81.53,
+        "placed_apex_medial_to_mid_clavicular_line_mm": 10.72,
+        "placed_left_border_past_mid_clavicular_line_mm": 2.91,
+        "native_left_border_past_mid_clavicular_line_mm": 3.91,
+        "placed_percent_left_of_midline": 74.36,
+        "native_percent_left_of_midline": 68.84
+      },
+      "contact": {
+        "placed": {
+          "gap_to_sternum_mm": 14.59,
+          "gap_above_diaphragm_dome_mm": 7.19,
+          "points_below_the_dome": 0
+        },
+        "native_control": {
+          "gap_to_sternum_mm": 7.15,
+          "gap_above_diaphragm_dome_mm": -4.59,
+          "points_below_the_dome": 418
+        },
+        "sternal_gap_excess_over_native_mm": 7.44,
+        "rests_on_the_diaphragm": {
+          "placed": false,
+          "native_control": true
+        },
+        "verdict": "The placed heart sits +7.44 mm further off the sternum than the native pair does, and its relationship to the diaphragm differs in KIND rather than degree: it clears the dome by 7.19 mm at every one of its vertices, where the native heart overlaps the dome by 4.59 mm across 418 of its own. Anatomy texts agree that a heart RESTS on the superior surface of the diaphragm, so this one is sitting too high. Neither gap is a bare fitting error a better registration would remove \u2014 see shape \u2014 and neither is repaired here, because moving the heart to make it touch would be authoring a placement rather than measuring one."
+      },
+      "shape": {
+        "placed": {
+          "transverse_width_mm": 140.1,
+          "anteroposterior_depth_mm": 113.0,
+          "superoinferior_height_mm": 124.2,
+          "depth_over_width": 0.807
+        },
+        "native_control": {
+          "transverse_width_mm": 140.1,
+          "anteroposterior_depth_mm": 128.8,
+          "superoinferior_height_mm": 126.7,
+          "depth_over_width": 0.919
+        },
+        "why_it_matters": "At equal transverse width the placed heart is about a tenth SHALLOWER front-to-back than the heart this thorax was built around. A chest scaled down far enough to close the sternal gap drives the cardiothoracic ratio well past 0.50 and then pushes the heart out through the left ribs, so no uniform scale of either body buys a normal ratio AND anatomical contact. Scaling the HEART instead changes nothing here: the relative fit depends only on the ratio of the two scales, so heart scale buys absolute composite size and no more. The specimen is perfusion-fixed at end-diastole and carries no pericardium or mediastinum to hold its in-situ shape."
       }
     }
   },
@@ -579,7 +665,8 @@
     "license_history_caveat": "The licensing history for this source is NOT consistent, and this context and adult-reference-chest-bp3d record different readings of it on purpose. The rights holder's current licence page states CC Attribution 4.0 International and is what adult-reference-chest-bp3d records; older project pages for the same data state CC BY-SA 2.1 Japan, which is what the owner directed for this derivative on 2026-08-22 and what is recorded here. Share-alike is the more restrictive of the two, so honouring it satisfies either reading. The disagreement is recorded rather than resolved; resolving it is an owner decision about both contexts, not a pipeline change.",
     "what_this_is": "AN ADULT MALE BodyParts3D THORAX, SCALED UNIFORMLY TO MATCH THIS HEART'S CARDIOTHORACIC RATIO. It is not a scan or a model of an adolescent, and no age is claimed for it anywhere. The bound pack is a 14-year-old's heart; this chest around it is an adult male's, resized.",
     "age_correctness_caveat": "RIB OBLIQUITY, INTERCOSTAL SPACING AND COSTAL CARTILAGE ARE THE ADULT SOURCE'S AND ARE NOT AGE-CORRECT. A uniform scale changes every distance by one factor and changes no angle and no proportion at all, so the ribs still run at adult angles and the spaces between them are adult spaces, merely larger. A PROBE WINDOW INDEXED TO AN INTERCOSTAL SPACE ON THIS CHEST IS APPROXIMATE. Authoring or migrating echo view angles against it is deferred and depends on this context being signed off first.",
-    "fit_inherits_the_pack_s_own_defect": "The scale factor was solved against this heart's transverse width, and this pack's right ventricular lumen is 148.3 mL against an expected 60-100 mL and is recorded as unresolved. A heart that is wider than it should be demands a wider thorax to reach the same ratio, so the factor carries that error. If the right ventricular lumen is resolved, this context has to be rebuilt.",
+    "why_the_factor_is_large": "CORRECTED 2026-08-22, replacing an earlier claim that this factor inherited the pack's unresolved right-ventricular lumen figure. It does not. The scale was solved against the heart's OUTER transverse width, and the right ventricular lumen is an interior label: repartitioning the inside of this tissue body cannot move its outer envelope by a millimetre. The width is 140.1 mm, which is the specimen's own. That is large for fourteen \u2014 about two standard deviations above the 115.3 +/- 12.0 mm mean reported for 17-21 year olds \u2014 while sitting inside the 155 mm upper limit of normal quoted for adult males. The source lab perfusion-fixes its hearts with formalin under pressure to hold an approximation of the END-DIASTOLIC state, which is the fullest the chambers ever are, so a specimen prepared this way reads larger than the same heart would on a radiograph. A wide heart needs a wide thorax to reach a normal ratio; that is the whole of the factor.",
+    "the_right_ventricular_lumen_figure_is_probably_not_the_defect": "Recorded here because this context had to measure it and the reading changed. Against paediatric CMR reference equations for the END-DIASTOLIC volumes this specimen was fixed at \u2014 RVEDV = 83.8 * BSA^1.469 and LVEDV = 77.5 * BSA^1.380 for males \u2014 the pack's 148.3 mL right ventricular lumen corresponds to a body surface area of about 1.48 m2, which is ordinary for a fourteen-year-old boy. The 82.1 mL LEFT ventricular lumen corresponds to about 1.04 m2, which is not. The two disagree, the right-to-left lumen ratio is 1.81 against a normal near 1.1, and the left ventricular WALL is labelled at 150.0 mL against 137.3 mL for the right. Read together those say the left ventricular wall was labelled inward at the expense of its own lumen, which is the same defect the pack already reports as its 1.09:1 wall ratio, rather than the right ventricle being too big. This is an observation about the pack, not a change to it: repartitioning it is a separate decision and this context does not depend on the answer.",
     "subject": "A living adult male. BodyParts3D describes itself as a three-dimensional whole-body model for an adult human male, and the underlying whole-body reference is an MRI volunteer (the NICT/TARO adult male reference), NOT a cadaver and NOT a post-mortem specimen. Whole-body skin height measured from the source is 1719 mm; uniformly scaled by this context's factor that becomes 2082.0 mm, which is a CONSEQUENCE of fitting a chest to one heart and is not an anthropometric claim about anybody.",
     "source_cautions": "The publisher's own notice states there could be many errors for use as anatomical education, and that some parts were made from scratch by artists or distorted to fit into the environment. It also warns that OBJ sets are versioned per organ and that sets differing in the one's place of their version number do not necessarily share body coordinates.",
     "not_published": "DEVELOPMENT ONLY. The bound pack derives from a CC BY-NC 4.0 source and its license_state is non_commercial, so neither the pack nor this context reaches the deployed site. Enforced at build time and asserted by npm run check:published-packs.",

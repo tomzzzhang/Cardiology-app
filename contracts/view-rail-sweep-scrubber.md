@@ -1,6 +1,6 @@
 # Contract: view rail + sweep scrubber
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 **Owns:** `src/views/**`
 **Status:** NOT BEING BUILT AS SPECIFIED. The rail and canonical scrubber were **superseded by

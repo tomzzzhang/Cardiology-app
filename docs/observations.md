@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2310,9 +2310,10 @@ are untouched, and each pack has its own context.
 **The factor is greater than one, and that is the headline.** The chest was made 21 percent BIGGER,
 not smaller. A 14-year-old's heart needing a thorax larger than an adult male's is not a fact about
 adolescents: BodyParts3D's own heart is undersized for its own body (65.9 mm base-to-apex), and this
-pack's right ventricular lumen is 148.3 mL against an expected 60–100 mL and is recorded as
-unresolved. The fit inherits that. Uniformly scaled, the source body's 1719 mm skin height becomes
-2082 mm — a number with no meaning except as a reminder that this is a ratio fit and not a body.
+specimen's own outer transverse width is 140.1 mm. Uniformly scaled, the source body's 1719 mm skin
+height becomes 2082 mm — a number with no meaning except as a reminder that this is a ratio fit and
+not a body. *(Corrected 2026-08-22: this paragraph first blamed the factor on the pack's unresolved
+148.3 mL right ventricular lumen. It is not that, and entry 68 says why.)*
 
 **Where the apex lands.** The left mid-clavicular line sits at x = 92.2 mm; the measured LV apex
 lands at 81.5 mm, **10.7 mm medial** to it, and the heart's left border reaches 95.2 mm, crossing
@@ -2322,12 +2323,12 @@ an apex belongs. 74.4 percent of the heart is left of midline, against 68.8 for 
 
 **The first thing the uniform fit does not fix: the heart floats.** Clearances are 14.6 mm to the
 ribs, 14.8 mm to the sternum, 15.0 mm to the spine and 8.2 mm to the diaphragm, and **zero** of
-2,988,093 heart vertices sit below the diaphragm dome. In a real chest the right ventricle rests
-against the sternum and the heart sits ON the diaphragm — BodyParts3D's own heart overlaps its dome
-by 4.3 mm. This one is suspended in the middle of its cage. The scaling rule fixes SIZE, and nothing
-in it constrains where a chamber-centroid registration puts the heart front to back. Both facts are
-measured and reported; neither is repaired, because moving the heart to touch the sternum would be
-authoring a placement rather than measuring one.
+2,988,093 heart vertices sit below the diaphragm dome. In a real chest the heart sits ON the
+diaphragm — BodyParts3D's own heart overlaps its dome by 4.6 mm across 418 of its vertices. This one
+is suspended in the middle of its cage. The scaling rule fixes SIZE, and nothing in it constrains
+where a chamber-centroid registration puts the heart front to back. Both facts are measured and
+reported; neither is repaired, because moving the heart to touch would be authoring a placement
+rather than measuring one. Entry 68 measures how much of this the native pair shares.
 
 **The second: nothing about the ribs became age-correct.** A uniform scale multiplies every
 distance by one number and changes no angle and no proportion. The ribs still run at adult
@@ -2353,3 +2354,76 @@ they carry and why; reconciling them is an owner decision about both, not a pipe
 **Neither the pack nor the chest ships.** The bound pack is CC BY-NC 4.0 and `non_commercial`. The
 build filter and `check:published-packs` now cover `public/body-context/` the way they already
 covered `public/packs/`, so a context reaches `dist/` only when the pack it serves does.
+
+## 68. The fitted chest, checked against a real pair and a textbook — and two things I had wrong
+
+*(2026-08-22. Entry 67 asserted the fit; this one tests it. Every figure here is now re-derived by
+`placement_verification` in `pipeline/body_context.py` rather than written down once.)*
+
+**Orientation is right, and it is right for a reason the fit could not have forced.** A rigid fit on
+four chamber centroids is never told which way is down, where the sternum is, or that a heart leans
+left. Measured against BodyParts3D's own heart in the same chest, the placed long axis disagrees by
+**3.5 degrees** — 55.2 degrees of leftward tilt off the midsagittal plane against the native pair's
+52.0, and 44.1 degrees of anterior tilt off coronal against 44.3. All six chamber relations come out
+correct with margins in the same range as the native pair: RA right of LA 36.6 mm (native 39.8), RV
+right of LV 28.1 (18.4), RV anterior to LV 25.4 (30.8), LA posterior to RA 23.3 (33.7), atria above
+ventricles 25.4 (16.0). Against the textbook: 74.4 percent of the heart is left of midline where
+sources say about two thirds; the apex lands **10.7 mm medial to the left mid-clavicular line**,
+where sources put it "just medial to the midclavicular line", with the left border crossing that
+line by 2.9 mm against the native pair's 3.9 mm. Nothing about the orientation is in doubt.
+
+**Placement is not right, and the reason is shape, not scale.** Sources agree a heart *rests on the
+superior surface of the diaphragm*. This one clears the dome by 7.2 mm at every one of its 2,988,093
+vertices; the native heart overlaps its own dome by 4.6 mm across 418 of its. That is a difference of
+KIND. The sternal gap is 14.6 mm against the native pair's 7.15 mm — an excess of 7.4 mm, not the
+whole gap, because BodyParts3D's sternum is bone alone and the costal cartilages the right ventricle
+actually lies against are a different concept. So the honest claim is "7.4 mm further off than a real
+pair", not "not touching".
+
+**And no scale of either body fixes it.** At equal transverse width the placed heart is
+**depth/width 0.807 against the native pair's 0.919** — about a tenth shallower front to back. Walk
+the chest scale down and both gaps close, but the ratio goes with them: 1.2112 gives CTR 0.4911 with
+a 14.6 mm sternal gap; 1.15 gives 0.5180 and 10.1 mm; 1.10 gives 0.5422 and 7.8 mm; 1.05 gives 0.5686
+with the heart 0.4 mm off its diaphragm; and at **1.00 the heart erupts through the left ribs** (957
+points) before it ever reaches the sternum. You can have a normal cardiothoracic ratio or a heart
+that touches its own diaphragm. Not both.
+
+**Scaling the HEART buys exactly one thing, and it is not this.** The composite's relative geometry
+depends only on the ratio of the two scales, so moving the factor from chest to heart leaves the
+ratio, the orientation, the clearances and the contact gaps pixel-for-pixel identical and changes
+only the absolute size of the pair — a real adult-male-sized composite instead of a 2082 mm one. It
+is also not free: `frameToBody` carries every probe pose's `depthMm` and `focusMm` through the
+model-to-body transform **unchanged**, which is correct only at unit scale, so a scaled heart would
+show one size on screen and another in the echo's own depth scale. That is the dependency
+`body-context/v0` is protecting when it pins the scale to literal 1, and it is a live one at about a
+dozen call sites — not a schema nicety.
+
+**Two things entry 67 and the descriptor had wrong.**
+
+*The scale factor does not inherit the RV lumen figure.* The scale was solved against the heart's
+OUTER transverse width. The right ventricular lumen is an interior label, and repartitioning the
+inside of a tissue body cannot move its outer envelope. The width is 140.1 mm and it is the
+specimen's own — large for fourteen, about two standard deviations above the 115.3 ± 12.0 mm mean
+reported for 17–21 year olds, and inside the 155 mm upper limit of normal quoted for adult males.
+The Visible Heart Laboratories perfusion-fix their specimens with formalin **under pressure to hold
+an approximation of the end-diastolic state**, which is the fullest the chambers ever are. A wide
+heart needs a wide thorax to reach a normal ratio. That is the whole of the factor.
+
+*And 148.3 mL may not be the defect at all.* Against paediatric CMR reference equations for exactly
+the end-diastolic volumes this specimen was fixed at — RVEDV = 83.8 × BSA^1.469 and LVEDV = 77.5 ×
+BSA^1.380 for males — the pack's 148.3 mL right ventricle implies a body surface area of about
+**1.48 m²**, ordinary for a fourteen-year-old boy. Its 82.1 mL **left** ventricle implies about
+**1.04 m²**, which is not. The right-to-left lumen ratio is 1.81 where normal is near 1.1, and the
+left ventricular wall is labelled at 150.0 mL against 137.3 for the right. Read together those point
+at the left ventricular wall having been labelled inward at the expense of its own lumen — the same
+defect the pack already reports as its 1.09:1 wall ratio — rather than at an oversized right
+ventricle. This is an observation about the pack and changes nothing in it; repartitioning it is a
+separate decision, and this context does not depend on the answer.
+
+**One measurement method corrected too.** The descriptor called this pipeline's cardiothoracic
+denominator "the radiographic internal thoracic diameter". It is a proxy for it: the radiographic
+quantity is the inner rib margin at the level of the dome of the right hemidiaphragm, and this
+pipeline uses the pleural span at the heart's own height. Measured both ways on the native pair they
+differ by **0.0027** of ratio, so the proxy is fair — and it is now named as one, measured on every
+run, and flagged for the further gap no measurement here closes: the radiographic figure is read off
+a projected film with its own magnification, and these are true three-dimensional extents.

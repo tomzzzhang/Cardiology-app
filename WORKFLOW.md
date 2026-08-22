@@ -1,6 +1,6 @@
 # Project workflow
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 How work happens in this repository. Product intent, clinical context, decisions, and progress
 live in the owner's planning folder. Code and executable checks live here.

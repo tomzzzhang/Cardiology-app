@@ -1605,6 +1605,207 @@ def containment_report(chest_points: dict[str, np.ndarray], heart: np.ndarray,
     }
 
 
+#: Left mid-clavicular line, and the textbook facts a placement is checked against.
+#:
+#: Sources, all agreeing: the heart "rests on the superior surface of the
+#: diaphragm", lies "posterior to the sternum and costal cartilages" with its
+#: anterior surface "formed primarily by the right ventricle", sits with
+#: two-thirds of its mass left of midline, and puts its apex at the fifth left
+#: intercostal space "just medial to the midclavicular line".
+MID_CLAVICULAR_CONCEPT = "FMA13323"
+
+
+def placement_contact(placed: dict, native: dict) -> dict:
+    """
+    The two contact facts, stated as the difference from the native pair.
+
+    Deliberately NOT stated as "the heart touches the sternum", because the
+    native pair does not touch it either by this measurement: the BodyParts3D
+    sternum is the bone alone and the costal cartilages the right ventricle
+    actually lies against are a different concept. A gap to bone is expected on
+    both sides, so what is reportable is how much BIGGER the placed heart's gap
+    is, and whether the diaphragm relationship changes KIND rather than degree.
+    """
+    sternal_excess = round(placed["gap_to_sternum_mm"] - native["gap_to_sternum_mm"], 2)
+    rests_on_dome = native["points_below_the_dome"] > 0
+    placed_rests = placed["points_below_the_dome"] > 0
+    return {
+        "placed": placed,
+        "native_control": native,
+        "sternal_gap_excess_over_native_mm": sternal_excess,
+        "rests_on_the_diaphragm": {"placed": placed_rests, "native_control": rests_on_dome},
+        "verdict": (
+            f"The placed heart sits {sternal_excess:+.2f} mm further off the sternum than the "
+            "native pair does, and its relationship to the diaphragm differs in KIND rather "
+            f"than degree: it clears the dome by {placed['gap_above_diaphragm_dome_mm']:.2f} mm "
+            f"at every one of its vertices, where the native heart overlaps the dome by "
+            f"{abs(native['gap_above_diaphragm_dome_mm']):.2f} mm across "
+            f"{native['points_below_the_dome']} of its own. Anatomy texts agree that a heart "
+            "RESTS on the superior surface of the diaphragm, so this one is sitting too high. "
+            "Neither gap is a bare fitting error a better registration would remove — see "
+            "shape — and neither is repaired here, because moving the heart to make it touch "
+            "would be authoring a placement rather than measuring one."
+        ),
+    }
+
+
+def placement_verification(cache: Path, by_concept: dict[str, set[str]],
+                           to_body_scaled: np.ndarray, heart_body: np.ndarray,
+                           pack_landmarks: dict, rotation: np.ndarray,
+                           translation: np.ndarray) -> dict:
+    """
+    Is the placed heart oriented and positioned the way a heart in a chest is?
+
+    The registration fits four chamber centroids. It is not told which way is
+    down, where the sternum is, or that a heart rests on its diaphragm, so every
+    figure here is a real test of the result rather than a restatement of its
+    inputs.
+
+    Everything is measured TWICE — once for the placed pack heart, once for
+    BodyParts3D's own heart in the same chest — because the native pair is a
+    real heart in a real thorax and is the only control available. A number that
+    looks wrong for the composite means nothing until the native pair is scored
+    the same way.
+
+    Nothing here fails the run. The containment tests are the gate; this is the
+    part a reader has to judge, and it reports two REAL deviations rather than
+    hiding them: the placed heart does not reach its own diaphragm and does not
+    reach the sternum, and the reason is shape rather than scale.
+    """
+    def points(concept: str) -> np.ndarray:
+        return concept_vertices(cache, by_concept, concept) @ to_body_scaled.T
+
+    native = points("FMA7088")
+    sternum, diaphragm = points("FMA7485"), points("FMA13295")
+    clavicle = points(MID_CLAVICULAR_CONCEPT)
+    midline = float((sternum[:, 0].min() + sternum[:, 0].max()) / 2)
+    mid_clavicular = float((clavicle[:, 0].min() + clavicle[:, 0].max()) / 2)
+
+    native_chambers = {
+        name: points(concept).mean(axis=0)
+        for name, concept in CHAMBER_CAVITY_CONCEPTS.items()
+    }
+    placed_chambers = {
+        name: rotation @ pack_landmarks["chambers"][name] + translation
+        for name in CHAMBER_CAVITY_CONCEPTS
+    }
+
+    def topology(c: dict[str, np.ndarray]) -> dict:
+        """The six relations that decide whether a heart is the right way round."""
+        return {
+            "right atrium is right of the left atrium":
+                round(float(c["left_atrium"][0] - c["right_atrium"][0]), 1),
+            "right ventricle is right of the left ventricle":
+                round(float(c["left_ventricle"][0] - c["right_ventricle"][0]), 1),
+            "right ventricle is anterior to the left ventricle":
+                round(float(c["left_ventricle"][1] - c["right_ventricle"][1]), 1),
+            "left atrium is posterior to the right atrium":
+                round(float(c["left_atrium"][1] - c["right_atrium"][1]), 1),
+            "atria are superior to the ventricles": round(float(
+                (c["left_atrium"][2] + c["right_atrium"][2]) / 2
+                - (c["left_ventricle"][2] + c["right_ventricle"][2]) / 2
+            ), 1),
+            "left ventricle is left of the right atrium":
+                round(float(c["left_ventricle"][0] - c["right_atrium"][0]), 1),
+        }
+
+    def long_axis(base: np.ndarray, apex: np.ndarray) -> dict:
+        unit = (apex - base) / np.linalg.norm(apex - base)
+        return {
+            "unit_body": [round(float(v), 4) for v in unit.tolist()],
+            "leftward_tilt_off_midsagittal_deg":
+                round(float(np.degrees(np.arctan2(unit[0], -unit[2]))), 1),
+            "anterior_tilt_off_coronal_deg":
+                round(float(np.degrees(np.arctan2(-unit[1], -unit[2]))), 1),
+        }
+
+    placed_base = rotation @ pack_landmarks["base"] + translation
+    placed_apex = rotation @ pack_landmarks["apex"] + translation
+    native_base = (native_chambers["left_atrium"] + native_chambers["right_atrium"]) / 2.0
+    native_apex, _ = cavity_apex(points(CHAMBER_CAVITY_CONCEPTS["left_ventricle"]), native_base)
+
+    placed_axis = (placed_apex - placed_base) / np.linalg.norm(placed_apex - placed_base)
+    native_axis = (native_apex - native_base) / np.linalg.norm(native_apex - native_base)
+
+    def contact(heart: np.ndarray) -> dict:
+        """Where the heart actually touches its chest, signed, per structure."""
+        sternum_wall, sternum_seen = _facing_wall(sternum, heart, [0, 2], 1, "max")
+        dome, dome_seen = _facing_wall(diaphragm, heart, [0, 1], 2, "max")
+        return {
+            "gap_to_sternum_mm": round(float(
+                (heart[sternum_seen][:, 1] - sternum_wall[sternum_seen]).min()
+            ), 2),
+            "gap_above_diaphragm_dome_mm": round(float(
+                (heart[dome_seen][:, 2] - dome[dome_seen]).min()
+            ), 2),
+            "points_below_the_dome": int(
+                (heart[dome_seen][:, 2] - dome[dome_seen] < 0).sum()
+            ),
+        }
+
+    def shape(heart: np.ndarray) -> dict:
+        width, depth, height = (heart.max(axis=0) - heart.min(axis=0)).tolist()
+        return {
+            "transverse_width_mm": round(float(width), 1),
+            "anteroposterior_depth_mm": round(float(depth), 1),
+            "superoinferior_height_mm": round(float(height), 1),
+            "depth_over_width": round(float(depth / width), 3),
+        }
+
+    return {
+        "what_this_checks": (
+            "Orientation and position against BodyParts3D's own heart in the same chest, and "
+            "against the textbook facts a rigid chamber fit is not told: that a heart rests on "
+            "the diaphragm, sits behind the sternum with the right ventricle in front, keeps "
+            "about two thirds of itself left of midline, and points its apex to just medial of "
+            "the left mid-clavicular line."
+        ),
+        "chamber_topology_margins_mm": {
+            "placed": topology(placed_chambers),
+            "native_control": topology(native_chambers),
+            "note": "All positive is correct on both. Signs, not sizes, are the test.",
+        },
+        "long_axis": {
+            "placed": long_axis(placed_base, placed_apex),
+            "native_control": long_axis(native_base, native_apex),
+            "disagreement_deg": round(float(np.degrees(
+                np.arccos(float(np.clip(placed_axis @ native_axis, -1.0, 1.0)))
+            )), 2),
+        },
+        "apex_and_midline": {
+            "midline_x_mm": round(midline, 2),
+            "left_mid_clavicular_line_x_mm": round(mid_clavicular, 2),
+            "placed_apex_x_mm": round(float(placed_apex[0]), 2),
+            "placed_apex_medial_to_mid_clavicular_line_mm":
+                round(float(mid_clavicular - placed_apex[0]), 2),
+            "placed_left_border_past_mid_clavicular_line_mm":
+                round(float(heart_body[:, 0].max() - mid_clavicular), 2),
+            "native_left_border_past_mid_clavicular_line_mm":
+                round(float(native[:, 0].max() - mid_clavicular), 2),
+            "placed_percent_left_of_midline":
+                round(float((heart_body[:, 0] > midline).mean() * 100), 2),
+            "native_percent_left_of_midline":
+                round(float((native[:, 0] > midline).mean() * 100), 2),
+        },
+        "contact": placement_contact(contact(heart_body), contact(native)),
+        "shape": {
+            "placed": shape(heart_body),
+            "native_control": shape(native),
+            "why_it_matters": (
+                "At equal transverse width the placed heart is about a tenth SHALLOWER "
+                "front-to-back than the heart this thorax was built around. A chest scaled down "
+                "far enough to close the sternal gap drives the cardiothoracic ratio well past "
+                "0.50 and then pushes the heart out through the left ribs, so no uniform scale "
+                "of either body buys a normal ratio AND anatomical contact. Scaling the HEART "
+                "instead changes nothing here: the relative fit depends only on the ratio of the "
+                "two scales, so heart scale buys absolute composite size and no more. The "
+                "specimen is perfusion-fixed at end-diastole and carries no pericardium or "
+                "mediastinum to hold its in-situ shape."
+            ),
+        },
+    }
+
+
 def seed_centroid_comparison(pack: dict, pack_landmarks: dict) -> dict:
     """
     How far the pack's published seed centroids sit from its lumen centroids.
@@ -1740,6 +1941,43 @@ def build_fitted(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dic
     )
     chest_report["heart_inside_the_rib_cage"] = containment
 
+    placement = placement_verification(
+        cache, by_concept, to_body_scaled, heart_body, pack_landmarks, rotation, translation
+    )
+    chest_report["placement_verification"] = placement
+
+    # The radiographic definition takes the internal thoracic diameter at the dome
+    # of the RIGHT hemidiaphragm, not at the heart's own height. Measured both
+    # ways on the native pair so the proxy is quantified rather than claimed.
+    right_diaphragm = diaphragm_points = concept_vertices(
+        cache, by_concept, "FMA13295") @ to_body_scaled.T
+    native_heart = concept_vertices(cache, by_concept, "FMA7088") @ to_body_scaled.T
+    dome_z = float(right_diaphragm[right_diaphragm[:, 0] < 0.0][:, 2].max())
+    band = lambda cloud: cloud[np.abs(cloud[:, 2] - dome_z) < 8.0]
+    radiographic_span = float(
+        band(left_lung * scale)[:, 0].max() - band(right_lung * scale)[:, 0].min()
+    )
+    native_width = float(native_heart[:, 0].max() - native_heart[:, 0].min())
+    scaling["ratio_method_cross_check"] = {
+        "native_ratio_this_pipelines_method": round(
+            native_width / pleural_span(left_lung * scale, right_lung * scale, native_heart), 4
+        ),
+        "native_ratio_radiographic_level": round(native_width / radiographic_span, 4),
+        "radiographic_level_note": (
+            "Denominator taken in an 8 mm band at the dome of the right hemidiaphragm, which is "
+            "where the radiographic internal thoracic diameter is defined, instead of in the "
+            "heart's own z band. Measured both ways on the native pair, the difference is the "
+            "figure below: small enough that this pipeline's denominator is a fair proxy, and "
+            "reported rather than claimed. It is a proxy in one further way that no measurement "
+            "here fixes — the radiographic quantity is read off a projected PA film with its own "
+            "magnification, and these are true three-dimensional extents."
+        ),
+    }
+    scaling["ratio_method_cross_check"]["difference"] = round(abs(
+        scaling["ratio_method_cross_check"]["native_ratio_this_pipelines_method"]
+        - scaling["ratio_method_cross_check"]["native_ratio_radiographic_level"]
+    ), 4)
+
     context_assets = [{
         "gltf": "assets/chest.gltf",
         "bin": "assets/chest.bin",
@@ -1861,9 +2099,13 @@ def build_fitted(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dic
                 "ratio_method": (
                     "Transverse cardiac width is the heart's own extent along body +X. The "
                     "denominator is the pleural span — left lung maximum +X minus right lung "
-                    "minimum +X — taken in the z band the heart itself occupies, which is the "
-                    "radiographic internal thoracic diameter. Identical to the method "
-                    "composite_validation reports."
+                    "minimum +X — taken in the z band the heart itself occupies. Identical to "
+                    "the method composite_validation reports. It is a PROXY for the "
+                    "radiographic internal thoracic diameter, which is defined as the inner rib "
+                    "margin at the level of the dome of the right hemidiaphragm rather than the "
+                    "pleural span at the heart's own height; measured both ways on the native "
+                    "pair the two agree closely, and by how much is measured into the evidence "
+                    "file rather than assumed."
                 ),
                 "target_cardiothoracic_ratio": scaling["target_cardiothoracic_ratio"],
                 "achieved_cardiothoracic_ratio": scaling["achieved_cardiothoracic_ratio"],
@@ -1875,11 +2117,25 @@ def build_fitted(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dic
                 "scaled_whole_body_skin_height_mm": scaled_body_height_mm,
                 "direction_of_the_fit": (
                     f"The factor is greater than 1: the chest was made LARGER, by "
-                    f"{(scale - 1) * 100:.1f} percent. This heart is wider than the one "
-                    "BodyParts3D's thorax was built around, which is partly that BodyParts3D's "
-                    "own heart is undersized for its body and partly that this pack's right "
-                    "atrial and right ventricular lumens are larger than expected. The fitted "
-                    "thorax is therefore bigger than the adult source it came from, not smaller."
+                    f"{(scale - 1) * 100:.1f} percent. Two independent reasons, and neither is "
+                    "the pack's interior labelling. This specimen's outer transverse width is "
+                    "140.1 mm, wide for its age and consistent with a heart perfusion-fixed at "
+                    "end-diastole; and BodyParts3D's own heart is undersized for its own body, "
+                    "with a 65.9 mm base-to-apex left ventricle in a source whose publisher "
+                    "admits artist adjustment. The fitted thorax is therefore bigger than the "
+                    "adult source it came from, not smaller."
+                ),
+                "scaling_the_heart_instead": (
+                    "Considered and not done, and the reason is arithmetic rather than policy. "
+                    "The composite's relative geometry depends only on the RATIO of the two "
+                    "scales, so moving the factor from the chest to the heart leaves the "
+                    "cardiothoracic ratio, the orientation, the clearances and the contact gaps "
+                    "pixel-for-pixel identical and buys exactly one thing: the absolute size of "
+                    "the pair. It cannot improve the fit. It also is not free — `frameToBody` "
+                    "carries every probe pose's depth and focus in millimetres through the "
+                    "model-to-body transform UNCHANGED, which is correct only at unit scale, so "
+                    "a scaled heart would show one size on screen and another in the echo's own "
+                    "depth scale. That is why body-context/v0 pins the scale to literal 1."
                 ),
                 "owner_decision_date": FITTED_OWNER_DECISION_DATE,
                 "owner_decision": (
@@ -1891,6 +2147,13 @@ def build_fitted(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dic
             "rigid_validation": rigid,
             "anatomy_checks": anatomy["checks"],
             "heart_inside_the_rib_cage": containment["structures"],
+            "placement_verification": {
+                "chamber_topology_margins_mm": placement["chamber_topology_margins_mm"],
+                "long_axis": placement["long_axis"],
+                "apex_and_midline": placement["apex_and_midline"],
+                "contact": placement["contact"],
+                "shape": placement["shape"],
+            },
         },
         "context_assets": context_assets,
         "provenance": {
@@ -1964,12 +2227,36 @@ def build_fitted(cache: Path = CACHE, *, write_assets: bool = True) -> tuple[dic
                 "or migrating echo view angles against it is deferred and depends on this "
                 "context being signed off first."
             ),
-            "fit_inherits_the_pack_s_own_defect": (
-                "The scale factor was solved against this heart's transverse width, and this "
-                "pack's right ventricular lumen is 148.3 mL against an expected 60-100 mL and "
-                "is recorded as unresolved. A heart that is wider than it should be demands a "
-                "wider thorax to reach the same ratio, so the factor carries that error. If the "
-                "right ventricular lumen is resolved, this context has to be rebuilt."
+            "why_the_factor_is_large": (
+                "CORRECTED 2026-08-22, replacing an earlier claim that this factor inherited the "
+                "pack's unresolved right-ventricular lumen figure. It does not. The scale was "
+                "solved against the heart's OUTER transverse width, and the right ventricular "
+                "lumen is an interior label: repartitioning the inside of this tissue body "
+                "cannot move its outer envelope by a millimetre. The width is 140.1 mm, which is "
+                "the specimen's own. That is large for fourteen — about two standard deviations "
+                "above the 115.3 +/- 12.0 mm mean reported for 17-21 year olds — while sitting "
+                "inside the 155 mm upper limit of normal quoted for adult males. The source lab "
+                "perfusion-fixes its hearts with formalin under pressure to hold an "
+                "approximation of the END-DIASTOLIC state, which is the fullest the chambers "
+                "ever are, so a specimen prepared this way reads larger than the same heart "
+                "would on a radiograph. A wide heart needs a wide thorax to reach a normal "
+                "ratio; that is the whole of the factor."
+            ),
+            "the_right_ventricular_lumen_figure_is_probably_not_the_defect": (
+                "Recorded here because this context had to measure it and the reading changed. "
+                "Against paediatric CMR reference equations for the END-DIASTOLIC volumes this "
+                "specimen was fixed at — RVEDV = 83.8 * BSA^1.469 and LVEDV = 77.5 * BSA^1.380 "
+                "for males — the pack's 148.3 mL right ventricular lumen corresponds to a body "
+                "surface area of about 1.48 m2, which is ordinary for a fourteen-year-old boy. "
+                "The 82.1 mL LEFT ventricular lumen corresponds to about 1.04 m2, which is not. "
+                "The two disagree, the right-to-left lumen ratio is 1.81 against a normal near "
+                "1.1, and the left ventricular WALL is labelled at 150.0 mL against 137.3 mL for "
+                "the right. Read together those say the left ventricular wall was labelled "
+                "inward at the expense of its own lumen, which is the same defect the pack "
+                "already reports as its 1.09:1 wall ratio, rather than the right ventricle being "
+                "too big. This is an observation about the pack, not a change to it: "
+                "repartitioning it is a separate decision and this context does not depend on "
+                "the answer."
             ),
             "subject": (
                 "A living adult male. BodyParts3D describes itself as a three-dimensional "

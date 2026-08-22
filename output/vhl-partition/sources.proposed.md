@@ -1,6 +1,6 @@
 # Proposed delta — `pipeline/sources.py`
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 Target document: `pipeline/sources.py`, the `normal-vhl-heart0102` source entry.
 Written as a proposal, not applied. **The owner applies it or discards it.**

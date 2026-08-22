@@ -1,6 +1,6 @@
 # Contract: pack-loader
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 **Owns:** `src/schema/**`, `src/packs/**`, `scripts/validate-packs.ts`, `scripts/check-provenance.ts`
 **Status:** implemented in wave 0; extended to **v0.1** (2026-08-19) so the pack system can carry

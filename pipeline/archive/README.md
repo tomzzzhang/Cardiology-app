@@ -1,6 +1,6 @@
 # Superseded wall-labelling
 
-**Last Updated:** 2026-08-22 11:52 EDT
+**Last Updated:** 2026-08-22 12:45 EDT
 
 Kept for provenance, not imported by anything.
 
