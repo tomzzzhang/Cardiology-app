@@ -373,6 +373,38 @@ body {
   min-width: 4rem;
 }
 
+/* AUTHORING ONLY: the transducer is not standing on the patient.
+
+   Over the viewport rather than under the controls, because the thing it
+   contradicts — a confident-looking sector with an echo beside it — is in the
+   viewport. Plain: a bordered strip with the number in it, no icon, no colour
+   that means alarm. An off-skin pose is a normal work-in-progress in an
+   authoring tool and this is a statement of fact about it, not an error.
+
+   Pointer-transparent, so it never eats a drag meant for the camera; and
+   top-left, which is the one corner the probe pad and the depth markers do not
+   use. */
+.viewer__off-skin {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  max-width: 30rem;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #6d5a3a;
+  border-radius: 6px;
+  background: rgba(11, 15, 20, 0.92);
+  color: #e0c79a;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.viewer__off-skin strong {
+  color: #f0dcb4;
+}
+
 /*
  * The chest failed to load, and the app says so instead of quietly showing a
  * heart with no context and no explanation.

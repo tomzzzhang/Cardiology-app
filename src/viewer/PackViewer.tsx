@@ -63,6 +63,7 @@ import {
   type RigidTransform,
 } from './bodyFrame.ts';
 import { loadChestContext, type ChestContext, type ChestControl } from './chestContext.ts';
+import { SKIN_CONTACT_TOLERANCE_MM } from './skinContact.ts';
 import {
   AUTHORING_GLIDE_MS,
   GLIDE_MS,
@@ -382,6 +383,19 @@ export default function PackViewer({
   });
   const [skinOpacity, setSkinOpacity] = useState(0.06);
   const [chestFailed, setChestFailed] = useState(false);
+  /*
+   * AUTHORING: the loaded chest, reachable from render.
+   *
+   * The scene effect holds the chest in a closure, which is right for
+   * everything the scene does with it. The off-skin badge is React, it is
+   * recomputed when the POSE changes rather than when the scene rebuilds, and
+   * the measurement it needs is on the chest — so the chest is also parked in a
+   * ref, and `skinMeasurable` is the render-visible signal that there is now a
+   * skin surface to measure against. Two values because a ref does not trigger
+   * a render and a boolean cannot answer a distance query.
+   */
+  const chestRef = useRef<ChestContext | null>(null);
+  const [skinMeasurable, setSkinMeasurable] = useState(false);
   /*
    * The model's reach is no longer needed in React — the depth slider it
    * bounded is gone, and the shift-wheel's clamp lives in the scene where the
@@ -1819,6 +1833,8 @@ export default function PackViewer({
                 return;
               }
               chest = context;
+              chestRef.current = context;
+              if (AUTHORING_ENABLED) setSkinMeasurable(context.hasSkinSurface);
               context.setVisible(chestShown);
               scene.add(context.object);
               host.dataset.chest = 'loaded';
@@ -2176,6 +2192,8 @@ export default function PackViewer({
     return () => {
       chest?.dispose();
       chest = null;
+      chestRef.current = null;
+      if (AUTHORING_ENABLED) setSkinMeasurable(false);
       delete host.dataset.chest;
       disposed = true;
       controller.abort();
@@ -2384,6 +2402,54 @@ export default function PackViewer({
   const view = pack.views[viewIndex];
   const echoMode = mode === 'echo';
   const imagingEchoMode = echoMode && imagingActive;
+
+  /**
+   * AUTHORING ONLY: how far the pose on screen is from the patient, when that
+   * is more than contact.
+   *
+   * `scripts/check-probe-on-skin.ts` gates the poses a PACK carries, and by
+   * design it cannot reach two things: a free pose, which is not in any pack,
+   * and the `INGEST` family, which is excluded by definition because an ingest
+   * reference pose is derived from a bounding sphere and claims no window. The
+   * exclusion is right and stays. What was wrong is what the viewer then did
+   * with such a pose — `normal-vhl-heart0102-chambers`'s reference pose sits
+   * 92.31 mm off the skin and was drawn a full sector with a simulated echo
+   * under it, which is a picture of nothing presented exactly like a picture of
+   * something.
+   *
+   * So the viewer states the measurement instead. Same tolerance and same
+   * point-to-triangle distance as the gate, from `skinContact.ts`, so the two
+   * cannot come to disagree about what contact means; measured on whatever pose
+   * is DRIVING the image, free or locked, for the same reason "Match echo"
+   * faces the plane on screen rather than the one the pack authored.
+   *
+   * AUTHORING only, and not because a learner deserves less of the truth — the
+   * opposite. A pose off the skin is a normal work-in-progress here, where the
+   * job is moving a transducer until it is right, so it is labelled rather than
+   * refused. It must never reach a learner at all, which is what the gate and
+   * the archived learner build are for. With the flag off this whole block
+   * folds away.
+   *
+   * Null whenever there is nothing to say: no body context bound, no chest
+   * loaded yet, no probe on screen, or a transducer that is in contact.
+   */
+  const offSkinMm = useMemo(() => {
+    if (!AUTHORING_ENABLED) return null;
+    if (!imagingEchoMode || !skinMeasurable) return null;
+    const chest = chestRef.current;
+    if (chest === null) return null;
+
+    const origin = freePose !== null
+      ? imagingFrame(freePose).origin
+      : view !== undefined ? frameAt(view.probe, view.sweep, scrub).origin : null;
+    if (origin === null) return null;
+
+    const [x, y, z] = pointToBody(modelToBody, origin);
+    const distance = chest.distanceToSkinMm(new THREE.Vector3(x, y, z));
+    if (distance === null || distance <= SKIN_CONTACT_TOLERANCE_MM) return null;
+    return distance;
+  }, [imagingEchoMode, skinMeasurable, freePose, view, scrub, modelToBody]);
+
   /**
    * In Echo plane mode the cut IS the imaging plane, so there is no depth to
    * choose: the slider is disabled rather than removed, so the control the
@@ -2812,6 +2878,34 @@ export default function PackViewer({
           <p className="viewer__message" data-testid="anatomy-unavailable">
             The 3D anatomy view needs WebGL, which this browser did not provide. The rest of the
             page still works.
+          </p>
+        )}
+
+        {/*
+          * AUTHORING: the transducer is not on the patient.
+          *
+          * A plain badge with the measured number in it, not a modal and not a
+          * refusal — placing a probe means passing through poses that are not
+          * yet right, and an authoring tool that argued with every one of them
+          * would be unusable. What it must not do is let the sector and the
+          * echo under it go on looking like an image of something.
+          *
+          * Nothing else changes: the sector is still drawn, the echo still
+          * renders, the pose is still saveable. The gate is what stops an
+          * off-skin pose becoming a canon-family view in a pack, and the
+          * archived learner build is what stops it being shown to anyone. This
+          * is only the viewer no longer keeping quiet about it.
+          */}
+        {AUTHORING_ENABLED && offSkinMm !== null && (
+          <p
+            className="viewer__off-skin"
+            data-testid="off-skin-badge"
+            data-off-skin-mm={offSkinMm.toFixed(2)}
+          >
+            <strong>Off the patient — this pose images nothing.</strong>
+            {' '}
+            The transducer is {offSkinMm.toFixed(1)} mm from the skin, past the{' '}
+            {SKIN_CONTACT_TOLERANCE_MM} mm contact tolerance; ultrasound does not cross an air gap.
           </p>
         )}
 

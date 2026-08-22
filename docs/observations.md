@@ -2566,7 +2566,7 @@ right-parasternal bicaval put its 66.05 mm clear, and both drew a confident sect
 image under it. *(Corrected 2026-08-22: these two first read 92.6 mm and 66.5 mm, which are
 nearest-VERTEX distances — 92.55 mm and 66.51 mm exactly — in an entry whose whole argument is that
 vertex distance is the wrong measure. Both figures are now the point-to-TRIANGLE distance this gate
-actually computes, re-derived by running the gate's own `distanceToSkin` against F1 at
+actually computes, re-derived by running the gate's own point-to-triangle code against F1 at
 `normal-rodero` v0.1.4, the revision it was withdrawn from, and against
 `normal-vhl-heart0102-chambers`/`ingest-reference-pose` as it stands. The correction does not
 change the conclusion: both are more than an order of magnitude past the 5 mm tolerance.)* Nothing in the repository checked the most basic fact about transthoracic

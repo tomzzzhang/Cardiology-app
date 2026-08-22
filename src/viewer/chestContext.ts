@@ -41,6 +41,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import type { ContextGroup } from '../schema/bodyContextV0.ts';
+import { distanceToSurfaceMm, type Point3 } from './skinContact.ts';
 
 /** How each group is drawn by default. Provisional and freely reversible. */
 export interface GroupStyle {
@@ -99,6 +100,25 @@ export interface ChestContext {
   readonly object: THREE.Group;
   /** Enclosing radius about a point, for the explicit Fit action only. */
   radiusAbout(point: THREE.Vector3): number;
+  /**
+   * Distance in millimetres from a BODY-space point to the skin surface, or
+   * null when this chest ships no skin group.
+   *
+   * The one thing the chest is allowed to measure, and the exception proves the
+   * rule above: the chest is never part of heart bounds, pivot, framing or
+   * probe CLEARANCE — how close a transducer may stand to TISSUE is measured
+   * from heart geometry and always will be. This is the opposite question. It
+   * asks whether the transducer is standing on the patient at all, and skin is
+   * the only surface that can answer it.
+   *
+   * Point-to-TRIANGLE, the same measure `scripts/check-probe-on-skin.ts`
+   * applies to a pack's authored views, from the same module — see
+   * `skinContact.ts`. Visibility is irrelevant: hiding the skin does not move
+   * it, so this reads the loaded geometry rather than what is drawn.
+   */
+  distanceToSkinMm(point: THREE.Vector3): number | null;
+  /** Whether there is a skin surface to measure against at all. */
+  readonly hasSkinSurface: boolean;
   setVisible(on: boolean): void;
   setGroupVisible(control: ChestControl, on: boolean): void;
   setSkinOpacity(opacity: number): void;
@@ -170,6 +190,41 @@ export async function loadChestContext(url: string): Promise<ChestContext> {
 
   root.add(gltf.scene);
 
+  /*
+   * The skin, flattened to body-space triangles once at load.
+   *
+   * Extracted here rather than read out of the meshes on every query, because
+   * the query runs when a probe moves and walking the scene graph per pose to
+   * rebuild the same 30,000 triangles would be work with no answer in it. The
+   * world matrices are resolved first: the group carries no transform today,
+   * and a measurement that silently assumed that would be wrong the day one
+   * arrives.
+   */
+  root.updateMatrixWorld(true);
+  const skinSurface = ((): { positions: Float32Array; indices: Uint32Array } | null => {
+    const parts = meshes.get('skin') ?? [];
+    const positions: number[] = [];
+    const indices: number[] = [];
+    const vertex = new THREE.Vector3();
+    for (const mesh of parts) {
+      const attribute = mesh.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+      if (!attribute) continue;
+      const base = positions.length / 3;
+      for (let i = 0; i < attribute.count; i += 1) {
+        vertex.fromBufferAttribute(attribute, i).applyMatrix4(mesh.matrixWorld);
+        positions.push(vertex.x, vertex.y, vertex.z);
+      }
+      const index = mesh.geometry.getIndex();
+      if (index) {
+        for (let i = 0; i < index.count; i += 1) indices.push(base + index.getX(i));
+      } else {
+        for (let i = 0; i < attribute.count; i += 1) indices.push(base + i);
+      }
+    }
+    if (indices.length < 3) return null;
+    return { positions: Float32Array.from(positions), indices: Uint32Array.from(indices) };
+  })();
+
   const setGroup = (group: ContextGroup, on: boolean) => {
     for (const mesh of meshes.get(group) ?? []) mesh.visible = on;
   };
@@ -177,6 +232,12 @@ export async function loadChestContext(url: string): Promise<ChestContext> {
   return {
     object: root,
     groups: [...meshes.keys()],
+    hasSkinSurface: skinSurface !== null,
+    distanceToSkinMm(point) {
+      if (skinSurface === null) return null;
+      const at: Point3 = [point.x, point.y, point.z];
+      return distanceToSurfaceMm(at, skinSurface.positions, skinSurface.indices);
+    },
     radiusAbout(point) {
       let furthest = 0;
       const vertex = new THREE.Vector3();

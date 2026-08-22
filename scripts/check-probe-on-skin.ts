@@ -16,7 +16,7 @@
  * rendered a confident-looking sector in the viewer. *(Corrected 2026-08-22:
  * these first read 66.5 mm and 92.6 mm, which are nearest-VERTEX distances, in a
  * header that goes on to explain why vertex distance is the wrong measure. They
- * are now what `distanceToSkin` below returns for F1 at `normal-rodero` v0.1.4
+ * are now what `distanceToSurfaceMm` returns for F1 at `normal-rodero` v0.1.4
  * and for the chamber pack's ingest reference pose as it stands.)*
  *
  * ## What it checks, and what it deliberately does not
@@ -45,6 +45,12 @@
  * its vertices are millimetres apart; a probe genuinely resting on the surface
  * can be several millimetres from the nearest vertex, and a vertex-based test
  * would fail correct poses and pass nothing useful in exchange.
+ *
+ * The tolerance and the distance function live in `src/viewer/skinContact.ts`
+ * so that the authoring viewer measures the pose on screen the way this gate
+ * measures the pose in the pack. Only their location moved: what this file
+ * checks, the canon-family filter and the exclusion of the `INGEST` family are
+ * unchanged.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -53,26 +59,25 @@ import { fileURLToPath } from 'node:url';
 import { contextIdForPack } from '../src/packs/loadBodyContext.ts';
 import { readBodyContext } from '../src/schema/bodyContextV0.ts';
 import { validatePack } from '../src/schema/validate.ts';
+import {
+  SKIN_CONTACT_TOLERANCE_MM, distanceToSurfaceMm, type Point3,
+} from '../src/viewer/skinContact.ts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
  * How far a probe origin may sit from the skin surface, in millimetres.
  *
- * Not zero, and the reason is measurement rather than generosity: the shipped
- * skin is a decimated surface and a real transducer couples through gel. But it
- * is tight, because the measurement below is point-to-SURFACE: of the fourteen
- * poses actually placed against this body, thirteen sit under 0.1 mm from it and
- * the widest — an aperture `pipeline/migrate_apertures.py` slid onto the wall
- * along its own beam — sits at 3.16 mm. Five millimetres accepts all of them
- * with room to spare and rejects anything that is not in contact.
+ * `SKIN_CONTACT_TOLERANCE_MM`, imported rather than written here so that the
+ * viewer's off-skin badge and this gate cannot come to disagree about what
+ * contact means. The reasoning for the number is at its definition.
  */
-const TOLERANCE_MM = 5;
+const TOLERANCE_MM = SKIN_CONTACT_TOLERANCE_MM;
 
 /** Families from `docs/view_canon.md`. Anything else makes no window claim. */
 const CANON_FAMILIES = new Set(['A', 'B', 'C', 'D', 'E', 'F']);
 
-type Vec3 = readonly [number, number, number];
+type Vec3 = Point3;
 
 /** Skin positions and triangle indices, from the context's own chest asset. */
 function readSkinSurface(contextDir: string, gltfPath: string, binName: string): {
@@ -108,61 +113,6 @@ function readSkinSurface(contextDir: string, gltfPath: string, binName: string):
   const positions = read(primitive.attributes.POSITION) as Float32Array;
   const raw = read(primitive.indices);
   return { positions, indices: Uint32Array.from(raw) };
-}
-
-/** Squared distance from a point to one triangle. */
-function pointTriangleSquared(p: Vec3, a: Vec3, b: Vec3, c: Vec3): number {
-  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-  const ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-  const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
-
-  const d1 = ab[0] * ap[0] + ab[1] * ap[1] + ab[2] * ap[2];
-  const d2 = ac[0] * ap[0] + ac[1] * ap[1] + ac[2] * ap[2];
-  let u = 0;
-  let v = 0;
-  if (!(d1 <= 0 && d2 <= 0)) {
-    const bp = [p[0] - b[0], p[1] - b[1], p[2] - b[2]];
-    const d3 = ab[0] * bp[0] + ab[1] * bp[1] + ab[2] * bp[2];
-    const d4 = ac[0] * bp[0] + ac[1] * bp[1] + ac[2] * bp[2];
-    const cp = [p[0] - c[0], p[1] - c[1], p[2] - c[2]];
-    const d5 = ab[0] * cp[0] + ab[1] * cp[1] + ab[2] * cp[2];
-    const d6 = ac[0] * cp[0] + ac[1] * cp[1] + ac[2] * cp[2];
-    const vc = d1 * d4 - d3 * d2;
-    const vb = d5 * d2 - d1 * d6;
-    const va = d3 * d6 - d5 * d4;
-
-    if (d3 >= 0 && d4 <= d3) { u = 1; v = 0; }
-    else if (d6 >= 0 && d5 <= d6) { u = 0; v = 1; }
-    else if (vc <= 0 && d1 >= 0 && d3 <= 0) { u = d1 / (d1 - d3); v = 0; }
-    else if (vb <= 0 && d2 >= 0 && d6 <= 0) { u = 0; v = d2 / (d2 - d6); }
-    else if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) {
-      const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-      u = 1 - w; v = w;
-    } else {
-      const denom = 1 / (va + vb + vc);
-      u = vb * denom; v = vc * denom;
-    }
-  }
-
-  const q = [a[0] + ab[0] * u + ac[0] * v, a[1] + ab[1] * u + ac[1] * v,
-    a[2] + ab[2] * u + ac[2] * v];
-  const dx = p[0] - q[0]; const dy = p[1] - q[1]; const dz = p[2] - q[2];
-  return dx * dx + dy * dy + dz * dz;
-}
-
-function distanceToSkin(point: Vec3, positions: Float32Array, indices: Uint32Array): number {
-  let best = Infinity;
-  for (let i = 0; i < indices.length; i += 3) {
-    const ia = indices[i] * 3; const ib = indices[i + 1] * 3; const ic = indices[i + 2] * 3;
-    const squared = pointTriangleSquared(
-      point,
-      [positions[ia], positions[ia + 1], positions[ia + 2]],
-      [positions[ib], positions[ib + 1], positions[ib + 2]],
-      [positions[ic], positions[ic + 1], positions[ic + 2]],
-    );
-    if (squared < best) best = squared;
-  }
-  return Math.sqrt(best);
 }
 
 const packsDir = join(repoRoot, 'public', 'packs');
@@ -216,7 +166,7 @@ for (const packId of [...new Set(
       rotation[3] * x + rotation[4] * y + rotation[5] * z + translation[1],
       rotation[6] * x + rotation[7] * y + rotation[8] * z + translation[2],
     ];
-    const distance = distanceToSkin(body, positions, indices);
+    const distance = distanceToSurfaceMm(body, positions, indices);
     const label = `${packId} / ${view.view_id}`;
     if (distance > TOLERANCE_MM) {
       failures.push(

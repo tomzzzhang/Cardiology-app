@@ -1,6 +1,6 @@
 # Contract: viewer-core
 
-**Last Updated:** 2026-08-22 14:47 EDT
+**Last Updated:** 2026-08-22 15:41 EDT
 
 **Owns:** `src/viewer/**`
 **Status:** implemented for the wave 1c slice. Superseded clauses are marked below; where this
@@ -97,6 +97,21 @@ The heart is the subject and the chest is scenery, and each of these is a rule:
 - never labelled in Echo;
 - never part of heart bounds, pivot, default framing or probe clearance. **Fit chest** is an
   explicit action and never becomes the default; `Reset` returns to the heart's framing.
+
+**The one measurement the chest is allowed, and it is not clearance.** *(Added 2026-08-22.)* In the
+AUTHORING build only, when a body context with a chest is bound, the viewer measures the distance
+from the pose currently DRIVING the image — free or locked — to the skin, and when that exceeds the
+contact tolerance it shows a plain badge naming the distance and saying the pose images nothing.
+Same tolerance and same point-to-triangle distance as `scripts/check-probe-on-skin.ts`, from
+`src/viewer/skinContact.ts`, so the badge and the gate cannot come to disagree.
+
+This does not weaken the rule above. Probe CLEARANCE is how close a transducer may stand to TISSUE,
+it is measured from heart geometry, and it stays that way. This is the opposite question — whether
+the transducer is on the patient at all — and skin is the only surface that can answer it. Nothing
+else changes: the sector is still drawn, the echo still renders, the pose is still saveable, and
+the gate remains what stops an off-skin pose becoming a canon-family view in a pack. The badge is
+authoring-only because an off-skin pose is a normal work-in-progress there and must never reach a
+learner at all.
 
 Load failure leaves the heart and the echo fully working and says so on screen. Colour, opacity and
 default visibility are provisional and freely reversible; they are display choices, not clinical
