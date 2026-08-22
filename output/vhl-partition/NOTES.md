@@ -1,6 +1,6 @@
 # VHL heart0102 partition experiment — technical findings
 
-**Last Updated:** 2026-08-22 10:33 EDT
+**Last Updated:** 2026-08-22 11:52 EDT
 
 Branch `experiment/vhl-partition`, cut from `dev` at `294751faf124b79693cae99d9335e881189a032c`.
 

@@ -1,6 +1,6 @@
 # Proposed delta 5 — `normal-vhl-heart0102` orientation block
 
-**Last Updated:** 2026-08-22 10:33 EDT
+**Last Updated:** 2026-08-22 11:52 EDT
 **Status:** PROPOSED, NOT APPLIED. Nothing in `public/packs/` has been edited.
 **Applies to:** `public/packs/normal-vhl-heart0102/pack.json`
 **Companion:** `sources.proposed.md` holds deltas 1-4. This is the fifth, owed since

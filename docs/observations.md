@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-22 10:33 EDT
+**Last Updated:** 2026-08-22 11:52 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2294,3 +2294,62 @@ bound to this pack, and no view has been authored or probe placed on it — its 
 mechanical ingest reference pose, flagged Draft and explicitly not clinical. The original
 `normal-vhl-heart0102` is byte-unchanged and stays as the 2026-08-19 substrate-rejection evidence;
 this derivative does not overturn that verdict, it sits beside it.
+
+## 67. A chest fitted to this heart, and the two things the fit does not fix
+
+*(2026-08-22.)*
+
+**What to look at.** Load `?pack=normal-vhl-heart0102-chambers`, tick **Show chest**, then press
+**Fit chest**. The chamber-labelled heart now sits inside a thorax that was sized for it:
+`fitted-chest-bp3d-heart0102-chambers` is the same BodyParts3D source as the adult chest, scaled
+uniformly by **1.211184** until the heart occupies the same fraction of the thorax that
+BodyParts3D's own heart occupies in its own — cardiothoracic ratio **0.4911** against a target of
+0.4911, the same measurement the adult composite reports. The adult chest and its Rodero binding
+are untouched, and each pack has its own context.
+
+**The factor is greater than one, and that is the headline.** The chest was made 21 percent BIGGER,
+not smaller. A 14-year-old's heart needing a thorax larger than an adult male's is not a fact about
+adolescents: BodyParts3D's own heart is undersized for its own body (65.9 mm base-to-apex), and this
+pack's right ventricular lumen is 148.3 mL against an expected 60–100 mL and is recorded as
+unresolved. The fit inherits that. Uniformly scaled, the source body's 1719 mm skin height becomes
+2082 mm — a number with no meaning except as a reminder that this is a ratio fit and not a body.
+
+**Where the apex lands.** The left mid-clavicular line sits at x = 92.2 mm; the measured LV apex
+lands at 81.5 mm, **10.7 mm medial** to it, and the heart's left border reaches 95.2 mm, crossing
+the line by 2.9 mm. The native pair crosses it by 3.9 mm. So the apex sits just inside the
+mid-clavicular line with the heart's silhouette reaching a few millimetres past it, which is where
+an apex belongs. 74.4 percent of the heart is left of midline, against 68.8 for the native pair.
+
+**The first thing the uniform fit does not fix: the heart floats.** Clearances are 14.6 mm to the
+ribs, 14.8 mm to the sternum, 15.0 mm to the spine and 8.2 mm to the diaphragm, and **zero** of
+2,988,093 heart vertices sit below the diaphragm dome. In a real chest the right ventricle rests
+against the sternum and the heart sits ON the diaphragm — BodyParts3D's own heart overlaps its dome
+by 4.3 mm. This one is suspended in the middle of its cage. The scaling rule fixes SIZE, and nothing
+in it constrains where a chamber-centroid registration puts the heart front to back. Both facts are
+measured and reported; neither is repaired, because moving the heart to touch the sternum would be
+authoring a placement rather than measuring one.
+
+**The second: nothing about the ribs became age-correct.** A uniform scale multiplies every
+distance by one number and changes no angle and no proportion. The ribs still run at adult
+obliquity, the intercostal spaces are adult spaces merely further apart, and the costal cartilage is
+the adult source's. **A probe window indexed to an intercostal space on this chest is approximate**,
+which is exactly why authoring or migrating echo view angles onto it is the next unit and is
+deferred until this one is signed off.
+
+**What the registration cost.** This pack has no valve-ring geometry — its source carries none and
+its provenance records that none was invented — so the four valve centres the Rodero fit uses do not
+exist here. It is fitted on the four chamber-cavity centroids plus an apex-direction landmark
+instead: same estimator, same scale lock, cruder correspondence. RMS residual 9.220 mm and max
+11.915 mm against Rodero's valve-plane fit, with the long axis agreeing to 3.5 degrees. Part of that
+residual is the unresolved right ventricle: a cavity centroid moves with how full the cavity is.
+
+**Two licence readings, on purpose.** The adult context records CC BY 4.0, read from the rights
+holder's current page. This one records **CC BY-SA 2.1 Japan** with the 2008 Life Science Integrated
+Database Center copyright line, per the owner's instruction, and treats the scaled mesh as a
+share-alike derivative. The source's licensing history genuinely is inconsistent and share-alike is
+the more restrictive reading, so honouring it satisfies either. Both descriptors say which reading
+they carry and why; reconciling them is an owner decision about both, not a pipeline change.
+
+**Neither the pack nor the chest ships.** The bound pack is CC BY-NC 4.0 and `non_commercial`. The
+build filter and `check:published-packs` now cover `public/body-context/` the way they already
+covered `public/packs/`, so a context reaches `dist/` only when the pack it serves does.

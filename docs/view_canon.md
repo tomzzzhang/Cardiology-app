@@ -1,6 +1,6 @@
 # View canon — pediatric TTE views and sweeps
 
-**Last Updated:** 2026-08-22 10:33 EDT
+**Last Updated:** 2026-08-22 11:52 EDT
 
 > **Clinical view/sweep specification.** Clinical collaborators are referred to by role, not name. The backing research report lives in the owner's planning folder.
 

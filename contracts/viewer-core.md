@@ -1,6 +1,6 @@
 # Contract: viewer-core
 
-**Last Updated:** 2026-08-22 10:33 EDT
+**Last Updated:** 2026-08-22 11:52 EDT
 
 **Owns:** `src/viewer/**`
 **Status:** implemented for the wave 1c slice. Superseded clauses are marked below; where this
@@ -74,8 +74,20 @@ claim about a patient. See `src/viewer/bodyFrame.ts` and `pipeline/body_context.
 **The reference chest — SCENE CONTEXT, off by default.** *(Added 2026-08-21.)* When a body
 context supplies geometry, BodyParts3D thoracic structures (skin, ribs, sternum, thoracic spine,
 lungs, diaphragm, clavicles) are drawn around the registered heart in body millimetres. It is a
-REFERENCE COMPOSITE — one adult male's chest around a population-average heart — and never a
-patient or clinical ground truth.
+REFERENCE COMPOSITE — one adult male's chest around somebody else's heart — and never a patient or
+clinical ground truth.
+
+**One chest per pack, and they are not the same chest.** *(Added 2026-08-22.)* A registration is a
+fact about a PAIRING, so each bound pack has its own context and no context is shared.
+`adult-reference-chest-bp3d` is the BodyParts3D thorax at its native size around `normal-rodero`.
+`fitted-chest-bp3d-heart0102-chambers` is the same thorax scaled UNIFORMLY — one factor on all
+three axes, baked into the chest geometry when the asset is built — until
+`normal-vhl-heart0102-chambers` fills it at the cardiothoracic ratio BodyParts3D's own heart fills
+its own thorax at. The scaling never reaches `model_to_body`, which stays rigid at scale exactly 1
+so the HEART is never resized; `bodyContextV0.rigidProblem` refuses a scale there by name. A fitted
+chest is still an adult male's, resized: its rib obliquity, intercostal spacing and costal cartilage
+are the adult source's and are not age-correct, so a probe window indexed to an intercostal space on
+one is approximate, and the descriptor says so.
 
 The heart is the subject and the chest is scenery, and each of these is a rule:
 

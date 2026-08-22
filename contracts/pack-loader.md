@@ -1,6 +1,6 @@
 # Contract: pack-loader
 
-**Last Updated:** 2026-08-22 10:33 EDT
+**Last Updated:** 2026-08-22 11:52 EDT
 
 **Owns:** `src/schema/**`, `src/packs/**`, `scripts/validate-packs.ts`, `scripts/check-provenance.ts`
 **Status:** implemented in wave 0; extended to **v0.1** (2026-08-19) so the pack system can carry
@@ -32,6 +32,15 @@ and is a different organ.
 Loading is fail-soft in one direction only: no context, or a context that fails any check, leaves
 the heart in its own model space and everything working. A context that failed validation is never
 partially applied.
+
+*(2026-08-22.)* `CONTEXT_FOR_PACK` is one context per pack and never one context shared by two,
+because the registration is a fact about the pairing and a chest may be sized for the heart it was
+fitted to. `fitted-chest-bp3d-heart0102-chambers` is `adult-reference-chest-bp3d`'s source thorax
+scaled uniformly to `normal-vhl-heart0102-chambers`; the scale lives in the built chest geometry,
+never in `model_to_body`, which `rigidProblem` still pins to exactly 1. Body contexts are also the
+second directory copied out of `public/`, so `src/packs/published.ts` now carries
+`PUBLISHED_CONTEXT_IDS` and a context ships only when its bound pack ships — enforced by the build
+filter and asserted by `npm run check:published-packs`.
 
 ## Interface
 
