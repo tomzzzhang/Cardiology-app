@@ -1,6 +1,6 @@
 # Coding agents — start here
 
-**Last Updated:** 2026-08-22 14:32 EDT
+**Last Updated:** 2026-08-22 14:47 EDT
 
 This is the repository's sole normative agent entrypoint. The current phase is
 **platform-first development** on `dev`.
@@ -22,6 +22,20 @@ validator, test, UI restriction, or CI gate without an explicit owner decision.
 The active interface target is desktop/laptop. Phone and touch UX are explicitly paused as a
 separate later design workstream; they do not constrain current components or gate checkpoints.
 
+**The AUTHORING build is the only active surface. The learner build is ARCHIVED.** *(Owner
+decision, 2026-08-22.)* Work in the authoring build — `npm run dev:authoring`,
+`npm run build:authoring` — and do not develop against the learner build until the owner says the
+authoring build is good enough. The two had started to blur, and a pose that is fine as an
+authoring draft is not the same thing as a view a learner should be shown; treating them as one
+surface is what let a probe sitting 66 mm off the patient reach a learner-facing panel.
+
+Archived means PAUSED, not deleted and not unguarded. The learner bundle still builds, and every
+check that protects something other than product quality still runs and still gates:
+`check:published-packs` and `check:authoring-absent` are licence and exposure controls, not
+development targets, and they do not become optional because the surface they protect is paused.
+What is suspended is learner-facing UX work, learner polish, and treating the learner bundle as the
+thing being iterated on.
+
 ## Platform work
 
 - Work directly on `dev` in coherent, reversible units.
@@ -42,8 +56,9 @@ separate later design workstream; they do not constrain current components or ga
   checks again before publishing. Both currently exercise the desktop surface.
 - Clinical review applies when content or review status is promoted, not to code-only platform
   checkpoints. The later review policy, not platform code, decides when `vetted` is truthful.
-- The authoring-capable build is the primary platform work surface. Excluding authoring from the
-  learner bundle is a release check, not a development restriction.
+- The authoring-capable build is the primary platform work surface, and since 2026-08-22 it is the
+  ONLY active one. Excluding authoring from the learner bundle is a release check, not a
+  development restriction.
 
 ## Safeguards that always apply
 
@@ -54,6 +69,10 @@ separate later design workstream; they do not constrain current components or ga
 - No PHI, patient uploads, secrets, private collaborator context, or machine-specific absolute
   paths in committed material.
 - **No imaging view may define the patient/body frame.** The frame is `+X` patient-left, `+Y` posterior, `+Z` superior, established by a `body-context/v0` registration and gated by `scripts/check-frame-decoupling.ts`. An acquisition window is not evidence for which way is up.
+- **A transducer stands ON the patient.** Ultrasound does not cross an air gap, so a probe pose
+  whose origin is off the skin images nothing and is not a view. `scripts/check-probe-on-skin.ts`
+  gates every canon-family view of a pack that has a body context bound, by point-to-surface
+  distance, with no exception list.
 - **Evidence may describe a superseded pack revision.** Adopting a proposal must not require deleting the evidence for it; `check-view-candidates` validates a superseded set against the pack at its bound git revision and says so.
 - Shared and user-facing material labels synthetic output `Simulated` and unreviewed content
   `Draft`. A free or working pose must not inherit a saved view's name or review state.

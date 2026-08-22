@@ -1,6 +1,6 @@
 # Contract: app shell
 
-**Last Updated:** 2026-08-22 14:32 EDT
+**Last Updated:** 2026-08-22 14:47 EDT
 
 **Owns:** `src/App.tsx`, `src/main.tsx`, `src/styles.css`, `index.html`, `vite.config.ts`
 **Status:** partial. Echo and Explore modes, the model picker, deep-link params, the responsive

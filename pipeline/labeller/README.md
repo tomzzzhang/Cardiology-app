@@ -1,6 +1,6 @@
 # Chamber labeller and review viewer
 
-**Last Updated:** 2026-08-22 14:32 EDT
+**Last Updated:** 2026-08-22 14:47 EDT
 
 A browser tool for putting chamber labels on a heart model that does not carry
 them, and for looking at the result honestly. Built on `experiment/vhl-partition`

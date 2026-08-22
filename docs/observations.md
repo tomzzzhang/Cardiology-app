@@ -1,6 +1,6 @@
 # Observations — the visual review list
 
-**Last Updated:** 2026-08-22 14:32 EDT
+**Last Updated:** 2026-08-22 14:47 EDT
 
 Not a changelog. This is the list of things worth *looking at*, written for whoever opens the app
 next with the intent of judging it. Each entry says what to look at, why there was uncertainty,
@@ -2550,3 +2550,53 @@ carrying its size and the decision behind it, so an existing exposure is visible
 cannot arrive unnoticed. Whether to decimate that pack is a decision about the pack, and the honest
 trade is legible now: its interiors are the reason it is heavy, and its interiors are the reason it
 exists.
+
+## 71. The probe has to be touching the patient, and the two builds stop pretending to be one
+
+*(2026-08-22. Owner decision, from looking at a pose in the viewer and not recognising it.)*
+
+**The pose nobody could name was 92.6 mm off the body.** The chamber-labelled pack's ingest
+reference pose put its transducer nine centimetres clear of the skin, and `normal-rodero`'s
+right-parasternal bicaval put its 66.5 mm clear, and both drew a confident sector with an echo image
+under it. Nothing in the repository checked the most basic fact about transthoracic
+echocardiography: **ultrasound does not cross an air gap.** A transducer not in contact with skin
+images nothing, so a pose whose origin is off the body is not a poor view — it is not a view.
+
+**`npm run check:probe-on-skin`, and no exception list.** Every view in a canon family (A–F) of a
+pack that has a `body-context/v0` registration bound must have its probe origin within 5 mm of the
+reference chest's skin. It is point-to-TRIANGLE distance against the shipped surface, not
+point-to-nearest-vertex, and the difference is not cosmetic: the parasternal short axis measures
+8.15 mm to the nearest skin VERTEX and **0.07 mm to the skin**. A vertex test would have failed
+correct poses and taught us nothing. Of the fourteen surviving canon views, thirteen sit under
+0.1 mm from the surface and the widest is 3.16 mm — an aperture `migrate_apertures.py` slid onto the
+wall along its own beam. The tolerance is 5 mm because that is what the evidence needs, not what
+would be comfortable.
+
+**The INGEST family is out of scope by definition, not by exemption.** An ingest reference pose is
+derived from a pack's own bounding sphere, says in its name that it is not a clinical view, exists
+only because schema v0.1 requires a pack with an `echo_volume` to carry at least one view, and is
+the anchor for the ingest replay in `tests/unit/authoringIngest.test.ts`. It makes no claim to a
+transthoracic window, so a rule about windows does not reach it. Writing it into an exception list
+instead would have been the beginning of a list, and the point of a hard check is that it has none.
+
+**F1 is withdrawn.** `f1-right-parasternal-bicaval` was hand-authored in the authoring tool from the
+canon rather than derived from this mesh, and it could not be rebuilt: `normal-rodero` has no
+separately tagged cavae, so there is no measured bicaval plane on this substrate to place a window
+on. Entry 65 had already found that reaching the skin needed a 73.7 mm retreat and a 22.19 cm
+imaging depth, and concluded the plane itself needed reauthoring. Under a hard contact rule there is
+no third option, so the pack is v0.1.5 with nine views and F1 is gone from it. Its authoring slot,
+its review-session evidence and its canon entry all remain, so reauthoring it is picking the work
+back up rather than starting over.
+
+**And the two builds stop pretending to be one.** *(Owner decision.)* The learner build is
+**archived** and the authoring build is the only active surface until the owner is satisfied with
+it. This is the same idiom the phone/touch workstream already uses: paused, not deleted, and not
+unguarded — `check:published-packs` and `check:authoring-absent` are licence and exposure controls
+and keep gating, because they protect something other than product quality. What stops is
+developing, polishing and iterating against the learner surface.
+
+The distinction earns itself immediately. An off-skin probe pose is a perfectly reasonable
+work-in-progress in an authoring tool, where the whole job is moving a transducer around until it is
+right. It is never acceptable in front of a learner, who has no way to know that the picture is of
+nothing. Conflating the two is what let one reach a learner-facing panel, and it is why the check
+above exists rather than a note asking someone to be careful.

@@ -1,6 +1,6 @@
 # Project workflow
 
-**Last Updated:** 2026-08-22 14:32 EDT
+**Last Updated:** 2026-08-22 14:47 EDT
 
 How work happens in this repository. Product intent, clinical context, decisions, and progress
 live in the owner's planning folder. Code and executable checks live here.
@@ -29,6 +29,14 @@ schema v1, final echo tuning, learner restrictions, or a finished provenance UI.
 Desktop and laptop are the active interface and release target. Phone/touch UX is paused as a
 separate later design project; retained responsive code and tests are evidence, not a current gate.
 
+**The learner build is archived (owner decision, 2026-08-22).** The authoring build is the only
+surface being worked on until the owner is satisfied with it. Build and run
+`npm run dev:authoring` / `npm run build:authoring`. The learner bundle is not deleted and its
+licence and exposure gates — `check:published-packs`, `check:authoring-absent` — keep running and
+keep gating; what stops is developing, polishing and iterating against the learner surface. The two
+builds had begun to blur, and the cost was concrete: an off-skin probe pose is a legitimate
+work-in-progress in authoring and is never acceptable in front of a learner.
+
 The current engine-plus-content-pack split is a useful platform architecture, not an irreversible
 safeguard. Change reversible architecture when build evidence supports it; record the decision once
 the replacement settles.
@@ -49,7 +57,8 @@ the replacement settles.
 |---|---|
 | Ordinary platform work | `npm run check:fast` |
 | Coherent platform milestone | `npm run verify` |
-| Pack, schema, source, licence, or provenance change | Add `npm run check:content` (includes `check:frame-decoupling`) |
+| Pack, schema, source, licence, or provenance change | Add `npm run check:content` (includes the per-pack geometry budget, the probe-on-skin gate and `check:frame-decoupling`) |
+| Any probe pose authored, imported or generated | `npm run check:probe-on-skin` — a transducer off the skin images nothing |
 | Body-context registration or chest assets change | Add `npm run check:body-context` — a deterministic Python replay; needs the `cardiology-app` conda env and the gitignored BodyParts3D cache, so it is local-only and not in CI |
 | Desktop UI or rendering change | Run the relevant targeted browser test and inspect that surface |
 | Explicit desktop release candidate | `npm run verify:release` |

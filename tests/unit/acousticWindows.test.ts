@@ -64,9 +64,11 @@ describe('poses placed through a measured window', () => {
   it('never overwrote a pose that was already authored', () => {
     // The four Rodero views that existed before this module ran are still the
     // ones a person authored: none of them carries this module's marker.
+    // f1-right-parasternal-bicaval was withdrawn on 2026-08-22: its transducer
+    // stood 66 mm off the body, which check:probe-on-skin now refuses.
     for (const viewId of ['b1-apical-four-chamber', 'b4-apical-three-chamber',
       'c1-parasternal-long-axis', 'c2-parasternal-short-axis',
-      'f1-right-parasternal-bicaval', 'ingest-reference-pose']) {
+      'ingest-reference-pose']) {
       const view = rodero.views.find((v) => v.view_id === viewId);
       expect(view, `${viewId} is missing from normal-rodero`).toBeDefined();
       expect(view!.provenance.modified.note).not.toContain(CHEST_WALL_MARKER);
